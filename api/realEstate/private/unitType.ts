@@ -23,9 +23,11 @@ export const {router} = createCrudRouter({
     toSelect: (docs) => unitTypesToSelect(docs),
     defaultSort: {name: 1},
     buildCreateData: ({name, company, ...params}) => {
-        return buildCreateDataFromSchemaDef(UnitTypeSchemaDef, {
-            slug: () => `${company.name.toLowerCase().replace(/\s+/g, "")}_${name.toLowerCase().replace(/\s+/g, "")}`,
-        })({name, company, ...params});
+        // slug is server-owned (not in SchemaDef / no client write) — must be set explicitly
+        return {
+            ...buildCreateDataFromSchemaDef(UnitTypeSchemaDef)({name, company, ...params}),
+            slug: `${company.name.toLowerCase().replace(/\s+/g, "")}_${name.toLowerCase().replace(/\s+/g, "")}`,
+        };
     },
     buildUpdateData: buildUpdateDataFromSchemaDef(UnitTypeSchemaDef, {}),
     beforeDelete: async ({session, logger, languageCode, company}, doc) => {

@@ -18,11 +18,28 @@ import {edificeService} from './edifice.service';
 import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
 import {slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
+import {PDFDocument} from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import {SingleForm} from "armonia/src/modules/core/types/shared.types";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
+
+/** Extract one brochure page (1-indexed) into a standalone PDF buffer. */
+async function extractSinglePdfPage(sourcePdf: PDFDocument, pageNumber: number): Promise<Buffer> {
+    const pageIndex = pageNumber - 1;
+    if (pageIndex < 0 || pageIndex >= sourcePdf.getPageCount()) {
+        throw new Error(`PDF page ${pageNumber} is out of range (1-${sourcePdf.getPageCount()})`);
+    }
+    const pageDoc = await PDFDocument.create();
+    const [copiedPage] = await pageDoc.copyPages(sourcePdf, [pageIndex]);
+    pageDoc.addPage(copiedPage);
+    return Buffer.from(await pageDoc.save());
+}
+
+function hasMarketingBooklet(entity: {marketingBooklet?: unknown} | null | undefined): boolean {
+    return !!entity?.marketingBooklet;
+}
 
 export class EdificeActions {
 
@@ -90,6 +107,30 @@ export class EdificeActions {
 
             const summaryData = await processPdfForFloorsAndUnits(pdfPath, outputRoot);
             const gridfsStorage  = new GridFSStorage(languageCode, 'media', logger);
+            const sourcePdfDoc   = await PDFDocument.load(pdfBuffer);
+
+            const createPdfPageMedia = async (
+                pageNumber: number,
+                fileName: string,
+                meta: Record<string, string>,
+                txSession: any,
+            ) => {
+                const pageBuffer = await extractSinglePdfPage(sourcePdfDoc, pageNumber);
+                const gfsId = await gridfsStorage.uploadFile(pageBuffer, fileName, meta);
+                return mediaService.create({
+                    type:         'pdf',
+                    originalName: fileName,
+                    fileName,
+                    fileId:       gfsId,
+                    createdBy:    actionUserCtx.userId,
+                    metadata:     {size: pageBuffer.length, extension: 'pdf', mime: 'application/pdf', safeCheckedFlag: false},
+                    mimeType:     'application/pdf',
+                    extension:    'pdf',
+                    fileSize:     pageBuffer.length,
+                    sizeInBytes:  pageBuffer.length,
+                    company,
+                }, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+            };
 
             const floorImportSession = await mongooseInstance.startSession();
             try {
@@ -168,6 +209,22 @@ export class EdificeActions {
                             floorPlanImageId = media._id;
                         }
 
+                        // Single-page PDF from the brochure, used when marketingBooklet is unset.
+                        let floorBookletMedia: any = undefined;
+                        const shouldSetFloorBooklet = !hasMarketingBooklet(existingFloor) && typeof floorData.pageNumber === 'number';
+                        if (shouldSetFloorBooklet) {
+                            try {
+                                floorBookletMedia = await createPdfPageMedia(
+                                    floorData.pageNumber!,
+                                    `floor-booklet-${floorKey}-page-${floorData.pageNumber}.pdf`,
+                                    {edifice: edificeId, floor: floorKey, type: 'marketingBooklet'},
+                                    txSession,
+                                );
+                            } catch (bookletErr) {
+                                logger.warn(`PDF import: failed to extract floor booklet page edificeId=${edificeId} floor=${floorKey} page=${floorData.pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
+                            }
+                        }
+
                         let createdFloor;
                         if (existingFloor) {
                             existingFloor.name        = floorName;
@@ -177,6 +234,9 @@ export class EdificeActions {
                             if (floorPlanImageId) {
                                 const newMedia = await mediaService.findByIdOrThrow(floorPlanImageId, {session: txSession, logger, languageCode});
                                 existingFloor.mainImage = newMedia;
+                            }
+                            if (floorBookletMedia) {
+                                existingFloor.marketingBooklet = floorBookletMedia;
                             }
 
                             existingFloor.$locals = existingFloor.$locals || {};
@@ -204,6 +264,7 @@ export class EdificeActions {
                                 videoGallery:      [],
                             };
                             if (mainImageMedia) floorDataToCreate.mainImage = mainImageMedia;
+                            if (floorBookletMedia) floorDataToCreate.marketingBooklet = floorBookletMedia;
 
                             createdFloor = await floorService.create(floorDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
                             floorsCreated++;
@@ -284,6 +345,19 @@ export class EdificeActions {
                                     if (!alreadyInGallery) existingUnit.imageGallery = [...currentGallery, unitPlanMedia];
                                 }
 
+                                if (!hasMarketingBooklet(existingUnit) && typeof unitSummary.pageNumber === 'number') {
+                                    try {
+                                        existingUnit.marketingBooklet = await createPdfPageMedia(
+                                            unitSummary.pageNumber,
+                                            `unit-booklet-${slugifyLabel(unitName)}-${floorKey}-page-${unitSummary.pageNumber}.pdf`,
+                                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'marketingBooklet'},
+                                            txSession,
+                                        );
+                                    } catch (bookletErr) {
+                                        logger.warn(`PDF import: failed to extract unit booklet page edificeId=${edificeId} unit=${unitName} page=${unitSummary.pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
+                                    }
+                                }
+
                                 existingUnit.$locals = existingUnit.$locals || {};
                                 existingUnit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
 
@@ -301,6 +375,20 @@ export class EdificeActions {
                                 const computedPrice = pricePerM2 != null
                                     ? pricePerM2 * unitArea + (verandaPricePerM2 != null ? verandaPricePerM2 * unitVerandaArea : 0)
                                     : 0;
+
+                                let unitBookletMedia: any = undefined;
+                                if (typeof unitSummary.pageNumber === 'number') {
+                                    try {
+                                        unitBookletMedia = await createPdfPageMedia(
+                                            unitSummary.pageNumber,
+                                            `unit-booklet-${slugifyLabel(unitName)}-${floorKey}-page-${unitSummary.pageNumber}.pdf`,
+                                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'marketingBooklet'},
+                                            txSession,
+                                        );
+                                    } catch (bookletErr) {
+                                        logger.warn(`PDF import: failed to extract unit booklet page edificeId=${edificeId} unit=${unitName} page=${unitSummary.pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
+                                    }
+                                }
 
                                 const unitDataToCreate: any = {
                                     name:               unitName,
@@ -330,6 +418,7 @@ export class EdificeActions {
                                     connectedUnits:     [],
                                 };
                                 if (mainImageMedia) unitDataToCreate.mainImage = mainImageMedia;
+                                if (unitBookletMedia) unitDataToCreate.marketingBooklet = unitBookletMedia;
 
                                 await unitService.create(unitDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
                                 unitsCreated++;

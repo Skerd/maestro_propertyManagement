@@ -43,6 +43,8 @@ export type UnitSummary = {
 
 export type FloorSummary = {
     floor: string;
+    /** 1-indexed brochure page classified as this floor's master page (if any). */
+    pageNumber?: number;
     units: Record<string, UnitSummary[]>;
 };
 

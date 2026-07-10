@@ -168,6 +168,11 @@ export const processPdfForFloorsAndUnits = async (
                 };
             }
 
+            if (pageType === 'floor') {
+                // Keep the latest floor master page when multiple floor pages share a label.
+                ocrSummary.floors[floorKey].pageNumber = result.pageNumber;
+            }
+
             if (pageType === 'unit') {
                 const unitName = ocrData.name || 'Unknown Unit';
                 if (!ocrSummary.floors[floorKey].units[unitName]) {

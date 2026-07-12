@@ -6,8 +6,7 @@ export const commissionSheetView: ViewConfig = {
     accessModel: "commissions",
     apiUrl: "/api/realEstate/commission",
     header: {
-        titleField: "basis",
-        titleFieldLanguageCategory: "basisEnum",
+        titleField: "agent.name",
         subtitleKey: "commission",
         showCloseButton: true,
     },
@@ -45,7 +44,7 @@ export const commissionSheetView: ViewConfig = {
                                 label: "sourceType",
                                 widgetProps: {
                                     icon: "#Tag",
-                                    languageKeyCategory: "sourceTypeEnum"
+                                    languageKeyCategory: "fields.!enums.sourceType"
                                 }
                             }
                         },
@@ -58,7 +57,7 @@ export const commissionSheetView: ViewConfig = {
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
-                                    languageKeyCategory: "statusEnum"
+                                    languageKeyCategory: "fields.!enums.status"
                                 }
                             }
                         },

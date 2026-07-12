@@ -571,6 +571,7 @@ async function getDashboardStats(
         unavailable: 0,
         reserved: 0,
         sold: 0,
+        leased: 0,
     };
     for (const row of unitsByStatusAgg) {
         const status = row._id as string;
@@ -579,6 +580,7 @@ async function getDashboardStats(
         else if (status === UnitStatus.UNAVAILABLE) unitsByStatus.unavailable = count;
         else if (status === UnitStatus.RESERVED) unitsByStatus.reserved = count;
         else if (status === UnitStatus.SOLD) unitsByStatus.sold = count;
+        else if (status === UnitStatus.RENTED) unitsByStatus.leased = count;
     }
 
     const paymentPlansByStatus = {
@@ -757,7 +759,7 @@ function buildEmptySummary(): DashboardSummary {
         totalProjects: 0,
         totalEdifices: 0,
         totalFloors: 0,
-        unitsByStatus: { available: 0, unavailable: 0, reserved: 0, sold: 0 },
+        unitsByStatus: { available: 0, unavailable: 0, reserved: 0, sold: 0, leased: 0 },
         activeReservations: 0,
         paymentPlans: {
             byStatus: { active: 0, completed: 0, defaulted: 0, cancelled: 0 },
@@ -802,7 +804,7 @@ function sanitizeDashboardSummary(
     try {
         SchemaGuard.sanitizeFields(Unit, COLLECTED_DATA["units"].readFields, "read", actionUserCtx, languageCode);
     } catch {
-        out.unitsByStatus = { available: 0, unavailable: 0, reserved: 0, sold: 0 };
+        out.unitsByStatus = { available: 0, unavailable: 0, reserved: 0, sold: 0, leased: 0 };
         out.totalUnits = 0;
         out.inventoryValue = 0;
         out.occupancyRatePercent = 0;

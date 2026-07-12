@@ -163,6 +163,15 @@ export const floorSheetView: ViewConfig = {
                         {
                             render: "#SmallInfoCard",
                             field: {
+                                name: "statistics.unitsByStatus.leased",
+                                widget: "#SmallInfoCard",
+                                label: "statistics.leasedUnits",
+                                widgetProps: { icon: "#Key", tooltip: "statistics.leasedUnits" },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            field: {
                                 name: "statistics.unitsByStatus.unavailable",
                                 widget: "#SmallInfoCard",
                                 label: "statistics.unavailableUnits",

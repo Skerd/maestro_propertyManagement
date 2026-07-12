@@ -36,7 +36,7 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
     }
 
     private static emptyUnitsByStatus() {
-        return {available: 0, reserved: 0, sold: 0, unavailable: 0};
+        return {available: 0, reserved: 0, sold: 0, unavailable: 0, leased: 0};
     }
 
     private static currencyAccumMapToDto(map: Map<string, ProjectStatsCurrencyAccum>): EdificeMoneyByCurrency[] {
@@ -105,6 +105,7 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
                 us.reserved += s.unitsByStatus.reserved ?? 0;
                 us.sold += s.unitsByStatus.sold ?? 0;
                 us.unavailable += s.unitsByStatus.unavailable ?? 0;
+                us.leased += s.unitsByStatus.leased ?? 0;
             }
             if (s.totalValue?.length) {
                 totalValueParts.push(...s.totalValue);

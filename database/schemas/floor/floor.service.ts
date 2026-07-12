@@ -38,11 +38,14 @@ interface FloorStatsCurrencyAccum {
     sum: number;
 }
 
-const STATUS_KEY_MAP: Record<string, keyof {available: number; reserved: number; sold: number; unavailable: number}> = {
+type FloorUnitsByStatus = {available: number; reserved: number; sold: number; unavailable: number; leased: number};
+
+const STATUS_KEY_MAP: Record<string, keyof FloorUnitsByStatus> = {
     available_unit: "available",
     unavailable_unit: "unavailable",
     reserved_unit: "reserved",
     sold_unit: "sold",
+    rented_unit: "leased",
 };
 
 export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
@@ -51,7 +54,7 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
     }
 
     private static emptyUnitsByStatus() {
-        return {available: 0, reserved: 0, sold: 0, unavailable: 0};
+        return {available: 0, reserved: 0, sold: 0, unavailable: 0, leased: 0};
     }
 
     private static parseAggMoneyValue(v: unknown): number {

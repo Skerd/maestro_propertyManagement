@@ -73,6 +73,40 @@ export const constructionUpdateSheetView: ViewConfig = {
                         },
                         {
                             render: "#SmallInfoCard",
+                            permissions: {read: "milestone"},
+                            dependent: "milestone",
+                            field: {
+                                name: "milestone.title",
+                                widget: "#SmallInfoCard",
+                                label: "milestone",
+                                widgetProps: {
+                                    icon: "#Flag",
+                                    linkedRefPath: "milestone",
+                                    linkedSheetModel: "milestones",
+                                    linkedSheetWidget: "#MilestoneSheetView",
+                                    linkedSheetEntityProp: "milestone",
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "scheduleTask"},
+                            dependent: "scheduleTask",
+                            field: {
+                                name: "scheduleTask.title",
+                                widget: "#SmallInfoCard",
+                                label: "scheduleTask",
+                                widgetProps: {
+                                    icon: "#ListChecks",
+                                    linkedRefPath: "scheduleTask",
+                                    linkedSheetModel: "scheduletasks",
+                                    linkedSheetWidget: "#ScheduleTaskSheetView",
+                                    linkedSheetEntityProp: "scheduleTask",
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
                             permissions: {read: "progressPercent"},
                             field: {
                                 name: "progressPercent",
@@ -170,7 +204,7 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
                                 pageSize: 50,
-                                cascadeClearFormFields: ["edifice"],
+                                cascadeClearFormFields: ["edifice", "milestone", "scheduleTask"],
                             },
                         },
                     },
@@ -183,6 +217,38 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.edificePlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/edifice/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "milestone",
+                            widget: "#ApiSelect",
+                            label: "form.milestoneLabel",
+                            placeholder: "form.milestonePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/milestone/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "scheduleTask",
+                            widget: "#ApiSelect",
+                            label: "form.scheduleTaskLabel",
+                            placeholder: "form.scheduleTaskPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/scheduleTask/select",
                                 pageSize: 50,
                                 postBodyFromFormField: {field: "project", paramName: "project"},
                                 remountKeyFormField: "project",

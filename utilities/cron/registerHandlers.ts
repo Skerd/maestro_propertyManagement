@@ -3,6 +3,10 @@ import {runReservationExpirationReminders} from "../../utilities/cronJobs/reserv
 import {runPaymentPlanInstallmentReminders} from "../../utilities/cronJobs/paymentPlanInstallmentReminderJob";
 import {runModificationRequestSlaEscalations} from "../../utilities/cronJobs/modificationRequestSlaJob";
 import {runRentalMaintenance} from "../../utilities/cronJobs/rentalMaintenanceJob";
+import {runPermitExpiryReminders} from "../../utilities/cronJobs/permitExpiryReminderJob";
+import {runMilestoneSlippageReminders} from "../../utilities/cronJobs/milestoneSlippageJob";
+import {runTenderDeadlineReminders} from "../../utilities/cronJobs/tenderDeadlineReminderJob";
+import {runMaintenanceDue} from "../../utilities/cronJobs/maintenanceDueJob";
 
 export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
@@ -33,6 +37,38 @@ export function registerPropertyManagementCronHandlers(): void {
         code: "propertyManagement.rentalMaintenance",
         handler: async ctx => {
             await runRentalMaintenance(ctx.logger);
+        },
+        version: "1",
+    });
+
+    registerCronHandler({
+        code: "propertyManagement.permitExpiryReminder",
+        handler: async ctx => {
+            await runPermitExpiryReminders(ctx.logger);
+        },
+        version: "1",
+    });
+
+    registerCronHandler({
+        code: "propertyManagement.milestoneSlippage",
+        handler: async ctx => {
+            await runMilestoneSlippageReminders(ctx.logger);
+        },
+        version: "1",
+    });
+
+    registerCronHandler({
+        code: "propertyManagement.tenderDeadline",
+        handler: async ctx => {
+            await runTenderDeadlineReminders(ctx.logger);
+        },
+        version: "1",
+    });
+
+    registerCronHandler({
+        code: "propertyManagement.maintenanceDue",
+        handler: async ctx => {
+            await runMaintenanceDue(ctx.logger);
         },
         version: "1",
     });

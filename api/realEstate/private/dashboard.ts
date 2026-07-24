@@ -59,6 +59,20 @@ import {
     type UnitCostHierarchyIdSets,
 } from "../../../database/schemas/unitCost/unitCostHierarchy.util";
 
+import {permitService} from "../../../database/schemas/permit/permit.service";
+import {projectDocumentService} from "../../../database/schemas/projectDocument/projectDocument.service";
+import {designStageService} from "../../../database/schemas/designStage/designStage.service";
+import {milestoneService} from "../../../database/schemas/milestone/milestone.service";
+import {snagService} from "../../../database/schemas/snag/snag.service";
+import {handoverPackageService} from "../../../database/schemas/handoverPackage/handoverPackage.service";
+import {
+    deliveryReadinessFormSchema,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/deliveryReadiness.form.validator";
+import type {
+    DeliveryReadinessDomain,
+    DeliveryReadinessFormResponseType,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/deliveryReadiness.form.response.type";
+
 const router = Router();
 
 /** SchemaGuard read shape for unit-cost money on the dashboard (aligns with unit statistics). */
@@ -832,6 +846,89 @@ function sanitizeDashboardSummary(
     }
 
     return out;
+}
+
+/**
+ * POST /api/realEstate/dashboard/deliveryReadiness
+ *
+ * Checklist completeness scoring across the delivery domains (permits, required
+ * design deliverables, design stages, milestones, snags, handover packages),
+ * scoped to a project or edifice when provided. Domains with no records are
+ * reported with percent: null and excluded from the overall score.
+ *
+ * @route POST /api/realEstate/dashboard/deliveryReadiness
+ * @access Private
+ */
+router.post(
+    "/deliveryReadiness",
+    authMW("private"),
+    rateLimiter({windowMs: 60000, max: 60}),
+    validateFormZod(deliveryReadinessFormSchema),
+    asyncHandler(getDeliveryReadiness),
+);
+
+async function getDeliveryReadiness(
+    params: AuthenticatedMWType & {projectId?: string; edificeId?: string},
+): Promise<DeliveryReadinessFormResponseType> {
+    const {logger, languageCode, company, projectId, edificeId} = params;
+    logger.start("Computing delivery readiness...");
+    const opts = {logger, languageCode};
+
+    const scope: Record<string, unknown> = {company: company._id, deletedAt: null};
+    if (projectId && ObjectId.isValid(projectId)) scope.project = new ObjectId(projectId);
+    else if (edificeId && ObjectId.isValid(edificeId)) scope.edifice = new ObjectId(edificeId);
+
+    async function domain(
+        key: string,
+        service: {count: (q: Record<string, unknown>, o: typeof opts) => Promise<number>},
+        doneFilter: Record<string, unknown>,
+        totalFilter: Record<string, unknown> = {},
+    ): Promise<DeliveryReadinessDomain> {
+        const [done, total] = await Promise.all([
+            service.count({...scope, ...totalFilter, ...doneFilter}, opts),
+            service.count({...scope, ...totalFilter}, opts),
+        ]);
+        return {key, done, total, percent: total > 0 ? Math.round((done / total) * 100) : null};
+    }
+
+    const domains = await Promise.all([
+        domain("permits", permitService, {status: "approved"}),
+        domain(
+            "requiredDeliverables",
+            projectDocumentService,
+            {status: {$in: ["approved", "superseded"]}},
+            {isRequiredDeliverable: true},
+        ),
+        domain("designStages", designStageService, {status: "completed"}),
+        domain("milestones", milestoneService, {status: "completed"}, {status: {$ne: "cancelled"}}),
+        snagDomain(),
+        domain("handoverPackages", handoverPackageService, {status: "completed"}),
+    ]);
+
+    // Snag is unit-scoped (no project/edifice fields) — resolve unit ids when scoped.
+    async function snagDomain(): Promise<DeliveryReadinessDomain> {
+        const snagScope: Record<string, unknown> = {company: company._id, deletedAt: null};
+        if (scope.project || scope.edifice) {
+            const unitFilter: Record<string, unknown> = {company: company._id};
+            if (scope.project) unitFilter.project = scope.project;
+            if (scope.edifice) unitFilter.edifice = scope.edifice;
+            const units = await unitService.find(unitFilter, opts, null, "_id", {}, undefined, undefined);
+            snagScope.unit = {$in: units.map((u) => u._id)};
+        }
+        const [done, total] = await Promise.all([
+            snagService.count({...snagScope, status: {$in: ["resolved", "rejected"]}}, opts),
+            snagService.count(snagScope, opts),
+        ]);
+        return {key: "snags", done, total, percent: total > 0 ? Math.round((done / total) * 100) : null};
+    }
+
+    const scored = domains.filter((d) => d.percent != null);
+    const overallScore = scored.length > 0
+        ? Math.round(scored.reduce((sum, d) => sum + (d.percent as number), 0) / scored.length)
+        : null;
+
+    logger.finish("Delivery readiness computed.");
+    return {overallScore, domains};
 }
 
 export const basePath = "/api/realEstate/dashboard";

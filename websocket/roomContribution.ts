@@ -1,11 +1,5 @@
 import {registerRoomDisplayNames} from "@coreModule/websocket/roomRegistry";
 
-/**
- * Site rooms for propertyManagement panel paths
- * (e.g. `/realEstate/units` → room `units` via withSiteRoom).
- *
- * Keep in sync with propertyManagement sidebarContribution + routeConfigContribution.
- */
 export function registerPropertyManagementRoomContributions(): void {
     registerRoomDisplayNames({
         overview: "Overview",
@@ -23,6 +17,10 @@ export function registerPropertyManagementRoomContributions(): void {
         commissions: "Commissions",
         constructionUpdates: "Construction updates",
         snags: "Snags",
+        milestones: "Milestones",
+        scheduleTasks: "Schedule tasks",
+        projectDocuments: "Project documents",
+        permits: "Permits",
         rentalsHub: "Rentals hub",
         ownerPortal: "Owner portal",
         leases: "Leases",
@@ -32,9 +30,54 @@ export function registerPropertyManagementRoomContributions(): void {
         roi: "ROI",
         erpExport: "ERP export",
         unitCosts: "Unit costs",
-        // Tenancy system-settings resources owned by this module
         unitTypes_configurations: "Unit types configurations",
         unitTypeCategories_configurations: "Unit type categories configurations",
         constructors_configurations: "Constructors configurations",
+        budgets: "Budgets",
+        boqItems: "Boq Items",
+        costclassifications: "Cost Classifications",
+        estimateComparison: "Estimate Comparison",
+        specifications: "Specifications",
+        specificationitems: "Specification Items",
+        tenders: "Tenders",
+        tenderinvitations: "Tender Invitations",
+        bids: "Bids",
+        bidlines: "Bid Lines",
+        bidComparison: "Bid Comparison",
+        approvalworkflows: "Approval Workflows",
+        approvalrequests: "Approval Requests",
+        contractorinvoices: "Contractor Invoices",
+        incominginvoices: "Incoming Invoices",
+        costControl: "Cost Control",
+        liquidityplans: "Liquidity Plans",
+        liquiditylines: "Liquidity Lines",
+        feecalculations: "Fee Calculations",
+        planmarkups: "Plan Markups",
+        cockpit: "Cockpit",
+        assets: "Assets",
+        maintenanceplans: "Maintenance Plans",
+        maintenanceworkorders: "Maintenance Work Orders",
+        bimmodels: "BIM Models",
+        bimquantities: "BIM Quantities",
+        analytics: "Analytics",
+        costCommitments: "Cost Commitments",
+        workPackages: "Work Packages",
+        constructionContracts: "Construction Contracts",
+        progressClaims: "Progress Claims",
+        rfis: "Rfis",
+        submittals: "Submittals",
+        variationOrders: "Variation Orders",
+        landParcels: "Land Parcels",
+        feasibilityStudies: "Feasibility Studies",
+        siteDiaries: "Site Diaries",
+        safetyIncidents: "Safety Incidents",
+        warranties: "Warranties",
+        handoverPackages: "Handover Packages",
+        commissioningRecords: "Commissioning Records",
+        designStages: "Design Stages",
+        inspectionChecklistTemplates: "Inspection Checklist Templates",
+        consultantAppointments: "Consultant Appointments",
+        milestones: "Milestones",
+        scheduleTasks: "Schedule Tasks",
     });
 }

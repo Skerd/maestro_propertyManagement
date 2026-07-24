@@ -17,6 +17,8 @@ import {reservationService} from "../../../../database/schemas/reservation/reser
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
+import {handoverPackageService} from "../../../../database/schemas/handoverPackage/handoverPackage.service";
+import {companyService} from "@coreModule/database/schemas/company/company.service";
 import {recordCommission} from "../../../../utilities/mappers/commissions/commission";
 import Sale, {SaleApprovalStatus, SalePaymentType} from "../../../../database/schemas/sale/sale";
 import PaymentPlan, {
@@ -501,7 +503,36 @@ const {router} = createCrudRouter({
             notes, transactionReference,
             handoverDate, handedOverBy, handoverNotes, handoverCertificate: handoverCertificateFile,
             titleTransferDate, deedNumber, notaryName, titleTransferCertificate: titleTransferCertificateFile,
+            existing, company, session, logger, languageCode,
         } = params as any;
+
+        // Handover gate: when the company requires it, a handover date can only be
+        // stamped once the unit's HandoverPackage is completed (delivery evidence).
+        // authMW strips company to "allowedDomains name isActive", so re-read settings.
+        const settingHandoverDate = handoverDate !== undefined && handoverDate !== null;
+        const alreadyHandedOver = !!existing?.handoverDate;
+        let requiresHandoverPackage = false;
+        if (settingHandoverDate && !alreadyHandedOver) {
+            const companyDoc = await companyService.findById(
+                company._id,
+                {session, logger, languageCode},
+                undefined,
+                "propertyManagementSettings",
+            );
+            requiresHandoverPackage = !!(companyDoc as any)?.propertyManagementSettings?.requiresHandoverPackageForHandover;
+        }
+        if (requiresHandoverPackage && settingHandoverDate && !alreadyHandedOver) {
+            const unitId = existing?.unit?._id ?? existing?.unit;
+            const completedPackage = unitId
+                ? await handoverPackageService.findOne(
+                    {unit: new ObjectId(unitId.toString()), company: company._id, status: "completed", deletedAt: null},
+                    {session, logger, languageCode},
+                )
+                : null;
+            if (!completedPackage) {
+                throw apiValidationException("sale_handover_requires_completed_handover_package", "", null, languageCode);
+            }
+        }
 
         const update: Record<string, unknown> = {};
 

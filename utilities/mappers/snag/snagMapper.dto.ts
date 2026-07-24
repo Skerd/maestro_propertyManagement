@@ -19,6 +19,25 @@ export function snagToDTO(doc: ISnag | any): Snag {
         resolvedAt:  doc.resolvedAt instanceof Date ? doc.resolvedAt.toISOString() : doc.resolvedAt ?? undefined,
         photos:      doc.photos?.length ? doc.photos.map(mapMedia) : undefined,
         notes:       doc.notes ?? undefined,
+        trade:       doc.trade ?? undefined,
+        workPackage: doc.workPackage
+            ? {
+                  _id: doc.workPackage._id?.toString() ?? doc.workPackage.toString(),
+                  name: doc.workPackage.name,
+                  title: doc.workPackage.title,
+              }
+            : undefined,
+        rootCause:   doc.rootCause ?? undefined,
+        costImpact:  doc.costImpact ?? undefined,
+        isWarranty:  doc.isWarranty ?? undefined,
+        isDlp:       doc.isDlp ?? undefined,
+        variationOrder: doc.variationOrder
+            ? {
+                  _id: doc.variationOrder._id?.toString() ?? doc.variationOrder.toString(),
+                  name: doc.variationOrder.name,
+                  title: doc.variationOrder.title,
+              }
+            : undefined,
         ...mapOwnershipToDTO(doc),
     };
 }

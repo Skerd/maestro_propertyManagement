@@ -614,4 +614,159 @@ export function registerRealEstateNotificationEventHandlers(): void {
             }
         }
     });
+
+    // ─── Project Documents ─────────────────────────────────────────────────────
+
+    const projectDocumentEvents: {code: string; description: string; importance: NotificationImportance}[] = [
+        {code: NotificationEventCodes.PROJECT_DOCUMENT_SUBMITTED_FOR_REVIEW, description: "Document submitted for review", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.PROJECT_DOCUMENT_APPROVED, description: "Document approved", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.PROJECT_DOCUMENT_REJECTED, description: "Document rejected", importance: NotificationImportance.HIGH},
+        {code: NotificationEventCodes.PROJECT_DOCUMENT_SUPERSEDED, description: "Document superseded", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.PROJECT_DOCUMENT_MARKED_AS_BUILT, description: "Document marked as-built", importance: NotificationImportance.MEDIUM},
+    ];
+
+    for (const evt of projectDocumentEvents) {
+        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
+            const {receiverIds, payload} = event;
+            const opts = langOpts(event);
+            for (const receiverId of receiverIds) {
+                try {
+                    await createAndPushNotification(
+                        {
+                            receiver: new ObjectId(receiverId),
+                            company: new ObjectId(payload.companyId as string),
+                            code: evt.code,
+                            description: evt.description,
+                            content: {
+                                projectDocumentId: payload.projectDocumentId,
+                                title: payload.title,
+                                projectId: payload.projectId,
+                            },
+                            importance: evt.importance,
+                            category: NotificationCategory.COMPANY,
+                        },
+                        opts
+                    );
+                } catch (e) {
+                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                }
+            }
+        });
+    }
+
+    // ─── Permits ───────────────────────────────────────────────────────────────
+
+    const permitEvents: {code: string; description: string; importance: NotificationImportance}[] = [
+        {code: NotificationEventCodes.PERMIT_SUBMITTED, description: "Permit submitted", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.PERMIT_UNDER_REVIEW, description: "Permit under review", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.PERMIT_APPROVED, description: "Permit approved", importance: NotificationImportance.HIGH},
+        {code: NotificationEventCodes.PERMIT_REJECTED, description: "Permit rejected", importance: NotificationImportance.HIGH},
+        {code: NotificationEventCodes.PERMIT_RENEWED, description: "Permit renewed", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.PERMIT_EXPIRING, description: "Permit expiring soon", importance: NotificationImportance.HIGH},
+    ];
+
+    for (const evt of permitEvents) {
+        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
+            const {receiverIds, payload} = event;
+            const opts = langOpts(event);
+            for (const receiverId of receiverIds) {
+                try {
+                    await createAndPushNotification(
+                        {
+                            receiver: new ObjectId(receiverId),
+                            company: new ObjectId(payload.companyId as string),
+                            code: evt.code,
+                            description: evt.description,
+                            content: {
+                                permitId: payload.permitId,
+                                title: payload.title,
+                                projectId: payload.projectId,
+                                expiresAt: payload.expiresAt,
+                            },
+                            importance: evt.importance,
+                            category: NotificationCategory.COMPANY,
+                        },
+                        opts
+                    );
+                } catch (e) {
+                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                }
+            }
+        });
+    }
+
+    // ─── Milestones ────────────────────────────────────────────────────────────
+
+    const milestoneEvents: {code: string; description: string; importance: NotificationImportance}[] = [
+        {code: NotificationEventCodes.MILESTONE_STARTED, description: "Milestone started", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.MILESTONE_COMPLETED, description: "Milestone completed", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.MILESTONE_SLIPPING, description: "Milestone slipping (overdue)", importance: NotificationImportance.HIGH},
+    ];
+
+    for (const evt of milestoneEvents) {
+        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
+            const {receiverIds, payload} = event;
+            const opts = langOpts(event);
+            for (const receiverId of receiverIds) {
+                try {
+                    await createAndPushNotification(
+                        {
+                            receiver: new ObjectId(receiverId),
+                            company: new ObjectId(payload.companyId as string),
+                            code: evt.code,
+                            description: evt.description,
+                            content: {
+                                milestoneId: payload.milestoneId,
+                                title: payload.title,
+                                projectId: payload.projectId,
+                                plannedEnd: payload.plannedEnd,
+                            },
+                            importance: evt.importance,
+                            category: NotificationCategory.COMPANY,
+                        },
+                        opts
+                    );
+                } catch (e) {
+                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                }
+            }
+        });
+    }
+
+    // ─── Schedule Tasks ──────────────────────────────────────────────────────────
+
+    const scheduleTaskEvents: {code: string; description: string; importance: NotificationImportance}[] = [
+        {code: NotificationEventCodes.SCHEDULE_TASK_STARTED, description: "Task started", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.SCHEDULE_TASK_COMPLETED, description: "Task completed", importance: NotificationImportance.MEDIUM},
+    ];
+
+    for (const evt of scheduleTaskEvents) {
+        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
+            const {receiverIds, payload} = event;
+            const opts = langOpts(event);
+            for (const receiverId of receiverIds) {
+                try {
+                    await createAndPushNotification(
+                        {
+                            receiver: new ObjectId(receiverId),
+                            company: new ObjectId(payload.companyId as string),
+                            code: evt.code,
+                            description: evt.description,
+                            content: {
+                                scheduleTaskId: payload.scheduleTaskId,
+                                title: payload.title,
+                                projectId: payload.projectId,
+                                milestoneId: payload.milestoneId,
+                            },
+                            importance: evt.importance,
+                            category: NotificationCategory.COMPANY,
+                        },
+                        opts
+                    );
+                } catch (e) {
+                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                }
+            }
+        });
+    }
 }

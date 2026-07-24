@@ -18,7 +18,7 @@ import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperator
 import {addModelData} from "@coreModule/database/collections";
 import {constructorViews} from "./constructor.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {ConstructorSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
+import {ConstructorSchemaDef, constructorPartyTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
 import {CitySimpleSnippet} from "@coreModule/database/schemas/city/city.snippets";
 import {StateSimpleSnippet} from "@coreModule/database/schemas/state/state.snippets";
 import {CountrySimpleSnippet} from "@coreModule/database/schemas/country/country.snippets";
@@ -43,6 +43,10 @@ export interface IConstructor extends Document, IOwnershipPluginFields, ISoftDel
     website: string;
     vat: string;
     company: ICompany;
+    partyType?: (typeof constructorPartyTypeValues)[number];
+    trades?: string;
+    insuranceExpiry?: Date;
+    performanceScore?: number;
 }
 
 const ConstructorSchema: Schema = new Schema(
@@ -136,7 +140,24 @@ const ConstructorSchema: Schema = new Schema(
             type: SchemaTypes.String,
             required: true,
             unique: true,
-        }
+        },
+        partyType: {
+            type: SchemaTypes.String,
+            enum: [...constructorPartyTypeValues],
+            required: false,
+        },
+        trades: {
+            type: SchemaTypes.String,
+            required: false,
+        },
+        insuranceExpiry: {
+            type: SchemaTypes.Date,
+            required: false,
+        },
+        performanceScore: {
+            type: SchemaTypes.Number,
+            required: false,
+        },
     },
     {
         accessMode: "loose"

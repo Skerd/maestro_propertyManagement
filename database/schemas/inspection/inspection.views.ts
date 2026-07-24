@@ -292,6 +292,51 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependentAny: ["checklistTemplate", "checklistResponsesJson"],
+            props: { title: "checklist" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 2 },
+                    children: [
+                        {
+                            render: "#SmallInfoCard",
+                            dependent: "checklistTemplate",
+                            permissions: { read: "checklistTemplate" },
+                            field: {
+                                name: "checklistTemplate",
+                                widget: "#SmallInfoCard",
+                                label: "checklistTemplate",
+                                widgetProps: {
+                                    icon: "#ListDetails",
+                                    parent: "checklistTemplate",
+                                    valuePath: ["title", "name"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "div",
+                    props: { className: "p-2 rounded-lg bg-muted/30 border border-border/50" },
+                    dependent: "checklistResponsesJson",
+                    children: [
+                        {
+                            render: "#ExpandableText",
+                            permissions: { read: "checklistResponsesJson" },
+                            field: {
+                                name: "checklistResponsesJson",
+                                widget: "#ExpandableText",
+                                widgetProps: { className: "text-sm font-mono" },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
             // dependent: "notes",
             props: { title: "notes" },
             children: [
@@ -724,6 +769,46 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     label: "form.notesLabel",
                     placeholder: "form.notesPlaceholder",
                     widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                },
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        permissions: { writeAny: ["checklistTemplate", "checklistResponsesJson"] },
+        props: { title: "checklist" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        permissions: { write: "checklistTemplate" },
+                        field: {
+                            name: "checklistTemplate",
+                            widget: "#ApiSelect",
+                            label: "form.checklistTemplateLabel",
+                            placeholder: "form.checklistTemplatePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/inspectionChecklistTemplate/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                render: "#Field",
+                permissions: { write: "checklistResponsesJson" },
+                field: {
+                    name: "checklistResponsesJson",
+                    widget: "#Textarea",
+                    label: "form.checklistResponsesJsonLabel",
+                    placeholder: "form.checklistResponsesJsonPlaceholder",
+                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto font-mono text-xs" },
                 },
             },
         ],

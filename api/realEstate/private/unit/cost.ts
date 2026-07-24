@@ -237,6 +237,7 @@ export const {router} = createCrudRouter({
             verificationStatus, paymentStatus, paymentDate,
             notes, tag, invoiceNumber, vendorName,
             relatedModificationRequest,
+            constructorRef, boqItem, costCommitment,
             expenditureItemMedia, expenditureItemMediaRowIndex, invoiceMedia,
             expenditureItems,
             budgetedAmount, budgetCurrency,
@@ -264,6 +265,9 @@ export const {router} = createCrudRouter({
                 relatedModificationRequest && String(relatedModificationRequest).trim()
                     ? new ObjectId(String(relatedModificationRequest))
                     : undefined,
+            constructorRef: constructorRef && String(constructorRef).trim() ? new ObjectId(String(constructorRef)) : undefined,
+            boqItem: boqItem && String(boqItem).trim() ? new ObjectId(String(boqItem)) : undefined,
+            costCommitment: costCommitment && String(costCommitment).trim() ? new ObjectId(String(costCommitment)) : undefined,
             invoiceMedia: toMediaIds(invoiceMedia),
             expenditureItems: buildExpenditureItems(expenditureItems, expenditureItemMedia, expenditureItemMediaRowIndex, languageCode),
             budgetedAmount: budgetedAmount != null ? Decimal128.fromString(String(budgetedAmount)) : undefined,
@@ -287,6 +291,7 @@ export const {router} = createCrudRouter({
             verificationStatus, paymentStatus, paymentDate,
             notes, tag, invoiceNumber, vendorName,
             relatedModificationRequest,
+            constructorRef, boqItem, costCommitment,
             expenditureItemMedia, expenditureItemMediaRowIndex, invoiceMedia,
             expenditureItems,
             budgetedAmount, budgetCurrency,
@@ -310,6 +315,15 @@ export const {router} = createCrudRouter({
                 relatedModificationRequest && String(relatedModificationRequest).trim()
                     ? new ObjectId(String(relatedModificationRequest))
                     : null;
+        }
+        if (constructorRef !== undefined && writeFields.constructorRef) {
+            update.constructorRef = constructorRef && String(constructorRef).trim() ? new ObjectId(String(constructorRef)) : null;
+        }
+        if (boqItem !== undefined && writeFields.boqItem) {
+            update.boqItem = boqItem && String(boqItem).trim() ? new ObjectId(String(boqItem)) : null;
+        }
+        if (costCommitment !== undefined && writeFields.costCommitment) {
+            update.costCommitment = costCommitment && String(costCommitment).trim() ? new ObjectId(String(costCommitment)) : null;
         }
         if (invoiceMedia !== undefined && writeFields.invoiceMedia) {
             update.invoiceMedia = toMediaIds(invoiceMedia);

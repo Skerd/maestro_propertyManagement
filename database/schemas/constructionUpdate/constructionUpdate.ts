@@ -3,6 +3,8 @@ import dayjs from "dayjs";
 import {Document, model, Schema, SchemaTypes} from "mongoose";
 import {IProject} from "../project/project";
 import {IEdifice} from "../edifice/edifice";
+import {IMilestone} from "../milestone/milestone";
+import {IScheduleTask} from "../scheduleTask/scheduleTask";
 import {IMedia} from "@coreModule/database/schemas/media/media";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
@@ -18,6 +20,8 @@ import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/v
 import {ConstructionUpdateSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.schema-def";
 import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
+import {MilestoneSimpleSnippet} from "../milestone/milestone.snippets";
+import {ScheduleTaskSimpleSnippet} from "../scheduleTask/scheduleTask.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {constructionUpdateViews} from "./constructionUpdate.views";
 import {applyConstructionUpdateIndexes} from "./constructionUpdate.indexes";
@@ -27,6 +31,8 @@ export interface IConstructionUpdate extends Document, IOwnershipPluginFields, I
     name: string;
     project: IProject;
     edifice?: IEdifice;
+    milestone?: IMilestone;
+    scheduleTask?: IScheduleTask;
     title: string;
     description?: string;
     progressPercent: number;
@@ -39,6 +45,8 @@ const ConstructionUpdateSchema = new Schema<IConstructionUpdate>(
         name:        {type: SchemaTypes.String, required: true, trim: true},
         project:     {type: SchemaTypes.ObjectId, ref: "Project",  required: true, refAllowlist: ProjectSimpleSnippet},
         edifice:     {type: SchemaTypes.ObjectId, ref: "Edifice",  required: false, refAllowlist: EdificeSimpleSnippet},
+        milestone:   {type: SchemaTypes.ObjectId, ref: "Milestone", required: false, refAllowlist: MilestoneSimpleSnippet},
+        scheduleTask:{type: SchemaTypes.ObjectId, ref: "ScheduleTask", required: false, refAllowlist: ScheduleTaskSimpleSnippet},
         title:       {type: SchemaTypes.String, required: true, trim: true},
         description: {type: SchemaTypes.String, required: false},
         progressPercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100},

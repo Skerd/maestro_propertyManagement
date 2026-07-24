@@ -1,6 +1,15 @@
 import type {ConstructionUpdate} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.dto";
 import type {IConstructionUpdate} from "../../../database/schemas/constructionUpdate/constructionUpdate";
 import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+
+function mapTitledRef(ref: any): {_id: string; name?: string; title?: string} | undefined {
+    if (!ref) return undefined;
+    return {
+        _id: ref._id?.toString(),
+        name: ref.name ?? undefined,
+        title: ref.title ?? undefined,
+    };
+}
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
@@ -13,6 +22,8 @@ export function constructionUpdateToDTO(doc: IConstructionUpdate): ConstructionU
         name:            doc.name,
         project:         mapPopulatedRef(doc.project),
         edifice:         mapPopulatedRef(doc.edifice),
+        milestone:       mapTitledRef(doc.milestone),
+        scheduleTask:    mapTitledRef(doc.scheduleTask),
         title:           doc.title,
         description:     doc.description ?? undefined,
         progressPercent: doc.progressPercent,

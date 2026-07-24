@@ -22,6 +22,7 @@ import {UnitSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {InspectionSimpleSnippet} from "./inspection.snippets";
+import {InspectionChecklistTemplateSimpleSnippet} from "../inspectionChecklistTemplate/inspectionChecklistTemplate.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
 export enum InspectionStatus {
@@ -86,6 +87,8 @@ export interface IInspection extends Document, IOwnershipPluginFields, ISoftDele
     cancellationReason?: string;
     clientSignatureMediaId?: IMedia;
     clientSignedAt?: Date;
+    checklistTemplate?: any;
+    checklistResponsesJson?: string;
 }
 
 function findingItemSchemaDef() {
@@ -287,6 +290,16 @@ const InspectionSchema = new Schema<IInspection>(
             type: SchemaTypes.Date,
             required: false,
             index: true,
+        },
+        checklistTemplate: {
+            type: SchemaTypes.ObjectId,
+            ref: "InspectionChecklistTemplate",
+            required: false,
+            refAllowlist: InspectionChecklistTemplateSimpleSnippet,
+        },
+        checklistResponsesJson: {
+            type: SchemaTypes.String,
+            required: false,
         },
     },
     {accessMode: "loose"},

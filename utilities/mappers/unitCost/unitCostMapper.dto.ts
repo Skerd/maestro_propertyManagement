@@ -75,6 +75,21 @@ export function unitCostToDTO(doc: IUnitCost): UnitCost {
                   title: doc.relatedModificationRequest.title,
               }
             : undefined,
+        constructorRef: mapPopulatedRef((doc as any).constructorRef),
+        boqItem: (doc as any).boqItem
+            ? {
+                  _id: (doc as any).boqItem._id?.toString() ?? (doc as any).boqItem.toString(),
+                  name: (doc as any).boqItem.name,
+                  title: (doc as any).boqItem.title,
+              }
+            : undefined,
+        costCommitment: (doc as any).costCommitment
+            ? {
+                  _id: (doc as any).costCommitment._id?.toString() ?? (doc as any).costCommitment.toString(),
+                  name: (doc as any).costCommitment.name,
+                  title: (doc as any).costCommitment.title,
+              }
+            : undefined,
         invoiceMedia: Array.isArray(doc.invoiceMedia) ? doc.invoiceMedia.map(mapMedia) : [],
         expenditureItems,
         documentSubtotal: computeUnitCostSubtotal(doc),

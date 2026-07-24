@@ -15,6 +15,8 @@ import {SnagSchemaDef, snagStatusValues, snagSeverityValues} from "armonia/src/m
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
+import {WorkPackageSimpleSnippet} from "../workPackage/workPackage.snippets";
+import {VariationOrderSimpleSnippet} from "../variationOrder/variationOrder.snippets";
 import {snagViews} from "./snag.views";
 import {applySnagIndexes} from "./snag.indexes";
 
@@ -32,6 +34,13 @@ export interface ISnag extends Document, IOwnershipPluginFields, ISoftDeletePlug
     resolvedAt?: Date;
     photos: IMedia[];
     notes?: string;
+    trade?: string;
+    workPackage?: any;
+    rootCause?: string;
+    costImpact?: number;
+    isWarranty?: boolean;
+    isDlp?: boolean;
+    variationOrder?: any;
 }
 
 const SnagSchema = new Schema<ISnag>(
@@ -63,6 +72,13 @@ const SnagSchema = new Schema<ISnag>(
             refAllowlist: MediaSimpleSnippet,
         },
         notes: {type: SchemaTypes.String, required: false},
+        trade: {type: SchemaTypes.String, required: false},
+        workPackage: {type: SchemaTypes.ObjectId, ref: "WorkPackage", required: false, refAllowlist: WorkPackageSimpleSnippet},
+        rootCause: {type: SchemaTypes.String, required: false},
+        costImpact: {type: SchemaTypes.Number, required: false},
+        isWarranty: {type: SchemaTypes.Boolean, required: false, default: false},
+        isDlp: {type: SchemaTypes.Boolean, required: false, default: false},
+        variationOrder: {type: SchemaTypes.ObjectId, ref: "VariationOrder", required: false, refAllowlist: VariationOrderSimpleSnippet},
     },
     {accessMode: "loose"}
 );

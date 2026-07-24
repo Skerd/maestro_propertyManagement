@@ -163,6 +163,91 @@ export const snagSheetView: ViewConfig = {
                                 widgetProps: {icon: "#CalendarCheck", format: "date"},
                             },
                         },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "trade"},
+                            dependent: "trade",
+                            field: {
+                                name: "trade",
+                                widget: "#SmallInfoCard",
+                                label: "trade",
+                                widgetProps: {icon: "#Tools"},
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "workPackage"},
+                            dependent: "workPackage",
+                            field: {
+                                name: "workPackage",
+                                widget: "#SmallInfoCard",
+                                label: "workPackage",
+                                widgetProps: {
+                                    icon: "#IconFolder",
+                                    parent: "workPackage",
+                                    valuePath: ["title", "name"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "rootCause"},
+                            dependent: "rootCause",
+                            field: {
+                                name: "rootCause",
+                                widget: "#SmallInfoCard",
+                                label: "rootCause",
+                                widgetProps: {icon: "#AlertCircle"},
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "costImpact"},
+                            dependent: "costImpact",
+                            field: {
+                                name: "costImpact",
+                                widget: "#SmallInfoCard",
+                                label: "costImpact",
+                                widgetProps: {icon: "#CurrencyDollar", format: "locale"},
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "isWarranty"},
+                            field: {
+                                name: "isWarranty",
+                                widget: "#SmallInfoCard",
+                                label: "isWarranty",
+                                widgetProps: {icon: "#ShieldCheck", valueType: "boolean"},
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "isDlp"},
+                            field: {
+                                name: "isDlp",
+                                widget: "#SmallInfoCard",
+                                label: "isDlp",
+                                widgetProps: {icon: "#ShieldCheck", valueType: "boolean"},
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "variationOrder"},
+                            dependent: "variationOrder",
+                            field: {
+                                name: "variationOrder",
+                                widget: "#SmallInfoCard",
+                                label: "variationOrder",
+                                widgetProps: {
+                                    icon: "#IconFolder",
+                                    parent: "variationOrder",
+                                    valuePath: ["title", "name"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
                     ],
                 },
             ],
@@ -336,7 +421,82 @@ const snagFormNodes: ViewConfig["nodes"] = [
                             widgetProps: {valueFormat: "yyyy-MM-dd"},
                         },
                     },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "trade",
+                            widget: "#Input",
+                            label: "form.tradeLabel",
+                            placeholder: "form.tradePlaceholder",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "workPackage",
+                            widget: "#ApiSelect",
+                            label: "form.workPackageLabel",
+                            placeholder: "form.workPackagePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/workPackage/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "variationOrder",
+                            widget: "#ApiSelect",
+                            label: "form.variationOrderLabel",
+                            placeholder: "form.variationOrderPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/variationOrder/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "costImpact",
+                            widget: "#Input",
+                            label: "form.costImpactLabel",
+                            placeholder: "form.costImpactPlaceholder",
+                            widgetProps: {type: "number", step: "0.01"},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "isWarranty",
+                            widget: "#Checkbox",
+                            label: "form.isWarrantyLabel",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "isDlp",
+                            widget: "#Checkbox",
+                            label: "form.isDlpLabel",
+                        },
+                    },
                 ],
+            },
+            {
+                render: "#Field",
+                field: {
+                    name: "rootCause",
+                    widget: "#Textarea",
+                    label: "form.rootCauseLabel",
+                    placeholder: "form.rootCausePlaceholder",
+                    widgetProps: {className: "resize-none max-h-[200px] overflow-y-auto"},
+                },
             },
             {
                 render: "#Field",

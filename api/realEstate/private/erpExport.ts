@@ -10,6 +10,10 @@ import Commission from "../../../database/schemas/commission/commission";
 import PaymentPlan from "../../../database/schemas/paymentPlan/paymentPlan";
 import RentalPayment from "../../../database/schemas/rentalPayment/rentalPayment";
 import UnitCost from "../../../database/schemas/unitCost/unitCost";
+import BoqItem from "../../../database/schemas/boqItem/boqItem";
+import CostCommitment from "../../../database/schemas/costCommitment/costCommitment";
+import ProgressClaim from "../../../database/schemas/progressClaim/progressClaim";
+import Permit from "../../../database/schemas/permit/permit";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {computeUnitCostSubtotal} from "../../../utilities/mappers/unitCost/unitCostMapper.dto";
 import {erpExportFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.form.validator";
@@ -20,6 +24,10 @@ import type {
     ErpPaymentPlanRow,
     ErpRentalPaymentRow,
     ErpUnitCostRow,
+    ErpBoqItemRow,
+    ErpCostCommitmentRow,
+    ErpProgressClaimRow,
+    ErpPermitRow,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.response.type";
 import type {ErpExportFormType} from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.form.type";
 import {
@@ -332,6 +340,157 @@ async function erpExportHandler(
         });
     }
 
+    // ── BOQ Items ─────────────────────────────────────────────────────────────
+    if (datasets.includes("boqItems")) {
+        const boqFilter: Record<string, unknown> = {
+            ...baseMatch,
+            ...dateFilter("createdAt", from, to),
+        };
+        if (projectId && ObjectId.isValid(projectId)) {
+            boqFilter.project = new ObjectId(projectId);
+        }
+
+        const boqDocs = await BoqItem.find(boqFilter)
+            .select("name title project budget wbsCode trade plannedQty plannedRate plannedAmount actualAmount currency status")
+            .populate("project", "name")
+            .populate("budget", "name title")
+            .populate("currency", "abbreviation symbol")
+            .lean();
+
+        result.boqItems = (boqDocs as Record<string, unknown>[]).map((b): ErpBoqItemRow => {
+            const project = b.project as {name?: string} | undefined;
+            const budget = b.budget as {name?: string; title?: string} | undefined;
+            const currency = b.currency as {abbreviation?: string; symbol?: string} | undefined;
+            const planned = toNum(b.plannedAmount);
+            const actual = toNum(b.actualAmount);
+            return {
+                id: b._id?.toString() ?? "",
+                name: String(b.name ?? ""),
+                title: String(b.title ?? ""),
+                projectName: project?.name ?? undefined,
+                budgetName: budget?.name ?? budget?.title ?? undefined,
+                wbsCode: b.wbsCode != null ? String(b.wbsCode) : undefined,
+                trade: b.trade != null ? String(b.trade) : undefined,
+                plannedQty: b.plannedQty != null ? toNum(b.plannedQty) : undefined,
+                plannedRate: b.plannedRate != null ? toNum(b.plannedRate) : undefined,
+                plannedAmount: b.plannedAmount != null ? planned : undefined,
+                actualAmount: b.actualAmount != null ? actual : undefined,
+                variance: b.plannedAmount != null || b.actualAmount != null ? planned - actual : undefined,
+                currency: currency?.abbreviation ?? currency?.symbol ?? "",
+                status: String(b.status ?? ""),
+            };
+        });
+    }
+
+    // ── Cost Commitments ──────────────────────────────────────────────────────
+    if (datasets.includes("costCommitments")) {
+        const ccFilter: Record<string, unknown> = {
+            ...baseMatch,
+            ...dateFilter("createdAt", from, to),
+        };
+        if (projectId && ObjectId.isValid(projectId)) {
+            ccFilter.project = new ObjectId(projectId);
+        }
+
+        const ccDocs = await CostCommitment.find(ccFilter)
+            .select("name title project constructorRef committedAmount retentionPercent issuedAt currency status")
+            .populate("project", "name")
+            .populate("constructorRef", "name")
+            .populate("currency", "abbreviation symbol")
+            .lean();
+
+        result.costCommitments = (ccDocs as Record<string, unknown>[]).map((c): ErpCostCommitmentRow => {
+            const project = c.project as {name?: string} | undefined;
+            const ctor = c.constructorRef as {name?: string} | undefined;
+            const currency = c.currency as {abbreviation?: string; symbol?: string} | undefined;
+            return {
+                id: c._id?.toString() ?? "",
+                name: String(c.name ?? ""),
+                title: String(c.title ?? ""),
+                projectName: project?.name ?? undefined,
+                constructorName: ctor?.name ?? undefined,
+                committedAmount: toNum(c.committedAmount),
+                retentionPercent: c.retentionPercent != null ? toNum(c.retentionPercent) : undefined,
+                issuedAt: c.issuedAt ? toIso(c.issuedAt) : undefined,
+                currency: currency?.abbreviation ?? currency?.symbol ?? "",
+                status: String(c.status ?? ""),
+            };
+        });
+    }
+
+    // ── Progress Claims ───────────────────────────────────────────────────────
+    if (datasets.includes("progressClaims")) {
+        const pcFilter: Record<string, unknown> = {
+            ...baseMatch,
+            ...dateFilter("createdAt", from, to),
+        };
+        if (projectId && ObjectId.isValid(projectId)) {
+            pcFilter.project = new ObjectId(projectId);
+        }
+
+        const pcDocs = await ProgressClaim.find(pcFilter)
+            .select("name title project constructionContract claimPeriodStart claimPeriodEnd amount certifiedAmount currency status")
+            .populate("project", "name")
+            .populate("constructionContract", "name title")
+            .populate("currency", "abbreviation symbol")
+            .lean();
+
+        result.progressClaims = (pcDocs as Record<string, unknown>[]).map((p): ErpProgressClaimRow => {
+            const project = p.project as {name?: string} | undefined;
+            const contract = p.constructionContract as {name?: string; title?: string} | undefined;
+            const currency = p.currency as {abbreviation?: string; symbol?: string} | undefined;
+            return {
+                id: p._id?.toString() ?? "",
+                name: String(p.name ?? ""),
+                title: String(p.title ?? ""),
+                projectName: project?.name ?? undefined,
+                contractName: contract?.name ?? contract?.title ?? undefined,
+                claimPeriodStart: p.claimPeriodStart ? toIso(p.claimPeriodStart) : undefined,
+                claimPeriodEnd: p.claimPeriodEnd ? toIso(p.claimPeriodEnd) : undefined,
+                amount: toNum(p.amount),
+                certifiedAmount: p.certifiedAmount != null ? toNum(p.certifiedAmount) : undefined,
+                currency: currency?.abbreviation ?? currency?.symbol ?? "",
+                status: String(p.status ?? ""),
+            };
+        });
+    }
+
+    // ── Permits ───────────────────────────────────────────────────────────────
+    if (datasets.includes("permits")) {
+        const permitFilter: Record<string, unknown> = {
+            ...baseMatch,
+            ...dateFilter("createdAt", from, to),
+        };
+        if (projectId && ObjectId.isValid(projectId)) {
+            permitFilter.project = new ObjectId(projectId);
+        }
+
+        const permitDocs = await Permit.find(permitFilter)
+            .select("name title project edifice permitType authority referenceNumber submittedAt approvedAt expiresAt status")
+            .populate("project", "name")
+            .populate("edifice", "name")
+            .lean();
+
+        result.permits = (permitDocs as Record<string, unknown>[]).map((p): ErpPermitRow => {
+            const project = p.project as {name?: string} | undefined;
+            const edifice = p.edifice as {name?: string} | undefined;
+            return {
+                id: p._id?.toString() ?? "",
+                name: String(p.name ?? ""),
+                title: String(p.title ?? ""),
+                projectName: project?.name ?? undefined,
+                edificeName: edifice?.name ?? undefined,
+                permitType: String(p.permitType ?? ""),
+                authority: p.authority != null ? String(p.authority) : undefined,
+                referenceNumber: p.referenceNumber != null ? String(p.referenceNumber) : undefined,
+                submittedAt: p.submittedAt ? toIso(p.submittedAt) : undefined,
+                approvedAt: p.approvedAt ? toIso(p.approvedAt) : undefined,
+                expiresAt: p.expiresAt ? toIso(p.expiresAt) : undefined,
+                status: String(p.status ?? ""),
+            };
+        });
+    }
+
     logger.finish("ERP export generated");
 
     if (format === "csv") {
@@ -351,6 +510,18 @@ async function erpExportHandler(
         }
         if (result.unitCosts?.length) {
             sections.push(`# ${getErpExportDatasetSectionLabel("unitCosts", languageCode)}\n` + toCsv(result.unitCosts as Record<string, unknown>[], languageCode));
+        }
+        if (result.boqItems?.length) {
+            sections.push(`# ${getErpExportDatasetSectionLabel("boqItems", languageCode)}\n` + toCsv(result.boqItems as Record<string, unknown>[], languageCode));
+        }
+        if (result.costCommitments?.length) {
+            sections.push(`# ${getErpExportDatasetSectionLabel("costCommitments", languageCode)}\n` + toCsv(result.costCommitments as Record<string, unknown>[], languageCode));
+        }
+        if (result.progressClaims?.length) {
+            sections.push(`# ${getErpExportDatasetSectionLabel("progressClaims", languageCode)}\n` + toCsv(result.progressClaims as Record<string, unknown>[], languageCode));
+        }
+        if (result.permits?.length) {
+            sections.push(`# ${getErpExportDatasetSectionLabel("permits", languageCode)}\n` + toCsv(result.permits as Record<string, unknown>[], languageCode));
         }
 
         res.setHeader("Content-Type", "text/csv; charset=utf-8");

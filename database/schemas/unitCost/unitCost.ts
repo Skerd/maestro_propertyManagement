@@ -32,6 +32,9 @@ import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.sni
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {ModificationRequestSimpleSnippet} from "../modificationRequest/modificationRequest.snippets";
+import {ConstructorSimpleSnippet} from "../constructor/constructor.snippets";
+import {BoqItemSimpleSnippet} from "../boqItem/boqItem.snippets";
+import {CostCommitmentSimpleSnippet} from "../costCommitment/costCommitment.snippets";
 import {
     EXPENDITURE_CATEGORY_VALUES,
     MEASURE_UNIT_VALUES,
@@ -67,6 +70,10 @@ export interface IUnitCost extends Document, IOwnershipPluginFields, ISoftDelete
     invoiceNumber?: string;
     vendorName?: string;
     relatedModificationRequest?: IModificationRequest;
+    /** Named "constructorRef", not "constructor" — see schema comment below. */
+    constructorRef?: any;
+    boqItem?: any;
+    costCommitment?: any;
     invoiceMedia: IMedia[];
     expenditureItems: IExpenditureItem[];
     budgetedAmount?: Decimal128;
@@ -218,6 +225,26 @@ const UnitCostSchema = new Schema<IUnitCost>(
             ref: "ModificationRequest",
             required: false,
             refAllowlist: ModificationRequestSimpleSnippet,
+        },
+        // NOTE: named "constructorRef" — Mongoose silently drops any schema path literally
+        // named "constructor" (plain-object prototype collision with Object.prototype.constructor).
+        constructorRef: {
+            type: SchemaTypes.ObjectId,
+            ref: "Constructor",
+            required: false,
+            refAllowlist: ConstructorSimpleSnippet,
+        },
+        boqItem: {
+            type: SchemaTypes.ObjectId,
+            ref: "BoqItem",
+            required: false,
+            refAllowlist: BoqItemSimpleSnippet,
+        },
+        costCommitment: {
+            type: SchemaTypes.ObjectId,
+            ref: "CostCommitment",
+            required: false,
+            refAllowlist: CostCommitmentSimpleSnippet,
         },
         invoiceMedia: {
             type: [{type: SchemaTypes.ObjectId, ref: "Media"}],

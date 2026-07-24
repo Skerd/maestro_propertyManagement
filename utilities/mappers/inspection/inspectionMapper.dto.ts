@@ -77,6 +77,14 @@ export function inspectionToDTO(inspection: IInspection | any): Inspection {
         completedAt: inspection.completedAt ? new Date(inspection.completedAt).toISOString() : undefined,
         cancelledAt: inspection.cancelledAt ? new Date(inspection.cancelledAt).toISOString() : undefined,
         cancellationReason: inspection.cancellationReason || undefined,
+        checklistTemplate: inspection.checklistTemplate
+            ? {
+                  _id: (inspection.checklistTemplate as any)._id?.toString() ?? inspection.checklistTemplate.toString(),
+                  name: (inspection.checklistTemplate as any).name,
+                  title: (inspection.checklistTemplate as any).title,
+              }
+            : undefined,
+        checklistResponsesJson: inspection.checklistResponsesJson ?? undefined,
         createdAt: (inspection as any).createdAt ? new Date((inspection as any).createdAt).toISOString() : undefined,
         updatedAt: (inspection as any).updatedAt ? new Date((inspection as any).updatedAt).toISOString() : undefined,
         ...mapSoftDeleteToDTO(inspection),

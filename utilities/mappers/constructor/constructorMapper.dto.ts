@@ -23,6 +23,10 @@ export function constructorToDTO(constructor: IConstructor, edifices?: IEdifice[
             latitude: address.latitude,
             longitude: address.longitude
         })) : undefined,
+        partyType: constructor.partyType,
+        trades: constructor.trades,
+        insuranceExpiry: constructor.insuranceExpiry instanceof Date ? constructor.insuranceExpiry.toISOString() : (constructor as any).insuranceExpiry ?? undefined,
+        performanceScore: constructor.performanceScore,
         ...mapSoftDeleteToDTO(constructor),
         ...mapOwnershipToDTO(constructor),
         logo: !!constructor.logo ? mapMedia(constructor.logo) : undefined,

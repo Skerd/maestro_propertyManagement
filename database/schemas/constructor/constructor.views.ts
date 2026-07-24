@@ -69,6 +69,48 @@ export const constructorSheetView: ViewConfig = {
                                 widgetProps: { icon: "#Globe" },
                             },
                         },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: { read: "partyType" },
+                            field: {
+                                name: "partyType",
+                                widget: "#SmallInfoCard",
+                                label: "partyType",
+                                widgetProps: { icon: "#IconUsersGroup", languageKeyCategory: "partyTypes" },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: { read: "trades" },
+                            field: {
+                                name: "trades",
+                                widget: "#SmallInfoCard",
+                                label: "trades",
+                                widgetProps: { icon: "#Tools" },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            dependent: "insuranceExpiry",
+                            permissions: { read: "insuranceExpiry" },
+                            field: {
+                                name: "insuranceExpiry",
+                                widget: "#SmallInfoCard",
+                                label: "insuranceExpiry",
+                                widgetProps: { icon: "#ShieldCheck", format: "date" },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            dependent: "performanceScore",
+                            permissions: { read: "performanceScore" },
+                            field: {
+                                name: "performanceScore",
+                                widget: "#SmallInfoCard",
+                                label: "performanceScore",
+                                widgetProps: { icon: "#Star" },
+                            },
+                        },
                     ],
                 },
             ],
@@ -254,6 +296,56 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.websiteLabel",
                             placeholder: "form.websitePlaceholder",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "partyType",
+                            widget: "#SimpleSelect",
+                            label: "form.partyTypeLabel",
+                            placeholder: "form.partyTypePlaceholder",
+                            widgetProps: {
+                                options: [
+                                    { value: "contractor", label: "form.partyTypeContractor" },
+                                    { value: "architect", label: "form.partyTypeArchitect" },
+                                    { value: "engineer", label: "form.partyTypeEngineer" },
+                                    { value: "qs", label: "form.partyTypeQs" },
+                                    { value: "pm", label: "form.partyTypePm" },
+                                    { value: "surveyor", label: "form.partyTypeSurveyor" },
+                                    { value: "other", label: "form.partyTypeOther" },
+                                ],
+                                className: "grow w-full",
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "trades",
+                            widget: "#Input",
+                            label: "form.tradesLabel",
+                            placeholder: "form.tradesPlaceholder",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "insuranceExpiry",
+                            widget: "#DateInput",
+                            label: "form.insuranceExpiryLabel",
+                            placeholder: "form.insuranceExpiryPlaceholder",
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "performanceScore",
+                            widget: "#Input",
+                            label: "form.performanceScoreLabel",
+                            placeholder: "form.performanceScorePlaceholder",
+                            widgetProps: { type: "number", step: "0.01" },
                         },
                     },
                     {

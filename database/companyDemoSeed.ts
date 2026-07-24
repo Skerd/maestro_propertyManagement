@@ -2,6 +2,7 @@ import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {createUnitTypes} from "@propertyManagement/database/schemas/unitType/unitType.defaults";
 import {createUnitTypeCategories} from "@propertyManagement/database/schemas/unitTypeCategory/unitTypeCategory.defaults";
 import {createConstructors} from "@propertyManagement/database/schemas/constructor/constructor.defaults";
+import {createCostClassifications} from "@propertyManagement/database/schemas/costClassification/costClassification.defaults";
 import {seedPropertyManagementDemoData} from "@propertyManagement/database/demo/propertyManagementCompanyDemo";
 
 /** Runs after core geo/currency seeds; before eCommerce category seed. */
@@ -12,5 +13,6 @@ export async function seedCompanyDemoData(parentLogger: serverLogger | undefined
     const categoryIds = await createUnitTypeCategories(logger, company);
     await createUnitTypes(logger, company, categoryIds);
     await createConstructors(logger, company);
+    await createCostClassifications(logger, company);
     await seedPropertyManagementDemoData(logger, company);
 }

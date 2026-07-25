@@ -132,3 +132,8 @@ export async function dropPropertyManagementCollections(): Promise<void> {
         await model.collection.drop();
     }
 }
+
+export const moduleBootstrap = {
+    models: propertyManagementModels,
+    dropModuleCollections: dropPropertyManagementCollections,
+};

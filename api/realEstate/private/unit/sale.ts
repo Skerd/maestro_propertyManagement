@@ -38,7 +38,8 @@ import {saleToDTO, salesToDTO} from "@propertyManagement/utilities/mappers/sale/
 import {paymentPlanToDTO} from "@propertyManagement/utilities/mappers/paymentPlan/paymentPlanMapper.dto";
 import {salesToSelect} from "@propertyManagement/utilities/mappers/sale/saleMapper.select";
 import {generatePaymentPlanPdf} from "@propertyManagement/utilities/pdf/paymentPlanPdf";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {
     dispatchSaleClientEmail,
 } from "@propertyManagement/utilities/database/sale/saleClientEmailDispatch";

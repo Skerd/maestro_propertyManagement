@@ -26,7 +26,8 @@ import {
 } from "@propertyManagement/utilities/mappers/reservation/reservationMapper.dto";
 import {reservationsToSelect} from "@propertyManagement/utilities/mappers/reservation/reservationMapper.select";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {
     dispatchReservationClientEmail,
     formatReservationExpirationForEmail,

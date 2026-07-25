@@ -9,7 +9,8 @@
 
 import {CronJob} from "cron";
 import {ObjectId} from "mongodb";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {modificationRequestService} from "../../database/schemas/modificationRequest/modificationRequest.service";
 import {ModificationRequestStatus} from "../../database/schemas/modificationRequest/modificationRequest";

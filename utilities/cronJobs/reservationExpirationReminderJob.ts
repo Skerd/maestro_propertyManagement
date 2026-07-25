@@ -9,7 +9,8 @@
 import {CronJob} from "cron";
 import {ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {reservationService} from "../../database/schemas/reservation/reservation.service";
 import Unit, {UnitStatus} from "../../database/schemas/unit/unit";

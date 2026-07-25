@@ -13,7 +13,8 @@ import Commission, {CommissionStatus} from "../../../database/schemas/commission
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {commissionsToDTO, commissionToDTO} from "../../../utilities/mappers/commission/commissionMapper.dto";
 import {COLLECTED_DATA} from "@coreModule/database/collections";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import type {Commission as CommissionDto} from "armonia/src/modules/propertyManagement/api/realEstate/private/commission/commission.dto";
 import {SingleForm} from "armonia/src/modules/core/types/shared.types";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";

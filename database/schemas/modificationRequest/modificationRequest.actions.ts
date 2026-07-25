@@ -18,7 +18,8 @@ import {unitService} from "../unit/unit.service";
 import {inspectionService} from "../inspection/inspection.service";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {modificationRequestToDTO} from "@propertyManagement/utilities/mappers/modificationRequest/modificationRequestMapper.dto";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import type {ModificationRequest as ModificationRequestData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/modificationRequest.dto";
 
 function mapMaterialsPlanItem(item: any) {

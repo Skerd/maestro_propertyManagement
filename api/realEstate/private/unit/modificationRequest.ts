@@ -14,7 +14,8 @@ import {modificationRequestsToSelect} from "../../../../utilities/mappers/modifi
 import {createModificationRequestFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/createModificationRequest.form.validator";
 import {editModificationRequestFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/editModificationRequest.form.validator";
 import {modificationRequestFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/modificationRequest.form.validator";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {ModificationRequestActions} from "../../../../database/schemas/modificationRequest/modificationRequest.actions";
 
 export const basePath = "/api/realEstate/unit/modificationRequest";

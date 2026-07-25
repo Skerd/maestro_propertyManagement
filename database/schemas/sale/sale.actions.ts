@@ -20,7 +20,8 @@ import {unitService} from "../unit/unit.service";
 import {paymentPlanService} from "../paymentPlan/paymentPlan.service";
 import {saleToDTO} from "@propertyManagement/utilities/mappers/sale/saleMapper.dto";
 import {paymentPlanToDTO} from "@propertyManagement/utilities/mappers/paymentPlan/paymentPlanMapper.dto";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {
     dispatchSaleClientEmail,
     formatInstallmentDueDateForEmail,

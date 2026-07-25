@@ -9,7 +9,8 @@ import {approvePermitFormSchema} from "armonia/src/modules/propertyManagement/ap
 import {rejectPermitFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/permit/rejectPermit.form.validator";
 import {renewPermitFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/permit/renewPermit.form.validator";
 import type {Permit as PermitData} from "armonia/src/modules/propertyManagement/api/realEstate/private/permit/permit.dto";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {permitToDTO} from "@propertyManagement/utilities/mappers/permit/permitMapper.dto";
 import Permit from "./permit";
 import {permitService} from "./permit.service";

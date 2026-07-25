@@ -10,7 +10,8 @@ import {manualReservationClientEmailFormSchema} from "armonia/src/modules/proper
 import type {ManualReservationClientEmailForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/manualReservationClientEmail.form.type";
 import type {Reservation as ReservationData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.dto";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
-import {emitNotificationEvent, NotificationEventCodes} from "@coreModule/domain/notifications/notificationEventBus";
+import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {
     dispatchReservationClientEmail,
     formatReservationExpirationForEmail,

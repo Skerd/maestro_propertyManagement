@@ -50,6 +50,7 @@ import Bid from "@propertyManagement/database/schemas/bid/bid";
 import BidLine from "@propertyManagement/database/schemas/bidLine/bidLine";
 import ApprovalWorkflow from "@propertyManagement/database/schemas/approvalWorkflow/approvalWorkflow";
 import ApprovalRequest from "@propertyManagement/database/schemas/approvalRequest/approvalRequest";
+import PropertyManagementConfig from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig";
 import ContractorInvoice from "@propertyManagement/database/schemas/contractorInvoice/contractorInvoice";
 import IncomingInvoice from "@propertyManagement/database/schemas/incomingInvoice/incomingInvoice";
 import LiquidityPlan from "@propertyManagement/database/schemas/liquidityPlan/liquidityPlan";
@@ -114,6 +115,7 @@ export const propertyManagementModels: Model<any>[] = [
     BidLine,
     ApprovalWorkflow,
     ApprovalRequest,
+    PropertyManagementConfig,
     ContractorInvoice,
     IncomingInvoice,
     LiquidityPlan,

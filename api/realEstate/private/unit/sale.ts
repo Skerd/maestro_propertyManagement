@@ -18,7 +18,7 @@ import {currencyService} from "@coreModule/database/schemas/currency/currency.se
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
 import {handoverPackageService} from "../../../../database/schemas/handoverPackage/handoverPackage.service";
-import {companyService} from "@coreModule/database/schemas/company/company.service";
+import {propertyManagementConfigService} from "../../../../database/schemas/propertyManagementConfig/propertyManagementConfig.service";
 import {recordCommission} from "../../../../utilities/mappers/commissions/commission";
 import Sale, {SaleApprovalStatus, SalePaymentType} from "../../../../database/schemas/sale/sale";
 import PaymentPlan, {
@@ -363,7 +363,10 @@ const {router} = createCrudRouter({
         const finalPrice: number = (params as any).__computedFinalPrice ?? 0;
         const saleCurrencyDoc: any = (params as any).__saleCurrencyDoc;
 
-        const requiresApproval = !!(company as any).propertyManagementSettings?.requiresSaleApproval;
+        const {requiresSaleApproval: requiresApproval} = await propertyManagementConfigService.getSettingsForCompany(
+            company._id,
+            {session, logger, languageCode},
+        );
 
         // Mark unit as sold
         await unitService.updateByIdOrThrow(
@@ -509,18 +512,15 @@ const {router} = createCrudRouter({
 
         // Handover gate: when the company requires it, a handover date can only be
         // stamped once the unit's HandoverPackage is completed (delivery evidence).
-        // authMW strips company to "allowedDomains name isActive", so re-read settings.
         const settingHandoverDate = handoverDate !== undefined && handoverDate !== null;
         const alreadyHandedOver = !!existing?.handoverDate;
         let requiresHandoverPackage = false;
         if (settingHandoverDate && !alreadyHandedOver) {
-            const companyDoc = await companyService.findById(
+            const settings = await propertyManagementConfigService.getSettingsForCompany(
                 company._id,
                 {session, logger, languageCode},
-                undefined,
-                "propertyManagementSettings",
             );
-            requiresHandoverPackage = !!(companyDoc as any)?.propertyManagementSettings?.requiresHandoverPackageForHandover;
+            requiresHandoverPackage = settings.requiresHandoverPackageForHandover;
         }
         if (requiresHandoverPackage && settingHandoverDate && !alreadyHandedOver) {
             const unitId = existing?.unit?._id ?? existing?.unit;

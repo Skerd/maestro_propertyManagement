@@ -85,7 +85,7 @@ export interface ISale extends Document, IOwnershipPluginFields, ISoftDeletePlug
     /** When the sale-created confirmation email was dispatched (UTC). Server-only. */
     saleConfirmationEmailSentAt?: Date;
 
-    /** Only present when the company has requiresSaleApproval=true. */
+    /** Only present when PropertyManagementConfig.requiresSaleApproval is true. */
     approvalStatus?: SaleApprovalStatus;
     /** Approval sub-document set when the manager approves or rejects the sale. */
     saleApproval?: IApprovalStage;

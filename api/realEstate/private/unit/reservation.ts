@@ -77,7 +77,7 @@ export const {router} = createCrudRouter({
     listSchema: reservationFormSchema,
     extraListFilter: reservationExtraListFilter,
     createSchema: createReservationFormSchema,
-    editSchema: () => z.object({_id: z.string()}).passthrough() as any,
+    editSchema: () => z.looseObject({_id: z.string()}),
     toDTO: (r) => reservationToDTO(r),
     toDTOArray: (rs) => reservationsToDTO(rs),
     toSelect: reservationsToSelect,

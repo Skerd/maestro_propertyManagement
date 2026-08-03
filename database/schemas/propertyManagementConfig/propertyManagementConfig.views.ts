@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const propertyManagementConfigSheetView: ViewConfig = {
     model: "propertymanagementconfigs",
@@ -39,6 +40,7 @@ export const propertyManagementConfigSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

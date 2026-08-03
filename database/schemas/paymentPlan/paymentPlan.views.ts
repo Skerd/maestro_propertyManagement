@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {saleCreateCashFormFields} from "../sale/sale.views";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const paymentPlanSheetView: ViewConfig = {
     model: "paymentplans",
@@ -284,6 +285,7 @@ export const paymentPlanSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

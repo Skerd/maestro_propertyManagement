@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const unitTypeCategorySheetView: ViewConfig = {
     model: "unittypecategories",
@@ -33,6 +34,7 @@ export const unitTypeCategorySheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

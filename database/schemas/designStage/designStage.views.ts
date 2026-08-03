@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const designStageSheetView: ViewConfig = {
     model: "designstages",
@@ -27,6 +28,7 @@ export const designStageSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

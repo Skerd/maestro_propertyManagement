@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const leadStatusOptions = [
     {value: "new",         label: "form.statusNew"},
@@ -673,6 +674,7 @@ export const leadSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

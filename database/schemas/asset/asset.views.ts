@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const assetSheetView: ViewConfig = {
     model: "assets", viewType: "sheet", accessModel: "assets", apiUrl: "/api/realEstate/asset",
@@ -13,7 +14,9 @@ export const assetSheetView: ViewConfig = {
         {render: "#SmallInfoCard", permissions: {read: "installDate"}, dependent: "installDate", field: {name: "installDate", widget: "#SmallInfoCard", label: "installDate", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "notes"}, dependent: "notes", field: {name: "notes", widget: "#SmallInfoCard", label: "notes", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "lifecycleStatus"}, field: {name: "lifecycleStatus", widget: "#SmallInfoCard", label: "lifecycleStatus", widgetProps: {icon: "#CircleDot", languageKeyCategory: "lifecycleStatuses"}}},
-    ]}]}],
+    ]}]},
+        lifecycleSheetGroup,
+    ],
 };
 
 const formNodes: ViewConfig["nodes"] = [{render: "#TitleWithCollapse", props: {title: "generalInfo"}, children: [{render: "#FormGrid", props: {columns: 2}, children: [

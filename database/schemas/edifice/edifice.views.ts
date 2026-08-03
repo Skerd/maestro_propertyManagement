@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {EDIFICE_ENERGY_CLASS_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.constants";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const energyClassOptions = EDIFICE_ENERGY_CLASS_VALUES.map((value) => ({value, label: value}));
 
@@ -765,6 +766,7 @@ export const edificeSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

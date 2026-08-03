@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {approvalDocumentTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/approvalRequest/approvalRequest.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const documentTypeOptions = approvalDocumentTypeValues.map((value) => ({value, label: value}));
 
@@ -32,6 +33,7 @@ export const approvalRequestSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

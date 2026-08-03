@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {budgetMethodValues, budgetClassificationStandardValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/budget/budget.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const methodOptions = budgetMethodValues.map((value) => ({value, label: value}));
 const classificationStandardOptions = budgetClassificationStandardValues.map((value) => ({value, label: value}));
@@ -37,6 +38,7 @@ export const budgetSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

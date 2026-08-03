@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {boqItemClassificationStandardValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/boqItem/boqItem.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const classificationStandardOptions = boqItemClassificationStandardValues.map((value) => ({value, label: value}));
 
@@ -43,6 +44,7 @@ export const boqItemSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

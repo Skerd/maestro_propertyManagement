@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 export const bimQuantitySheetView: ViewConfig = {
     model: "bimquantities", viewType: "sheet", accessModel: "bimquantities", apiUrl: "/api/realEstate/bimQuantity",
     header: {titleField: "name", subtitleKey: "bimQuantity", showCloseButton: true},
@@ -10,7 +11,9 @@ export const bimQuantitySheetView: ViewConfig = {
         {render: "#SmallInfoCard", permissions: {read: "quantity"}, dependent: "quantity", field: {name: "quantity", widget: "#SmallInfoCard", label: "quantity", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "unitOfMeasure"}, dependent: "unitOfMeasure", field: {name: "unitOfMeasure", widget: "#SmallInfoCard", label: "unitOfMeasure", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "notes"}, dependent: "notes", field: {name: "notes", widget: "#SmallInfoCard", label: "notes", widgetProps: {icon: "#IconLabel"}}},
-    ]}]}],
+    ]}]},
+        lifecycleSheetGroup,
+    ],
 };
 const formNodes: ViewConfig["nodes"] = [{render: "#TitleWithCollapse", props: {title: "generalInfo"}, children: [{render: "#FormGrid", props: {columns: 2}, children: [
     {render: "#Field", field: {name: "bimModel", widget: "#ApiSelect", label: "form.bimModelLabel", placeholder: "form.bimModelPlaceholder", required: true, skipWriteAccessGate: true, widgetProps: {apiUrl: "/api/realEstate/bimModel/select", method: "POST", pageSize: 50, normalizeEmptyToUndefined: true}}},

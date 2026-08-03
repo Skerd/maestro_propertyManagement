@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const PROJECT_DOCUMENT_DISCIPLINE_OPTIONS = [
     {value: "architectural", label: "form.disciplineArchitectural"},
@@ -318,6 +319,7 @@ export const projectDocumentSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

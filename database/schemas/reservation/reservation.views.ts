@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {RESERVATION_SOURCE_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.constants";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const sourceOptions = RESERVATION_SOURCE_VALUES.map((value) => ({value, label: `form.sourceValues.${value}`}));
 
@@ -534,6 +535,7 @@ export const reservationSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

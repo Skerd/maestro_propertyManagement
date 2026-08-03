@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {maintenancePlanTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/maintenancePlan/maintenancePlan.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 const planTypeOptions = maintenancePlanTypeValues.map((v) => ({value: v, label: v}));
 export const maintenancePlanSheetView: ViewConfig = {
     model: "maintenanceplans", viewType: "sheet", accessModel: "maintenanceplans", apiUrl: "/api/realEstate/maintenancePlan",
@@ -13,7 +14,9 @@ export const maintenancePlanSheetView: ViewConfig = {
         {render: "#SmallInfoCard", permissions: {read: "nextDueAt"}, dependent: "nextDueAt", field: {name: "nextDueAt", widget: "#SmallInfoCard", label: "nextDueAt", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "responsibleParty"}, dependent: "responsibleParty", field: {name: "responsibleParty", widget: "#SmallInfoCard", label: "responsibleParty", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "notes"}, dependent: "notes", field: {name: "notes", widget: "#SmallInfoCard", label: "notes", widgetProps: {icon: "#IconLabel"}}},
-    ]}]}],
+    ]}]},
+        lifecycleSheetGroup,
+    ],
 };
 const formNodes: ViewConfig["nodes"] = [{render: "#TitleWithCollapse", props: {title: "generalInfo"}, children: [{render: "#FormGrid", props: {columns: 2}, children: [
     {render: "#Field", field: {name: "asset", widget: "#ApiSelect", label: "form.assetLabel", placeholder: "form.assetPlaceholder", skipWriteAccessGate: true, widgetProps: {apiUrl: "/api/realEstate/asset/select", method: "POST", pageSize: 50, normalizeEmptyToUndefined: true}}},

@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {specificationStandardValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/specification/specification.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const standardOptions = specificationStandardValues.map((value) => ({value, label: value}));
 
@@ -32,6 +33,7 @@ export const specificationSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

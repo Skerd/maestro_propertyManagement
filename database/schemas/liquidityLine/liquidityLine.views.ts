@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {liquidityDirectionValues, liquiditySourceValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/liquidityLine/liquidityLine.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const directionOptions = liquidityDirectionValues.map((value) => ({value, label: value}));
 const sourceOptions = liquiditySourceValues.map((value) => ({value, label: value}));
@@ -33,6 +34,7 @@ export const liquidityLineSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

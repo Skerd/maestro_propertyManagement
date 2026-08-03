@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {planMarkupMarkerTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/planMarkup/planMarkup.schema-def";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const markerTypeOptions = planMarkupMarkerTypeValues.map((value) => ({value, label: value}));
 
@@ -33,6 +34,7 @@ export const planMarkupSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

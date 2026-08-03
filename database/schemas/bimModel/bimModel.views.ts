@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 export const bimModelSheetView: ViewConfig = {
     model: "bimmodels", viewType: "sheet", accessModel: "bimmodels", apiUrl: "/api/realEstate/bimModel",
     header: {titleField: "title", subtitleKey: "bimModel", showCloseButton: true},
@@ -10,7 +11,9 @@ export const bimModelSheetView: ViewConfig = {
         {render: "#SmallInfoCard", permissions: {read: "elementCount"}, dependent: "elementCount", field: {name: "elementCount", widget: "#SmallInfoCard", label: "elementCount", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "notes"}, dependent: "notes", field: {name: "notes", widget: "#SmallInfoCard", label: "notes", widgetProps: {icon: "#IconLabel"}}},
         {render: "#SmallInfoCard", permissions: {read: "importStatus"}, field: {name: "importStatus", widget: "#SmallInfoCard", label: "importStatus", widgetProps: {icon: "#CircleDot", languageKeyCategory: "importStatuses"}}},
-    ]}]}],
+    ]}]},
+        lifecycleSheetGroup,
+    ],
 };
 const formNodes: ViewConfig["nodes"] = [{render: "#TitleWithCollapse", props: {title: "generalInfo"}, children: [{render: "#FormGrid", props: {columns: 2}, children: [
     {render: "#Field", field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", skipWriteAccessGate: true, widgetProps: {apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50, normalizeEmptyToUndefined: true}}},

@@ -1,4 +1,5 @@
 import type {ViewConfig, ViewNode} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const INSPECTION_FINDING_KEYS = [
     "structuralIssues",
@@ -474,6 +475,7 @@ export const inspectionSheetView: ViewConfig = {
                 },
             ],
         },
+        lifecycleSheetGroup,
     ],
 };
 

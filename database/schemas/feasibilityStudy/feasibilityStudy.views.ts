@@ -43,7 +43,7 @@ export const feasibilityStudySheetView: ViewConfig = {
             children: [
                 {
                     render: "div",
-                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full"},
+                    props: {className: "max-w-full"},
                     children: [
                         {
                             render: "#GalleryCarousel",

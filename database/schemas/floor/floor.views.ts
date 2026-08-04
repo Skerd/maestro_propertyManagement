@@ -36,6 +36,7 @@ export const floorSheetView: ViewConfig = {
                                 name: "project.name",
                                 widget: "#SmallInfoCard",
                                 label: "project",
+                                skipReadAccessGate: true,
                                 widgetProps: {
                                     icon: "#IconFolder",
                                     linkedRefPath: "project",
@@ -414,7 +415,7 @@ export const floorSheetView: ViewConfig = {
             children: [
                 {
                     render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                    props: { className: "max-w-full" },
                     children: [
                         {
                             render: "#GalleryCarousel",

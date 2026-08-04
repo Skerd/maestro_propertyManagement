@@ -374,6 +374,7 @@ export const reservationSheetView: ViewConfig = {
                                         name: "remainingBalance",
                                         widget: "#SmallInfoCard",
                                         label: "remainingBalance",
+                                        skipReadAccessGate: true,
                                         widgetProps: {
                                             icon: "#Calculator",
                                             variantLookupField: "reservationFinancialPaymentState",

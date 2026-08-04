@@ -72,6 +72,7 @@ export const saleSheetView: ViewConfig = {
                                 name: "project.name",
                                 widget: "#SmallInfoCard",
                                 label: "project",
+                                skipReadAccessGate: true,
                                 widgetProps: {
                                     icon: "#IconFolder",
                                     linkedRefPath: "project",
@@ -88,6 +89,7 @@ export const saleSheetView: ViewConfig = {
                                 name: "edifice.name",
                                 widget: "#SmallInfoCard",
                                 label: "edifice",
+                                skipReadAccessGate: true,
                                 widgetProps: {
                                     icon: "#Building",
                                     linkedRefPath: "edifice",
@@ -105,6 +107,7 @@ export const saleSheetView: ViewConfig = {
                                 name: "floor.name",
                                 widget: "#SmallInfoCard",
                                 label: "floor",
+                                skipReadAccessGate: true,
                                 widgetProps: {
                                     icon: "#Layers",
                                     linkedRefPath: "floor",

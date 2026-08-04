@@ -69,6 +69,7 @@ export const unitSheetView: ViewConfig = {
                                 name: "project.name",
                                 widget: "#SmallInfoCard",
                                 label: "project",
+                                skipReadAccessGate: true,
                                 widgetProps: {
                                     icon: "#IconFolder",
                                     linkedRefPath: "project",
@@ -83,6 +84,7 @@ export const unitSheetView: ViewConfig = {
                                 name: "edifice.name",
                                 widget: "#SmallInfoCard",
                                 label: "edifice",
+                                skipReadAccessGate: true,
                                 widgetProps: {
                                     icon: "#Building",
                                     linkedRefPath: "edifice",
@@ -839,7 +841,7 @@ export const unitSheetView: ViewConfig = {
             children: [
                 {
                     render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                    props: { className: "max-w-full" },
                     children: [
                         {
                             render: "#GalleryCarousel",

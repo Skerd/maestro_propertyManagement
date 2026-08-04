@@ -233,7 +233,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         name: "architectApproval.decision",
                                         widget: "#SmallInfoCard",
                                         label: "decision",
-                                        widgetProps: { icon: "#CircleDot" },
+                                        widgetProps: { icon: "#CircleDot", languageKeyCategory: "decisions" },
                                     },
                                 },
                                 {
@@ -331,7 +331,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         name: "engineerApproval.decision",
                                         widget: "#SmallInfoCard",
                                         label: "decision",
-                                        widgetProps: { icon: "#CircleDot" },
+                                        widgetProps: { icon: "#CircleDot", languageKeyCategory: "decisions" },
                                     },
                                 },
                                 {
@@ -361,11 +361,12 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#SmallInfoCard",
-                                    permissions: { read: "engineerApproval" },
+                                    permissions: { read: "engineerApproval.materialsPlan" },
                                     field: {
                                         name: "engineerApproval.materialsPlan.length",
                                         widget: "#SmallInfoCard",
                                         label: "materials",
+                                        skipReadAccessGate: true,
                                         widgetProps: { icon: "#List" },
                                     },
                                 },
@@ -382,7 +383,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                     children: [
                                         {
                                             render: "#SheetModificationLineItems",
-                                            permissions: { read: "engineerApproval" },
+                                            permissions: { read: "engineerApproval.materialsPlan" },
                                             field: {
                                                 name: "engineerApproval.materialsPlan",
                                                 widget: "#SheetModificationLineItems",
@@ -464,7 +465,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         name: "ceoApproval.decision",
                                         widget: "#SmallInfoCard",
                                         label: "decision",
-                                        widgetProps: { icon: "#CircleDot" },
+                                        widgetProps: { icon: "#CircleDot", languageKeyCategory: "decisions" },
                                     },
                                 },
                                 {
@@ -577,11 +578,12 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#SmallInfoCard",
-                                    permissions: { read: "financeDetails" },
+                                    permissions: { read: "financeDetails.costBreakdown" },
                                     field: {
                                         name: "financeDetails.costBreakdown.length",
                                         widget: "#SmallInfoCard",
                                         label: "costBreakdown",
+                                        skipReadAccessGate: true,
                                         widgetProps: { icon: "#ListOrdered" },
                                     },
                                 },
@@ -598,13 +600,14 @@ export const modificationRequestSheetView: ViewConfig = {
                                     children: [
                                         {
                                             render: "#SheetModificationLineItems",
-                                            permissions: { read: "financeDetails" },
+                                            permissions: { read: "financeDetails.costBreakdown" },
                                             field: {
                                                 name: "financeDetails.costBreakdown",
                                                 widget: "#SheetModificationLineItems",
                                                 widgetProps: {
                                                     variant: "costBreakdown",
                                                     currencyPath: "financeDetails.currency",
+                                                    totalPath: "financeDetails.totalCost",
                                                     className: "text-sm",
                                                 },
                                             },
@@ -681,7 +684,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         name: "deliveryApproval.decision",
                                         widget: "#SmallInfoCard",
                                         label: "decision",
-                                        widgetProps: { icon: "#CircleDot" },
+                                        widgetProps: { icon: "#CircleDot", languageKeyCategory: "decisions" },
                                     },
                                 },
                                 {

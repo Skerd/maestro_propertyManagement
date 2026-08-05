@@ -116,7 +116,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
             {path: "budgetCurrency", select: "symbol abbreviation name"},
             {path: "assignedTo", select: "name surname username"}
         ],
-        "name firstName lastName email phone status source budget budgetCurrency " +
+        "name firstName lastName email phone status source interest budget budgetCurrency " +
             "projectInterest unitInterest assignedTo followUpDate convertedAt",
         {followUpDate: 1},
         limit
@@ -130,6 +130,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         phone: l.phone ?? null,
         status: l.status ?? null,
         source: l.source ?? null,
+        interest: l.interest ?? null,
         budget: amountToNumber(l.budget),
         currency: l.budgetCurrency?.abbreviation || l.budgetCurrency?.symbol || null,
         projectInterest: l.projectInterest?.name ?? null,

@@ -45,6 +45,14 @@ export enum LeadSource {
     OTHER     = "other",
 }
 
+export enum LeadInterest {
+    PARTNERSHIPS     = "partnerships",
+    INVESTMENTS      = "investments",
+    PLATFORM_SUPPORT = "platform_support",
+    RESERVATION      = "reservation",
+    OTHER            = "other",
+}
+
 export interface ILeadActivityEntry {
     _id?: any;
     action: string;
@@ -61,6 +69,7 @@ export interface ILead extends Document, IOwnershipPluginFields, ISoftDeletePlug
     phone?: string;
     status: LeadStatus;
     source?: LeadSource;
+    interest?: LeadInterest;
     projectInterest?: IProject;
     unitInterest?: IUnit;
     budget?: Decimal128;
@@ -95,6 +104,11 @@ const LeadSchema = new Schema<ILead>(
             type:     SchemaTypes.String,
             required: false,
             enum:     Object.values(LeadSource),
+        },
+        interest: {
+            type:     SchemaTypes.String,
+            required: false,
+            enum:     Object.values(LeadInterest),
         },
         projectInterest: {
             type:         SchemaTypes.ObjectId,

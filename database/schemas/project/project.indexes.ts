@@ -18,4 +18,6 @@ export function applyProjectIndexes(ProjectSchema: Schema): void {
     ProjectSchema.index({ company: 1, deletedAt: 1, mainImage: 1 });
     ProjectSchema.index({ company: 1, deletedAt: 1, imageGallery: 1 });
     ProjectSchema.index({ company: 1, deletedAt: 1, videoGallery: 1 });
+
+    ProjectSchema.index({ company: 1, deletedAt: 1, featuredOnHomepage: 1, featuredSortOrder: 1 });
 }

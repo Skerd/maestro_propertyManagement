@@ -167,10 +167,75 @@ export function mapMarketingProjectCatalogSingle(
                 ? floorsCoordinates
                 : undefined;
 
+            const mappedUnits = floors.flatMap((floor) => unitsByFloor.get(objectIdToString(floor._id)) ?? []);
+            const unitStats = computeUnitCatalogStats(mappedUnits);
+            const toYear = (value: unknown): number | undefined => {
+                if (!value) {
+                    return undefined;
+                }
+                const date = new Date(value as string | Date);
+                return Number.isNaN(date.getTime()) ? undefined : date.getFullYear();
+            };
+            const cityName =
+                typeof edifice.address?.city === "object" && edifice.address?.city?.name
+                    ? edifice.address.city.name
+                    : undefined;
+            const commercialFacilities = Array.isArray(edifice.commercialFacilities)
+                ? edifice.commercialFacilities.filter((item: string) => typeof item === "string" && item.trim())
+                : undefined;
+            const neighborhoodFacilities = Array.isArray(edifice.neighborhoodFacilities)
+                ? edifice.neighborhoodFacilities.filter((item: string) => typeof item === "string" && item.trim())
+                : undefined;
+            const formatCurrencyLabel = (currency: any): string | undefined => {
+                if (!currency || typeof currency !== "object") {
+                    return undefined;
+                }
+                return currency.name || currency.abbreviation || currency.symbol || undefined;
+            };
+            const investedAmount = decimal128ToNumber(edifice.investmentValue);
+            const investedCurrency = formatCurrencyLabel(edifice.investmentCurrency);
+            const saleCurrency = formatCurrencyLabel(edifice.saleCurrency);
+            const constructors = Array.isArray(edifice.constructors)
+                ? edifice.constructors
+                      .map((constructor: any) => {
+                          if (typeof constructor === "object" && constructor?.name) {
+                              return String(constructor.name).trim();
+                          }
+                          return "";
+                      })
+                      .filter(Boolean)
+                : undefined;
+
             return {
                 _id: edificeId,
                 name: edifice.name,
                 mainImage: marketingMediaUrl(edifice.mainImage),
+                location: formatEdificeLocation(edifice),
+                street: edifice.address?.street || undefined,
+                city: cityName,
+                postalCode: edifice.address?.postalCode || undefined,
+                totalAreaSqm: edifice.totalArea ?? undefined,
+                greenAreaSqm: edifice.greenArea ?? undefined,
+                floorCount: edifice.numberOfFloors ?? floors.length,
+                floorsAboveGround: edifice.numberOfFloorsAboveGround ?? undefined,
+                floorsUnderGround: edifice.numberOfFloorsUnderGround ?? undefined,
+                parkingSpaces: edifice.numberOfParkingSpaces ?? undefined,
+                garages: edifice.numberOfGarages ?? undefined,
+                distanceFromCityCenterM: edifice.distanceFromCityCenter ?? undefined,
+                investedAmount: investedAmount ?? undefined,
+                investedCurrency,
+                pricePerSqm: edifice.pricePerMeterSquared ?? undefined,
+                verandaPricePerSqm: edifice.verandaPricePerMeterSquared ?? undefined,
+                saleCurrency,
+                energyClass: edifice.energyClass || undefined,
+                expectedCompletionYear: toYear(edifice.expectedCompletionDate),
+                constructionStartYear: toYear(edifice.constructionStartDate),
+                commercialFacilities: commercialFacilities && commercialFacilities.length > 0 ? commercialFacilities : undefined,
+                neighborhoodFacilities:
+                    neighborhoodFacilities && neighborhoodFacilities.length > 0 ? neighborhoodFacilities : undefined,
+                constructors: constructors && constructors.length > 0 ? constructors : undefined,
+                unitCount: unitStats.unitCount,
+                availableUnitCount: unitStats.availableUnitCount,
                 floorsCoordinates: mappedFloorsCoordinates,
                 floors: floors.map((floor) => {
                     const floorId = objectIdToString(floor._id);

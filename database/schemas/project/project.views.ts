@@ -60,6 +60,19 @@ export const projectSheetView: ViewConfig = {
                                 },
                             },
                         },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: { read: "featuredOnHomepage" },
+                            field: {
+                                name: "featuredOnHomepage",
+                                widget: "#SmallInfoCard",
+                                label: "featuredOnHomepage",
+                                widgetProps: {
+                                    icon: "#BookMarked",
+                                    tooltip: "featuredOnHomepageTooltip",
+                                },
+                            },
+                        },
                     ],
                 },
             ],
@@ -639,6 +652,39 @@ const projectFormFields: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1 },
                 },
+            },
+        ],
+    },
+
+    // ── Homepage featured carousel ──────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "homepageFeatured" },
+        permissions: { write: "featuredOnHomepage" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        },
+                    },
+                ],
             },
         ],
     },

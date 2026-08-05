@@ -398,15 +398,15 @@ const constructorFormFields: ViewConfig["nodes"] = [
                 rowTemplate: [
                     {
                         render: "div",
-                        props: {className: "grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch"},
+                        props: {className: "grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch"},
                         children: [
                             {
                                 render: "div",
-                                props: {className: "lg:col-span-2 space-y-4 min-w-0"},
+                                props: {className: "lg:col-span-2 space-y-6 min-w-0"},
                                 children: [
                                     {
                                         render: "#FormGrid",
-                                        props: {columns: 3},
+                                        props: {columns: 3, className: "gap-6"},
                                         children: [
                                             {
                                                 render: "#Field",
@@ -460,7 +460,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                                     },
                                     {
                                         render: "#FormGrid",
-                                        props: {columns: 2},
+                                        props: {columns: 2, className: "gap-6"},
                                         children: [
                                             {
                                                 render: "#Field",
@@ -474,7 +474,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                                     },
                                     {
                                         render: "#FormGrid",
-                                        props: {columns: 2},
+                                        props: {columns: 2, className: "gap-6"},
                                         children: [
                                             {
                                                 render: "#Field",

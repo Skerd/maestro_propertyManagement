@@ -39,7 +39,14 @@ export async function loadMarketingCatalogHierarchy(
         project: {$in: projectIds},
         company: companyId,
         deletedAt: null,
-    }, {}, ["mainImage", "address.city", "address.country"]);
+    }, {}, [
+        "mainImage",
+        "address.city",
+        "address.country",
+        "constructors",
+        "investmentCurrency",
+        "saleCurrency",
+    ]);
 
     const edificeIds = edifices.map((edifice) => edifice._id);
     const floors = edificeIds.length > 0

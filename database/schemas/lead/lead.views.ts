@@ -21,6 +21,14 @@ const leadSourceOptions = [
     {value: "other",     label: "form.sourceOther"},
 ];
 
+const leadInterestOptions = [
+    {value: "partnerships",      label: "form.interestPartnerships"},
+    {value: "investments",       label: "form.interestInvestments"},
+    {value: "platform_support",  label: "form.interestPlatformSupport"},
+    {value: "reservation",       label: "form.interestReservation"},
+    {value: "other",             label: "form.interestOther"},
+];
+
 const leadCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#FormGrid",
@@ -82,6 +90,16 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     label:       "form.sourceLabel",
                     placeholder: "form.sourcePlaceholder",
                     widgetProps: {options: leadSourceOptions, className: "grow w-full"},
+                },
+            },
+            {
+                render: "#Field",
+                field: {
+                    name:        "interest",
+                    widget:      "#SimpleSelect",
+                    label:       "form.interestLabel",
+                    placeholder: "form.interestPlaceholder",
+                    widgetProps: {options: leadInterestOptions, className: "grow w-full"},
                 },
             },
             {
@@ -192,7 +210,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#FormGrid",
         props:  {columns: 2},
-        permissions: {writeAny: ["firstName", "lastName", "email", "phone", "status", "source", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"]},
+        permissions: {writeAny: ["firstName", "lastName", "email", "phone", "status", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"]},
         children: [
             {
                 render: "#Field",
@@ -256,6 +274,17 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     label:       "form.sourceLabel",
                     placeholder: "form.sourcePlaceholder",
                     widgetProps: {options: leadSourceOptions, className: "grow w-full"},
+                },
+            },
+            {
+                render: "#Field",
+                permissions: {write: "interest"},
+                field: {
+                    name:        "interest",
+                    widget:      "#SimpleSelect",
+                    label:       "form.interestLabel",
+                    placeholder: "form.interestPlaceholder",
+                    widgetProps: {options: leadInterestOptions, className: "grow w-full"},
                 },
             },
             {
@@ -446,6 +475,19 @@ export const leadSheetView: ViewConfig = {
                                 widgetProps: {
                                     icon:                "#Globe",
                                     languageKeyCategory: "sources",
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "interest"},
+                            field: {
+                                name:        "interest",
+                                widget:      "#SmallInfoCard",
+                                label:       "interest",
+                                widgetProps: {
+                                    icon:                "#IconLabel",
+                                    languageKeyCategory: "interests",
                                 },
                             },
                         },

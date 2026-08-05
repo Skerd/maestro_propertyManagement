@@ -35,6 +35,7 @@ export function leadToDTO(lead: ILead): Lead {
         phone:     lead.phone,
         status:    lead.status,
         source:    lead.source,
+        interest:  lead.interest,
         projectInterest: mapPopulatedRef(projectInterest),
         unitInterest: unitInterest ? {
             _id:        unitInterest._id?.toString() ?? unitInterest.toString(),

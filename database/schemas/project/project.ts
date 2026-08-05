@@ -28,6 +28,8 @@ export interface IProject extends Document, IOwnershipPluginFields, ISoftDeleteP
     videoGallery: IMedia[], // video gallery for the edifice,
     mediaFiles?: IMedia[], // generic file attachments (PDFs, documents, etc.)
     marketingBooklet?: IMedia, // single marketing booklet PDF
+    featuredOnHomepage?: boolean;
+    featuredSortOrder?: number;
     saleCommissionRatePercent?: Decimal128;
     reservationCommissionRatePercent?: Decimal128;
     company: ICompany
@@ -144,6 +146,23 @@ const ProjectSchema = new Schema<IProject>(
                 filterable: false,
                 sortable: false,
                 visible: false,
+            },
+        },
+        featuredOnHomepage: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.BOOLEAN,
+            },
+        },
+        featuredSortOrder: {
+            type: SchemaTypes.Number,
+            required: false,
+            default: 0,
+            min: 0,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.NUMBER,
             },
         },
     },

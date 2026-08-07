@@ -69,4 +69,7 @@ export function applyUnitIndexes(UnitSchema: Schema): void {
     
     // Compound index for company + status
     UnitSchema.index({ company: 1, status: 1 });
+
+    // Homepage featured units
+    UnitSchema.index({ company: 1, deletedAt: 1, featuredOnHomepage: 1, featuredSortOrder: 1 });
 }

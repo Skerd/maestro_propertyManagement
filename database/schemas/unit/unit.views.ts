@@ -65,6 +65,19 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "#SmallInfoCard",
+                            permissions: { read: "featuredOnHomepage" },
+                            field: {
+                                name: "featuredOnHomepage",
+                                widget: "#SmallInfoCard",
+                                label: "featuredOnHomepage",
+                                widgetProps: {
+                                    icon: "#BookMarked",
+                                    tooltip: "featuredOnHomepageTooltip",
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
                             field: {
                                 name: "project.name",
                                 widget: "#SmallInfoCard",
@@ -1214,6 +1227,37 @@ const unitFormFields: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: { name: "hasElevator", widget: "#Switch", label: "form.hasElevatorLabel" },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "homepageFeatured" },
+        permissions: { write: "featuredOnHomepage" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        },
                     },
                 ],
             },

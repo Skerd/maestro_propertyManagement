@@ -83,6 +83,8 @@ export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
         project: unit?.floor?.edifice?.project ? mapPopulatedRef(unit.floor.edifice.project) : undefined,
         edifice: unit?.floor?.edifice ? mapPopulatedRef(unit.floor.edifice) : undefined,
         floor: unit.floor ? mapPopulatedRef(unit.floor) : undefined,
+        featuredOnHomepage: !!unit.featuredOnHomepage,
+        featuredSortOrder: unit.featuredSortOrder ?? 0,
         statistics: options?.statistics,
         ...mapSoftDeleteToDTO(unit),
         ...mapOwnershipToDTO(unit),

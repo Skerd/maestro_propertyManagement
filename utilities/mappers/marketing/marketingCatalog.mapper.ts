@@ -149,10 +149,13 @@ export function mapMarketingProjectCatalogSingle(
             }));
     }).filter((plan) => Boolean(plan.url));
 
+    const videoGallery = marketingMediaUrls(project.videoGallery);
+
     return {
         _id: projectKey,
         name: project.name,
         ...base,
+        videoGallery: videoGallery.length > 0 ? videoGallery : undefined,
         description: project.description || undefined,
         amenities: [],
         latitude: firstEdifice?.address?.latitude,

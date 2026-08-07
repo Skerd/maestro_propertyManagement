@@ -102,6 +102,8 @@ export interface IUnit extends Document, IOwnershipPluginFields, ISoftDeletePlug
     saleCommissionRatePercent?: number;
     reservationCommissionRatePercent?: number;
     priceHistory?: IPriceHistoryEntry[];
+    featuredOnHomepage?: boolean;
+    featuredSortOrder?: number;
 }
 
 const UnitSchema = new Schema<IUnit>(
@@ -525,6 +527,23 @@ const UnitSchema = new Schema<IUnit>(
             permissions: {
                 self: { write: "no-permission" },
                 others: { write: "no-permission" },
+            },
+        },
+        featuredOnHomepage: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.BOOLEAN,
+            },
+        },
+        featuredSortOrder: {
+            type: SchemaTypes.Number,
+            required: false,
+            default: 0,
+            min: 0,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.NUMBER,
             },
         },
     },

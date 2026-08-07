@@ -48,7 +48,7 @@ async function marketingProjectsCatalog(
     const projects = await projectService.find(
         {company: companyId, deletedAt: null},
         {logger, languageCode},
-        ["mainImage", "imageGallery"],
+        ["mainImage", "imageGallery", {path: "socialLinks.logo"}],
     );
 
     const projectIds = projects.map((project) => project._id);

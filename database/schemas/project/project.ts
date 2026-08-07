@@ -20,6 +20,12 @@ import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/v
 import {ProjectSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.schema-def";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
+export type IProjectSocialLink = {
+    name: string;
+    link: string;
+    logo?: IMedia;
+};
+
 export interface IProject extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name: string;              
     description?: string;
@@ -28,6 +34,7 @@ export interface IProject extends Document, IOwnershipPluginFields, ISoftDeleteP
     videoGallery: IMedia[], // video gallery for the edifice,
     mediaFiles?: IMedia[], // generic file attachments (PDFs, documents, etc.)
     marketingBooklet?: IMedia, // single marketing booklet PDF
+    socialLinks?: IProjectSocialLink[];
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
     saleCommissionRatePercent?: Decimal128;
@@ -142,6 +149,24 @@ const ProjectSchema = new Schema<IProject>(
             ref: "Media",
             required: false,
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: false,
+                sortable: false,
+                visible: false,
+            },
+        },
+        socialLinks: {
+            type: [{
+                name: {type: SchemaTypes.String, required: true, trim: true},
+                link: {type: SchemaTypes.String, required: true, trim: true},
+                logo: {
+                    type: SchemaTypes.ObjectId,
+                    ref: "Media",
+                    required: false,
+                    refAllowlist: MediaSimpleSnippet,
+                },
+            }],
+            default: [],
             dynamicTableConfiguration: {
                 filterable: false,
                 sortable: false,

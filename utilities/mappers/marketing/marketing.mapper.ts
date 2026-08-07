@@ -24,11 +24,22 @@ export type MarketingUnitSingleContext = {
     totalFloorsInEdifice?: number;
 };
 
-export function marketingMediaUrl(media: {_id?: ObjectId | string} | null | undefined): string | undefined {
-    if (!media?._id) {
+export function marketingMediaUrl(
+    media: {_id?: ObjectId | string} | ObjectId | string | null | undefined,
+): string | undefined {
+    if (media == null || media === "") {
         return undefined;
     }
-    return `${MEDIA_BASE}${objectIdToString(media._id)}`;
+    if (typeof media === "string") {
+        const id = media.trim();
+        return id ? `${MEDIA_BASE}${id}` : undefined;
+    }
+    if (typeof media === "object" && "_id" in media && (media as {_id?: unknown})._id != null) {
+        return `${MEDIA_BASE}${objectIdToString((media as {_id: ObjectId | string})._id)}`;
+    }
+    // Raw ObjectId (unpopulated ref)
+    const id = objectIdToString(media as ObjectId);
+    return id && id !== "[object Object]" ? `${MEDIA_BASE}${id}` : undefined;
 }
 
 export function marketingMediaUrls(mediaList: Array<{_id?: ObjectId | string} | null | undefined> | undefined): string[] {

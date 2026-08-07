@@ -44,7 +44,7 @@ async function marketingProjectCatalogSingle(
     const project = await projectService.findOne(
         {_id: projectObjectId, company: companyId, deletedAt: null},
         {logger, languageCode},
-        ["mainImage", "imageGallery", "videoGallery"],
+        ["mainImage", "imageGallery", "videoGallery", {path: "socialLinks.logo"}],
     );
 
     if (!project) {

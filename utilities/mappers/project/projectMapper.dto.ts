@@ -23,6 +23,22 @@ export function projectToDTO(project: IProject, statistics?: ProjectStatistics, 
         videoGallery: !!project.videoGallery ? project.videoGallery?.map(mapMedia) : undefined,
         mediaFiles: !!project.mediaFiles ? project.mediaFiles?.map(mapMedia) : undefined,
         marketingBooklet: project.marketingBooklet ? mapMedia(project.marketingBooklet) : undefined,
+        socialLinks: Array.isArray(project.socialLinks)
+            ? project.socialLinks
+                  .filter((item) => item?.name?.trim() && item?.link?.trim())
+                  .map((item) => ({
+                      name: item.name.trim(),
+                      link: item.link.trim(),
+                      logo:
+                          item.logo &&
+                          typeof item.logo === "object" &&
+                          (item.logo as {_id?: unknown})._id != null
+                              ? mapMedia(item.logo)
+                              : undefined,
+                  }))
+            : undefined,
+        featuredOnHomepage: project.featuredOnHomepage,
+        featuredSortOrder: project.featuredSortOrder,
         statistics,
         edificesCoordinates: edificesCoordinates && edificesCoordinates.length > 0 ? edificesCoordinates : undefined,
         ...mapSoftDeleteToDTO(project),

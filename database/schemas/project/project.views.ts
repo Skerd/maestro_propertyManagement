@@ -407,6 +407,52 @@ export const projectSheetView: ViewConfig = {
             ],
         },
 
+        // ── Social links ─────────────────────────────────────────────
+        {
+            render: "#ReferencesViewModeScope",
+            props: {
+                storageKey: "project.sheet.socialLinks.listDisplay",
+                defaultMode: "cards",
+            },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    props: {
+                        title: "socialLinks",
+                        titleActions: "#ReferencesViewModeToggle",
+                        defaultOpen: false,
+                    },
+                    dependent: "socialLinks",
+                    permissions: { read: "socialLinks" },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#SheetEmbeddedItemsList",
+                                    permissions: { read: "socialLinks" },
+                                    field: {
+                                        name: "socialLinks",
+                                        widget: "#SheetEmbeddedItemsList",
+                                        widgetProps: {
+                                            pageSize: 10,
+                                            compactSummaryFields: ["name", "link"],
+                                            fields: [
+                                                { name: "logo", type: "mediaStrip", labelKey: "socialLinkLogo" },
+                                                { name: "name", type: "text", className: "text-sm font-medium", labelKey: "socialLinkName" },
+                                                { name: "link", type: "text", className: "text-sm", labelKey: "socialLinkUrl" },
+                                            ],
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+
         // ── Gallery ──────────────────────────────────────────────────
         {
             render: "#SheetGroup",
@@ -687,6 +733,63 @@ const projectFormFields: ViewConfig["nodes"] = [
                 ],
             },
         ],
+    },
+
+    // ── Social / follow links ───────────────────────────────────
+    {
+        render: "#Field",
+        permissions: { write: "socialLinks" },
+        field: {
+            name: "socialLinks",
+            widget: "#FormRepeater",
+            widgetProps: {
+                title: "form.socialLinksSectionTitle",
+                arrayField: "socialLinks",
+                defaultItem: { name: "", link: "" },
+                addLabel: "form.socialLinkAddRow",
+                removeLabel: "form.socialLinkRemoveRow",
+                rowTitleFields: ["name"],
+                rowTitlePlaceholder: "form.socialLinkRowTitle",
+                rowTemplate: [
+                    {
+                        render: "div",
+                        props: { className: "space-y-4" },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "name",
+                                    widget: "#Input",
+                                    label: "form.socialLinkNameLabel",
+                                    placeholder: "form.socialLinkNamePlaceholder",
+                                    required: true,
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "link",
+                                    widget: "#Input",
+                                    label: "form.socialLinkUrlLabel",
+                                    placeholder: "form.socialLinkUrlPlaceholder",
+                                    required: true,
+                                    widgetProps: { type: "url" },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "logo",
+                                    widget: "#MediaField",
+                                    label: "form.socialLinkLogoLabel",
+                                    widgetProps: { mediaType: "image", mode: "single" },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
     },
 ];
 

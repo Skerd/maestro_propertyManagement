@@ -50,6 +50,33 @@ function mapUnitStatus(status: UnitStatus | string): "available" | "reserved" | 
     }
 }
 
+function mapProjectSocialLinks(
+    socialLinks: unknown,
+): {name: string; link: string; logo?: string}[] | undefined {
+    if (!Array.isArray(socialLinks)) {
+        return undefined;
+    }
+    const mapped = socialLinks
+        .map((item) => {
+            if (!item || typeof item !== "object") {
+                return null;
+            }
+            const name = typeof (item as {name?: unknown}).name === "string"
+                ? (item as {name: string}).name.trim()
+                : "";
+            const link = typeof (item as {link?: unknown}).link === "string"
+                ? (item as {link: string}).link.trim()
+                : "";
+            if (!name || !link) {
+                return null;
+            }
+            const logo = marketingMediaUrl((item as {logo?: {_id?: unknown}}).logo as any);
+            return logo ? {name, link, logo} : {name, link};
+        })
+        .filter((item): item is {name: string; link: string; logo?: string} => item != null);
+    return mapped.length > 0 ? mapped : undefined;
+}
+
 function buildCatalogBaseFields(
     project: IProject | any,
     edifices: IEdifice[] | any[],
@@ -85,6 +112,7 @@ function buildCatalogBaseFields(
             stats.minArea != null && stats.maxArea != null
                 ? {min: stats.minArea, max: stats.maxArea}
                 : undefined,
+        socialLinks: mapProjectSocialLinks(project.socialLinks),
     };
 }
 

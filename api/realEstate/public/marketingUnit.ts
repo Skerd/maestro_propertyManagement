@@ -12,6 +12,9 @@ import {
     marketingUnitSingleFormSchema
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingUnit/marketingUnitSingle.form.validator";
 import {
+    marketingUnitBrochureFormSchema
+} from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingUnit/marketingUnitBrochure.form.validator";
+import {
     MarketingUnitSingleFormResponseType
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingUnit/marketingUnitSingle.form.response.type";
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
@@ -20,11 +23,17 @@ import {
     resolveUnitFloorContext,
 } from "../../../utilities/marketing/marketingHierarchy.util";
 import {mapMarketingUnitSingle} from "../../../utilities/mappers/marketing/marketing.mapper";
+import {buildUnitMarketingBookletPdf} from "../../../utilities/marketing/marketingBooklet.util";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 
 const router = Router();
 
 type MarketingUnitSingleParams = NotAuthenticatedMWType & {
+    projectId: string;
+    unitId: string;
+};
+
+type MarketingUnitBrochureParams = NotAuthenticatedMWType & {
     projectId: string;
     unitId: string;
 };
@@ -35,6 +44,14 @@ router.post(
     rateLimiter({windowMs: 60000, max: 120}),
     validateFormZod(marketingUnitSingleFormSchema),
     asyncHandler(marketingUnitSingle),
+);
+
+router.post(
+    "/brochure",
+    authMW("public"),
+    rateLimiter({windowMs: 60000, max: 20}),
+    validateFormZod(marketingUnitBrochureFormSchema),
+    asyncHandler(marketingUnitBrochure),
 );
 
 async function resolveFallbackUnitFloorContext(
@@ -122,6 +139,56 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
 
     logger.finish(`Loaded marketing unit [${unitId}]`);
     return {unit: mapMarketingUnitSingle(unit, projectId, floorContext)};
+}
+
+async function marketingUnitBrochure(
+    params: MarketingUnitBrochureParams,
+    _queryParams: unknown,
+    _req: unknown,
+    res: {setHeader: (name: string, value: string | number) => void; send: (body: Buffer) => void; headersSent?: boolean},
+): Promise<void> {
+    const {origin, languageCode, logger, projectId, unitId} = params;
+    logger.start(`Generating public marketing brochure for unit [${unitId}]...`);
+
+    const company = await resolveMarketingCompany(origin, languageCode);
+    const projectObjectId = new ObjectId(projectId);
+    const unitObjectId = new ObjectId(unitId);
+
+    const project = await projectService.findOne(
+        {_id: projectObjectId, company: company._id, deletedAt: null},
+        {logger, languageCode},
+    );
+    if (!project) {
+        throw apiValidationException("project_not_found", "projectId", projectId, languageCode);
+    }
+
+    const unit = await unitService.findOne(
+        {_id: unitObjectId, company: company._id, deletedAt: null},
+        {logger, languageCode},
+    );
+    if (!unit) {
+        throw apiValidationException("unit_not_found", "unitId", unitId, languageCode);
+    }
+
+    const unitProjectId = (unit.project as any)?._id ?? unit.project;
+    if (!unitProjectId || objectIdToString(unitProjectId) !== projectId) {
+        throw apiValidationException("unit_not_found", "unitId", unitId, languageCode);
+    }
+
+    const {buffer, filename} = await buildUnitMarketingBookletPdf({
+        unitId: unitObjectId,
+        companyId: company._id as ObjectId,
+        projectId: projectObjectId,
+        languageCode,
+        logger,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader("Content-Length", buffer.length);
+    res.send(buffer);
+
+    logger.finish(`Public marketing brochure generated for unit [${unitId}]`);
 }
 
 export const basePath = "/api/realEstate/marketingUnit";

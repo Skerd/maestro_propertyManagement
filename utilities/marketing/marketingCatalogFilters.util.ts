@@ -56,6 +56,10 @@ function isAvailableUnit(unit: IUnit | any): boolean {
     return mapUnitStatus(unit.status) === "available";
 }
 
+function isSoldUnit(unit: IUnit | any): boolean {
+    return mapUnitStatus(unit.status) === "sold";
+}
+
 export function projectMatchesCatalogFilters(
     project: MarketingProjectCatalogListItem,
     units: IUnit[],
@@ -203,6 +207,7 @@ export function computeUnitCatalogStats(units: IUnit[] | any[]) {
     let minArea: number | undefined;
     let maxArea: number | undefined;
     let availableUnitCount = 0;
+    let soldUnitCount = 0;
     const propertyTypes = new Set<MarketingPropertyTypeId>();
 
     for (const unit of units) {
@@ -232,6 +237,9 @@ export function computeUnitCatalogStats(units: IUnit[] | any[]) {
         if (isAvailableUnit(unit)) {
             availableUnitCount += 1;
         }
+        if (isSoldUnit(unit)) {
+            soldUnitCount += 1;
+        }
     }
 
     return {
@@ -242,6 +250,7 @@ export function computeUnitCatalogStats(units: IUnit[] | any[]) {
         minArea,
         maxArea,
         availableUnitCount,
+        soldUnitCount,
         unitCount: units.length,
         propertyTypes: [...propertyTypes],
     };

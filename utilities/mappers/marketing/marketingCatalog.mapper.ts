@@ -73,6 +73,7 @@ function buildCatalogBaseFields(
         status: "active",
         unitCount: stats.unitCount,
         availableUnitCount: stats.availableUnitCount,
+        soldUnitCount: stats.soldUnitCount,
         edificeCount: edifices.length,
         floorCount: countFloorsForProject(edifices, floorsByEdifice),
         propertyTypes: stats.propertyTypes.length > 0 ? stats.propertyTypes : undefined,
@@ -239,6 +240,7 @@ export function mapMarketingProjectCatalogSingle(
                 constructors: constructors && constructors.length > 0 ? constructors : undefined,
                 unitCount: unitStats.unitCount,
                 availableUnitCount: unitStats.availableUnitCount,
+                soldUnitCount: unitStats.soldUnitCount,
                 floorsCoordinates: mappedFloorsCoordinates,
                 floors: floors.map((floor) => {
                     const floorId = objectIdToString(floor._id);

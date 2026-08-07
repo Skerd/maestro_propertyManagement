@@ -19,7 +19,14 @@ import {reservationService} from "@propertyManagement/database/schemas/reservati
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 
 const mediaUpload = mediaUploadMW({
-    fields: {mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1},
+    fields: {
+        mainImage: 1,
+        imageGallery: 10,
+        videoGallery: 3,
+        mediaFiles: 20,
+        marketingBooklet: 1,
+        magazineFile: 1,
+    },
     maxFileSize: 250 * 1024 * 1024,
 });
 

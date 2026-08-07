@@ -7,6 +7,8 @@ import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import {storyService} from "../../../database/schemas/story/story.service";
+import {storyTypeService} from "../../../database/schemas/storyType/storyType.service";
+import {projectService} from "../../../database/schemas/project/project.service";
 import {
     marketingStoriesFormSchema,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingStories/marketingStories.form.validator";
@@ -14,8 +16,10 @@ import {
     marketingStorySingleFormSchema,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingStories/marketingStorySingle.form.validator";
 import type {
+    MarketingMagazine,
     MarketingStoriesFormResponseType,
     MarketingStoryItem,
+    MarketingStoryTypeItem,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingStories/marketingStories.form.response.type";
 import type {
     MarketingStorySingleFormResponseType,
@@ -34,6 +38,7 @@ type MarketingStoriesParams = NotAuthenticatedMWType & {
     projectId?: string;
     edificeId?: string;
     unitId?: string;
+    storyTypeId?: string;
     limit?: number;
 };
 
@@ -61,6 +66,7 @@ function mapStory(story: any): MarketingStoryItem {
         ? story.excerpt.trim()
         : truncateExcerpt(String(story.content ?? ""));
 
+    const storyType = story.storyType;
     return {
         _id: objectIdToString(story._id),
         title: story.title,
@@ -77,6 +83,32 @@ function mapStory(story: any): MarketingStoryItem {
         edificeName: story.edifice?.name,
         unitId: story.unit ? objectIdToString(story.unit._id ?? story.unit) : undefined,
         unitName: story.unit?.name ?? story.unit?.unitNumber,
+        storyTypeId: storyType ? objectIdToString(storyType._id ?? storyType) : undefined,
+        storyTypeName: storyType?.name,
+        storyTypeSlug: storyType?.slug,
+    };
+}
+
+function mapStoryType(doc: any): MarketingStoryTypeItem {
+    return {
+        _id: objectIdToString(doc._id),
+        name: doc.name,
+        slug: doc.slug,
+        sortOrder: doc.sortOrder ?? 0,
+    };
+}
+
+function mapMagazine(project: any): MarketingMagazine | undefined {
+    if (!project) return undefined;
+    const title = typeof project.magazineTitle === "string" ? project.magazineTitle.trim() : "";
+    const description =
+        typeof project.magazineDescription === "string" ? project.magazineDescription.trim() : "";
+    const fileUrl = marketingMediaUrl(project.magazineFile);
+    if (!title && !description && !fileUrl) return undefined;
+    return {
+        title: title || undefined,
+        description: description || undefined,
+        fileUrl,
     };
 }
 
@@ -99,7 +131,7 @@ router.post(
 async function marketingStories(
     params: MarketingStoriesParams,
 ): Promise<MarketingStoriesFormResponseType> {
-    const {origin, languageCode, logger, projectId, edificeId, unitId, limit} = params;
+    const {origin, languageCode, logger, projectId, edificeId, unitId, storyTypeId, limit} = params;
     logger.start("Loading marketing stories...");
 
     const company = await resolveMarketingCompany(origin, languageCode);
@@ -112,15 +144,33 @@ async function marketingStories(
     if (projectId) filter.project = new ObjectId(projectId);
     if (edificeId) filter.edifice = new ObjectId(edificeId);
     if (unitId) filter.unit = new ObjectId(unitId);
+    if (storyTypeId) filter.storyType = new ObjectId(storyTypeId);
 
-    const stories = await storyService.find(
-        filter,
-        {logger, languageCode},
-        ["mainImage", "imageGallery", "videoGallery", "project", "edifice", "unit"],
-        undefined,
-        {sortOrder: 1, publishedAt: -1, createdAt: -1},
-        Math.min(limit ?? DEFAULT_LIMIT, 50),
-    );
+    const [stories, storyTypes, project] = await Promise.all([
+        storyService.find(
+            filter,
+            {logger, languageCode},
+            ["mainImage", "imageGallery", "videoGallery", "project", "edifice", "unit", "storyType"],
+            undefined,
+            {sortOrder: 1, publishedAt: -1, createdAt: -1},
+            Math.min(limit ?? DEFAULT_LIMIT, 50),
+        ),
+        storyTypeService.find(
+            {company: company._id, deletedAt: null},
+            {logger, languageCode},
+            undefined,
+            undefined,
+            {sortOrder: 1, name: 1},
+            100,
+        ),
+        projectId
+            ? projectService.findOne(
+                  {_id: new ObjectId(projectId), company: company._id, deletedAt: null},
+                  {logger, languageCode},
+                  ["magazineFile"],
+              )
+            : Promise.resolve(null),
+    ]);
 
     const mapped = stories.map(mapStory);
 
@@ -128,6 +178,8 @@ async function marketingStories(
     return {
         stories: mapped,
         total: mapped.length,
+        storyTypes: storyTypes.map(mapStoryType),
+        magazine: mapMagazine(project),
     };
 }
 
@@ -146,7 +198,7 @@ async function marketingStorySingle(
             published: true,
         },
         {logger, languageCode},
-        ["mainImage", "imageGallery", "videoGallery", "project", "edifice", "unit"],
+        ["mainImage", "imageGallery", "videoGallery", "project", "edifice", "unit", "storyType"],
     );
 
     if (!story) {

@@ -31,6 +31,7 @@ export function storyToDTO(doc: IStory): Story {
         _id: doc._id.toString(),
         name: doc.name,
         project: mapPopulatedRef(doc.project)!,
+        storyType: mapPopulatedRef(doc.storyType),
         edifice: mapPopulatedRef(doc.edifice),
         unit: mapUnitRef(doc.unit),
         title: doc.title,

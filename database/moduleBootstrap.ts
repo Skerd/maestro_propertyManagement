@@ -16,6 +16,7 @@ import Commission from "@propertyManagement/database/schemas/commission/commissi
 import Lead from "@propertyManagement/database/schemas/lead/lead";
 import ConstructionUpdate from "@propertyManagement/database/schemas/constructionUpdate/constructionUpdate";
 import Story from "@propertyManagement/database/schemas/story/story";
+import StoryType from "@propertyManagement/database/schemas/storyType/storyType";
 import Snag from "@propertyManagement/database/schemas/snag/snag";
 import Milestone from "@propertyManagement/database/schemas/milestone/milestone";
 import ScheduleTask from "@propertyManagement/database/schemas/scheduleTask/scheduleTask";
@@ -81,6 +82,7 @@ export const propertyManagementModels: Model<any>[] = [
     Commission,
     Lead,
     ConstructionUpdate,
+    StoryType,
     Story,
     Snag,
     Milestone,

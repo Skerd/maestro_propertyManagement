@@ -34,6 +34,9 @@ export interface IProject extends Document, IOwnershipPluginFields, ISoftDeleteP
     videoGallery: IMedia[], // video gallery for the edifice,
     mediaFiles?: IMedia[], // generic file attachments (PDFs, documents, etc.)
     marketingBooklet?: IMedia, // single marketing booklet PDF
+    magazineFile?: IMedia, // journal magazine PDF
+    magazineTitle?: string,
+    magazineDescription?: string,
     socialLinks?: IProjectSocialLink[];
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
@@ -149,6 +152,39 @@ const ProjectSchema = new Schema<IProject>(
             ref: "Media",
             required: false,
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: false,
+                sortable: false,
+                visible: false,
+            },
+        },
+        magazineFile: {
+            type: SchemaTypes.ObjectId,
+            ref: "Media",
+            required: false,
+            refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: false,
+                sortable: false,
+                visible: false,
+            },
+        },
+        magazineTitle: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            default: "",
+            dynamicTableConfiguration: {
+                filterable: false,
+                sortable: false,
+                visible: false,
+            },
+        },
+        magazineDescription: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            default: "",
             dynamicTableConfiguration: {
                 filterable: false,
                 sortable: false,

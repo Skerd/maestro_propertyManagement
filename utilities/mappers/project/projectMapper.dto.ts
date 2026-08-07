@@ -23,6 +23,9 @@ export function projectToDTO(project: IProject, statistics?: ProjectStatistics, 
         videoGallery: !!project.videoGallery ? project.videoGallery?.map(mapMedia) : undefined,
         mediaFiles: !!project.mediaFiles ? project.mediaFiles?.map(mapMedia) : undefined,
         marketingBooklet: project.marketingBooklet ? mapMedia(project.marketingBooklet) : undefined,
+        magazineFile: project.magazineFile ? mapMedia(project.magazineFile) : undefined,
+        magazineTitle: project.magazineTitle?.trim() || undefined,
+        magazineDescription: project.magazineDescription?.trim() || undefined,
         socialLinks: Array.isArray(project.socialLinks)
             ? project.socialLinks
                   .filter((item) => item?.name?.trim() && item?.link?.trim())

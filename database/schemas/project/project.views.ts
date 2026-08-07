@@ -542,6 +542,64 @@ export const projectSheetView: ViewConfig = {
                 },
             ],
         },
+
+        // ── Magazine ─────────────────────────────────────────────────
+        {
+            render: "#SheetGroup",
+            dependent: "magazineTitle",
+            dependentRuntimeOnly: true,
+            permissions: { read: "magazineTitle" },
+            props: { title: "magazine" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 2 },
+                    children: [
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: { read: "magazineTitle" },
+                            field: {
+                                name: "magazineTitle",
+                                widget: "#SmallInfoCard",
+                                label: "magazineTitle",
+                                widgetProps: { icon: "#IconLabel" },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: { read: "magazineDescription" },
+                            dependent: "magazineDescription",
+                            field: {
+                                name: "magazineDescription",
+                                widget: "#SmallInfoCard",
+                                label: "magazineDescription",
+                                widgetProps: { icon: "#IconAlignLeft" },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "div",
+                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                    dependent: "magazineFile",
+                    children: [
+                        {
+                            render: "#SheetMediaFilesStrip",
+                            permissions: { read: "magazineFile" },
+                            field: {
+                                name: "magazineFile",
+                                widget: "#SheetMediaFilesStrip",
+                                widgetProps: {
+                                    canDownload: true,
+                                    canRemove: false,
+                                    isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
         lifecycleSheetGroup,
     ],
 };
@@ -698,6 +756,58 @@ const projectFormFields: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1 },
                 },
+            },
+        ],
+    },
+
+    // ── Magazine (journal PDF + copy) ───────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.magazineSectionTitle" },
+        permissions: { write: "magazineFile" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "magazineTitle",
+                            widget: "#Input",
+                            label: "form.magazineTitleLabel",
+                            placeholder: "form.magazineTitlePlaceholder",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "magazineFile",
+                            widget: "#MediaField",
+                            label: "form.magazineFileLabel",
+                            widgetProps: { mediaType: "file", mode: "single", maxCount: 1 },
+                        },
+                    },
+                    {
+                        render: "div",
+                        props: { className: "md:col-span-2" },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "magazineDescription",
+                                    widget: "#Textarea",
+                                    label: "form.magazineDescriptionLabel",
+                                    placeholder: "form.magazineDescriptionPlaceholder",
+                                    widgetProps: {
+                                        className:
+                                            "min-h-[120px] max-h-[280px] w-full resize-y overflow-y-auto leading-relaxed",
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
             },
         ],
     },

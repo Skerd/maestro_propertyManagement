@@ -88,6 +88,22 @@ export const storySheetView: ViewConfig = {
                         },
                         {
                             render: "#SmallInfoCard",
+                            permissions: {read: "storyType"},
+                            field: {
+                                name: "storyType.name",
+                                widget: "#SmallInfoCard",
+                                label: "storyType",
+                                widgetProps: {
+                                    icon: "#Tag",
+                                    linkedRefPath: "storyType",
+                                    linkedSheetModel: "storytypes",
+                                    linkedSheetWidget: "#StoryTypeSheetView",
+                                    linkedSheetEntityProp: "storyType",
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
@@ -313,6 +329,21 @@ const storyFormNodes: ViewConfig["nodes"] = [
                                 ],
                                 remountKeyFormField: "edifice",
                                 normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "storyType",
+                            widget: "#ApiSelect",
+                            label: "form.storyTypeLabel",
+                            placeholder: "form.storyTypePlaceholder",
+                            required: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/storyType/select",
+                                method: "POST",
+                                pageSize: 50,
                             },
                         },
                     },

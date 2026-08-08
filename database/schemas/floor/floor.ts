@@ -90,9 +90,7 @@ const FloorSchema = new Schema<IFloor>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             }
         },
         marketingBooklet: {
@@ -101,9 +99,7 @@ const FloorSchema = new Schema<IFloor>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         name: {

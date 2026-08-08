@@ -65,7 +65,8 @@ const StorySchema = new Schema<IStory>(
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
-                cellType: COLUMN_TYPE.STRING,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
             },
         },
         storyType: {
@@ -76,7 +77,8 @@ const StorySchema = new Schema<IStory>(
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
-                cellType: COLUMN_TYPE.STRING,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
             },
         },
         edifice: {
@@ -87,7 +89,8 @@ const StorySchema = new Schema<IStory>(
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
-                cellType: COLUMN_TYPE.STRING,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
             },
         },
         unit: {
@@ -98,7 +101,8 @@ const StorySchema = new Schema<IStory>(
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
-                cellType: COLUMN_TYPE.STRING,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
             },
         },
         title: {

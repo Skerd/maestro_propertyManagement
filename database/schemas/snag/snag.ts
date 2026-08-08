@@ -8,7 +8,12 @@ import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
-import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {
+    ILifeCyclePluginFields,
+    IOwnershipPluginFields,
+    ISoftDeletePluginFields,
+} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {SnagSchemaDef, snagStatusValues, snagSeverityValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/snag/snag.schema-def";
@@ -17,10 +22,11 @@ import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.sni
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {WorkPackageSimpleSnippet} from "../workPackage/workPackage.snippets";
 import {VariationOrderSimpleSnippet} from "../variationOrder/variationOrder.snippets";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {snagViews} from "./snag.views";
 import {applySnagIndexes} from "./snag.indexes";
 
-export interface ISnag extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
+export interface ISnag extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name: string;
     unit: IUnit;
     title: string;
@@ -45,40 +51,205 @@ export interface ISnag extends Document, IOwnershipPluginFields, ISoftDeletePlug
 
 const SnagSchema = new Schema<ISnag>(
     {
-        name:        {type: SchemaTypes.String, required: true, trim: true},
-        unit:        {type: SchemaTypes.ObjectId, ref: "Unit", required: true, refAllowlist: UnitSimpleSnippet},
-        title:       {type: SchemaTypes.String, required: true, trim: true},
-        description: {type: SchemaTypes.String, required: false},
-        location:    {type: SchemaTypes.String, required: false, trim: true},
-        status:      {
+        name: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
+        },
+        unit: {
+            type: SchemaTypes.ObjectId,
+            ref: "Unit",
+            required: true,
+            refAllowlist: UnitSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
+        },
+        title: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
+        },
+        description: {
+            type: SchemaTypes.String,
+            required: false,
+            dynamicTableConfiguration: {
+                sortable: false,
+            },
+        },
+        location: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
+        },
+        status: {
             type: SchemaTypes.String,
             enum: [...snagStatusValues],
             required: false,
             default: "open",
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
         },
-        severity:    {type: SchemaTypes.String, enum: [...snagSeverityValues], required: false, default: "medium"},
-        reportedBy:  {type: SchemaTypes.ObjectId, ref: "User", required: false, refAllowlist: SimpleBlankUserSnippet},
-        assignedTo:  {type: SchemaTypes.ObjectId, ref: "User", required: false, refAllowlist: SimpleBlankUserSnippet},
-        dueDate:     {type: SchemaTypes.Date, required: false},
-        resolvedAt:  {
+        severity: {
+            type: SchemaTypes.String,
+            enum: [...snagSeverityValues],
+            required: false,
+            default: "medium",
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
+        },
+        reportedBy: {
+            type: SchemaTypes.ObjectId,
+            ref: "User",
+            required: false,
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name", "surname"],
+            },
+        },
+        assignedTo: {
+            type: SchemaTypes.ObjectId,
+            ref: "User",
+            required: false,
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name", "surname"],
+            },
+        },
+        dueDate: {
+            type: SchemaTypes.Date,
+            required: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.DATE,
+            },
+        },
+        resolvedAt: {
             type: SchemaTypes.Date,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.DATE,
+            },
         },
         photos: {
             type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
             default: [],
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: false,
+            },
         },
-        notes: {type: SchemaTypes.String, required: false},
-        trade: {type: SchemaTypes.String, required: false},
-        workPackage: {type: SchemaTypes.ObjectId, ref: "WorkPackage", required: false, refAllowlist: WorkPackageSimpleSnippet},
-        rootCause: {type: SchemaTypes.String, required: false},
-        costImpact: {type: SchemaTypes.Number, required: false},
-        isWarranty: {type: SchemaTypes.Boolean, required: false, default: false},
-        isDlp: {type: SchemaTypes.Boolean, required: false, default: false},
-        variationOrder: {type: SchemaTypes.ObjectId, ref: "VariationOrder", required: false, refAllowlist: VariationOrderSimpleSnippet},
+        notes: {
+            type: SchemaTypes.String,
+            required: false,
+            dynamicTableConfiguration: {
+                filterable: false,
+            },
+        },
+        trade: {
+            type: SchemaTypes.String,
+            required: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
+        },
+        workPackage: {
+            type: SchemaTypes.ObjectId,
+            ref: "WorkPackage",
+            required: false,
+            refAllowlist: WorkPackageSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
+        },
+        rootCause: {
+            type: SchemaTypes.String,
+            required: false,
+            dynamicTableConfiguration: {
+                filterable: false,
+            },
+        },
+        costImpact: {
+            type: SchemaTypes.Number,
+            required: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.NUMBER,
+            },
+        },
+        isWarranty: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.BOOLEAN,
+            },
+        },
+        isDlp: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.BOOLEAN,
+            },
+        },
+        variationOrder: {
+            type: SchemaTypes.ObjectId,
+            ref: "VariationOrder",
+            required: false,
+            refAllowlist: VariationOrderSimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
+        },
     },
     {accessMode: "loose"}
 );
@@ -103,6 +274,7 @@ SnagSchema.pre("save", function (next) {
 ownershipPlugin(SnagSchema);
 auditPlugin(SnagSchema);
 softDeletePlugin(SnagSchema);
+lifeCyclePlugin(SnagSchema);
 applySnagIndexes(SnagSchema);
 
 const Snag = model<ISnag>("Snag", SnagSchema, "snags");

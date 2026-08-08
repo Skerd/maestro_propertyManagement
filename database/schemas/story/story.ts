@@ -119,9 +119,7 @@ const StorySchema = new Schema<IStory>(
             type: SchemaTypes.String,
             required: true,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         excerpt: {
@@ -129,9 +127,7 @@ const StorySchema = new Schema<IStory>(
             required: false,
             trim: true,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         mainImage: {
@@ -151,7 +147,6 @@ const StorySchema = new Schema<IStory>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 filterable: false,
-                visible: false,
             },
         },
         videoGallery: {
@@ -160,7 +155,6 @@ const StorySchema = new Schema<IStory>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 filterable: false,
-                visible: false,
             },
         },
         published: {

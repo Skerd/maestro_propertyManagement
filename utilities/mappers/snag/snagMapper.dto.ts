@@ -1,7 +1,11 @@
 import type {Snag} from "armonia/src/modules/propertyManagement/api/realEstate/private/snag/snag.dto";
 import type {ISnag} from "../../../database/schemas/snag/snag";
 import {mapMedia, mapPopulatedRef, mapPopulatedSimpleUser} from "@coreModule/utilities/mappers/common.mapper";
-import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {
+    mapLifeCycleToDTO,
+    mapOwnershipToDTO,
+    mapSoftDeleteToDTO,
+} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 export function snagToDTO(doc: ISnag | any): Snag {
     return {
@@ -39,6 +43,8 @@ export function snagToDTO(doc: ISnag | any): Snag {
               }
             : undefined,
         ...mapOwnershipToDTO(doc),
+        ...mapSoftDeleteToDTO(doc),
+        ...mapLifeCycleToDTO(doc),
     };
 }
 

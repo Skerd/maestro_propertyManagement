@@ -142,9 +142,7 @@ const ProjectSchema = new Schema<IProject>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             }
         },
         marketingBooklet: {
@@ -153,9 +151,7 @@ const ProjectSchema = new Schema<IProject>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         magazineFile: {
@@ -164,9 +160,7 @@ const ProjectSchema = new Schema<IProject>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         magazineTitle: {
@@ -175,9 +169,7 @@ const ProjectSchema = new Schema<IProject>(
             trim: true,
             default: "",
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         magazineDescription: {
@@ -186,24 +178,49 @@ const ProjectSchema = new Schema<IProject>(
             trim: true,
             default: "",
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         socialLinks: {
             type: [{
-                name: {type: SchemaTypes.String, required: true, trim: true},
-                link: {type: SchemaTypes.String, required: true, trim: true},
+                name: {
+                    type: SchemaTypes.String,
+                    required: true,
+                    trim: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                        visible: false,
+                    },
+                },
+                link: {
+                    type: SchemaTypes.String,
+                    required: true,
+                    trim: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                        visible: false,
+                    },
+                },
                 logo: {
                     type: SchemaTypes.ObjectId,
                     ref: "Media",
                     required: false,
                     refAllowlist: MediaSimpleSnippet,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                        visible: false,
+                    },
                 },
             }],
             default: [],
             dynamicTableConfiguration: {
+                hideColumn: true,
                 filterable: false,
                 sortable: false,
                 visible: false,

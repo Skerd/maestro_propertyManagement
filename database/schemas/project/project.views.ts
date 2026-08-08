@@ -768,7 +768,7 @@ const projectFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: { columns: 2 },
+                props: { columns: 1 },
                 children: [
                     {
                         render: "#Field",
@@ -782,30 +782,24 @@ const projectFormFields: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
+                            name: "magazineDescription",
+                            widget: "#Textarea",
+                            label: "form.magazineDescriptionLabel",
+                            placeholder: "form.magazineDescriptionPlaceholder",
+                            widgetProps: {
+                                className:
+                                    "min-h-[120px] max-h-[280px] w-full resize-y overflow-y-auto leading-relaxed",
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
                             name: "magazineFile",
                             widget: "#MediaField",
                             label: "form.magazineFileLabel",
                             widgetProps: { mediaType: "file", mode: "single", maxCount: 1 },
                         },
-                    },
-                    {
-                        render: "div",
-                        props: { className: "md:col-span-2" },
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name: "magazineDescription",
-                                    widget: "#Textarea",
-                                    label: "form.magazineDescriptionLabel",
-                                    placeholder: "form.magazineDescriptionPlaceholder",
-                                    widgetProps: {
-                                        className:
-                                            "min-h-[120px] max-h-[280px] w-full resize-y overflow-y-auto leading-relaxed",
-                                    },
-                                },
-                            },
-                        ],
                     },
                 ],
             },

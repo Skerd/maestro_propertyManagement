@@ -5,6 +5,7 @@ import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 import {ConstructionContractSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionContract/constructionContract.schema-def";
 import {createConstructionContractFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionContract/createConstructionContract.form.validator";
 import {editConstructionContractFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionContract/editConstructionContract.form.validator";
+import {constructionContractFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionContract/constructionContract.form.validator";
 import ConstructionContract from "../../../database/schemas/constructionContract/constructionContract";
 import {constructionContractService} from "../../../database/schemas/constructionContract/constructionContract.service";
 import {ConstructionContractActions} from "../../../database/schemas/constructionContract/constructionContract.actions";
@@ -32,11 +33,26 @@ const transforms: Record<string, (v: unknown) => unknown> = {
     performanceBond: (v: unknown) => { const {Decimal128} = require("mongodb"); return v != null && v !== "" ? Decimal128.fromString(String(v)) : undefined; },
 };
 
+async function constructionContractExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const {project, edifice, status} = params as {
+        project?: string;
+        edifice?: string;
+        status?: string;
+    };
+    const filter: Record<string, unknown> = {};
+    if (project && ObjectId.isValid(String(project))) filter.project = new ObjectId(String(project));
+    if (edifice && ObjectId.isValid(String(edifice))) filter.edifice = new ObjectId(String(edifice));
+    if (status && status !== "") filter.status = status;
+    return filter;
+}
+
 export const {router} = createCrudRouter({
     collectionName: "constructioncontracts",
     model: ConstructionContract,
     service: constructionContractService,
     entityName: "ConstructionContract",
+    listSchema: constructionContractFormSchema,
+    extraListFilter: constructionContractExtraListFilter,
     createSchema: createConstructionContractFormSchema,
     editSchema: editConstructionContractFormSchema,
     toDTO: constructionContractToDTO,
@@ -46,13 +62,6 @@ export const {router} = createCrudRouter({
     selectSearchField: "title",
     createMiddleware: [uploadMW], editMiddleware: [uploadMW],
     actions: ConstructionContractActions,
-    extraListFilter: async ({projectId, edificeId, status}: any) => {
-        const filter: Record<string, any> = {};
-        if (projectId && projectId !== "") filter.project = new ObjectId(String(projectId));
-        if (edificeId && edificeId !== "") filter.edifice = new ObjectId(String(edificeId));
-        if (status && status !== "") filter.status = status;
-        return filter;
-    },
     buildCreateData: async ({fileIds, ...params}: any) => {
         const data = buildCreateDataFromSchemaDef(ConstructionContractSchemaDef, transforms)(params);
         data.status = "draft";

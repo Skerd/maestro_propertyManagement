@@ -52,14 +52,33 @@ router.post(
 type HubParams = AuthenticatedMWType & ContractsListFormType;
 
 async function resolveUnitIds(
-    params: HubParams & {projectId?: string},
+    params: HubParams & {
+        project?: string;
+        edifice?: string;
+        floor?: string;
+        unit?: string;
+    },
 ): Promise<ObjectId[] | undefined> {
-    const {projectId, company, logger, languageCode} = params;
-    if (!projectId || !ObjectId.isValid(projectId)) return undefined;
+    const {project, edifice, floor, unit, company, logger, languageCode} = params;
+    const opts = {logger, languageCode, withDeleted: false as const};
+
+    if (unit && ObjectId.isValid(unit)) {
+        const foundUnit = await unitService.findOneOrThrow(
+            {_id: new ObjectId(unit), company: company._id},
+            opts as Parameters<typeof unitService.findOneOrThrow>[1],
+        );
+        return [foundUnit._id as ObjectId];
+    }
+
+    const unitScope: Record<string, unknown> = {company: company._id};
+    if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));
+    if (edifice && ObjectId.isValid(edifice)) unitScope.edifice = new ObjectId(String(edifice));
+    if (floor && ObjectId.isValid(floor)) unitScope.floor = new ObjectId(String(floor));
+    if (!unitScope.project && !unitScope.edifice && !unitScope.floor) return undefined;
 
     const units = await unitService.find(
-        {project: new ObjectId(projectId), company: company._id},
-        {logger, languageCode},
+        unitScope,
+        opts as Parameters<typeof unitService.find>[1],
         [],
         "_id",
         {},
@@ -105,7 +124,10 @@ async function listContracts(
         logger,
         company,
         search,
-        projectId,
+        project,
+        edifice,
+        floor,
+        unit,
         contractType,
         status,
         signatureDateFrom,
@@ -117,7 +139,7 @@ async function listContracts(
     logger.start("Listing contracts hub registry...");
 
     const companyId = company._id;
-    const unitIds = await resolveUnitIds({...params, projectId});
+    const unitIds = await resolveUnitIds({...params, project, edifice, floor, unit});
     const dateRange = parseDateRange(signatureDateFrom, signatureDateTo);
     const rows: ContractRegistryRow[] = [];
 
@@ -199,7 +221,10 @@ async function listClients(
         logger,
         company,
         search,
-        projectId,
+        project,
+        edifice,
+        floor,
+        unit,
         unitTypeId,
         status,
         valueMin,
@@ -211,7 +236,7 @@ async function listClients(
     logger.start("Listing contracts hub clients...");
 
     const companyId = company._id;
-    const unitIds = await resolveUnitIds({...params, projectId});
+    const unitIds = await resolveUnitIds({...params, project, edifice, floor, unit});
 
     const baseMatch: Record<string, unknown> = {
         company: companyId,

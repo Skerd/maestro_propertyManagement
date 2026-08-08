@@ -138,6 +138,9 @@ const LeadSchema = new Schema<ILead>(
             ref:          "User",
             required:     false,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         followUpDate: {type: SchemaTypes.Date, required: false},
         convertedAt:  {

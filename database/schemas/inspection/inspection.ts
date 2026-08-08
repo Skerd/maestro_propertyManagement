@@ -178,6 +178,9 @@ const InspectionSchema = new Schema<IInspection>(
             required: true,
             index: true,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         inspectionDate: {
             type: SchemaTypes.Date,

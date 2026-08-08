@@ -137,7 +137,10 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.ObjectId,
             ref: 'User',
             required: false,
-            refAllowlist: SimpleBlankUserSnippet
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         buyerCompany: {
             type: SchemaTypes.ObjectId,
@@ -150,7 +153,10 @@ const SaleSchema = new Schema<ISale>(
             ref: 'User',
             required: true,
             index: true,
-            refAllowlist: SimpleBlankUserSnippet
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         saleDate: {
             type: SchemaTypes.Date,
@@ -441,6 +447,9 @@ const SaleSchema = new Schema<ISale>(
             ref: "User",
             required: false,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         handoverNotes: {type: SchemaTypes.String, required: false, trim: true},
         // FEAT-014 — title transfer tracking

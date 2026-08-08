@@ -74,21 +74,26 @@ export const {router} = createCrudRouter({
         return {data: modificationRequestsToSelect(requests), total};
     },
     extraListFilter: async (params) => {
-        const {unitId, projectId, edificeId, floorId, company, logger, languageCode} = params;
-        const opts = {logger, languageCode};
+        const {unit, project, edifice, floor, company, logger, languageCode} = params;
+        const opts = {logger, languageCode, withDeleted: false as const};
+        const filter: Record<string, unknown> = {};
 
-        const companyUnits = await unitService.find({company: company._id}, opts, null, "_id", {}, undefined, undefined);
-        const companyUnitIds = companyUnits.map((u) => u._id).filter((id): id is ObjectId => id != null);
+        if (unit && ObjectId.isValid(unit)) {
+            const foundUnit = await unitService.findOneOrThrow(
+                {_id: new ObjectId(unit), company: company._id},
+                opts,
+            );
+            filter.unit = foundUnit._id;
+            return filter;
+        }
 
-        const filter: Record<string, unknown> = {unit: {$in: companyUnitIds}};
-
-        if (unitId && ObjectId.isValid(unitId)) {
-            const unit = await unitService.findOneOrThrow({_id: new ObjectId(unitId), company: company._id}, opts);
-            filter.unit = unit._id;
-        } else if (projectId || edificeId || floorId) {
-            if (projectId) filter["unit.floor.edifice.project"] = {company: company._id, _id: new ObjectId(projectId)};
-            if (edificeId) filter["unit.floor.edifice"] = {company: company._id, _id: new ObjectId(edificeId)};
-            if (floorId) filter["unit.floor"] = {company: company._id, _id: new ObjectId(floorId)};
+        const unitScope: Record<string, unknown> = {company: company._id};
+        if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));
+        if (edifice && ObjectId.isValid(edifice)) unitScope.edifice = new ObjectId(String(edifice));
+        if (floor && ObjectId.isValid(floor)) unitScope.floor = new ObjectId(String(floor));
+        if (unitScope.project || unitScope.edifice || unitScope.floor) {
+            const units = await unitService.find(unitScope, opts, undefined, "_id");
+            filter.unit = {$in: units.map((u) => u._id)};
         }
 
         return filter;

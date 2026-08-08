@@ -224,7 +224,10 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             type: SchemaTypes.ObjectId,
             ref: 'User',
             required: false,
-            refAllowlist: SimpleBlankUserSnippet
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         notes: {
             type: SchemaTypes.String,
@@ -311,7 +314,10 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
             ref: 'User',
             required: true,
             index: true,
-            refAllowlist: SimpleBlankUserSnippet
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         title: {
             type: SchemaTypes.String,

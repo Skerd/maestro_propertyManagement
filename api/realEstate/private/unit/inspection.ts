@@ -134,17 +134,17 @@ export const {router} = createCrudRouter({
         return {data: inspectionsToSelect(inspections), total};
     },
     extraListFilter: async (params) => {
-        const {id, unitId, inspectedById, status, type, project, edifice, floor, company, logger, languageCode} = params;
+        const {id, unit, inspectedById, status, type, project, edifice, floor, company, logger, languageCode} = params;
         if (id && ObjectId.isValid(id)) {
             return {_id: new ObjectId(id)};
         }
         const filter: Record<string, unknown> = {};
-        if (unitId && ObjectId.isValid(unitId)) {
-            const unit = await unitService.findOneOrThrow(
-                {_id: new ObjectId(unitId), company: company._id},
+        if (unit && ObjectId.isValid(unit)) {
+            const foundUnit = await unitService.findOneOrThrow(
+                {_id: new ObjectId(unit), company: company._id},
                 {logger, languageCode},
             );
-            filter.unit = unit._id;
+            filter.unit = foundUnit._id;
         } else {
             const unitScope: Record<string, unknown> = {company: company._id};
             if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));

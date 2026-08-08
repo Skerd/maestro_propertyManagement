@@ -75,6 +75,9 @@ const CommissionSchema = new Schema<ICommission>(
             required: true,
             index: true,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -89,6 +92,9 @@ const CommissionSchema = new Schema<ICommission>(
             ref: "User",
             required: false,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -295,6 +301,9 @@ const CommissionSchema = new Schema<ICommission>(
                     ref: "User",
                     required: true,
                     refAllowlist: SimpleBlankUserSnippet,
+                    dynamicTableConfiguration: {
+                        refDisplayKey: ["name", "surname"],
+                    },
                 },
                 label: {type: SchemaTypes.String, required: false, trim: true},
                 ratePercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100},

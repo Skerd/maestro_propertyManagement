@@ -217,13 +217,19 @@ export const {router} = createCrudRouter({
         return {data: unitCostsToSelect(costs), total};
     },
     extraListFilter: async (params) => {
-        const {id, unitId, verificationStatus, paymentStatus, tag, company, logger, languageCode} = params;
+        const {id, unit, project, edifice, floor, verificationStatus, paymentStatus, tag, company, logger, languageCode} = params;
 
         if (id && ObjectId.isValid(id)) return {_id: new ObjectId(id)};
 
         const extra: Record<string, unknown> = {};
-        if (unitId && ObjectId.isValid(unitId)) {
-            Object.assign(extra, await buildUnitVisibilityFilter(unitId, company._id, {logger, languageCode}));
+        // Unit uses visibility OR (includes floor/edifice/project-scoped costs without a unit).
+        if (unit && ObjectId.isValid(String(unit))) {
+            Object.assign(extra, await buildUnitVisibilityFilter(String(unit), company._id, {logger, languageCode}));
+        } else {
+            // Denormalized ancestors on the cost doc — equality includes narrower-scoped rows.
+            if (project && ObjectId.isValid(String(project))) extra.project = new ObjectId(String(project));
+            if (edifice && ObjectId.isValid(String(edifice))) extra.edifice = new ObjectId(String(edifice));
+            if (floor && ObjectId.isValid(String(floor))) extra.floor = new ObjectId(String(floor));
         }
         if (verificationStatus) extra.verificationStatus = verificationStatus;
         if (paymentStatus) extra.paymentStatus = paymentStatus;

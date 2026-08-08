@@ -42,6 +42,7 @@ import {
     UNIT_COST_VERIFICATION_STATUS_VALUES,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/unitCost.constants";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export type IExpenditureItem = {
     title: string;
@@ -80,23 +81,37 @@ export interface IUnitCost extends Document, IOwnershipPluginFields, ISoftDelete
     budgetCurrency?: ICurrency;
 }
 
+const expenditureItemHidden = {
+    hideColumn: true,
+    filterable: false,
+    sortable: false,
+} as const;
+
 const expenditureItemSchema = new Schema<IExpenditureItem>(
     {
-        title: {type: SchemaTypes.String, required: true, trim: true},
+        title: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            dynamicTableConfiguration: {...expenditureItemHidden},
+        },
         category: {
             type: SchemaTypes.String,
             enum: [...EXPENDITURE_CATEGORY_VALUES],
             required: true,
+            dynamicTableConfiguration: {...expenditureItemHidden},
         },
         amount: {
             type: SchemaTypes.Number,
             required: true,
             min: 0,
+            dynamicTableConfiguration: {...expenditureItemHidden},
         },
         unit: {
             type: SchemaTypes.String,
             enum: [...MEASURE_UNIT_VALUES],
             required: true,
+            dynamicTableConfiguration: {...expenditureItemHidden},
         },
         pricePerUnit: {
             type: SchemaTypes.Decimal128,
@@ -113,11 +128,13 @@ const expenditureItemSchema = new Schema<IExpenditureItem>(
                 },
                 message: "pricePerUnit must be non-negative",
             },
+            dynamicTableConfiguration: {...expenditureItemHidden},
         },
         media: {
             type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
             default: [],
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {...expenditureItemHidden},
         },
     },
     {_id: true},
@@ -133,6 +150,11 @@ const UnitCostSchema = new Schema<IUnitCost>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {
+                order: 1,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
         },
         project: {
             type: SchemaTypes.ObjectId,
@@ -140,6 +162,12 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             index: true,
             refAllowlist: ProjectSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 2,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         edifice: {
             type: SchemaTypes.ObjectId,
@@ -147,6 +175,12 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             index: true,
             refAllowlist: EdificeSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 3,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         floor: {
             type: SchemaTypes.ObjectId,
@@ -154,6 +188,12 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             index: true,
             refAllowlist: FloorSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 4,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         unit: {
             type: SchemaTypes.ObjectId,
@@ -161,6 +201,12 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             index: true,
             refAllowlist: UnitSnippet,
+            dynamicTableConfiguration: {
+                order: 5,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         purchasePerson: {
             type: SchemaTypes.ObjectId,
@@ -168,21 +214,42 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: true,
             index: true,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                order: 6,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name", "surname"],
+            },
         },
         purchaseDate: {
             type: SchemaTypes.Date,
             required: true,
             index: true,
+            dynamicTableConfiguration: {
+                order: 7,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.DATE,
+            },
         },
         paymentDate: {
             type: SchemaTypes.Date,
             required: false,
             index: true,
+            dynamicTableConfiguration: {
+                order: 8,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.DATE,
+            },
         },
         notes: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            dynamicTableConfiguration: {
+                order: 20,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.STRING,
+            },
         },
         verificationStatus: {
             type: SchemaTypes.String,
@@ -190,6 +257,11 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: true,
             default: "pending_verification",
             index: true,
+            dynamicTableConfiguration: {
+                order: 9,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
         },
         paymentStatus: {
             type: SchemaTypes.String,
@@ -197,34 +269,66 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: true,
             default: "unpaid",
             index: true,
+            dynamicTableConfiguration: {
+                order: 10,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
         },
         tag: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
             lowercase: true,
+            dynamicTableConfiguration: {
+                order: 11,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.STRING,
+            },
         },
         currency: {
             type: SchemaTypes.ObjectId,
             ref: "Currency",
             required: true,
             refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 12,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         invoiceNumber: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            dynamicTableConfiguration: {
+                order: 13,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
         },
         vendorName: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            dynamicTableConfiguration: {
+                order: 14,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
         },
         relatedModificationRequest: {
             type: SchemaTypes.ObjectId,
             ref: "ModificationRequest",
             required: false,
             refAllowlist: ModificationRequestSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 15,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         // NOTE: named "constructorRef" — Mongoose silently drops any schema path literally
         // named "constructor" (plain-object prototype collision with Object.prototype.constructor).
@@ -233,18 +337,36 @@ const UnitCostSchema = new Schema<IUnitCost>(
             ref: "Constructor",
             required: false,
             refAllowlist: ConstructorSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 16,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         boqItem: {
             type: SchemaTypes.ObjectId,
             ref: "BoqItem",
             required: false,
             refAllowlist: BoqItemSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 17,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         costCommitment: {
             type: SchemaTypes.ObjectId,
             ref: "CostCommitment",
             required: false,
             refAllowlist: CostCommitmentSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 18,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
         invoiceMedia: {
             type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
@@ -257,6 +379,8 @@ const UnitCostSchema = new Schema<IUnitCost>(
             default: [],
             dynamicTableConfiguration: {
                 hideColumn: true,
+                filterable: false,
+                sortable: false,
             },
         },
         budgetedAmount: {
@@ -274,12 +398,23 @@ const UnitCostSchema = new Schema<IUnitCost>(
                 },
                 message: "budgetedAmount must be non-negative",
             },
+            dynamicTableConfiguration: {
+                order: 19,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.NUMBER,
+            },
         },
         budgetCurrency: {
             type: SchemaTypes.ObjectId,
             ref: "Currency",
             required: false,
             refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 21,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+            },
         },
     },
     {

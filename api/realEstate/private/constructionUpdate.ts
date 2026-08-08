@@ -5,6 +5,7 @@ import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
 import {ConstructionUpdateSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.schema-def";
 import {createConstructionUpdateFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/createConstructionUpdate.form.validator";
 import {editConstructionUpdateFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/editConstructionUpdate.form.validator";
+import {constructionUpdateFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.form.validator";
 import ConstructionUpdate from "../../../database/schemas/constructionUpdate/constructionUpdate";
 import {constructionUpdateService} from "../../../database/schemas/constructionUpdate/constructionUpdate.service";
 import {constructionUpdateToDTO, constructionUpdatesToDTO} from "../../../utilities/mappers/constructionUpdate/constructionUpdateMapper.dto";
@@ -26,6 +27,7 @@ export const {router} = createCrudRouter({
     model:          ConstructionUpdate,
     service:        constructionUpdateService,
     entityName:     "ConstructionUpdate",
+    listSchema:     constructionUpdateFormSchema,
     createSchema:   createConstructionUpdateFormSchema,
     editSchema:     editConstructionUpdateFormSchema,
     toDTO:          constructionUpdateToDTO,
@@ -36,10 +38,14 @@ export const {router} = createCrudRouter({
     selectSearchField: "title",
     createMiddleware: [uploadMW],
     editMiddleware:   [uploadMW],
-    extraListFilter: async ({projectId, edificeId}: any) => {
+    extraListFilter: async ({project, edifice}: any) => {
         const filter: Record<string, any> = {};
-        if (projectId && projectId !== "") filter.project = new ObjectId(String(projectId));
-        if (edificeId && edificeId !== "") filter.edifice = new ObjectId(String(edificeId));
+        if (project && project !== "" && ObjectId.isValid(String(project))) {
+            filter.project = new ObjectId(String(project));
+        }
+        if (edifice && edifice !== "" && ObjectId.isValid(String(edifice))) {
+            filter.edifice = new ObjectId(String(edifice));
+        }
         return filter;
     },
     buildCreateData: async ({fileIds, ...params}: any) => {

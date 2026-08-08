@@ -56,9 +56,7 @@ const StoryTypeSchema = new Schema<IStoryType>(
             type: SchemaTypes.String,
             default: "",
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         sortOrder: {

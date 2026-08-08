@@ -115,7 +115,10 @@ const ReservationSchema = new Schema<IReservation>(
                     write: "no-permission"
                 }
             },
-            refAllowlist: SimpleBlankUserSnippet
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         reservedByCompany: {
             type: SchemaTypes.ObjectId,
@@ -143,7 +146,10 @@ const ReservationSchema = new Schema<IReservation>(
                     write: "no-permission"
                 }
             },
-            refAllowlist: SimpleBlankUserSnippet
+            refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "surname"],
+            },
         },
         reservationDate: {
             type: SchemaTypes.Date,

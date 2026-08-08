@@ -46,24 +46,42 @@ const mediaUpload = mediaUploadMW({
 });
 
 async function reservationExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const {edificeId, company, logger, languageCode} = params as {
-        edificeId?: string;
+    const {unit, project, edifice, floor, company, logger, languageCode} = params as {
+        unit?: string;
+        project?: string;
+        edifice?: string;
+        floor?: string;
         company: {_id: ObjectId};
         logger: unknown;
         languageCode: string;
     };
-    if (!edificeId || !ObjectId.isValid(edificeId)) return {};
-    const units = await unitService.find(
-        {company: company._id, edifice: new ObjectId(edificeId)},
-        {logger, languageCode} as Parameters<typeof unitService.find>[1],
-        null,
-        "_id",
-        {},
-        undefined,
-        undefined,
-    );
-    const unitIds = units.map((u) => u._id).filter((id): id is ObjectId => id != null);
-    return {unit: {$in: unitIds}};
+    const opts = {logger, languageCode, withDeleted: false as const};
+    const filter: Record<string, unknown> = {};
+
+    if (unit && ObjectId.isValid(unit)) {
+        const foundUnit = await unitService.findOneOrThrow(
+            {_id: new ObjectId(unit), company: company._id},
+            opts as Parameters<typeof unitService.findOneOrThrow>[1],
+        );
+        filter.unit = foundUnit._id;
+        return filter;
+    }
+
+    const unitScope: Record<string, unknown> = {company: company._id};
+    if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));
+    if (edifice && ObjectId.isValid(edifice)) unitScope.edifice = new ObjectId(String(edifice));
+    if (floor && ObjectId.isValid(floor)) unitScope.floor = new ObjectId(String(floor));
+    if (unitScope.project || unitScope.edifice || unitScope.floor) {
+        const units = await unitService.find(
+            unitScope,
+            opts as Parameters<typeof unitService.find>[1],
+            undefined,
+            "_id",
+        );
+        filter.unit = {$in: units.map((u) => u._id)};
+    }
+
+    return filter;
 }
 
 export const basePath = "/api/realEstate/unit/reservation";

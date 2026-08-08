@@ -109,7 +109,7 @@ export class ReservationActions {
         rateLimit: {windowMs: 60000, max: 20},
         schema: manualReservationClientEmailFormSchema,
     })
-    async manualClientEmail(params: Record<string, any>): Promise<{ok: true}> {
+    async manualClientEmail(params: Record<string, any>): Promise<ReservationData | undefined> {
         const {logger, languageCode, _id, action, actionUserCtx, company} =
             params as Record<string, any> & ManualReservationClientEmailForm;
 
@@ -161,8 +161,12 @@ export class ReservationActions {
         const companyRef = reservation.reservedByCompany as {name?: string} | undefined;
         const companyName = companyRef?.name ?? "";
 
-        const unitRef = reservation.unit as {unitNumber?: string | number} | undefined;
+        const unitRef = reservation.unit as {unitNumber?: string | number; _id?: ObjectId} | undefined;
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
+        const unitId =
+            unitRef && typeof unitRef === "object" && unitRef._id
+                ? unitRef._id
+                : (reservation.unit as ObjectId);
 
         const exp = reservation.expirationDate ? new Date(reservation.expirationDate) : undefined;
         const expIso = exp ? exp.toISOString() : undefined;
@@ -182,6 +186,13 @@ export class ReservationActions {
         };
 
         let payload: DispatchReservationClientEmailInput;
+        let stampField:
+            | "confirmationEmailSentAt"
+            | "expirationReminderEmailAt3d"
+            | "expirationReminderEmailAt1d"
+            | "expirationReminderEmailAt0d"
+            | "expiredAt"
+            | undefined;
 
         switch (action) {
             case "send_confirmation":
@@ -190,6 +201,7 @@ export class ReservationActions {
                     kind: "created",
                     ...reservationClientEmailListingFieldsFromLoadedReservation(reservation, lang),
                 };
+                stampField = "confirmationEmailSentAt";
                 break;
             case "remind_3d":
                 if (!exp) {
@@ -199,6 +211,7 @@ export class ReservationActions {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_reminder", reminderPhase: "3"};
+                stampField = "expirationReminderEmailAt3d";
                 break;
             case "remind_1d":
                 if (!exp) {
@@ -208,6 +221,7 @@ export class ReservationActions {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_reminder", reminderPhase: "1"};
+                stampField = "expirationReminderEmailAt1d";
                 break;
             case "remind_today":
                 if (!exp) {
@@ -217,6 +231,7 @@ export class ReservationActions {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_reminder", reminderPhase: "0"};
+                stampField = "expirationReminderEmailAt0d";
                 break;
             case "send_expired":
                 if (!exp) {
@@ -226,6 +241,7 @@ export class ReservationActions {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_expired"};
+                stampField = "expiredAt";
                 break;
             case "remind_remaining_days":
                 if (!exp) {
@@ -251,8 +267,34 @@ export class ReservationActions {
             throw apiValidationException("client_has_no_email", "", null, languageCode);
         }
 
+        if (stampField) {
+            const now = new Date();
+            const $set: Record<string, unknown> = {[stampField]: now};
+            if (stampField === "expiredAt") {
+                $set.status = ReservationStatus.EXPIRED;
+            }
+            await reservationService.updateByIdOrThrow(
+                reservation._id,
+                {$set},
+                {logger, languageCode, auditUserId: actionUserCtx.userId},
+            );
+            if (stampField === "expiredAt" && unitId) {
+                await unitService.updateOne(
+                    {_id: unitId, status: UnitStatus.RESERVED, reservation: reservation._id},
+                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: ""}},
+                    {logger, languageCode},
+                );
+            }
+        }
+
+        const returnReservation = await loadReservationDto(reservation._id, {
+            logger,
+            languageCode,
+            actionUserCtx,
+        });
+
         logger.finish(`Manual reservation client email sent: ${action} for ${_id}`);
-        return {ok: true};
+        return returnReservation;
     }
 
     @action({

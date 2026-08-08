@@ -6,6 +6,7 @@ import {apiValidationException} from "armonia/src/modules/core/helpers/exception
 import {LeaseSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.schema-def";
 import {createLeaseFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/createLease.form.validator";
 import {editLeaseFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/editLease.form.validator";
+import {leaseFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.form.validator";
 import Lease, {LeaseStatus} from "../../../database/schemas/lease/lease";
 import {leaseService} from "../../../database/schemas/lease/lease.service";
 import {LeaseActions} from "../../../database/schemas/lease/lease.actions";
@@ -21,17 +22,63 @@ import {
     unitIdFromLease,
     waiveOpenRentalPayments,
 } from "../../../utilities/lease/leaseLifecycle";
+import {unitService} from "../../../database/schemas/unit/unit.service";
 
 const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 25 * 1024 * 1024});
 
 const dateTransform  = (v: unknown) => new Date(v as string);
 const moneyTransform = (v: unknown) => Decimal128.fromString(String(v));
 
+async function leaseExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const {unit, project, edifice, floor, tenant, status, company, logger, languageCode} = params as {
+        unit?: string;
+        project?: string;
+        edifice?: string;
+        floor?: string;
+        tenant?: string;
+        status?: string;
+        company: {_id: ObjectId};
+        logger: unknown;
+        languageCode: string;
+    };
+    const opts = {logger, languageCode, withDeleted: false as const};
+    const filter: Record<string, unknown> = {};
+
+    if (tenant && ObjectId.isValid(tenant)) filter.tenant = new ObjectId(String(tenant));
+    if (status) filter.status = status;
+
+    if (unit && ObjectId.isValid(unit)) {
+        const foundUnit = await unitService.findOneOrThrow(
+            {_id: new ObjectId(unit), company: company._id},
+            opts as Parameters<typeof unitService.findOneOrThrow>[1],
+        );
+        filter.unit = foundUnit._id;
+        return filter;
+    }
+
+    const unitScope: Record<string, unknown> = {company: company._id};
+    if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));
+    if (edifice && ObjectId.isValid(edifice)) unitScope.edifice = new ObjectId(String(edifice));
+    if (floor && ObjectId.isValid(floor)) unitScope.floor = new ObjectId(String(floor));
+    if (unitScope.project || unitScope.edifice || unitScope.floor) {
+        const units = await unitService.find(
+            unitScope,
+            opts as Parameters<typeof unitService.find>[1],
+            undefined,
+            "_id",
+        );
+        filter.unit = {$in: units.map((u) => u._id)};
+    }
+
+    return filter;
+}
+
 export const {router} = createCrudRouter({
     collectionName:   "leases",
     model:            Lease,
     service:          leaseService,
     entityName:       "Lease",
+    listSchema:       leaseFormSchema,
     createSchema:     createLeaseFormSchema,
     editSchema:       editLeaseFormSchema,
     toDTO:            leaseToDTO,
@@ -42,13 +89,7 @@ export const {router} = createCrudRouter({
     createMiddleware: [uploadMW],
     editMiddleware:   [uploadMW],
     actions:          LeaseActions,
-    extraListFilter: async ({unitId, status, tenantId}: any) => {
-        const filter: Record<string, any> = {};
-        if (unitId   && unitId   !== "") filter.unit   = new ObjectId(String(unitId));
-        if (tenantId && tenantId !== "") filter.tenant = new ObjectId(String(tenantId));
-        if (status   && status   !== "") filter.status = status;
-        return filter;
-    },
+    extraListFilter:  leaseExtraListFilter,
     buildCreateData: async (params: any) => {
         const {fileIds, session, logger, languageCode, actionUserCtx, company, ...rest} = params;
         const unitId = new ObjectId(String(rest.unit));

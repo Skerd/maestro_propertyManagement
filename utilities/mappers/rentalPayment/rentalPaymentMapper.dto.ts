@@ -1,6 +1,10 @@
 import {IRentalPayment} from "../../../database/schemas/rentalPayment/rentalPayment";
 import {RentalPayment} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.dto";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {
+    mapLifeCycleToDTO,
+    mapOwnershipToDTO,
+    mapSoftDeleteToDTO,
+} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {mapMedia, mapPopulatedRef, mapPopulatedSimpleCurrency} from "@coreModule/utilities/mappers/common.mapper";
 
 export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
@@ -21,6 +25,7 @@ export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
         receiptMedia: payment.receiptMedia ? mapMedia(payment.receiptMedia) : undefined,
         ...mapSoftDeleteToDTO(payment),
         ...mapOwnershipToDTO(payment),
+        ...mapLifeCycleToDTO(payment),
     };
 }
 

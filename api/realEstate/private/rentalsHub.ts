@@ -55,18 +55,37 @@ router.post(
     }),
 );
 
-async function resolveUnitIds(params: {
-    projectId?: string;
+type HubScopeParams = {
+    project?: string;
+    edifice?: string;
+    floor?: string;
+    unit?: string;
     company: {_id: ObjectId};
     logger: any;
     languageCode: string;
-}): Promise<ObjectId[] | undefined> {
-    const {projectId, company, logger, languageCode} = params;
-    if (!projectId || !ObjectId.isValid(projectId)) return undefined;
+};
+
+async function resolveUnitIds(params: HubScopeParams): Promise<ObjectId[] | undefined> {
+    const {project, edifice, floor, unit, company, logger, languageCode} = params;
+    const opts = {logger, languageCode, withDeleted: false as const};
+
+    if (unit && ObjectId.isValid(unit)) {
+        const foundUnit = await unitService.findOneOrThrow(
+            {_id: new ObjectId(unit), company: company._id},
+            opts as Parameters<typeof unitService.findOneOrThrow>[1],
+        );
+        return [foundUnit._id as ObjectId];
+    }
+
+    const unitScope: Record<string, unknown> = {company: company._id};
+    if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));
+    if (edifice && ObjectId.isValid(edifice)) unitScope.edifice = new ObjectId(String(edifice));
+    if (floor && ObjectId.isValid(floor)) unitScope.floor = new ObjectId(String(floor));
+    if (!unitScope.project && !unitScope.edifice && !unitScope.floor) return undefined;
 
     const units = await unitService.find(
-        {project: new ObjectId(projectId), company: company._id},
-        {logger, languageCode},
+        unitScope,
+        opts as Parameters<typeof unitService.find>[1],
         [],
         "_id",
         {},
@@ -112,7 +131,10 @@ async function listLeases(
         logger,
         company,
         search,
-        projectId,
+        project,
+        edifice,
+        floor,
+        unit,
         status,
         startDateFrom,
         startDateTo,
@@ -123,7 +145,7 @@ async function listLeases(
     logger.start("Listing rentals hub leases...");
 
     const companyId = company._id;
-    const unitIds = await resolveUnitIds({projectId, company, logger, languageCode: params.languageCode});
+    const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
     const dateRange = parseDateRange(startDateFrom, startDateTo);
 
     const match: Record<string, unknown> = {
@@ -168,7 +190,10 @@ async function listRentalPayments(
         logger,
         company,
         search,
-        projectId,
+        project,
+        edifice,
+        floor,
+        unit,
         status,
         dueDateFrom,
         dueDateTo,
@@ -179,7 +204,7 @@ async function listRentalPayments(
     logger.start("Listing rentals hub payments...");
 
     const companyId = company._id;
-    const unitIds = await resolveUnitIds({projectId, company, logger, languageCode: params.languageCode});
+    const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
     const dateRange = parseDateRange(dueDateFrom, dueDateTo);
 
     const match: Record<string, unknown> = {

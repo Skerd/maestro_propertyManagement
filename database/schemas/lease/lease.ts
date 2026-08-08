@@ -9,7 +9,12 @@ import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
-import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {
+    ILifeCyclePluginFields,
+    IOwnershipPluginFields,
+    ISoftDeletePluginFields,
+} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {leaseViews} from "./lease.views";
 import {applyLeaseIndexes} from "./lease.indexes";
@@ -19,6 +24,7 @@ import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.sni
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export enum LeaseStatus {
     ACTIVE     = "active",
@@ -26,7 +32,7 @@ export enum LeaseStatus {
     TERMINATED = "terminated",
 }
 
-export interface ILease extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
+export interface ILease extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name?: string;
     unit: IUnit;
     tenant: IUser;
@@ -52,46 +58,167 @@ const LeaseSchema = new Schema<ILease>(
             immutable: true,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                order: 1,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.STRING,
+                filterable: true,
+            },
         },
         unit: {
             type: SchemaTypes.ObjectId,
             ref: "Unit",
             required: true,
             refAllowlist: UnitSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 2,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+                filterable: true,
+            },
         },
         tenant: {
             type: SchemaTypes.ObjectId,
             ref: "User",
             required: true,
             refAllowlist: SimpleBlankUserSnippet,
+            dynamicTableConfiguration: {
+                order: 3,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name", "surname"],
+                filterable: true,
+            },
         },
-        startDate:    {type: SchemaTypes.Date, required: true},
-        endDate:      {type: SchemaTypes.Date, required: true},
-        monthlyRent:  {type: SchemaTypes.Decimal128, required: true},
+        startDate: {
+            type: SchemaTypes.Date,
+            required: true,
+            dynamicTableConfiguration: {
+                order: 4,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+            },
+        },
+        endDate: {
+            type: SchemaTypes.Date,
+            required: true,
+            dynamicTableConfiguration: {
+                order: 5,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+            },
+        },
+        monthlyRent: {
+            type: SchemaTypes.Decimal128,
+            required: true,
+            dynamicTableConfiguration: {
+                order: 6,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: true,
+            },
+        },
         rentCurrency: {
             type: SchemaTypes.ObjectId,
             ref: "Currency",
             required: true,
             refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 7,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+                filterable: true,
+            },
         },
-        depositAmount: {type: SchemaTypes.Decimal128, required: false},
-        depositPaid:   {type: SchemaTypes.Boolean,    required: true, default: false},
-        depositReturnedAt: {type: SchemaTypes.Date,   required: false},
+        depositAmount: {
+            type: SchemaTypes.Decimal128,
+            required: false,
+            dynamicTableConfiguration: {
+                order: 8,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: true,
+            },
+        },
+        depositPaid: {
+            type: SchemaTypes.Boolean,
+            required: true,
+            default: false,
+            dynamicTableConfiguration: {
+                order: 9,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.BOOLEAN,
+                filterable: true,
+            },
+        },
+        depositReturnedAt: {
+            type: SchemaTypes.Date,
+            required: false,
+            dynamicTableConfiguration: {
+                order: 10,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+            },
+        },
         status: {
             type:     SchemaTypes.String,
             required: true,
             enum:     Object.values(LeaseStatus),
             default:  LeaseStatus.ACTIVE,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                order: 11,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.ENUM,
+                filterable: true,
+            },
         },
-        terminationDate:   {type: SchemaTypes.Date,   required: false},
-        terminationReason: {type: SchemaTypes.String, required: false, trim: true},
-        notes:             {type: SchemaTypes.String, required: false, trim: true},
+        terminationDate: {
+            type: SchemaTypes.Date,
+            required: false,
+            dynamicTableConfiguration: {
+                order: 12,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+            },
+        },
+        terminationReason: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            dynamicTableConfiguration: {
+                order: 13,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.STRING,
+                filterable: false,
+            },
+        },
+        notes: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            dynamicTableConfiguration: {
+                order: 14,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.STRING,
+                filterable: false,
+            },
+        },
         contractMedia: {
             type:         SchemaTypes.ObjectId,
             ref:          "Media",
             required:     false,
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                hideColumn: true,
+                filterable: false,
+            },
         },
     },
     {accessMode: "loose"},
@@ -112,6 +239,7 @@ LeaseSchema.pre("save", function (next) {
 ownershipPlugin(LeaseSchema);
 auditPlugin(LeaseSchema);
 softDeletePlugin(LeaseSchema);
+lifeCyclePlugin(LeaseSchema);
 applyLeaseIndexes(LeaseSchema);
 
 const Lease = model<ILease>("Lease", LeaseSchema);

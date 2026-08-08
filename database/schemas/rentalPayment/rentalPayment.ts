@@ -9,7 +9,12 @@ import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
-import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {
+    ILifeCyclePluginFields,
+    IOwnershipPluginFields,
+    ISoftDeletePluginFields,
+} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {rentalPaymentViews} from "./rentalPayment.views";
 import {applyRentalPaymentIndexes} from "./rentalPayment.indexes";
@@ -19,6 +24,7 @@ import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/curre
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 import {LeaseSimpleSnippet} from "../lease/lease.snippets";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export enum RentalPaymentStatus {
     PENDING = "pending",
@@ -27,7 +33,7 @@ export enum RentalPaymentStatus {
     WAIVED  = "waived",
 }
 
-export interface IRentalPayment extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
+export interface IRentalPayment extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name?: string;
     lease: ILease;
     unit: IUnit;
@@ -49,26 +55,71 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             immutable:   true,
             required:    false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                order: 1,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.STRING,
+                filterable: true,
+            },
         },
         lease: {
             type:         SchemaTypes.ObjectId,
             ref:          "Lease",
             required:     true,
             refAllowlist: LeaseSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 2,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+                filterable: true,
+            },
         },
         unit: {
             type:         SchemaTypes.ObjectId,
             ref:          "Unit",
             required:     true,
             refAllowlist: UnitSimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 3,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+                filterable: true,
+            },
         },
-        dueDate:    {type: SchemaTypes.Date,       required: true},
-        amount:     {type: SchemaTypes.Decimal128,  required: true},
+        dueDate: {
+            type: SchemaTypes.Date,
+            required: true,
+            dynamicTableConfiguration: {
+                order: 4,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+            },
+        },
+        amount: {
+            type: SchemaTypes.Decimal128,
+            required: true,
+            dynamicTableConfiguration: {
+                order: 5,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: true,
+            },
+        },
         currency: {
             type:         SchemaTypes.ObjectId,
             ref:          "Currency",
             required:     true,
             refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                order: 6,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
+                filterable: true,
+            },
         },
         status: {
             type:     SchemaTypes.String,
@@ -76,15 +127,53 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             enum:     Object.values(RentalPaymentStatus),
             default:  RentalPaymentStatus.PENDING,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                order: 7,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.ENUM,
+                filterable: true,
+            },
         },
-        paidDate:   {type: SchemaTypes.Date,      required: false},
-        paidAmount: {type: SchemaTypes.Decimal128, required: false},
-        notes:      {type: SchemaTypes.String,     required: false, trim: true},
+        paidDate: {
+            type: SchemaTypes.Date,
+            required: false,
+            dynamicTableConfiguration: {
+                order: 8,
+                defaultVisible: true,
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+            },
+        },
+        paidAmount: {
+            type: SchemaTypes.Decimal128,
+            required: false,
+            dynamicTableConfiguration: {
+                order: 9,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: true,
+            },
+        },
+        notes: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            dynamicTableConfiguration: {
+                order: 10,
+                defaultVisible: false,
+                cellType: COLUMN_TYPE.STRING,
+                filterable: false,
+            },
+        },
         receiptMedia: {
             type:         SchemaTypes.ObjectId,
             ref:          "Media",
             required:     false,
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                hideColumn: true,
+                filterable: false,
+            },
         },
     },
     {accessMode: "loose"},
@@ -105,6 +194,7 @@ RentalPaymentSchema.pre("save", function (next) {
 ownershipPlugin(RentalPaymentSchema);
 auditPlugin(RentalPaymentSchema);
 softDeletePlugin(RentalPaymentSchema);
+lifeCyclePlugin(RentalPaymentSchema);
 applyRentalPaymentIndexes(RentalPaymentSchema);
 
 const RentalPayment = model<IRentalPayment>("RentalPayment", RentalPaymentSchema);

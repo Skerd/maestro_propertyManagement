@@ -1,6 +1,10 @@
 import {ILease} from "../../../database/schemas/lease/lease";
 import {Lease} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.dto";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {
+    mapLifeCycleToDTO,
+    mapOwnershipToDTO,
+    mapSoftDeleteToDTO,
+} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {mapMedia, mapPopulatedSimpleCurrency, mapPopulatedSimpleUser} from "@coreModule/utilities/mappers/common.mapper";
 
 export function leaseToDTO(lease: ILease): Lease {
@@ -29,6 +33,7 @@ export function leaseToDTO(lease: ILease): Lease {
         contractMedia:     lease.contractMedia ? mapMedia(lease.contractMedia) : undefined,
         ...mapSoftDeleteToDTO(lease),
         ...mapOwnershipToDTO(lease),
+        ...mapLifeCycleToDTO(lease),
     };
 }
 

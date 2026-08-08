@@ -262,7 +262,6 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 filterable: false,
-                visible: false,
             }
         },
         videoGallery: {
@@ -275,19 +274,27 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 filterable: false,
-                visible: false,
             }
         },
-        mediaFiles: { type: [{ type: Schema.Types.ObjectId, ref: "Media" }], required: false, default: [], refAllowlist: MediaSimpleSnippet, dynamicTableConfiguration: { filterable: false, sortable: false, visible: false } },
+        mediaFiles: {
+            type: [{
+                type: Schema.Types.ObjectId,
+                ref: "Media"
+            }],
+            required: false,
+            default: [],
+            refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                sortable: false,
+            }
+        },
         marketingBooklet: {
             type: Schema.Types.ObjectId,
             ref: "Media",
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         polygonCoordinates: {

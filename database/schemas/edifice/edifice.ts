@@ -17,7 +17,6 @@ import {
     ISoftDeletePluginFields
 } from "@coreModule/database/types/plugin-fields";
 import {applyEdificeIndexes} from "./edifice.indexes";
-import {ICompany} from "@coreModule/database/schemas/company/company";
 import {IProject} from "../project/project";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {addModelData} from "@coreModule/database/collections";
@@ -123,9 +122,7 @@ const EdificeSchema = new Schema<IEdifice>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             }
         },
         marketingBooklet: {
@@ -134,9 +131,7 @@ const EdificeSchema = new Schema<IEdifice>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
-                visible: false,
             },
         },
         name: {

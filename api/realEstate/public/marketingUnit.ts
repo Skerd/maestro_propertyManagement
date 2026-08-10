@@ -118,7 +118,7 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
         const fallbackUnit = await unitService.findOne(
             {_id: unitObjectId, company: company._id, deletedAt: null},
             {logger, languageCode},
-            ["mainImage", "imageGallery", "unitType", "priceCurrency", "floor"],
+            ["mainImage", "imageGallery", "unitType", "priceCurrency", "priceHistory.currency", "floor"],
         );
         if (!fallbackUnit) {
             throw apiValidationException("unit_not_found", "unitId", unitId, languageCode);

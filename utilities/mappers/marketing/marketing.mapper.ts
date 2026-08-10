@@ -188,6 +188,19 @@ function mapMarketingPriceCurrency(currency: any): {symbol?: string; abbreviatio
     return {symbol, abbreviation};
 }
 
+function mapMarketingUnitPriceHistory(unit: IUnit | any): MarketingUnitSingleDTO["priceHistory"] {
+    if (!Array.isArray(unit.priceHistory) || unit.priceHistory.length === 0) {
+        return undefined;
+    }
+
+    return unit.priceHistory.map((entry: any) => ({
+        price: entry.price != null ? Number(parseFloat(entry.price.toString())) : 0,
+        currency: mapMarketingPriceCurrency(entry.currency) ?? mapMarketingPriceCurrency(unit.priceCurrency),
+        changedAt: entry.changedAt ? new Date(entry.changedAt).toISOString() : undefined,
+        reason: typeof entry.reason === "string" && entry.reason.trim() ? entry.reason : undefined,
+    }));
+}
+
 export function mapMarketingUnitSingle(
     unit: IUnit | any,
     projectId: string,
@@ -243,6 +256,7 @@ export function mapMarketingUnitSingle(
         hasCityView: unit.hasCityView ?? undefined,
         hasLakeView: unit.hasLakeView ?? undefined,
         hasElevator: unit.hasElevator ?? undefined,
+        priceHistory: mapMarketingUnitPriceHistory(unit),
     };
 }
 

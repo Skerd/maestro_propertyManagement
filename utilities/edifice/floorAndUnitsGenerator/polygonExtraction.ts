@@ -87,8 +87,9 @@ export interface HighlightColorConfig {
  * black ink on white do NOT pollute the mask.
  */
 export const DEFAULT_HIGHLIGHT_CONFIG: HighlightColorConfig = {
-    saturationMin: 60,
-    valueMin: 50,
+    // Softened for semi-transparent teal/cyan fills (Dyeus etc.) that sit under grey walls.
+    saturationMin: 40,
+    valueMin: 40,
     valueMax: 255,
     blurFraction: 0.0035,
     closeKernelFraction: 0.012,

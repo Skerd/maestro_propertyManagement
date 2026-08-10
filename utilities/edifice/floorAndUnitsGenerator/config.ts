@@ -69,4 +69,14 @@ export const config = {
      * same width/height ratio as the per-floor master floor-plan.png (letterboxed, no stretch).
      */
     UNIT_FLOOR_PLAN_MATCH_MASTER_ASPECT: true,
+    /**
+     * When registering unit thumb → master, downscale the master to thumb size then convert
+     * BOTH to a crisp binary structural-ink map (not a soft blur) so line weight matches.
+     * Matching then keeps only long/major wall segments.
+     */
+    REGISTRATION_DOWNSCALE_MASTER_TO_THUMB: true,
+    /** Min wall length as a fraction of min(image dim); higher = only bigger structures. */
+    REGISTRATION_MIN_LINE_LENGTH_FRACTION: 0.10,
+    /** Keep at most this many longest segments per image after Hough. */
+    REGISTRATION_MAX_SEGMENTS: 45,
 } as const;

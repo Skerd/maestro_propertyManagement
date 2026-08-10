@@ -129,10 +129,13 @@ export type HighlightExtractionOpencv4Result = {
     allPolygons: PolygonPoint[][];
     allPolygonAreas: number[];
     /**
-     * true when unitPolygon coords are relative to the master floor plan (fresh or fallback registration).
-     * false when they are relative to the unit thumbnail.
+     * true when unitPolygon coords are relative to the master floor plan
+     * (fresh registration, floor-cached registration, or simple scale fallback).
+     * false when they are relative to the unit thumbnail only (no master available).
      */
     registeredToMaster: boolean;
+    /** How the polygon was placed onto the master (or `none` if thumbnail-space only). */
+    registrationSource?: 'fresh' | 'floor-fallback' | 'scale-fallback' | 'none';
     /**
      * Freshly computed registration for this unit's thumbnail, when registration succeeded from scratch.
      * Cache this at floor level and pass as `fallbackRegistration` for other units on the same floor
@@ -229,6 +232,49 @@ function remapFractionalPolygon(
     return out;
 }
 
+/**
+ * When line-based registration fails, map the highlight polygon onto the master
+ * floor plan by anisotropic scale (thumbnail frame → master frame).
+ *
+ * After {@link config.UNIT_FLOOR_PLAN_MATCH_MASTER_ASPECT} letterboxing, thumb and
+ * master share aspect ratio so this is effectively uniform scale; fractional
+ * coords transfer 1:1. Without letterboxing it still yields master-normalized
+ * coordinates suitable for floor-plan overlays.
+ */
+function scaleThumbnailPolygonToMaster(
+    pts: PolygonPoint[],
+    thumbW: number,
+    thumbH: number,
+    masterW: number,
+    masterH: number,
+): PolygonPoint[] {
+    if (thumbW <= 0 || thumbH <= 0 || masterW <= 0 || masterH <= 0) {
+        return pts.map((p) => ({x: p.x, y: p.y}));
+    }
+    const sx = masterW / thumbW;
+    const sy = masterH / thumbH;
+    return pts.map((p) => {
+        const mx = p.x * thumbW * sx;
+        const my = p.y * thumbH * sy;
+        return {
+            x: Math.max(0, Math.min(1, mx / masterW)),
+            y: Math.max(0, Math.min(1, my / masterH)),
+        };
+    });
+}
+
+async function readImageSize(imagePath: string): Promise<{width: number; height: number} | null> {
+    try {
+        const meta = await sharp(imagePath).metadata();
+        const width = meta.width ?? 0;
+        const height = meta.height ?? 0;
+        if (width <= 0 || height <= 0) return null;
+        return {width, height};
+    } catch {
+        return null;
+    }
+}
+
 type ThumbToMasterReg = {H: number[]; masterW: number; masterH: number} | null;
 
 const DEBUG_OVERLAY_COLORS = ['#22c55e', '#f97316', '#06b6d4', '#e11d48', '#a855f7'];
@@ -272,32 +318,53 @@ type LineSegment = {
 };
 
 /**
- * Canny → dilate → HoughLinesP → top 150 segments by length.
- * Vec4 from HoughLinesP: w=x1, x=y1, y=x2, z=y2.
- * cx/cy are normalized to [0,1] so positions are comparable across images of different sizes.
+ * Convert a greyscale floor plan to a crisp binary ink map (white lines on black).
+ * Adaptive threshold restores sharp strokes after downscale (avoids soft grey anti-alias mush),
+ * then a short close+dilate unifies stroke weight on both thumb and master.
+ */
+function toStructuralInk(cv: CvModule, gray: Mat): Mat {
+    const ref = Math.min(gray.cols, gray.rows);
+    const block = adaptiveOddKernel(0.035, ref, 11, 51);
+    // Dark CAD ink → white
+    const binary = gray.adaptiveThreshold(
+        255,
+        cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv.THRESH_BINARY_INV,
+        block,
+        10
+    );
+    const k = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+    const closed = binary.morphologyEx(k, cv.MORPH_CLOSE, new cv.Point2(-1, -1));
+    safeRelease(binary);
+    const thick = closed.dilate(k, new cv.Point2(-1, -1));
+    safeRelease(closed, k);
+    return thick;
+}
+
+/**
+ * Hough line segments from a structural ink (or greyscale) image.
+ * Prefers long/major walls — furniture, labels, and short grid ticks are filtered out.
  */
 function extractLineSegments(cv: CvModule, gray: Mat): LineSegment[] {
     const w = gray.cols;
     const h = gray.rows;
     const refDim = Math.min(w, h);
-    let edges: Mat | null = null;
-    let dilated: Mat | null = null;
+    let work: Mat | null = null;
     try {
-        edges = gray.canny(30, 90);
-
+        // Ink map is already edge-like; a light dilate joins broken wall strokes.
         const k2 = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 2));
-        dilated = edges.dilate(k2, new cv.Point2(-1, -1));
+        work = gray.dilate(k2, new cv.Point2(-1, -1));
         k2.release();
-        safeRelease(edges);
-        edges = null;
 
-        // Length is the primary noise filter: walls span 7 %+ of the image,
-        // text/furniture/arcs are shorter. Top 75 keeps only dominant structural lines.
-        const minLineLen = Math.max(15, Math.round(refDim * 0.07));
-        const maxLineGap = Math.max(3, Math.round(refDim * 0.01));
-        const threshold = Math.max(20, Math.round(refDim * 0.04));
+        const minFrac = config.REGISTRATION_MIN_LINE_LENGTH_FRACTION;
+        const maxSegs = config.REGISTRATION_MAX_SEGMENTS;
+        // Big walls only — short interior partitions / furniture do not participate.
+        const minLineLen = Math.max(24, Math.round(refDim * minFrac));
+        const maxLineGap = Math.max(5, Math.round(refDim * 0.015));
+        // Higher threshold → more votes required → more certain lines.
+        const threshold = Math.max(35, Math.round(refDim * 0.05));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const lines: any[] = dilated.houghLinesP(1, Math.PI / 180, threshold, minLineLen, maxLineGap);
+        const lines: any[] = work.houghLinesP(1, Math.PI / 180, threshold, minLineLen, maxLineGap);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const segments: LineSegment[] = lines.map((v: any) => {
             const x1 = v.w, y1 = v.x, x2 = v.y, y2 = v.z;
@@ -308,9 +375,9 @@ function extractLineSegments(cv: CvModule, gray: Mat): LineSegment[] {
             return {x1, y1, x2, y2, cx: (x1 + x2) / 2 / w, cy: (y1 + y2) / 2 / h, angle, length};
         });
         segments.sort((a, b) => b.length - a.length);
-        return segments.slice(0, 75);
+        return segments.slice(0, maxSegs);
     } finally {
-        safeRelease(edges, dilated);
+        safeRelease(work);
     }
 }
 
@@ -329,16 +396,23 @@ function matchSegmentsByAngleAndPosition(
     skipPositionCheck = false,
 ): Array<{ti: number; mi: number}> {
     const MAX_ANGLE_DEG = 3;
-    const MAX_POS_NORM = 0.08;
+    const MAX_POS_NORM = 0.07;
     const used = new Set<number>();
     const matches: Array<{ti: number; mi: number}> = [];
-    for (let ti = 0; ti < thumbSegs.length; ti++) {
+    // Prefer matching longer (more certain) thumb segments first.
+    const order = thumbSegs
+        .map((s, ti) => ({ti, length: s.length}))
+        .sort((a, b) => b.length - a.length);
+    for (const {ti} of order) {
         const ts = thumbSegs[ti];
         let bestMi = -1;
         let bestScore = Infinity;
         for (let mi = 0; mi < masterSegs.length; mi++) {
             if (used.has(mi)) continue;
             const ms = masterSegs[mi];
+            // Length ratio gate — reject clearly mismatched wall sizes.
+            const lenRatio = Math.min(ts.length, ms.length) / Math.max(ts.length, ms.length);
+            if (lenRatio < 0.45) continue;
             let angleDiff = Math.abs(ts.angle - ms.angle);
             if (angleDiff > 90) angleDiff = 180 - angleDiff;
             if (angleDiff > MAX_ANGLE_DEG) continue;
@@ -347,10 +421,10 @@ function matchSegmentsByAngleAndPosition(
                 const dcy = ts.cy - ms.cy;
                 const posDist = Math.sqrt(dcx * dcx + dcy * dcy);
                 if (posDist > MAX_POS_NORM) continue;
-                const score = angleDiff / MAX_ANGLE_DEG + posDist / MAX_POS_NORM;
+                const score = angleDiff / MAX_ANGLE_DEG + posDist / MAX_POS_NORM + (1 - lenRatio);
                 if (score < bestScore) { bestScore = score; bestMi = mi; }
             } else {
-                const score = angleDiff / MAX_ANGLE_DEG;
+                const score = angleDiff / MAX_ANGLE_DEG + (1 - lenRatio);
                 if (score < bestScore) { bestScore = score; bestMi = mi; }
             }
         }
@@ -413,10 +487,15 @@ function estimateSimilarityLeastSquares(
 function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: string, logger: serverLogger, debugDir?: string): ThumbToMasterReg {
     let thumbGray: Mat | null = null;
     let masterGray: Mat | null = null;
+    let masterMatch: Mat | null = null;
+    let thumbMatch: Mat | null = null;
     let homoMat: Mat | null = null;
     let maskMat: Mat | null = null;
 
     let thumbSegs: LineSegment[] = [];
+    /** Master segments in *match* (downscaled) pixel space — used for debug overlay. */
+    let masterMatchSegs: LineSegment[] = [];
+    /** Master segments lifted to full-res pixel space — used for homography dst. */
     let masterSegs: LineSegment[] = [];
     let segMatches: Array<{ti: number; mi: number}> = [];
 
@@ -430,21 +509,102 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
 
         const masterW = masterGray.cols;
         const masterH = masterGray.rows;
+        const thumbW = thumbGray.cols;
+        const thumbH = thumbGray.rows;
 
-        thumbSegs = extractLineSegments(cv, thumbGray);
-        masterSegs = extractLineSegments(cv, masterGray);
+        // Soft unit thumbs lack the fine edges of a high-DPI master. Match at thumb size,
+        // then convert BOTH to crisp binary structural ink (not soft blur / grey anti-alias).
+        let matchToFullScaleX = 1;
+        let matchToFullScaleY = 1;
+        masterMatch = masterGray;
+        thumbMatch = thumbGray;
+
+        if (config.REGISTRATION_DOWNSCALE_MASTER_TO_THUMB) {
+            const thumbAspect = thumbW / Math.max(1, thumbH);
+            const masterAspect = masterW / Math.max(1, masterH);
+            const aspectsClose = Math.abs(thumbAspect - masterAspect) / masterAspect < 0.05;
+
+            // Prefer exact thumb W×H when letterboxing already aligned aspects — identical framing.
+            const mw = aspectsClose
+                ? thumbW
+                : Math.max(1, Math.round(masterW * Math.min(1, Math.max(thumbW, thumbH) / Math.max(masterW, masterH))));
+            const mh = aspectsClose
+                ? thumbH
+                : Math.max(1, Math.round(masterH * (mw / masterW)));
+
+            let masterResized: Mat = masterGray;
+            if (mw < masterW * 0.98 || mh < masterH * 0.98) {
+                masterResized = masterGray.resize(mh, mw, 0, 0, cv.INTER_AREA);
+                matchToFullScaleX = masterW / mw;
+                matchToFullScaleY = masterH / mh;
+                logger.debug(
+                    `Registration: downscaled master ${masterW}×${masterH} → ${mw}×${mh} ` +
+                    `(sx=${matchToFullScaleX.toFixed(2)}, sy=${matchToFullScaleY.toFixed(2)}) ` +
+                    `to match thumb ${thumbW}×${thumbH}`
+                );
+            }
+
+            // Crisp binary ink on both sides — restores sharp strokes after downscale.
+            masterMatch = toStructuralInk(cv, masterResized);
+            if (masterResized !== masterGray) safeRelease(masterResized);
+            thumbMatch = toStructuralInk(cv, thumbGray);
+            logger.debug('Registration: converted thumb + master to structural ink (binary walls)');
+        }
+
+        if (debugDir) {
+            try {
+                fs.mkdirSync(debugDir, {recursive: true});
+                cv.imwrite(path.join(debugDir, '12a-master-downscaled-for-registration.png'), masterMatch);
+                // Same-size side-by-side so quality difference is obvious at a glance.
+                const gapPx = 8;
+                const h = Math.max(thumbMatch.rows, masterMatch.rows);
+                const thumbBgr = thumbMatch.channels === 1 ? thumbMatch.cvtColor(cv.COLOR_GRAY2BGR) : thumbMatch.copy();
+                const masterBgr = masterMatch.channels === 1 ? masterMatch.cvtColor(cv.COLOR_GRAY2BGR) : masterMatch.copy();
+                const thumbPad = thumbBgr.copyMakeBorder(
+                    0, h - thumbBgr.rows, 0, gapPx + masterBgr.cols, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0)
+                );
+                const masterPad = masterBgr.copyMakeBorder(
+                    0, h - masterBgr.rows, thumbBgr.cols + gapPx, 0, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0)
+                );
+                const sideBySide = thumbPad.bitwiseOr(masterPad);
+                cv.imwrite(path.join(debugDir, '12b-thumb-vs-downscaled-master.png'), sideBySide);
+                safeRelease(thumbBgr, masterBgr, thumbPad, masterPad, sideBySide);
+            } catch (dbgErr) {
+                logger.warn(`Failed to save downscaled master debug: ${dbgErr instanceof Error ? dbgErr.message : String(dbgErr)}`);
+            }
+        }
+
+        thumbSegs = extractLineSegments(cv, thumbMatch);
+        masterMatchSegs = extractLineSegments(cv, masterMatch);
+
+        // Lift master segment endpoints to full-resolution pixel space for the homography.
+        // Recompute normalized cx/cy against full master for position matching consistency.
+        masterSegs = masterMatchSegs.map((s) => {
+            const x1 = s.x1 * matchToFullScaleX;
+            const y1 = s.y1 * matchToFullScaleY;
+            const x2 = s.x2 * matchToFullScaleX;
+            const y2 = s.y2 * matchToFullScaleY;
+            return {
+                x1, y1, x2, y2,
+                cx: (x1 + x2) / 2 / masterW,
+                cy: (y1 + y2) / 2 / masterH,
+                angle: s.angle,
+                length: s.length * Math.max(matchToFullScaleX, matchToFullScaleY),
+            };
+        });
 
         if (thumbSegs.length < 8 || masterSegs.length < 8) {
             logger.warn(`Registration: too few line segments (thumb=${thumbSegs.length}, master=${masterSegs.length})`);
             return null;
         }
 
+        // Position matching uses normalized coords — prefer match-space master segs (same framing as thumb).
         let usedAngleOnlyMatching = false;
-        segMatches = matchSegmentsByAngleAndPosition(thumbSegs, masterSegs);
+        segMatches = matchSegmentsByAngleAndPosition(thumbSegs, masterMatchSegs);
 
         if (segMatches.length < 4) {
             logger.debug(`Position-based matching insufficient (${segMatches.length} matches); retrying with angle-only matching`);
-            segMatches = matchSegmentsByAngleAndPosition(thumbSegs, masterSegs, true);
+            segMatches = matchSegmentsByAngleAndPosition(thumbSegs, masterMatchSegs, true);
             usedAngleOnlyMatching = true;
             if (segMatches.length < 4) {
                 logger.warn(`Registration: too few matched segments even without position constraint (${segMatches.length})`);
@@ -452,7 +612,7 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
             }
         }
 
-        // Build point correspondences — keep raw coords separately for the similarity refit below.
+        // Build point correspondences — thumb pixels → full-res master pixels.
         const srcRaw = segMatches.flatMap(({ti}) => [
             {x: thumbSegs[ti].x1, y: thumbSegs[ti].y1},
             {x: thumbSegs[ti].x2, y: thumbSegs[ti].y2},
@@ -464,8 +624,9 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
         const srcPts = srcRaw.map(p => new cv.Point2(p.x, p.y));
         const dstPts = dstRaw.map(p => new cv.Point2(p.x, p.y));
 
-        // RANSAC homography: used only for robust outlier identification.
-        const {homography, mask} = cv.findHomography(srcPts, dstPts, cv.RANSAC, 4.0);
+        const scaleGap = Math.max(matchToFullScaleX, matchToFullScaleY);
+        const ransacThresh = Math.max(4.0, scaleGap * 2.5);
+        const {homography, mask} = cv.findHomography(srcPts, dstPts, cv.RANSAC, ransacThresh);
         homoMat = homography;
         maskMat = mask;
 
@@ -477,30 +638,27 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
         const maskArr = maskMat ? (maskMat.getDataAsArray() as number[][]).flat() : [];
         const inliers = maskArr.length > 0 ? maskArr.reduce((s, v) => s + v, 0) : srcRaw.length;
 
-        // 8 inliers is sufficient for a 4-DOF similarity transform on architectural drawings.
-        // A ratio-based threshold is unreliable here: parallel walls produce many near-position
-        // segment matches that RANSAC correctly rejects, so inlier rate (not count) is low even
-        // when the registration is geometrically valid.
         if (inliers < 8) {
             logger.warn(`Registration: RANSAC inliers too low (${inliers}, mode=${usedAngleOnlyMatching ? 'angle-only' : 'position'})`);
             return null;
         }
 
-        // Refit a constrained similarity transform (4 DOF: isotropic scale + rotation + translation)
-        // from the RANSAC inliers only. For flat document scans the true transform has no
-        // perspective component — far fewer DOF → more stable estimate, no shape distortion.
         const inlierMask = maskArr.length > 0 ? maskArr : srcRaw.map(() => 1);
         const simH = estimateSimilarityLeastSquares(srcRaw, dstRaw, inlierMask);
         const H = simH ?? (homoMat.getDataAsArray() as number[][]).flat();
         const transformType = simH ? 'similarity-4dof-refit' : 'homography-8dof-fallback';
 
-        logger.debug(`Registration OK: ${inliers} inliers / ${srcRaw.length} point pairs (${segMatches.length} segments), transform=${transformType}, master ${masterW}×${masterH}`);
+        logger.debug(
+            `Registration OK: ${inliers} inliers / ${srcRaw.length} point pairs (${segMatches.length} segments), ` +
+            `transform=${transformType}, master ${masterW}×${masterH}, match ${masterMatch.cols}×${masterMatch.rows}`
+        );
         return {H, masterW, masterH};
     } catch (err) {
         logger.warn(`Registration error: ${err instanceof Error ? err.message : String(err)}`);
         return null;
     } finally {
-        if (debugDir && thumbGray && !thumbGray.empty && masterGray && !masterGray.empty) {
+        // Debug composite at *match* resolution (thumb vs downscaled master) so lines are comparable.
+        if (debugDir && thumbMatch && !thumbMatch.empty && masterMatch && !masterMatch.empty) {
             let thumbDbg: Mat | null = null;
             let masterDbg: Mat | null = null;
             let thumbPadded: Mat | null = null;
@@ -509,14 +667,14 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
             try {
                 fs.mkdirSync(debugDir, {recursive: true});
                 const GAP = 10;
-                const tW = thumbGray.cols;
-                const tH = thumbGray.rows;
-                const mW = masterGray.cols;
-                const mH = masterGray.rows;
+                const tW = thumbMatch.cols;
+                const tH = thumbMatch.rows;
+                const mW = masterMatch.cols;
+                const mH = masterMatch.rows;
                 const maxH = Math.max(tH, mH);
 
-                thumbDbg = thumbGray.cvtColor(cv.COLOR_GRAY2BGR);
-                masterDbg = masterGray.cvtColor(cv.COLOR_GRAY2BGR);
+                thumbDbg = thumbMatch.channels === 1 ? thumbMatch.cvtColor(cv.COLOR_GRAY2BGR) : thumbMatch.copy();
+                masterDbg = masterMatch.channels === 1 ? masterMatch.cvtColor(cv.COLOR_GRAY2BGR) : masterMatch.copy();
 
                 const grey = new cv.Vec3(120, 120, 120);
                 const green = new cv.Vec3(0, 220, 0);
@@ -529,12 +687,11 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
                     const s = thumbSegs[i];
                     thumbDbg.drawLine(new cv.Point2(s.x1, s.y1), new cv.Point2(s.x2, s.y2), matchedThumbIdx.has(i) ? green : grey, 2);
                 }
-                for (let i = 0; i < masterSegs.length; i++) {
-                    const s = masterSegs[i];
+                for (let i = 0; i < masterMatchSegs.length; i++) {
+                    const s = masterMatchSegs[i];
                     masterDbg.drawLine(new cv.Point2(s.x1, s.y1), new cv.Point2(s.x2, s.y2), matchedMasterIdx.has(i) ? green : grey, 2);
                 }
 
-                // Side-by-side: pad both to (tW+GAP+mW)×maxH, then bitwiseOr
                 thumbPadded = thumbDbg.copyMakeBorder(0, maxH - tH, 0, GAP + mW, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0));
                 masterPadded = masterDbg.copyMakeBorder(0, maxH - mH, tW + GAP, 0, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0));
                 safeRelease(thumbDbg, masterDbg);
@@ -549,7 +706,7 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
                 const xOffset = tW + GAP;
                 for (const {ti, mi} of segMatches) {
                     const ts = thumbSegs[ti];
-                    const ms = masterSegs[mi];
+                    const ms = masterMatchSegs[mi];
                     const pt1 = new cv.Point2(Math.round((ts.x1 + ts.x2) / 2), Math.round((ts.y1 + ts.y2) / 2));
                     const pt2 = new cv.Point2(Math.round((ms.x1 + ms.x2) / 2) + xOffset, Math.round((ms.y1 + ms.y2) / 2));
                     composite.drawLine(pt1, pt2, cyan, 1);
@@ -562,6 +719,8 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
                 safeRelease(thumbDbg, masterDbg, thumbPadded, masterPadded, composite);
             }
         }
+        if (masterMatch && masterMatch !== masterGray) safeRelease(masterMatch);
+        if (thumbMatch && thumbMatch !== thumbGray) safeRelease(thumbMatch);
         safeRelease(thumbGray, masterGray, homoMat, maskMat);
     }
 }
@@ -569,13 +728,15 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
 /**
  * Extracts the highlighted unit polygon from a unit floor-plan thumbnail.
  *
- * When `masterPlanPath` is provided and registration succeeds, the returned
- * `unitPolygon` fractional coordinates are relative to the master floor plan
- * (registeredToMaster: true). Otherwise they are relative to the thumbnail
- * (registeredToMaster: false).
+ * When `masterPlanPath` is provided:
+ *   1. Prefer line-based registration → master-space coords
+ *   2. Else floor-cached registration from another unit on the same floor
+ *   3. Else simple scale of the highlight onto the master (same framing assumption)
+ *
+ * `registeredToMaster` is true for (1)–(3). Only false when no master exists.
  */
 export async function extractHighlightPolygonsOpencv4(imagePath: string, masterPlanPath: string | undefined, debugPath: string, parentLogger: serverLogger, timer: PerformanceTimer, fallbackRegistration?: ThumbMasterRegistration): Promise<HighlightExtractionOpencv4Result> {
-    const empty: HighlightExtractionOpencv4Result = {unitPolygon: undefined, allPolygons: [], allPolygonAreas: [], registeredToMaster: false};
+    const empty: HighlightExtractionOpencv4Result = {unitPolygon: undefined, allPolygons: [], allPolygonAreas: [], registeredToMaster: false, registrationSource: 'none'};
     return timer.timeAsync('extractHighlightPolygonsOpencv4', async () => {
         const logger = getLogger('extract_highlight_polygon_opencv4', parentLogger);
         logger.start(`Extracting highlight polygons (opencv4nodejs) from ${imagePath}`);
@@ -683,7 +844,12 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
 
             saveHighlightDebugMat(cv, debugPath, '07-mask-after-morph-before-thickness-filter.png', mask!);
 
-            const minInteriorDist = config.HIGHLIGHT_MASK_MIN_DISTANCE_TO_BACKGROUND_PX;
+            const minInteriorDistConfigured = config.HIGHLIGHT_MASK_MIN_DISTANCE_TO_BACKGROUND_PX;
+            // Cap thickness filter to ~1% of min dim so small / fragmented teal fills survive.
+            const minInteriorDist =
+                minInteriorDistConfigured > 0
+                    ? Math.min(minInteriorDistConfigured, Math.max(2, Math.round(refDim * 0.01)))
+                    : 0;
             if (minInteriorDist > 0) {
                 const dist = mask!.distanceTransform(cv.DIST_L2, cv.DIST_MASK_5);
                 const thickF = dist.threshold(minInteriorDist, 255, cv.THRESH_BINARY);
@@ -741,7 +907,7 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
                 logger.warn(
                     `No contour above noise floor (${minArea.toFixed(0)} px²); treating as no highlight.`
                 );
-                return {unitPolygon: undefined, allPolygons, allPolygonAreas, registeredToMaster: false};
+                return {unitPolygon: undefined, allPolygons, allPolygonAreas, registeredToMaster: false, registrationSource: 'none'};
             }
 
             const largest = aboveNoise[0];
@@ -756,7 +922,7 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
 
             if (pts.length < 3) {
                 logger.warn(`Too few points after approximation: ${pts.length}`);
-                return {unitPolygon: undefined, allPolygons, allPolygonAreas, registeredToMaster: false};
+                return {unitPolygon: undefined, allPolygons, allPolygonAreas, registeredToMaster: false, registrationSource: 'none'};
             }
 
             const points: PolygonPoint[] = pts.map((p) => ({x: p.x, y: p.y}));
@@ -766,6 +932,8 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
             let registeredToMaster = false;
             let computedRegistration: ThumbMasterRegistration | undefined;
             let usedReg: ThumbMasterRegistration | undefined;
+            /** 'fresh' | 'floor-fallback' | 'scale-fallback' | 'none' */
+            let regSource: 'fresh' | 'floor-fallback' | 'scale-fallback' | 'none' = 'none';
 
             if (masterPlanPath && fs.existsSync(masterPlanPath)) {
                 const freshReg = registerThumbnailToMaster(cv, imagePath, masterPlanPath, logger, config.SAVE_HIGHLIGHT_DEBUG_ARTIFACTS ? debugPath : undefined);
@@ -783,8 +951,31 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
                 if (remapped && remapped.length >= 3) {
                     unitPolygon = remapped;
                     registeredToMaster = true;
+                    regSource = computedRegistration ? 'fresh' : 'floor-fallback';
                 } else {
-                    logger.warn('Registration produced degenerate polygon; keeping thumbnail-space coords');
+                    logger.warn('Registration produced degenerate polygon; will try scale fallback');
+                }
+            }
+
+            // Registration missing/degenerate: still place the highlight on the master via simple scale.
+            if (!registeredToMaster && masterPlanPath && fs.existsSync(masterPlanPath)) {
+                const masterSize = await readImageSize(masterPlanPath);
+                if (masterSize) {
+                    unitPolygon = scaleThumbnailPolygonToMaster(
+                        thumbPolygon,
+                        w,
+                        h,
+                        masterSize.width,
+                        masterSize.height,
+                    );
+                    registeredToMaster = true;
+                    regSource = 'scale-fallback';
+                    logger.debug(
+                        `Registration unavailable; scaled highlight polygon to master ` +
+                        `(${w}×${h} → ${masterSize.width}×${masterSize.height})`
+                    );
+                } else {
+                    logger.warn('Could not read master dimensions for scale fallback; keeping thumbnail-space coords');
                 }
             }
 
@@ -796,7 +987,10 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
                     logger,
                 );
                 if (registeredToMaster && masterPlanPath) {
-                    const suffix = computedRegistration ? '' : '-fallback';
+                    const suffix =
+                        regSource === 'fresh' ? '' :
+                        regSource === 'floor-fallback' ? '-fallback' :
+                        '-scale-fallback';
                     await savePolygonDebugOverlay(
                         masterPlanPath,
                         [unitPolygon],
@@ -806,11 +1000,10 @@ export async function extractHighlightPolygonsOpencv4(imagePath: string, masterP
                 }
             }
 
-            const regSource = !usedReg ? 'none' : computedRegistration ? 'fresh' : 'floor-fallback';
             logger.finish(
                 `Successfully extracted unit polygon (${unitPolygon.length} pts, registeredToMaster=${registeredToMaster}, reg=${regSource}); overlay has ${allPolygons.length} region(s)`
             );
-            return {unitPolygon, allPolygons, allPolygonAreas, registeredToMaster, computedRegistration};
+            return {unitPolygon, allPolygons, allPolygonAreas, registeredToMaster, registrationSource: regSource, computedRegistration};
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             logger.warn(`extractHighlightPolygonsOpencv4 failed: ${msg}`);

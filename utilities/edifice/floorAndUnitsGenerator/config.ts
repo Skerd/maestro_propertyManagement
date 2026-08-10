@@ -70,13 +70,27 @@ export const config = {
      */
     UNIT_FLOOR_PLAN_MATCH_MASTER_ASPECT: true,
     /**
-     * When registering unit thumb → master, downscale the master to thumb size then convert
-     * BOTH to a crisp binary structural-ink map (not a soft blur) so line weight matches.
-     * Matching then keeps only long/major wall segments.
+     * When registering unit thumb → master, downscale master toward thumb size.
+     * Primary: match distinctive landmarks (grey fills, voids, polygons) in a *local*
+     * neighborhood (plans are similarly framed — no wild jumps across the page).
+     * Fallback: matchTemplate, then ORB+estimateAffinePartial2D.
      */
     REGISTRATION_DOWNSCALE_MASTER_TO_THUMB: true,
-    /** Min wall length as a fraction of min(image dim); higher = only bigger structures. */
-    REGISTRATION_MIN_LINE_LENGTH_FRACTION: 0.10,
-    /** Keep at most this many longest segments per image after Hough. */
-    REGISTRATION_MAX_SEGMENTS: 45,
+    /** Min landmark area as a fraction of the image (filters tiny blobs). */
+    REGISTRATION_LANDMARK_MIN_AREA_FRACTION: 0.003,
+    /** Keep at most this many landmarks per image (largest first). */
+    REGISTRATION_LANDMARK_MAX: 24,
+    /** Min matched landmark pairs to accept landmark registration. */
+    REGISTRATION_LANDMARK_MIN_MATCHES: 2,
+    /**
+     * Max normalized |Δcx|,|Δcy| when searching/accepting a landmark match.
+     * Top-left on thumb may only match near top-left on master (± this fraction of image size).
+     */
+    REGISTRATION_LANDMARK_POS_TOLERANCE: 0.12,
+    /** Min TM_CCOEFF_NORMED score to accept template registration (0..1). */
+    REGISTRATION_TEMPLATE_MIN_SCORE: 0.28,
+    /** Min RANSAC inliers for ORB → estimateAffinePartial2D acceptance. */
+    REGISTRATION_ORB_MIN_INLIERS: 6,
+    /** Blank CAD grid-bubble annotations via HoughCircles before matching. */
+    REGISTRATION_SUPPRESS_GRID_BUBBLES: true,
 } as const;

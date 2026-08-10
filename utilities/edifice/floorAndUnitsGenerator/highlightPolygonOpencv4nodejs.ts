@@ -233,7 +233,7 @@ function remapFractionalPolygon(
 }
 
 /**
- * When line-based registration fails, map the highlight polygon onto the master
+ * When area-based registration fails, map the highlight polygon onto the master
  * floor plan by anisotropic scale (thumbnail frame → master frame).
  *
  * After {@link config.UNIT_FLOOR_PLAN_MATCH_MASTER_ASPECT} letterboxing, thumb and
@@ -311,12 +311,6 @@ async function savePolygonDebugOverlay(
     }
 }
 
-type LineSegment = {
-    x1: number; y1: number; x2: number; y2: number;
-    cx: number; cy: number;
-    angle: number; length: number;
-};
-
 /**
  * Convert a greyscale floor plan to a crisp binary ink map (white lines on black).
  * Adaptive threshold restores sharp strokes after downscale (avoids soft grey anti-alias mush),
@@ -342,162 +336,816 @@ function toStructuralInk(cv: CvModule, gray: Mat): Mat {
 }
 
 /**
- * Hough line segments from a structural ink (or greyscale) image.
- * Prefers long/major walls — furniture, labels, and short grid ticks are filtered out.
+ * Blank circular CAD grid bubbles near the image border (annotation rings), so they
+ * do not dominate matching. Interior circles (furniture, etc.) are left alone.
+ * Mutates `ink` in place when bubbles are found.
  */
-function extractLineSegments(cv: CvModule, gray: Mat): LineSegment[] {
-    const w = gray.cols;
-    const h = gray.rows;
-    const refDim = Math.min(w, h);
-    let work: Mat | null = null;
-    try {
-        // Ink map is already edge-like; a light dilate joins broken wall strokes.
-        const k2 = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 2));
-        work = gray.dilate(k2, new cv.Point2(-1, -1));
-        k2.release();
+function suppressGridBubbles(cv: CvModule, ink: Mat): number {
+    if (!config.REGISTRATION_SUPPRESS_GRID_BUBBLES) return 0;
+    const w = ink.cols;
+    const h = ink.rows;
+    const ref = Math.min(w, h);
+    const minR = Math.max(4, Math.round(ref * 0.008));
+    const maxR = Math.max(minR + 2, Math.round(ref * 0.028));
+    const margin = Math.round(ref * 0.14);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const circles: any[] = ink.houghCircles(
+        cv.HOUGH_GRADIENT,
+        1.2,
+        Math.max(16, Math.round(ref * 0.05)),
+        100,
+        28,
+        minR,
+        maxR
+    );
+    if (!circles || circles.length === 0) return 0;
+    let n = 0;
+    for (const c of circles) {
+        const x = Math.round(c.x);
+        const y = Math.round(c.y);
+        const onBorder = x < margin || y < margin || x > w - margin || y > h - margin;
+        if (!onBorder) continue;
+        const r = Math.round(c.z) + 2;
+        ink.drawCircle(new cv.Point2(x, y), r, new cv.Vec3(0, 0, 0), -1);
+        n++;
+    }
+    return n;
+}
 
-        const minFrac = config.REGISTRATION_MIN_LINE_LENGTH_FRACTION;
-        const maxSegs = config.REGISTRATION_MAX_SEGMENTS;
-        // Big walls only — short interior partitions / furniture do not participate.
-        const minLineLen = Math.max(24, Math.round(refDim * minFrac));
-        const maxLineGap = Math.max(5, Math.round(refDim * 0.015));
-        // Higher threshold → more votes required → more certain lines.
-        const threshold = Math.max(35, Math.round(refDim * 0.05));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const lines: any[] = work.houghLinesP(1, Math.PI / 180, threshold, minLineLen, maxLineGap);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const segments: LineSegment[] = lines.map((v: any) => {
-            const x1 = v.w, y1 = v.x, x2 = v.y, y2 = v.z;
-            const dx = x2 - x1, dy = y2 - y1;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            if (angle < 0) angle += 180;
-            return {x1, y1, x2, y2, cx: (x1 + x2) / 2 / w, cy: (y1 + y2) / 2 / h, angle, length};
-        });
-        segments.sort((a, b) => b.length - a.length);
-        return segments.slice(0, maxSegs);
+/** Axis-aligned bbox of non-zero ink pixels, or null if empty. */
+function inkContentBBox(ink: Mat): {x: number; y: number; w: number; h: number} | null {
+    const pts = ink.findNonZero();
+    if (!pts || pts.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const p of pts) {
+        const x = p.x, y = p.y;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+    }
+    if (!Number.isFinite(minX)) return null;
+    return {
+        x: Math.max(0, minX),
+        y: Math.max(0, minY),
+        w: Math.max(1, maxX - minX + 1),
+        h: Math.max(1, maxY - minY + 1),
+    };
+}
+
+/** Lift a match-space 3×3 H into full-resolution master pixel space. */
+function liftMatchHomographyToFull(Hmatch: number[], scaleX: number, scaleY: number): number[] {
+    return [
+        Hmatch[0] * scaleX, Hmatch[1] * scaleX, Hmatch[2] * scaleX,
+        Hmatch[3] * scaleY, Hmatch[4] * scaleY, Hmatch[5] * scaleY,
+        0, 0, 1,
+    ];
+}
+
+/**
+ * Distinctive shared landmarks used for registration — grey fills, courtyard voids,
+ * and general wall-enclosed polygons. Plans are similarly framed, so matches are
+ * constrained to a local neighborhood (same relative page position ± tolerance).
+ */
+type LandmarkKind = 'grey-fill' | 'void' | 'polygon';
+
+type Landmark = {
+    kind: LandmarkKind;
+    cx: number;
+    cy: number;
+    px: number;
+    py: number;
+    area: number;
+    areaFrac: number;
+    aspect: number;
+    /** 1 = solid fill of bbox; lower = irregular / concave. */
+    fill: number;
+    bbox: {x: number; y: number; w: number; h: number};
+    /** Approx polygon outline (for debug + matching visualization). */
+    points: Array<{x: number; y: number}>;
+};
+
+function landmarkFromContour(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contour: any,
+    kind: LandmarkKind,
+    imgW: number,
+    imgH: number,
+): Landmark | null {
+    const area = contour.area as number;
+    const imgArea = imgW * imgH;
+    const minFrac = config.REGISTRATION_LANDMARK_MIN_AREA_FRACTION;
+    if (area < Math.max(64, imgArea * minFrac)) return null;
+    if (area > imgArea * 0.55) return null;
+    const br = contour.boundingRect();
+    if (br.width < 8 || br.height < 8) return null;
+    const m = contour.moments();
+    if (m.m00 < 1e-6) return null;
+    const px = m.m10 / m.m00;
+    const py = m.m01 / m.m00;
+    const aspect = br.width / Math.max(1, br.height);
+    const fill = area / Math.max(1, br.width * br.height);
+    // Skinny strips are grid/dimension leftovers.
+    if (aspect > 5 || aspect < 1 / 5) return null;
+    if (kind === 'polygon') {
+        if (fill < 0.18) return null;
+    } else if (fill < 0.25) {
+        return null;
+    }
+
+    const peri = contour.arcLength(true);
+    const eps = Math.max(1.5, 0.02 * peri);
+    const approx = peri > 0 ? contour.approxPolyDP(eps, true) : [];
+    let points: Array<{x: number; y: number}>;
+    if (approx && approx.length >= 3) {
+        points = approx.map((p: {x: number; y: number}) => ({x: p.x, y: p.y}));
+    } else {
+        const pts = contour.getPoints().map((p: {x: number; y: number}) => ({x: p.x, y: p.y}));
+        points = pts.length >= 3
+            ? pts
+            : [
+                {x: br.x, y: br.y},
+                {x: br.x + br.width, y: br.y},
+                {x: br.x + br.width, y: br.y + br.height},
+                {x: br.x, y: br.y + br.height},
+            ];
+    }
+
+    return {
+        kind,
+        cx: px / imgW,
+        cy: py / imgH,
+        px, py,
+        area,
+        areaFrac: area / imgArea,
+        aspect,
+        fill,
+        bbox: {x: br.x, y: br.y, w: br.width, h: br.height},
+        points,
+    };
+}
+
+/** Contours from a binary mask → landmarks with polygon outlines. */
+function landmarksFromBinaryMask(
+    cv: CvModule,
+    binary: Mat,
+    kind: LandmarkKind,
+): Landmark[] {
+    const w = binary.cols, h = binary.rows;
+    const work = binary.copy();
+    const contours = work.findContours(cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    safeRelease(work);
+    const out: Landmark[] = [];
+    for (const c of contours) {
+        const lm = landmarkFromContour(c, kind, w, h);
+        if (lm) out.push(lm);
+    }
+    return out;
+}
+
+/**
+ * Flat mid-tone fills (shaded landscape / grey hatches that read as solid grey after downscale).
+ */
+function extractGreyFillLandmarks(cv: CvModule, gray: Mat): Landmark[] {
+    const w = gray.cols, h = gray.rows;
+    let blur: Mat | null = null;
+    let diff: Mat | null = null;
+    let flat: Mat | null = null;
+    let mid: Mat | null = null;
+    let mask: Mat | null = null;
+    let opened: Mat | null = null;
+    let k: Mat | null = null;
+    try {
+        const ref = Math.min(w, h);
+        const blurK = adaptiveOddKernel(0.02, ref, 5, 21);
+        blur = gray.gaussianBlur(new cv.Size(blurK, blurK), 0);
+        diff = gray.absdiff(blur);
+        flat = diff.threshold(36, 255, cv.THRESH_BINARY_INV);
+        mid = gray.threshold(40, 255, cv.THRESH_BINARY);
+        const hi = gray.threshold(215, 255, cv.THRESH_BINARY_INV);
+        const band = mid.bitwiseAnd(hi);
+        safeRelease(hi);
+        mask = band.bitwiseAnd(flat);
+        safeRelease(band);
+
+        const openSz = adaptiveOddKernel(0.012, ref, 3, 9);
+        k = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(openSz, openSz));
+        const closed = mask.morphologyEx(k, cv.MORPH_CLOSE, new cv.Point2(-1, -1));
+        opened = closed.morphologyEx(k, cv.MORPH_OPEN, new cv.Point2(-1, -1));
+        safeRelease(closed);
+        return landmarksFromBinaryMask(cv, opened, 'grey-fill');
     } finally {
-        safeRelease(work);
+        safeRelease(blur, diff, flat, mid, mask, opened, k);
+    }
+}
+
+/** Large empty courtyards / rooms: white space enclosed by walls. */
+function extractVoidLandmarks(cv: CvModule, ink: Mat): Landmark[] {
+    const w = ink.cols, h = ink.rows;
+    let inv: Mat | null = null;
+    let opened: Mat | null = null;
+    let k: Mat | null = null;
+    try {
+        const ref = Math.min(w, h);
+        inv = ink.bitwiseNot();
+        const openSz = adaptiveOddKernel(0.018, ref, 5, 15);
+        k = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(openSz, openSz));
+        opened = inv.morphologyEx(k, cv.MORPH_OPEN, new cv.Point2(-1, -1));
+        const all = landmarksFromBinaryMask(cv, opened, 'void');
+        // Drop near-full-page leftovers that hug the border.
+        return all.filter(lm => {
+            if (lm.bbox.x <= 1 && lm.bbox.y <= 1 && (lm.bbox.w > w * 0.8 || lm.bbox.h > h * 0.8)) {
+                return false;
+            }
+            return lm.fill >= 0.3;
+        });
+    } finally {
+        safeRelease(inv, opened, k);
     }
 }
 
 /**
- * Greedy angle+position matching between thumb and master segments.
- * Uses normalized centers so scale difference between images doesn't matter.
- *
- * When `skipPositionCheck` is true, only angle similarity is used for matching.
- * This is the fallback mode for partial-crop thumbnails where the same wall
- * appears at very different normalized positions in the two images.
- * RANSAC in the caller rejects position-inconsistent matches as outliers.
+ * General wall-enclosed polygons (rooms / irregular shapes) from structural ink.
+ * Less fill-strict than voids — captures L-shapes and non-rectangular rooms.
  */
-function matchSegmentsByAngleAndPosition(
-    thumbSegs: LineSegment[],
-    masterSegs: LineSegment[],
-    skipPositionCheck = false,
-): Array<{ti: number; mi: number}> {
-    const MAX_ANGLE_DEG = 3;
-    const MAX_POS_NORM = 0.07;
-    const used = new Set<number>();
-    const matches: Array<{ti: number; mi: number}> = [];
-    // Prefer matching longer (more certain) thumb segments first.
-    const order = thumbSegs
-        .map((s, ti) => ({ti, length: s.length}))
-        .sort((a, b) => b.length - a.length);
-    for (const {ti} of order) {
-        const ts = thumbSegs[ti];
-        let bestMi = -1;
-        let bestScore = Infinity;
-        for (let mi = 0; mi < masterSegs.length; mi++) {
-            if (used.has(mi)) continue;
-            const ms = masterSegs[mi];
-            // Length ratio gate — reject clearly mismatched wall sizes.
-            const lenRatio = Math.min(ts.length, ms.length) / Math.max(ts.length, ms.length);
-            if (lenRatio < 0.45) continue;
-            let angleDiff = Math.abs(ts.angle - ms.angle);
-            if (angleDiff > 90) angleDiff = 180 - angleDiff;
-            if (angleDiff > MAX_ANGLE_DEG) continue;
-            if (!skipPositionCheck) {
-                const dcx = ts.cx - ms.cx;
-                const dcy = ts.cy - ms.cy;
-                const posDist = Math.sqrt(dcx * dcx + dcy * dcy);
-                if (posDist > MAX_POS_NORM) continue;
-                const score = angleDiff / MAX_ANGLE_DEG + posDist / MAX_POS_NORM + (1 - lenRatio);
-                if (score < bestScore) { bestScore = score; bestMi = mi; }
-            } else {
-                const score = angleDiff / MAX_ANGLE_DEG + (1 - lenRatio);
-                if (score < bestScore) { bestScore = score; bestMi = mi; }
+function extractPolygonLandmarks(cv: CvModule, ink: Mat): Landmark[] {
+    let inv: Mat | null = null;
+    let opened: Mat | null = null;
+    let k: Mat | null = null;
+    try {
+        const ref = Math.min(ink.cols, ink.rows);
+        inv = ink.bitwiseNot();
+        // Lighter open than voids — keep irregular room outlines intact.
+        const openSz = adaptiveOddKernel(0.01, ref, 3, 9);
+        k = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(openSz, openSz));
+        opened = inv.morphologyEx(k, cv.MORPH_OPEN, new cv.Point2(-1, -1));
+        const all = landmarksFromBinaryMask(cv, opened, 'polygon');
+        // Prefer shapes with a real polygon (≥4 verts) — not just thin rectangles.
+        return all.filter(lm => lm.points.length >= 4 && lm.areaFrac >= config.REGISTRATION_LANDMARK_MIN_AREA_FRACTION);
+    } finally {
+        safeRelease(inv, opened, k);
+    }
+}
+
+function extractLandmarks(cv: CvModule, gray: Mat, ink: Mat): Landmark[] {
+    const greys = extractGreyFillLandmarks(cv, gray);
+    const voids = extractVoidLandmarks(cv, ink);
+    const polys = extractPolygonLandmarks(cv, ink);
+
+    // Dedup: if a polygon heavily overlaps a void of similar area, keep the void
+    // (voids are cleaner for courtyard matching).
+    const keptPolys = polys.filter(p => {
+        for (const v of voids) {
+            const dx = p.cx - v.cx;
+            const dy = p.cy - v.cy;
+            if (Math.sqrt(dx * dx + dy * dy) < 0.04) {
+                const ar = Math.min(p.areaFrac, v.areaFrac) / Math.max(p.areaFrac, v.areaFrac);
+                if (ar > 0.6) return false;
             }
         }
-        if (bestMi >= 0) { used.add(bestMi); matches.push({ti, mi: bestMi}); }
+        return true;
+    });
+
+    const ranked = [
+        ...voids.sort((a, b) => b.area - a.area),
+        ...greys.sort((a, b) => b.area - a.area),
+        ...keptPolys.sort((a, b) => b.area - a.area),
+    ];
+    return ranked.slice(0, config.REGISTRATION_LANDMARK_MAX);
+}
+
+const LANDMARK_DEBUG_COLORS: Record<LandmarkKind, {b: number; g: number; r: number}> = {
+    'void': {b: 0, g: 255, r: 255},       // yellow
+    'grey-fill': {b: 0, g: 140, r: 255},   // orange
+    'polygon': {b: 255, g: 0, r: 255},     // magenta
+};
+
+function drawLandmarkOn(cv: CvModule, img: Mat, lm: Landmark, index: number, matched: boolean): void {
+    const base = LANDMARK_DEBUG_COLORS[lm.kind];
+    const col = matched
+        ? new cv.Vec3(0, 220, 0)
+        : new cv.Vec3(base.b, base.g, base.r);
+    const pts = lm.points.map(p => new cv.Point2(p.x, p.y));
+    if (pts.length >= 2) {
+        img.drawContours([pts], 0, col, matched ? 2 : 1);
     }
-    return matches;
+    img.drawCircle(new cv.Point2(lm.px, lm.py), 4, col, -1);
+    img.drawRectangle(
+        new cv.Point2(lm.bbox.x, lm.bbox.y),
+        new cv.Point2(lm.bbox.x + lm.bbox.w, lm.bbox.y + lm.bbox.h),
+        col,
+        1
+    );
+    // Label: kind initial + index
+    const tag = `${lm.kind[0]}${index}`;
+    img.putText(
+        tag,
+        new cv.Point2(Math.max(2, lm.bbox.x), Math.max(14, lm.bbox.y - 4)),
+        cv.FONT_HERSHEY_SIMPLEX,
+        0.4,
+        col,
+        1
+    );
 }
 
 /**
- * Registers the unit floor-plan thumbnail to the per-floor master floor plan using
- * line segment matching (Canny → HoughLinesP → angle+position greedy match) + RANSAC homography.
- * Returns the 3×3 homography (row-major flat) and master dimensions, or null when registration
- * cannot be established.
- *
- * When `debugDir` is provided, saves `12-registration-matches.png` showing:
- *   - grey lines:  unmatched segments on both sides
- *   - green lines: matched segments on both sides
- *   - cyan lines:  connecting lines between matched segment centers
+ * Debug: side-by-side thumb|master with *all* detected landmarks drawn
+ * (polygons + centroids + labels). Written as `12c-landmarks-found.png`.
  */
+function saveLandmarksFoundDebug(
+    cv: CvModule,
+    debugDir: string,
+    thumbGray: Mat,
+    masterGray: Mat,
+    thumbLm: Landmark[],
+    masterLm: Landmark[],
+    logger: serverLogger,
+): void {
+    let thumbDbg: Mat | null = null;
+    let masterDbg: Mat | null = null;
+    let thumbPad: Mat | null = null;
+    let masterPad: Mat | null = null;
+    let composite: Mat | null = null;
+    try {
+        fs.mkdirSync(debugDir, {recursive: true});
+        const GAP = 12;
+        thumbDbg = thumbGray.channels === 1 ? thumbGray.cvtColor(cv.COLOR_GRAY2BGR) : thumbGray.copy();
+        masterDbg = masterGray.channels === 1 ? masterGray.cvtColor(cv.COLOR_GRAY2BGR) : masterGray.copy();
+
+        thumbLm.forEach((lm, i) => drawLandmarkOn(cv, thumbDbg!, lm, i, false));
+        masterLm.forEach((lm, i) => drawLandmarkOn(cv, masterDbg!, lm, i, false));
+
+        // Legend strip
+        const legend = `void=yellow  grey-fill=orange  polygon=magenta  |  thumb:${thumbLm.length}  master:${masterLm.length}`;
+        thumbDbg.putText(legend, new cv.Point2(8, 18), cv.FONT_HERSHEY_SIMPLEX, 0.45, new cv.Vec3(255, 255, 255), 1);
+
+        const tW = thumbDbg.cols, tH = thumbDbg.rows;
+        const mW = masterDbg.cols, mH = masterDbg.rows;
+        const maxH = Math.max(tH, mH);
+        thumbPad = thumbDbg.copyMakeBorder(0, maxH - tH, 0, GAP + mW, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0));
+        masterPad = masterDbg.copyMakeBorder(0, maxH - mH, tW + GAP, 0, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0));
+        composite = thumbPad.bitwiseOr(masterPad);
+        cv.imwrite(path.join(debugDir, '12c-landmarks-found.png'), composite);
+        logger.debug(
+            `Registration: wrote 12c-landmarks-found.png (thumb=${thumbLm.length}, master=${masterLm.length})`
+        );
+    } catch (err) {
+        logger.warn(`Failed to save landmarks debug: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+        safeRelease(thumbDbg, masterDbg, thumbPad, masterPad, composite);
+    }
+}
 
 /**
- * Closed-form least-squares similarity transform (4 DOF: isotropic scale + rotation + translation)
- * from point correspondences selected by a binary inlier mask (0 = outlier, >0 = inlier).
- *
- * Model: [a, -b, tx; b, a, ty; 0, 0, 1] where a = s·cosθ, b = s·sinθ.
- * Returns the flat row-major 3×3 matrix, or null when fewer than 2 inliers or degenerate.
- *
- * Derivation: setting up normal equations for the overdetermined linear system
- *   a·xi − b·yi + tx = xi'
- *   b·xi + a·yi + ty = yi'
- * and solving analytically (Umeyama / Horn closed form).
+ * Match distinctive landmarks by searching each thumb landmark patch inside a *local*
+ * neighborhood on the master (same relative page position ± POS_TOLERANCE).
  */
-function estimateSimilarityLeastSquares(
-    src: {x: number; y: number}[],
-    dst: {x: number; y: number}[],
-    inlierMask: number[],
-): number[] | null {
-    let n = 0, S = 0, Sx = 0, Sy = 0, Sxp = 0, Syp = 0, Sxxp = 0, Sxyp = 0;
-    for (let i = 0; i < src.length; i++) {
-        if (inlierMask[i] <= 0) continue;
-        const xi = src[i].x, yi = src[i].y;
-        const xip = dst[i].x, yip = dst[i].y;
-        n++;
-        S    += xi * xi + yi * yi;
-        Sx   += xi;   Sy   += yi;
-        Sxp  += xip;  Syp  += yip;
-        Sxxp += xi * xip + yi * yip;
-        Sxyp += -yi * xip + xi * yip;
+function tryLandmarkRegistration(
+    cv: CvModule,
+    thumbGray: Mat,
+    masterGray: Mat,
+    thumbInk: Mat,
+    masterInk: Mat,
+    logger: serverLogger,
+    debugDir?: string,
+): {
+    Hmatch: number[];
+    inliers: number;
+    matches: Array<{ti: number; mi: number}>;
+    thumbLandmarks: Landmark[];
+    masterLandmarks: Landmark[];
+} | null {
+    const thumbLm = extractLandmarks(cv, thumbGray, thumbInk);
+    const masterLm = extractLandmarks(cv, masterGray, masterInk);
+    logger.debug(
+        `Registration: landmarks thumb=${thumbLm.length} ` +
+        `(grey=${thumbLm.filter(l => l.kind === 'grey-fill').length} ` +
+        `void=${thumbLm.filter(l => l.kind === 'void').length} ` +
+        `poly=${thumbLm.filter(l => l.kind === 'polygon').length}) ` +
+        `master=${masterLm.length} ` +
+        `(grey=${masterLm.filter(l => l.kind === 'grey-fill').length} ` +
+        `void=${masterLm.filter(l => l.kind === 'void').length} ` +
+        `poly=${masterLm.filter(l => l.kind === 'polygon').length})`
+    );
+
+    if (debugDir) {
+        saveLandmarksFoundDebug(cv, debugDir, thumbGray, masterGray, thumbLm, masterLm, logger);
     }
-    if (n < 2) return null;
-    const denom = n * S - Sx * Sx - Sy * Sy;
-    if (Math.abs(denom) < 1e-9) return null;
-    const a  = (n * Sxxp - Sx * Sxp - Sy * Syp) / denom;
-    const b  = (n * Sxyp + Sy * Sxp - Sx * Syp) / denom;
-    const tx = (Sxp - a * Sx + b * Sy) / n;
-    const ty = (Syp - b * Sx - a * Sy) / n;
-    return [a, -b, tx, b, a, ty, 0, 0, 1];
+
+    const minPairs = config.REGISTRATION_LANDMARK_MIN_MATCHES;
+    const posTol = config.REGISTRATION_LANDMARK_POS_TOLERANCE;
+    if (thumbLm.length < 1) return null;
+
+    const ref = Math.min(masterGray.cols, masterGray.rows);
+    const blurK = adaptiveOddKernel(0.01, ref, 3, 9);
+    let masterBlur: Mat | null = null;
+    let thumbBlur: Mat | null = null;
+    const srcPts: Array<{x: number; y: number}> = [];
+    const dstPts: Array<{x: number; y: number}> = [];
+    const debugMatches: Array<{ti: number; mi: number}> = [];
+    const matchedMasterLm: Landmark[] = [];
+
+    try {
+        masterBlur = masterGray.gaussianBlur(new cv.Size(blurK, blurK), 0);
+        thumbBlur = thumbGray.gaussianBlur(new cv.Size(blurK, blurK), 0);
+
+        const order = thumbLm
+            .map((lm, ti) => ({ti, area: lm.area, kind: lm.kind}))
+            .sort((a, b) => {
+                const kr = (k: LandmarkKind) => (k === 'void' ? 0 : k === 'grey-fill' ? 1 : 2);
+                return kr(a.kind) - kr(b.kind) || b.area - a.area;
+            });
+
+        for (const {ti} of order) {
+            const lm = thumbLm[ti];
+            const pad = Math.max(4, Math.round(Math.min(lm.bbox.w, lm.bbox.h) * 0.08));
+            const x = Math.max(0, lm.bbox.x - pad);
+            const y = Math.max(0, lm.bbox.y - pad);
+            const tw = Math.min(thumbBlur.cols - x, lm.bbox.w + pad * 2);
+            const th = Math.min(thumbBlur.rows - y, lm.bbox.h + pad * 2);
+            if (tw < 16 || th < 16) continue;
+
+            // Expected master location ≈ same normalized position (plans are similarly framed).
+            const expCx = lm.cx * masterBlur.cols;
+            const expCy = lm.cy * masterBlur.rows;
+            const tolX = posTol * masterBlur.cols;
+            const tolY = posTol * masterBlur.rows;
+
+            let patch: Mat | null = null;
+            try {
+                patch = thumbBlur.getRegion(new cv.Rect(x, y, tw, th)).copy();
+                let best: {score: number; mx: number; my: number; s: number; pw: number; ph: number} | null = null;
+
+                for (const s of [0.92, 1.0, 1.08]) {
+                    const pw = Math.max(12, Math.round(tw * s));
+                    const ph = Math.max(12, Math.round(th * s));
+                    if (pw >= masterBlur.cols || ph >= masterBlur.rows) continue;
+
+                    // Local search window around expected position (not the whole master).
+                    const searchCx = expCx;
+                    const searchCy = expCy;
+                    let rx = Math.floor(searchCx - tolX - pw / 2);
+                    let ry = Math.floor(searchCy - tolY - ph / 2);
+                    let rw = Math.ceil(2 * tolX + pw);
+                    let rh = Math.ceil(2 * tolY + ph);
+                    rx = Math.max(0, rx);
+                    ry = Math.max(0, ry);
+                    rw = Math.min(rw, masterBlur.cols - rx);
+                    rh = Math.min(rh, masterBlur.rows - ry);
+                    if (rw < pw || rh < ph) continue;
+
+                    let scaled: Mat | null = null;
+                    let roi: Mat | null = null;
+                    let res: Mat | null = null;
+                    try {
+                        scaled = s === 1 ? patch : patch.resize(ph, pw, 0, 0, cv.INTER_AREA);
+                        roi = masterBlur.getRegion(new cv.Rect(rx, ry, rw, rh));
+                        res = roi.matchTemplate(scaled, cv.TM_CCOEFF_NORMED);
+                        const {maxVal, maxLoc} = res.minMaxLoc();
+                        if (!Number.isFinite(maxVal)) continue;
+                        const mx = rx + maxLoc.x;
+                        const my = ry + maxLoc.y;
+                        // Matched patch center must stay near expected normalized position.
+                        const matchCx = mx + pw / 2;
+                        const matchCy = my + ph / 2;
+                        const dNorm = Math.sqrt(
+                            Math.pow((matchCx / masterBlur.cols) - lm.cx, 2) +
+                            Math.pow((matchCy / masterBlur.rows) - lm.cy, 2)
+                        );
+                        if (dNorm > posTol * Math.SQRT2) continue;
+                        if (!best || maxVal > best.score) {
+                            best = {score: maxVal, mx, my, s, pw, ph};
+                        }
+                    } finally {
+                        if (scaled && scaled !== patch) safeRelease(scaled);
+                        // roi is a view — do not release
+                        safeRelease(res);
+                    }
+                }
+
+                if (!best || best.score < 0.45) {
+                    logger.debug(
+                        `Registration: landmark ${lm.kind}#${ti} @(${lm.cx.toFixed(2)},${lm.cy.toFixed(2)}) ` +
+                        `local score=${best ? best.score.toFixed(3) : 'n/a'} — skip`
+                    );
+                    continue;
+                }
+
+                const thumbCx = lm.px;
+                const thumbCy = lm.py;
+                const localX = thumbCx - x;
+                const localY = thumbCy - y;
+                const masterCx = best.mx + localX * best.s;
+                const masterCy = best.my + localY * best.s;
+
+                srcPts.push({x: thumbCx, y: thumbCy});
+                dstPts.push({x: masterCx, y: masterCy});
+                for (const corner of lm.points.length >= 3 ? lm.points : [
+                    {x: lm.bbox.x, y: lm.bbox.y},
+                    {x: lm.bbox.x + lm.bbox.w, y: lm.bbox.y},
+                    {x: lm.bbox.x, y: lm.bbox.y + lm.bbox.h},
+                    {x: lm.bbox.x + lm.bbox.w, y: lm.bbox.y + lm.bbox.h},
+                ]) {
+                    const lx = corner.x - x;
+                    const ly = corner.y - y;
+                    srcPts.push(corner);
+                    dstPts.push({x: best.mx + lx * best.s, y: best.my + ly * best.s});
+                }
+
+                const mi = matchedMasterLm.length;
+                const shiftedPts = lm.points.map(p => ({
+                    x: best!.mx + (p.x - x) * best!.s,
+                    y: best!.my + (p.y - y) * best!.s,
+                }));
+                matchedMasterLm.push({
+                    ...lm,
+                    px: masterCx,
+                    py: masterCy,
+                    cx: masterCx / masterGray.cols,
+                    cy: masterCy / masterGray.rows,
+                    bbox: {x: best.mx, y: best.my, w: best.pw, h: best.ph},
+                    points: shiftedPts.length >= 3 ? shiftedPts : [
+                        {x: best.mx, y: best.my},
+                        {x: best.mx + best.pw, y: best.my},
+                        {x: best.mx + best.pw, y: best.my + best.ph},
+                        {x: best.mx, y: best.my + best.ph},
+                    ],
+                });
+                debugMatches.push({ti, mi});
+                logger.debug(
+                    `Registration: landmark ${lm.kind}#${ti} matched score=${best.score.toFixed(3)} ` +
+                    `local @(${lm.cx.toFixed(2)},${lm.cy.toFixed(2)}) → (${masterCx.toFixed(0)},${masterCy.toFixed(0)})`
+                );
+            } finally {
+                safeRelease(patch);
+            }
+        }
+
+        if (debugMatches.length < minPairs) {
+            logger.debug(`Registration: only ${debugMatches.length} local landmark matches — need ${minPairs}`);
+            return null;
+        }
+
+        const src = srcPts.map(p => new cv.Point2(p.x, p.y));
+        const dst = dstPts.map(p => new cv.Point2(p.x, p.y));
+        const {out, inliers} = cv.estimateAffinePartial2D(src, dst, cv.RANSAC, 5.0);
+        if (!out || out.empty) {
+            logger.debug('Registration: landmark affine failed');
+            safeRelease(out, inliers);
+            return null;
+        }
+        const maskArr = inliers ? (inliers.getDataAsArray() as number[][]).flat() : src.map(() => 1);
+        const inlierCount = maskArr.reduce((s, v) => s + (v > 0 ? 1 : 0), 0);
+        const rows = out.getDataAsArray() as number[][];
+        const a = rows[0][0], b = rows[0][1], tx = rows[0][2];
+        const c = rows[1][0], d = rows[1][1], ty = rows[1][2];
+        const s = Math.sqrt(a * a + c * c);
+        safeRelease(out, inliers);
+        if (!(s >= 0.45 && s <= 2.2)) {
+            logger.debug(`Registration: landmark affine scale ${s.toFixed(3)} out of range`);
+            return null;
+        }
+        if (inlierCount < Math.max(4, minPairs * 2)) {
+            logger.debug(`Registration: landmark inliers ${inlierCount} too low`);
+            return null;
+        }
+
+        return {
+            Hmatch: [a, b, tx, c, d, ty, 0, 0, 1],
+            inliers: inlierCount,
+            matches: debugMatches,
+            thumbLandmarks: thumbLm,
+            masterLandmarks: matchedMasterLm.length ? matchedMasterLm : masterLm,
+        };
+    } finally {
+        safeRelease(masterBlur, thumbBlur);
+    }
 }
+
+type RegistrationDebug = {
+    method: 'landmark' | 'template' | 'orb' | 'none';
+    score?: number;
+    templateRect?: {x: number; y: number; w: number; h: number};
+    matchLoc?: {x: number; y: number};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    orbMatches?: {thumbKp: any[]; masterKp: any[]; matches: any[]};
+    landmarkMatches?: Array<{ti: number; mi: number}>;
+    thumbLandmarks?: Landmark[];
+    masterLandmarks?: Landmark[];
+};
+
+/**
+ * Template-match thumb greyscale (content crop) inside master greyscale, with a small
+ * scale pyramid. Binary ink is only used to find the content bbox.
+ * Returns match-space similarity H or null.
+ */
+function tryTemplateRegistration(
+    cv: CvModule,
+    thumbGray: Mat,
+    masterGray: Mat,
+    thumbInkForBBox: Mat,
+    logger: serverLogger,
+): {Hmatch: number[]; score: number; templateRect: {x: number; y: number; w: number; h: number}; matchLoc: {x: number; y: number}} | null {
+    const minScore = config.REGISTRATION_TEMPLATE_MIN_SCORE;
+    const bbox = inkContentBBox(thumbInkForBBox);
+
+    let ox = 0, oy = 0, tw = thumbGray.cols, th = thumbGray.rows;
+    if (bbox) {
+        const pad = 4;
+        ox = Math.max(0, bbox.x - pad);
+        oy = Math.max(0, bbox.y - pad);
+        tw = Math.min(thumbGray.cols - ox, bbox.w + pad * 2);
+        th = Math.min(thumbGray.rows - oy, bbox.h + pad * 2);
+    }
+    if (tw < 24 || th < 24) {
+        logger.debug('Registration: template content bbox too small — skip matchTemplate');
+        return null;
+    }
+
+    let baseTemplate: Mat | null = null;
+    try {
+        baseTemplate = thumbGray.getRegion(new cv.Rect(ox, oy, tw, th)).copy();
+
+        // Soft CAD thumbs correlate better after a light blur on both sides.
+        const blurK = adaptiveOddKernel(0.01, Math.min(masterGray.cols, masterGray.rows), 3, 9);
+        let masterBlur: Mat | null = null;
+        let baseBlur: Mat | null = null;
+        try {
+            masterBlur = masterGray.gaussianBlur(new cv.Size(blurK, blurK), 0);
+            baseBlur = baseTemplate.gaussianBlur(new cv.Size(blurK, blurK), 0);
+
+            let best: {
+                score: number; mx: number; my: number; s: number; tw: number; th: number;
+            } | null = null;
+
+            for (const s of [0.88, 0.94, 1.0, 1.06, 1.12]) {
+                const sw = Math.max(16, Math.round(tw * s));
+                const sh = Math.max(16, Math.round(th * s));
+                if (sw >= masterBlur.cols || sh >= masterBlur.rows) continue;
+
+                let scaled: Mat | null = null;
+                let result: Mat | null = null;
+                try {
+                    scaled = s === 1
+                        ? baseBlur
+                        : baseBlur.resize(sh, sw, 0, 0, cv.INTER_AREA);
+                    result = masterBlur.matchTemplate(scaled, cv.TM_CCOEFF_NORMED);
+                    const {maxVal, maxLoc} = result.minMaxLoc();
+                    if (!Number.isFinite(maxVal)) continue;
+                    if (!best || maxVal > best.score) {
+                        best = {score: maxVal, mx: maxLoc.x, my: maxLoc.y, s, tw: sw, th: sh};
+                    }
+                } finally {
+                    if (scaled && scaled !== baseBlur) safeRelease(scaled);
+                    safeRelease(result);
+                }
+            }
+
+            if (!best) {
+                logger.debug('Registration: matchTemplate found no valid scale');
+                return null;
+            }
+
+            logger.debug(
+                `Registration: matchTemplate best score=${best.score.toFixed(3)} ` +
+                `scale=${best.s.toFixed(2)} loc=(${best.mx},${best.my}) ` +
+                `template=${best.tw}×${best.th} origin=(${ox},${oy})`
+            );
+            if (best.score < minScore) return null;
+
+            // master = s * (thumb - origin) + matchLoc
+            const tx = best.mx - best.s * ox;
+            const ty = best.my - best.s * oy;
+            const Hmatch = [best.s, 0, tx, 0, best.s, ty, 0, 0, 1];
+            return {
+                Hmatch,
+                score: best.score,
+                templateRect: {x: ox, y: oy, w: tw, h: th},
+                matchLoc: {x: best.mx, y: best.my},
+            };
+        } finally {
+            safeRelease(masterBlur, baseBlur);
+        }
+    } finally {
+        safeRelease(baseTemplate);
+    }
+}
+
+/**
+ * ORB keypoints + Hamming knn ratio test + estimateAffinePartial2D (similarity).
+ * Returns match-space H or null.
+ */
+function tryOrbRegistration(
+    cv: CvModule,
+    thumbInk: Mat,
+    masterInk: Mat,
+    logger: serverLogger,
+): {Hmatch: number[]; inliers: number; debug: RegistrationDebug['orbMatches']} | null {
+    const minInliers = config.REGISTRATION_ORB_MIN_INLIERS;
+    let descT: Mat | null = null;
+    let descM: Mat | null = null;
+    let affineMat: Mat | null = null;
+    let inlierMat: Mat | null = null;
+    try {
+        const orb = new cv.ORBDetector(2000);
+        const kpT = orb.detect(thumbInk);
+        const kpM = orb.detect(masterInk);
+        if (kpT.length < 12 || kpM.length < 12) {
+            logger.debug(`Registration: ORB too few keypoints (thumb=${kpT.length}, master=${kpM.length})`);
+            return null;
+        }
+        descT = orb.compute(thumbInk, kpT);
+        descM = orb.compute(masterInk, kpM);
+        if (!descT || descT.empty || !descM || descM.empty) {
+            logger.debug('Registration: ORB descriptors empty');
+            return null;
+        }
+
+        const knn = cv.matchKnnBruteForceHamming(descT, descM, 2);
+        const good: Array<{queryIdx: number; trainIdx: number}> = [];
+        for (const pair of knn) {
+            if (!pair || pair.length < 2) continue;
+            const a = pair[0];
+            const b = pair[1];
+            if (!a || !b) continue;
+            if (a.distance < 0.75 * b.distance) {
+                good.push({queryIdx: a.queryIdx, trainIdx: a.trainIdx});
+            }
+        }
+        if (good.length < minInliers) {
+            logger.debug(`Registration: ORB good matches ${good.length} < ${minInliers}`);
+            return null;
+        }
+
+        const srcPts = good.map(g => kpT[g.queryIdx].pt);
+        const dstPts = good.map(g => kpM[g.trainIdx].pt);
+        const {out, inliers} = cv.estimateAffinePartial2D(srcPts, dstPts, cv.RANSAC, 3.0);
+        affineMat = out;
+        inlierMat = inliers;
+        if (!out || out.empty) {
+            logger.debug('Registration: estimateAffinePartial2D failed');
+            return null;
+        }
+
+        const maskArr = inliers ? (inliers.getDataAsArray() as number[][]).flat() : good.map(() => 1);
+        const inlierCount = maskArr.reduce((s, v) => s + (v > 0 ? 1 : 0), 0);
+        if (inlierCount < minInliers) {
+            logger.debug(`Registration: ORB inliers ${inlierCount} < ${minInliers}`);
+            return null;
+        }
+
+        // out is 2×3: [a b tx; c d ty]
+        const rows = out.getDataAsArray() as number[][];
+        const a = rows[0][0], b = rows[0][1], tx = rows[0][2];
+        const c = rows[1][0], d = rows[1][1], ty = rows[1][2];
+        const matchScale = Math.sqrt(a * a + c * c);
+        if (!(matchScale >= 0.45 && matchScale <= 2.2)) {
+            logger.debug(`Registration: ORB scale ${matchScale.toFixed(3)} out of range — reject`);
+            return null;
+        }
+        const Hmatch = [a, b, tx, c, d, ty, 0, 0, 1];
+        logger.debug(
+            `Registration: ORB OK inliers=${inlierCount}/${good.length} ` +
+            `affine scale≈${matchScale.toFixed(3)} shift=(${tx.toFixed(1)},${ty.toFixed(1)})`
+        );
+
+        const debugMatches = good
+            .map((g, i) => ({g, ok: maskArr[i] > 0}))
+            .filter(x => x.ok)
+            .slice(0, 40)
+            .map(x => ({queryIdx: x.g.queryIdx, trainIdx: x.g.trainIdx, distance: 0}));
+
+        return {
+            Hmatch,
+            inliers: inlierCount,
+            debug: {thumbKp: kpT, masterKp: kpM, matches: debugMatches},
+        };
+    } catch (err) {
+        logger.debug(`Registration: ORB error: ${err instanceof Error ? err.message : String(err)}`);
+        return null;
+    } finally {
+        safeRelease(descT, descM, affineMat, inlierMat);
+    }
+}
+
+/**
+ * Registers the unit floor-plan thumbnail to the per-floor master floor plan:
+ *   1. distinctive landmarks (grey fills / voids / circles)
+ *   2. matchTemplate (greyscale, then ink)
+ *   3. ORB + estimateAffinePartial2D
+ * Returns the 3×3 homography (row-major flat) into full-res master, or null.
+ *
+ * Debug: `12-registration-matches.png` shows landmarks / template rect / ORB matches.
+ */
 
 function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: string, logger: serverLogger, debugDir?: string): ThumbToMasterReg {
     let thumbGray: Mat | null = null;
     let masterGray: Mat | null = null;
-    let masterMatch: Mat | null = null;
-    let thumbMatch: Mat | null = null;
-    let homoMat: Mat | null = null;
-    let maskMat: Mat | null = null;
-
-    let thumbSegs: LineSegment[] = [];
-    /** Master segments in *match* (downscaled) pixel space — used for debug overlay. */
-    let masterMatchSegs: LineSegment[] = [];
-    /** Master segments lifted to full-res pixel space — used for homography dst. */
-    let masterSegs: LineSegment[] = [];
-    let segMatches: Array<{ti: number; mi: number}> = [];
+    let masterGrayMatch: Mat | null = null;
+    let thumbGrayMatch: Mat | null = null;
+    let masterInk: Mat | null = null;
+    let thumbInk: Mat | null = null;
+    const regDebug: RegistrationDebug = {method: 'none'};
 
     try {
         thumbGray = cv.imread(thumbPath, cv.IMREAD_GRAYSCALE);
@@ -512,54 +1160,47 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
         const thumbW = thumbGray.cols;
         const thumbH = thumbGray.rows;
 
-        // Soft unit thumbs lack the fine edges of a high-DPI master. Match at thumb size,
-        // then convert BOTH to crisp binary structural ink (not soft blur / grey anti-alias).
         let matchToFullScaleX = 1;
         let matchToFullScaleY = 1;
-        masterMatch = masterGray;
-        thumbMatch = thumbGray;
+        thumbGrayMatch = thumbGray;
+        masterGrayMatch = masterGray;
 
         if (config.REGISTRATION_DOWNSCALE_MASTER_TO_THUMB) {
-            const thumbAspect = thumbW / Math.max(1, thumbH);
-            const masterAspect = masterW / Math.max(1, masterH);
-            const aspectsClose = Math.abs(thumbAspect - masterAspect) / masterAspect < 0.05;
+            // Isotropic fit: longest side of master → longest side of thumb (no stretch).
+            const scale = Math.min(1, Math.max(thumbW, thumbH) / Math.max(masterW, masterH));
+            const mw = Math.max(1, Math.round(masterW * scale));
+            const mh = Math.max(1, Math.round(masterH * scale));
 
-            // Prefer exact thumb W×H when letterboxing already aligned aspects — identical framing.
-            const mw = aspectsClose
-                ? thumbW
-                : Math.max(1, Math.round(masterW * Math.min(1, Math.max(thumbW, thumbH) / Math.max(masterW, masterH))));
-            const mh = aspectsClose
-                ? thumbH
-                : Math.max(1, Math.round(masterH * (mw / masterW)));
-
-            let masterResized: Mat = masterGray;
-            if (mw < masterW * 0.98 || mh < masterH * 0.98) {
-                masterResized = masterGray.resize(mh, mw, 0, 0, cv.INTER_AREA);
+            if (scale < 0.98) {
+                masterGrayMatch = masterGray.resize(mh, mw, 0, 0, cv.INTER_AREA);
                 matchToFullScaleX = masterW / mw;
                 matchToFullScaleY = masterH / mh;
                 logger.debug(
                     `Registration: downscaled master ${masterW}×${masterH} → ${mw}×${mh} ` +
-                    `(sx=${matchToFullScaleX.toFixed(2)}, sy=${matchToFullScaleY.toFixed(2)}) ` +
-                    `to match thumb ${thumbW}×${thumbH}`
+                    `(isotropic ×${scale.toFixed(3)}; thumb ${thumbW}×${thumbH} may be cropped)`
                 );
             }
+        }
 
-            // Crisp binary ink on both sides — restores sharp strokes after downscale.
-            masterMatch = toStructuralInk(cv, masterResized);
-            if (masterResized !== masterGray) safeRelease(masterResized);
-            thumbMatch = toStructuralInk(cv, thumbGray);
-            logger.debug('Registration: converted thumb + master to structural ink (binary walls)');
+        // Greyscale for template correlation; structural ink for ORB + content bbox.
+        masterInk = toStructuralInk(cv, masterGrayMatch);
+        thumbInk = toStructuralInk(cv, thumbGrayMatch);
+        logger.debug('Registration: structural ink ready; template uses greyscale, ORB uses ink');
+
+        const bubT = suppressGridBubbles(cv, thumbInk);
+        const bubM = suppressGridBubbles(cv, masterInk);
+        if (bubT + bubM > 0) {
+            logger.debug(`Registration: suppressed grid bubbles thumb=${bubT} master=${bubM}`);
         }
 
         if (debugDir) {
             try {
                 fs.mkdirSync(debugDir, {recursive: true});
-                cv.imwrite(path.join(debugDir, '12a-master-downscaled-for-registration.png'), masterMatch);
-                // Same-size side-by-side so quality difference is obvious at a glance.
+                cv.imwrite(path.join(debugDir, '12a-master-downscaled-for-registration.png'), masterInk);
                 const gapPx = 8;
-                const h = Math.max(thumbMatch.rows, masterMatch.rows);
-                const thumbBgr = thumbMatch.channels === 1 ? thumbMatch.cvtColor(cv.COLOR_GRAY2BGR) : thumbMatch.copy();
-                const masterBgr = masterMatch.channels === 1 ? masterMatch.cvtColor(cv.COLOR_GRAY2BGR) : masterMatch.copy();
+                const h = Math.max(thumbInk.rows, masterInk.rows);
+                const thumbBgr = thumbInk.cvtColor(cv.COLOR_GRAY2BGR);
+                const masterBgr = masterInk.cvtColor(cv.COLOR_GRAY2BGR);
                 const thumbPad = thumbBgr.copyMakeBorder(
                     0, h - thumbBgr.rows, 0, gapPx + masterBgr.cols, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0)
                 );
@@ -574,91 +1215,66 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
             }
         }
 
-        thumbSegs = extractLineSegments(cv, thumbMatch);
-        masterMatchSegs = extractLineSegments(cv, masterMatch);
-
-        // Lift master segment endpoints to full-resolution pixel space for the homography.
-        // Recompute normalized cx/cy against full master for position matching consistency.
-        masterSegs = masterMatchSegs.map((s) => {
-            const x1 = s.x1 * matchToFullScaleX;
-            const y1 = s.y1 * matchToFullScaleY;
-            const x2 = s.x2 * matchToFullScaleX;
-            const y2 = s.y2 * matchToFullScaleY;
-            return {
-                x1, y1, x2, y2,
-                cx: (x1 + x2) / 2 / masterW,
-                cy: (y1 + y2) / 2 / masterH,
-                angle: s.angle,
-                length: s.length * Math.max(matchToFullScaleX, matchToFullScaleY),
-            };
-        });
-
-        if (thumbSegs.length < 8 || masterSegs.length < 8) {
-            logger.warn(`Registration: too few line segments (thumb=${thumbSegs.length}, master=${masterSegs.length})`);
-            return null;
-        }
-
-        // Position matching uses normalized coords — prefer match-space master segs (same framing as thumb).
-        let usedAngleOnlyMatching = false;
-        segMatches = matchSegmentsByAngleAndPosition(thumbSegs, masterMatchSegs);
-
-        if (segMatches.length < 4) {
-            logger.debug(`Position-based matching insufficient (${segMatches.length} matches); retrying with angle-only matching`);
-            segMatches = matchSegmentsByAngleAndPosition(thumbSegs, masterMatchSegs, true);
-            usedAngleOnlyMatching = true;
-            if (segMatches.length < 4) {
-                logger.warn(`Registration: too few matched segments even without position constraint (${segMatches.length})`);
-                return null;
-            }
-        }
-
-        // Build point correspondences — thumb pixels → full-res master pixels.
-        const srcRaw = segMatches.flatMap(({ti}) => [
-            {x: thumbSegs[ti].x1, y: thumbSegs[ti].y1},
-            {x: thumbSegs[ti].x2, y: thumbSegs[ti].y2},
-        ]);
-        const dstRaw = segMatches.flatMap(({mi}) => [
-            {x: masterSegs[mi].x1, y: masterSegs[mi].y1},
-            {x: masterSegs[mi].x2, y: masterSegs[mi].y2},
-        ]);
-        const srcPts = srcRaw.map(p => new cv.Point2(p.x, p.y));
-        const dstPts = dstRaw.map(p => new cv.Point2(p.x, p.y));
-
-        const scaleGap = Math.max(matchToFullScaleX, matchToFullScaleY);
-        const ransacThresh = Math.max(4.0, scaleGap * 2.5);
-        const {homography, mask} = cv.findHomography(srcPts, dstPts, cv.RANSAC, ransacThresh);
-        homoMat = homography;
-        maskMat = mask;
-
-        if (!homoMat || homoMat.empty) {
-            logger.warn('Registration: findHomography returned empty matrix');
-            return null;
-        }
-
-        const maskArr = maskMat ? (maskMat.getDataAsArray() as number[][]).flat() : [];
-        const inliers = maskArr.length > 0 ? maskArr.reduce((s, v) => s + v, 0) : srcRaw.length;
-
-        if (inliers < 8) {
-            logger.warn(`Registration: RANSAC inliers too low (${inliers}, mode=${usedAngleOnlyMatching ? 'angle-only' : 'position'})`);
-            return null;
-        }
-
-        const inlierMask = maskArr.length > 0 ? maskArr : srcRaw.map(() => 1);
-        const simH = estimateSimilarityLeastSquares(srcRaw, dstRaw, inlierMask);
-        const H = simH ?? (homoMat.getDataAsArray() as number[][]).flat();
-        const transformType = simH ? 'similarity-4dof-refit' : 'homography-8dof-fallback';
-
-        logger.debug(
-            `Registration OK: ${inliers} inliers / ${srcRaw.length} point pairs (${segMatches.length} segments), ` +
-            `transform=${transformType}, master ${masterW}×${masterH}, match ${masterMatch.cols}×${masterMatch.rows}`
+        const landmarks = tryLandmarkRegistration(
+            cv, thumbGrayMatch, masterGrayMatch, thumbInk, masterInk, logger, debugDir
         );
-        return {H, masterW, masterH};
+        if (landmarks) {
+            regDebug.method = 'landmark';
+            regDebug.landmarkMatches = landmarks.matches;
+            regDebug.thumbLandmarks = landmarks.thumbLandmarks;
+            regDebug.masterLandmarks = landmarks.masterLandmarks;
+            const H = liftMatchHomographyToFull(landmarks.Hmatch, matchToFullScaleX, matchToFullScaleY);
+            const a = H[0], b = H[3], tx = H[2], ty = H[5];
+            logger.debug(
+                `Registration OK (landmark): ${landmarks.matches.length} pairs, ${landmarks.inliers} inliers, ` +
+                `similarity≈scale ${Math.sqrt(a * a + b * b).toFixed(3)} shift (${tx.toFixed(1)}, ${ty.toFixed(1)}) ` +
+                `master ${masterW}×${masterH}`
+            );
+            return {H, masterW, masterH};
+        }
+
+        const tmplGray = tryTemplateRegistration(cv, thumbGrayMatch, masterGrayMatch, thumbInk, logger);
+        const tmpl = tmplGray ?? tryTemplateRegistration(cv, thumbInk, masterInk, thumbInk, logger);
+        if (tmpl) {
+            const via = tmplGray ? 'greyscale' : 'ink';
+            regDebug.method = 'template';
+            regDebug.score = tmpl.score;
+            regDebug.templateRect = tmpl.templateRect;
+            regDebug.matchLoc = tmpl.matchLoc;
+            const H = liftMatchHomographyToFull(tmpl.Hmatch, matchToFullScaleX, matchToFullScaleY);
+            logger.debug(
+                `Registration OK (template/${via}): score=${tmpl.score.toFixed(3)} ` +
+                `match_scale=${tmpl.Hmatch[0].toFixed(3)} ` +
+                `shift_match=(${tmpl.Hmatch[2].toFixed(1)},${tmpl.Hmatch[5].toFixed(1)}) ` +
+                `full_scale≈(${matchToFullScaleX.toFixed(3)},${matchToFullScaleY.toFixed(3)}) ` +
+                `master ${masterW}×${masterH}`
+            );
+            return {H, masterW, masterH};
+        }
+
+        const orb = tryOrbRegistration(cv, thumbInk, masterInk, logger);
+        if (orb) {
+            regDebug.method = 'orb';
+            regDebug.orbMatches = orb.debug;
+            const H = liftMatchHomographyToFull(orb.Hmatch, matchToFullScaleX, matchToFullScaleY);
+            const a = H[0], b = H[3], tx = H[2], ty = H[5];
+            logger.debug(
+                `Registration OK (orb): inliers=${orb.inliers} ` +
+                `similarity≈scale ${Math.sqrt(a * a + b * b).toFixed(3)} shift (${tx.toFixed(1)}, ${ty.toFixed(1)}) ` +
+                `master ${masterW}×${masterH}`
+            );
+            return {H, masterW, masterH};
+        }
+
+        logger.warn('Registration: landmark, matchTemplate, and ORB all failed');
+        return null;
     } catch (err) {
         logger.warn(`Registration error: ${err instanceof Error ? err.message : String(err)}`);
         return null;
     } finally {
-        // Debug composite at *match* resolution (thumb vs downscaled master) so lines are comparable.
-        if (debugDir && thumbMatch && !thumbMatch.empty && masterMatch && !masterMatch.empty) {
+        const dbgInkT = thumbInk;
+        const dbgInkM = masterInk;
+        if (debugDir && dbgInkT && !dbgInkT.empty && dbgInkM && !dbgInkM.empty) {
             let thumbDbg: Mat | null = null;
             let masterDbg: Mat | null = null;
             let thumbPadded: Mat | null = null;
@@ -667,29 +1283,39 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
             try {
                 fs.mkdirSync(debugDir, {recursive: true});
                 const GAP = 10;
-                const tW = thumbMatch.cols;
-                const tH = thumbMatch.rows;
-                const mW = masterMatch.cols;
-                const mH = masterMatch.rows;
+                const tW = dbgInkT.cols;
+                const tH = dbgInkT.rows;
+                const mW = dbgInkM.cols;
+                const mH = dbgInkM.rows;
                 const maxH = Math.max(tH, mH);
 
-                thumbDbg = thumbMatch.channels === 1 ? thumbMatch.cvtColor(cv.COLOR_GRAY2BGR) : thumbMatch.copy();
-                masterDbg = masterMatch.channels === 1 ? masterMatch.cvtColor(cv.COLOR_GRAY2BGR) : masterMatch.copy();
+                thumbDbg = dbgInkT.cvtColor(cv.COLOR_GRAY2BGR);
+                masterDbg = dbgInkM.cvtColor(cv.COLOR_GRAY2BGR);
 
-                const grey = new cv.Vec3(120, 120, 120);
                 const green = new cv.Vec3(0, 220, 0);
                 const cyan = new cv.Vec3(220, 220, 0);
+                const orange = new cv.Vec3(0, 140, 255);
 
-                const matchedThumbIdx = new Set(segMatches.map(m => m.ti));
-                const matchedMasterIdx = new Set(segMatches.map(m => m.mi));
-
-                for (let i = 0; i < thumbSegs.length; i++) {
-                    const s = thumbSegs[i];
-                    thumbDbg.drawLine(new cv.Point2(s.x1, s.y1), new cv.Point2(s.x2, s.y2), matchedThumbIdx.has(i) ? green : grey, 2);
-                }
-                for (let i = 0; i < masterMatchSegs.length; i++) {
-                    const s = masterMatchSegs[i];
-                    masterDbg.drawLine(new cv.Point2(s.x1, s.y1), new cv.Point2(s.x2, s.y2), matchedMasterIdx.has(i) ? green : grey, 2);
+                if (regDebug.method === 'landmark' && regDebug.thumbLandmarks && regDebug.masterLandmarks) {
+                    const matchedT = new Set((regDebug.landmarkMatches ?? []).map(m => m.ti));
+                    const matchedM = new Set((regDebug.landmarkMatches ?? []).map(m => m.mi));
+                    regDebug.thumbLandmarks.forEach((lm, i) => drawLandmarkOn(cv, thumbDbg!, lm, i, matchedT.has(i)));
+                    regDebug.masterLandmarks.forEach((lm, i) => drawLandmarkOn(cv, masterDbg!, lm, i, matchedM.has(i)));
+                } else if (regDebug.method === 'template' && regDebug.templateRect && regDebug.matchLoc) {
+                    const tr = regDebug.templateRect;
+                    const ml = regDebug.matchLoc;
+                    thumbDbg.drawRectangle(
+                        new cv.Point2(tr.x, tr.y),
+                        new cv.Point2(tr.x + tr.w, tr.y + tr.h),
+                        green,
+                        2
+                    );
+                    masterDbg.drawRectangle(
+                        new cv.Point2(ml.x, ml.y),
+                        new cv.Point2(ml.x + tr.w, ml.y + tr.h),
+                        green,
+                        2
+                    );
                 }
 
                 thumbPadded = thumbDbg.copyMakeBorder(0, maxH - tH, 0, GAP + mW, cv.BORDER_CONSTANT, new cv.Vec3(0, 0, 0));
@@ -704,12 +1330,36 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
                 masterPadded = null;
 
                 const xOffset = tW + GAP;
-                for (const {ti, mi} of segMatches) {
-                    const ts = thumbSegs[ti];
-                    const ms = masterMatchSegs[mi];
-                    const pt1 = new cv.Point2(Math.round((ts.x1 + ts.x2) / 2), Math.round((ts.y1 + ts.y2) / 2));
-                    const pt2 = new cv.Point2(Math.round((ms.x1 + ms.x2) / 2) + xOffset, Math.round((ms.y1 + ms.y2) / 2));
-                    composite.drawLine(pt1, pt2, cyan, 1);
+                if (regDebug.method === 'landmark' && regDebug.landmarkMatches && regDebug.thumbLandmarks && regDebug.masterLandmarks) {
+                    for (const {ti, mi} of regDebug.landmarkMatches) {
+                        const ta = regDebug.thumbLandmarks[ti];
+                        const ma = regDebug.masterLandmarks[mi];
+                        composite.drawLine(
+                            new cv.Point2(ta.px, ta.py),
+                            new cv.Point2(ma.px + xOffset, ma.py),
+                            cyan,
+                            2
+                        );
+                    }
+                } else if (regDebug.method === 'template' && regDebug.templateRect && regDebug.matchLoc) {
+                    const tr = regDebug.templateRect;
+                    const ml = regDebug.matchLoc;
+                    const pt1 = new cv.Point2(tr.x + tr.w / 2, tr.y + tr.h / 2);
+                    const pt2 = new cv.Point2(ml.x + tr.w / 2 + xOffset, ml.y + tr.h / 2);
+                    composite.drawLine(pt1, pt2, cyan, 2);
+                } else if (regDebug.method === 'orb' && regDebug.orbMatches) {
+                    const {thumbKp, masterKp, matches} = regDebug.orbMatches;
+                    for (const m of matches) {
+                        const p1 = thumbKp[m.queryIdx]?.pt;
+                        const p2 = masterKp[m.trainIdx]?.pt;
+                        if (!p1 || !p2) continue;
+                        composite.drawLine(
+                            new cv.Point2(p1.x, p1.y),
+                            new cv.Point2(p2.x + xOffset, p2.y),
+                            orange,
+                            1
+                        );
+                    }
                 }
 
                 cv.imwrite(path.join(debugDir, '12-registration-matches.png'), composite);
@@ -719,9 +1369,9 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
                 safeRelease(thumbDbg, masterDbg, thumbPadded, masterPadded, composite);
             }
         }
-        if (masterMatch && masterMatch !== masterGray) safeRelease(masterMatch);
-        if (thumbMatch && thumbMatch !== thumbGray) safeRelease(thumbMatch);
-        safeRelease(thumbGray, masterGray, homoMat, maskMat);
+        if (masterGrayMatch && masterGrayMatch !== masterGray) safeRelease(masterGrayMatch);
+        safeRelease(masterInk, thumbInk, thumbGray, masterGray);
+        // thumbGrayMatch aliases thumbGray — already released
     }
 }
 
@@ -729,7 +1379,7 @@ function registerThumbnailToMaster(cv: CvModule, thumbPath: string, masterPath: 
  * Extracts the highlighted unit polygon from a unit floor-plan thumbnail.
  *
  * When `masterPlanPath` is provided:
- *   1. Prefer line-based registration → master-space coords
+ *   1. Prefer landmark / template / ORB registration → master-space coords
  *   2. Else floor-cached registration from another unit on the same floor
  *   3. Else simple scale of the highlight onto the master (same framing assumption)
  *

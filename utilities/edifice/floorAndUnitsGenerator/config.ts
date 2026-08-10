@@ -46,6 +46,13 @@ export const config = {
     // Text extraction method - 'pdf' is much faster (extracts embedded text), 'ocr' is slower but works on scanned PDFs
     TEXT_EXTRACTION_METHOD: 'pdf' as 'pdf' | 'ocr',
     /**
+     * OCR must reach this confidence before net/shared/veranda areas are accepted.
+     * Below this threshold, OCR is retried (see OCR_AREA_MAX_ATTEMPTS).
+     */
+    OCR_AREA_REQUIRED_CONFIDENCE: 100,
+    /** Max OCR attempts when area confidence is below OCR_AREA_REQUIRED_CONFIDENCE. */
+    OCR_AREA_MAX_ATTEMPTS: 3,
+    /**
      * Fraction of min(width,height) cropped from each side before highlight polygon detection
      * to ignore decorative borders around floor plans.
      */
@@ -54,8 +61,9 @@ export const config = {
      * opencv4nodejs: after HSV + morphology, distance-threshold → thick mask (08). When T>0 and 08 is non-empty,
      * 09 is **only** repeated 3×3 dilate of 08; iteration count is **round(T/2)** (min 1, max 64), still with no 07 clip.
      * 0 = disabled (contours run on morph mask before thickness step).
+     * Effective T is also capped to ~1% of min(image dim) so small thumbnails are not wiped.
      */
-    HIGHLIGHT_MASK_MIN_DISTANCE_TO_BACKGROUND_PX: 15,
+    HIGHLIGHT_MASK_MIN_DISTANCE_TO_BACKGROUND_PX: 8,
     /**
      * After polygon extraction, rewrite each unit's saved floor-plan.png onto a canvas with the
      * same width/height ratio as the per-floor master floor-plan.png (letterboxed, no stretch).

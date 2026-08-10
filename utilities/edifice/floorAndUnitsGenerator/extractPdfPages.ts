@@ -142,6 +142,7 @@ export const processPdfForFloorsAndUnits = async (
 
             let ocrData;
             if (config.TEXT_EXTRACTION_METHOD === 'pdf') {
+                // Area fields (net/shared/veranda) require 100% confidence; OCR retries when below.
                 ocrData = await extractPdfTextData(
                     pdfBytes, result.pageNumber - 1, pageFolder, result.pageNumber, logger, timer,
                     result.renderedImageBuffer, pdfFilePath,
@@ -149,6 +150,7 @@ export const processPdfForFloorsAndUnits = async (
                 );
             } else {
                 if (result.renderedImageBuffer) {
+                    // OCR path: retries until OCR_AREA_REQUIRED_CONFIDENCE (100%) or max attempts.
                     ocrData = await saveOcrDataFromBuffer(result.renderedImageBuffer, pageFolder, result.pageNumber, logger, timer);
                 } else {
                     logger.warn(`OCR method selected but no image available for page ${result.pageNumber}. Falling back to PDF text extraction.`);
@@ -178,12 +180,19 @@ export const processPdfForFloorsAndUnits = async (
                 if (!ocrSummary.floors[floorKey].units[unitName]) {
                     ocrSummary.floors[floorKey].units[unitName] = [];
                 }
+                // Areas only enter the summary at 100% confidence; otherwise store zeros.
+                const areasTrusted = ocrData.confidence >= config.OCR_AREA_REQUIRED_CONFIDENCE;
+                if (!areasTrusted && (ocrData.netArea > 0 || ocrData.sharedArea > 0 || ocrData.verandaArea > 0)) {
+                    logger.warn(
+                        `Page ${result.pageNumber} unit ${unitName}: confidence ${ocrData.confidence.toFixed(2)}% < ${config.OCR_AREA_REQUIRED_CONFIDENCE}% — rejecting area values`
+                    );
+                }
                 ocrSummary.floors[floorKey].units[unitName].push({
                     name: unitName,
-                    netArea: ocrData.netArea,
-                    sharedArea: ocrData.sharedArea,
-                    totalArea: ocrData.totalArea,
-                    verandaArea: ocrData.verandaArea,
+                    netArea: areasTrusted ? ocrData.netArea : 0,
+                    sharedArea: areasTrusted ? ocrData.sharedArea : 0,
+                    totalArea: areasTrusted ? ocrData.totalArea : 0,
+                    verandaArea: areasTrusted ? ocrData.verandaArea : 0,
                     confidence: ocrData.confidence,
                     rawTextLength: ocrData.rawText.length,
                     pageNumber: result.pageNumber
@@ -277,7 +286,7 @@ export const processPdfForFloorsAndUnits = async (
                     }
 
                     logger.debug(`Extracting polygon from ${floorPlanPath} for unit ${unitName}...`);
-                    const {unitPolygon, allPolygons, allPolygonAreas, registeredToMaster, computedRegistration} = await extractHighlightPolygonsOpencv4(
+                    const {unitPolygon, allPolygons, allPolygonAreas, registeredToMaster, registrationSource, computedRegistration} = await extractHighlightPolygonsOpencv4(
                         floorPlanPath,
                         masterExists ? floorMasterPlanPath : undefined,
                         path.join(unitFolder, 'highlight-debug'),
@@ -292,7 +301,10 @@ export const processPdfForFloorsAndUnits = async (
 
                     if (unitPolygon && unitPolygon.length > 0) {
                         unitSummary.polygonCoordinates = unitPolygon;
-                        logger.debug(`Successfully extracted polygon with ${unitPolygon.length} points for unit ${unitName} (registeredToMaster=${registeredToMaster})`);
+                        logger.debug(
+                            `Successfully extracted polygon with ${unitPolygon.length} points for unit ${unitName} ` +
+                            `(registeredToMaster=${registeredToMaster}, reg=${registrationSource ?? 'none'})`
+                        );
                         reporter.reportPolygonResult(unitName, floorKey, true, unitPolygon.length, registeredToMaster);
 
                         if (config.SAVE_POLYGON_OVERLAY) {

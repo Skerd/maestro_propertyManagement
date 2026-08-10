@@ -16,6 +16,7 @@ import Floor from '../floor/floor';
 import Unit from '../unit/unit';
 import {edificeService} from './edifice.service';
 import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
+import {config as floorUnitsGeneratorConfig} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/config';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
 import {slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
 import {PDFDocument} from 'pdf-lib';
@@ -39,6 +40,22 @@ async function extractSinglePdfPage(sourcePdf: PDFDocument, pageNumber: number):
 
 function hasMarketingBooklet(entity: {marketingBooklet?: unknown} | null | undefined): boolean {
     return !!entity?.marketingBooklet;
+}
+
+/**
+ * Brochure OCR zeros out areas when confidence < 100%. Never wipe a non-zero
+ * existing value (user/manual edit) with an untrusted 0 from a re-import.
+ */
+function preferExistingAreaWhenIncomingZero(
+    existing: number | null | undefined,
+    incoming: number | null | undefined,
+): number {
+    const prev = typeof existing === 'number' && Number.isFinite(existing) ? existing : 0;
+    const next = typeof incoming === 'number' && Number.isFinite(incoming) ? incoming : 0;
+    if (prev > 0 && next === 0) {
+        return prev;
+    }
+    return next;
 }
 
 export class EdificeActions {
@@ -319,14 +336,26 @@ export class EdificeActions {
                             if (existingUnit) {
                                 existingUnit.name      = unitName;
                                 existingUnit.unitNumber = unitNumber;
-                                existingUnit.netArea    = unitSummary.netArea || existingUnit.netArea || 0;
-                                existingUnit.sharedArea = unitSummary.sharedArea || existingUnit.sharedArea || 0;
-                                existingUnit.area       = unitSummary.totalArea || unitSummary.netArea + unitSummary.sharedArea || existingUnit.area || 0;
-                                existingUnit.verandaArea = unitSummary.verandaArea || existingUnit.verandaArea || 0;
+
+                                // Areas only overwrite when OCR is trusted (100%). Untrusted runs
+                                // send 0s — keep any non-zero values already on the unit (user edits).
+                                const areasTrusted =
+                                    typeof unitSummary.confidence === 'number'
+                                    && unitSummary.confidence >= floorUnitsGeneratorConfig.OCR_AREA_REQUIRED_CONFIDENCE;
+                                const incomingTotal =
+                                    (unitSummary.totalArea || 0) > 0
+                                        ? unitSummary.totalArea
+                                        : (unitSummary.netArea || 0) + (unitSummary.sharedArea || 0);
+
+                                existingUnit.netArea = preferExistingAreaWhenIncomingZero(existingUnit.netArea, unitSummary.netArea);
+                                existingUnit.sharedArea = preferExistingAreaWhenIncomingZero(existingUnit.sharedArea, unitSummary.sharedArea);
+                                existingUnit.area = preferExistingAreaWhenIncomingZero(existingUnit.area, incomingTotal);
+                                existingUnit.verandaArea = preferExistingAreaWhenIncomingZero(existingUnit.verandaArea, unitSummary.verandaArea);
                                 existingUnit.polygonCoordinates = unitSummary.polygonCoordinates || existingUnit.polygonCoordinates || [];
 
-                                // Recompute sale price from the edifice pricing config when available.
-                                if (pricePerM2 != null) {
+                                // Recompute sale price only when area OCR was trusted — otherwise
+                                // leave a manually set price alone.
+                                if (areasTrusted && pricePerM2 != null) {
                                     existingUnit.price = (pricePerM2 * existingUnit.area
                                         + (verandaPricePerM2 != null ? verandaPricePerM2 * (existingUnit.verandaArea || 0) : 0)) as any;
                                     if (saleCurrencyId) existingUnit.priceCurrency = saleCurrencyId;

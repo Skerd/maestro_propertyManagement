@@ -225,7 +225,7 @@ export function mapMarketingUnitSingle(
         projectId,
         status: mapUnitStatus(unit.status),
         unitNumber: unit.unitNumber || undefined,
-        areaSqm: unit.netArea ?? unit.area,
+        areaSqm: unit.area,
         bedrooms: unit.numberOfRooms,
         bathrooms: unit.numberOfBathrooms,
         price,

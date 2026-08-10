@@ -139,7 +139,7 @@ export function mapMarketingUnitCatalogListItem(
         _id: objectIdToString(unit._id),
         name: unit.name,
         status: mapUnitStatus(unit.status),
-        areaSqm: unit.netArea ?? unit.area,
+        areaSqm: unit.area,
         bedrooms: unit.numberOfRooms,
         bathrooms: unit.numberOfBathrooms,
         price,

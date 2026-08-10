@@ -36,7 +36,7 @@ function mapUnitStatus(status: UnitStatus | string): "available" | "reserved" | 
 }
 
 function unitAreaSqm(unit: IUnit | any): number | undefined {
-    const area = unit.netArea ?? unit.area;
+    const area = unit.area;
     return typeof area === "number" ? area : undefined;
 }
 

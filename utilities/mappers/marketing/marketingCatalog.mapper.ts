@@ -50,14 +50,16 @@ function mapUnitStatus(status: UnitStatus | string): "available" | "reserved" | 
     }
 }
 
+type MarketingSocialLink = {name: string; link: string; logo?: string};
+
 function mapProjectSocialLinks(
     socialLinks: unknown,
-): {name: string; link: string; logo?: string}[] | undefined {
+): MarketingSocialLink[] | undefined {
     if (!Array.isArray(socialLinks)) {
         return undefined;
     }
     const mapped = socialLinks
-        .map((item) => {
+        .map((item): MarketingSocialLink | null => {
             if (!item || typeof item !== "object") {
                 return null;
             }
@@ -73,7 +75,7 @@ function mapProjectSocialLinks(
             const logo = marketingMediaUrl((item as {logo?: {_id?: unknown}}).logo as any);
             return logo ? {name, link, logo} : {name, link};
         })
-        .filter((item): item is {name: string; link: string; logo?: string} => item != null);
+        .filter((item): item is MarketingSocialLink => item != null);
     return mapped.length > 0 ? mapped : undefined;
 }
 

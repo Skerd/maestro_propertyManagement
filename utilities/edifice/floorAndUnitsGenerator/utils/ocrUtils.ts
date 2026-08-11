@@ -1,14 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import {createWorker, Worker} from 'tesseract.js';
-import sharp from 'sharp';
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
 import {ensureDir, slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
-import {extractTextWithGhostscript} from './imageProcessing';
-import {extractTextFromPdf} from './pdfTextExtractor';
-import {config} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/config';
-import type {CropResult, ExtractedImageOcrData} from './types';
+import type {CropResult, ExtractedImageOcrData} from '../types';
 
 /**
  * Classifies page type as 'floor' or 'unit'.
@@ -407,64 +402,18 @@ export function ensureFloorPlanPlaceholders(
 }
 
 /**
- * Extracts text data directly from PDF page (much faster than OCR)
- * Falls back to OCR using already-rendered image buffer if PDF text extraction yields insufficient data
+ * Parses structured floor/unit fields from batch Ghostscript page text.
  */
-export async function extractPdfTextData(
-    pdfBuffer: Buffer,
-    pageIndex: number, // 0-indexed page index
-    outputFolder: string,
-    pageNumber: number, // 1-indexed page number for file naming
-    parentLogger: serverLogger,
-    timer: PerformanceTimer,
-    renderedImageBuffer?: Buffer, // Optional: already-rendered image for OCR fallback
-    pdfFilePath?: string, // Optional: path to PDF file (for Ghostscript txtwrite)
-    preExtractedGsText?: string // Optional: GS text already extracted by a batch call
-): Promise<ExtractedImageOcrData> {
+export async function extractPdfTextData(outputFolder: string, pageNumber: number, parentLogger: serverLogger, timer: PerformanceTimer, extractedText: string): Promise<ExtractedImageOcrData> {
     return await timer.timeAsync('extractPdfTextData', async () => {
         const logger = getLogger("extract_pdf_text", parentLogger);
         logger.start(`Extracting text data from PDF page ${pageNumber}...`);
 
-        // Step 1: Try multiple text extraction methods
-        let extractedText = '';
-        let extractionMethod: 'text' | 'ocr' | 'mixed' | 'ghostscript' = 'text';
-
-        // Use pre-extracted GS text when available (avoids spawning a per-page GS process)
-        if (preExtractedGsText && preExtractedGsText.trim().length >= 50) {
-            extractedText = preExtractedGsText;
-            extractionMethod = 'ghostscript';
-            logger.debug(`Using pre-extracted GS text (${extractedText.length} chars) for page ${pageNumber}`);
+        if (extractedText.trim().length < 50) {
+            logger.warn(`Text extraction yielded insufficient data for page ${pageNumber}`);
         }
 
-        // Ghostscript txtwrite fallback (only when pre-extracted text wasn't sufficient)
-        if (!extractedText && pdfFilePath && fs.existsSync(pdfFilePath)) {
-            try {
-                const gsText = extractTextWithGhostscript(pdfFilePath, pageNumber, logger, timer);
-                if (gsText && gsText.trim().length >= 50) {
-                    extractedText = gsText;
-                    extractionMethod = 'ghostscript';
-                    logger.debug(`Extracted ${extractedText.length} characters using Ghostscript txtwrite`);
-                }
-            } catch (error) {
-                logger.debug('Ghostscript text extraction failed or insufficient, trying other methods', error);
-            }
-        }
-        
-        // If Ghostscript didn't work, try pdf-parse (works on PDFs with embedded text objects)
-        if (!extractedText || extractedText.trim().length < 50) {
-            try {
-                const textResult = await extractTextFromPdf(pdfBuffer, pageIndex, logger);
-                if (textResult.text && textResult.text.trim().length >= 50) {
-                    extractedText = textResult.text;
-                    extractionMethod = 'text';
-                    logger.debug(`Extracted ${extractedText.length} characters using pdf-parse`);
-                }
-            } catch (error) {
-                logger.debug('PDF text extraction failed, will try OCR', error);
-            }
-        }
-        
-        const writePageOcrArtifacts = (data: ExtractedImageOcrData, method: string) => {
+        const writePageOcrArtifacts = (data: ExtractedImageOcrData) => {
             const jsonPath = path.join(outputFolder, `page-${pageNumber}-ocr.json`);
             const textPath = path.join(outputFolder, `page-${pageNumber}-ocr.txt`);
             fs.writeFileSync(
@@ -478,7 +427,7 @@ export async function extractPdfTextData(
                         verandaArea: data.verandaArea,
                         confidence: data.confidence,
                         rawTextLength: data.rawText.length,
-                        metadata: {extractionMethod: method, ...(data.metadata ?? {})}
+                        metadata: {extractionMethod: 'ghostscript', ...(data.metadata ?? {})}
                     },
                     null,
                     2
@@ -488,31 +437,9 @@ export async function extractPdfTextData(
             fs.writeFileSync(textPath, data.rawText, 'utf-8');
         };
 
-        // Step 2: If text extraction yielded insufficient data, try OCR on already-rendered image
-        // (retries internally until OCR_AREA_REQUIRED_CONFIDENCE or max attempts).
-        if (!extractedText || extractedText.trim().length < 50) {
-            if (renderedImageBuffer) {
-                logger.debug('Text extraction yielded insufficient data, using already-rendered image for OCR...');
-                try {
-                    const ocrResult = await extractFloorPlanDataFromImage(renderedImageBuffer, logger);
-                    extractionMethod = ocrResult.rawText ? 'ocr' : 'text';
-                    writePageOcrArtifacts(ocrResult, extractionMethod);
-                    logger.finish(`Finished extracting text data from PDF page ${pageNumber} (method: ${extractionMethod})!`);
-                    return ocrResult;
-                } catch (ocrError) {
-                    logger.warn('OCR extraction failed', ocrError);
-                }
-            } else {
-                logger.warn('Text extraction yielded insufficient data but no rendered image buffer available');
-            }
-        }
-        
-        // Step 3: Parse structured data from extracted text (simple parsing, no image extraction)
         const parsedData = parseFloorPlanDataSimple(extractedText, logger);
-        
-        // Step 4: Calculate confidence (simple: based on text length and extracted data)
-        let confidence = calculateConfidenceSimple(parsedData, extractedText.length);
-        
+        const confidence = calculateConfidenceSimple(parsedData, extractedText.length);
+
         let ocrData: ExtractedImageOcrData = {
             name: parsedData.name,
             netArea: parsedData.netArea,
@@ -521,43 +448,12 @@ export async function extractPdfTextData(
             verandaArea: parsedData.verandaArea,
             rawText: extractedText,
             confidence,
-            metadata: { extractionMethod }
+            metadata: { extractionMethod: 'ghostscript' }
         };
 
-        // Step 5: If area confidence is below 100% on a page that looks like a unit sheet,
-        // escalate to OCR (with internal retries until required confidence or max attempts).
-        const textSuggestsUnitAreas =
-            /siperfaqe|neto|perbashket|veranda|(?:net|shared|usable|total)\s*area/i.test(extractedText);
+        writePageOcrArtifacts(ocrData);
 
-        if (
-            !hasRequiredAreaConfidence(confidence) &&
-            renderedImageBuffer &&
-            textSuggestsUnitAreas
-        ) {
-            logger.debug(
-                `Area confidence ${confidence.toFixed(2)}% < ${config.OCR_AREA_REQUIRED_CONFIDENCE}% — escalating to OCR retries`
-            );
-            try {
-                const ocrResult = await extractFloorPlanDataFromImage(renderedImageBuffer, logger);
-                if (hasRequiredAreaConfidence(ocrResult.confidence)) {
-                    extractionMethod = 'ocr';
-                    ocrData = {...ocrResult, metadata: {extractionMethod: 'ocr'}};
-                } else {
-                    logger.debug(
-                        `OCR retries peaked at ${ocrResult.confidence.toFixed(2)}% — areas will be discarded (< ${config.OCR_AREA_REQUIRED_CONFIDENCE}%)`
-                    );
-                }
-            } catch (ocrError) {
-                logger.warn('OCR retry for area confidence failed', ocrError);
-            }
-        }
-
-        // Only accept net/shared/veranda/total when confidence is exactly at the required bar.
-        ocrData = discardUntrustedAreas(ocrData, logger);
-
-        writePageOcrArtifacts(ocrData, extractionMethod);
-
-        logger.finish(`Finished extracting text data from PDF page ${pageNumber} (method: ${extractionMethod})!`);
+        logger.finish(`Finished extracting text data from PDF page ${pageNumber}!`);
 
         return ocrData;
     });
@@ -693,54 +589,65 @@ function parseFloorPlanDataSimple(
         }
     }
     
-    // Extract areas - handle both formats:
-    // OCR format: "SIPERFAQE NETO: 97.46 m2" (on same line)
-    // Ghostscript format: "SIPERFAQE NETO:" on one line, "97.46 m" on next line
-    // Normalize text first to merge label:value pairs that might be on separate lines
+    // Extract areas — values may appear after the label ("SIPERFAQE NETO: 97.46 m2")
+    // or before it ("101.31 m2 SIPERFAQE NETO :"), often one pair per line.
     const normalizedText = text.replace(/:\s*\n\s*(\d+[.,]?\d*\s*m[²2']?)/gi, ': $1');
-    
-    const netArea = extractAreaSimple(normalizedText, [
-        /siperfaqe\s+neto[:\s]+(\d+[.,]?\d*)\s*m[²2']?/i,
-        /siperfaqe\s+neto[:\s]+(\d+[.,]?\d*)/i,
-        /(?:net|bruto|usable)\s*area[:\s]*(\d+[.,]?\d*)\s*m[²2']?/i,
-        /neto[:\s]+(\d+[.,]?\d*)\s*m[²2']?/i
-    ], logger);
-    
-    const sharedArea = extractAreaSimple(normalizedText, [
-        /siperfaqe\s+e\s+perbashket[:\s]+(\d+[.,]?\d*)\s*m[²2'n]?/i,
-        /siperfaqe\s+e\s+perbashket[:\s]+(\d+[.,]?\d*)/i,
-        /(?:shared|common|joint)\s*area[:\s]*(\d+[.,]?\d*)\s*m[²2']?/i,
-        /perbashket[:\s]+(\d+[.,]?\d*)\s*m[²2']?/i
-    ], logger);
-    
-    const totalArea = extractAreaSimple(normalizedText, [
-        /sperfaqetotale[:\s]+(\d+[.,]?\d*)/i,
-        /siperfaqe\s+totale[:\s]+(\d+[.,]?\d*)\s*m[²2']?/i,
-        /(?:total|gross|brutto)\s*area[:\s]*(\d+[.,]?\d*)\s*m[²2']?/i,
-        /totale[:\s]+(\d+[.,]?\d*)\s*m[²2']?/i
-    ], logger);
 
-    const verandaArea = extractAreaSimple(normalizedText, [
-        /veranda?[:\s]+(\d+[.,]?\d*)\s*m[²2']?/i,
-        /veranda?[:\s]+(\d+[.,]?\d*)/i
-    ], logger);
+    const netArea = extractAreaSimple(normalizedText, /siperfaqe\s+neto|(?:net|bruto|usable)\s*area|\bneto\b/i, logger);
+    const sharedArea = extractAreaSimple(normalizedText, /siperfaqe\s+e\s+perbashket|(?:shared|common|joint)\s*area|\bperbashket\b/i, logger);
+    const totalArea = extractAreaSimple(normalizedText, /siperfaqe\s+totale|sperfaqetotale|(?:total|gross|brutto)\s*area|\btotale\b/i, logger);
+    const verandaArea = extractAreaSimple(normalizedText, /siperfaqe\s+veranda|\bveranda\b/i, logger);
 
     const finalTotalArea = totalArea > 0 ? totalArea : (netArea + sharedArea > 0 ? netArea + sharedArea : 0);
 
     return { name, netArea, sharedArea, totalArea: finalTotalArea, verandaArea };
 }
 
-function extractAreaSimple(text: string, patterns: RegExp[], logger?: serverLogger): number {
-    for (const pattern of patterns) {
-        const match = text.match(pattern);
-        if (match && match[1]) {
-            const value = parseFloat(match[1].replace(',', '.'));
-            if (!isNaN(value) && value > 0) {
-                return value;
+/**
+ * Finds an area value next to a label. Checks each line first, then the full text.
+ * Supports both orders: "LABEL: 12.3 m2" and "12.3 m2 LABEL".
+ */
+function extractAreaSimple(text: string, labelPattern: RegExp, logger?: serverLogger): number {
+    const labelSrc = labelPattern.source;
+    const valueThenLabel = new RegExp(
+        `(\\d+[.,]?\\d*)\\s*m[²2']?\\s*${labelSrc}`,
+        'i'
+    );
+    const labelThenValueWithUnit = new RegExp(
+        `${labelSrc}[:\\s]+(\\d+[.,]?\\d*)\\s*m[²2']?`,
+        'i'
+    );
+    const labelThenValue = new RegExp(
+        `${labelSrc}[:\\s]+(\\d+[.,]?\\d*)`,
+        'i'
+    );
+    const patterns = [valueThenLabel, labelThenValueWithUnit, labelThenValue];
+
+    const tryMatch = (chunk: string): number | null => {
+        for (const pattern of patterns) {
+            const match = chunk.match(pattern);
+            if (match?.[1]) {
+                const value = parseFloat(match[1].replace(',', '.'));
+                if (!isNaN(value) && value > 0) {
+                    return value;
+                }
             }
         }
+        return null;
+    };
+
+    for (const line of text.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const value = tryMatch(trimmed);
+        if (value != null) {
+            logger?.debug(`Extracted area from line "${trimmed.slice(0, 80)}": ${value}`);
+            return value;
+        }
     }
-    return 0;
+
+    const value = tryMatch(text);
+    return value ?? 0;
 }
 
 function calculateConfidenceSimple(parsedData: {name: string; netArea: number; sharedArea: number; totalArea: number}, textLength: number): number {
@@ -751,444 +658,4 @@ function calculateConfidenceSimple(parsedData: {name: string; netArea: number; s
     if (parsedData.totalArea > 0) confidence += 20;
     if (textLength > 100) confidence += 20;
     return Math.min(100, confidence);
-}
-
-/**
- * Performs OCR on an image buffer using Tesseract.js
- */
-async function performOCR(
-    imageBuffer: Buffer,
-    language: string = 'eng',
-    logger?: serverLogger,
-    attempt: number = 1
-): Promise<{text: string; confidence: number}> {
-    let worker: Worker | null = null;
-    
-    try {
-        logger?.debug(`Initializing Tesseract OCR worker (attempt ${attempt})...`);
-        worker = await createWorker(language);
-        
-        // Preprocess image for better OCR results (varies by attempt on retries)
-        const processedImage = await preprocessImageForOCR(imageBuffer, logger, attempt);
-        
-        logger?.debug(`Performing OCR on image (attempt ${attempt})...`);
-        const result = await worker.recognize(processedImage);
-        
-        // Handle different tesseract.js response structures
-        const ocrData: any = (result as any).data || result;
-
-        return {
-            text: (ocrData.text || '').trim(),
-            confidence: ocrData.confidence || 0
-        };
-    } catch (error) {
-        logger?.err('Error performing OCR', error);
-        throw new Error(`OCR processing failed: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-        if (worker) {
-            await worker.terminate();
-        }
-    }
-}
-
-/**
- * Preprocesses an image to improve OCR accuracy.
- * Attempt > 1 uses alternate pipelines so retries are not identical.
- */
-async function preprocessImageForOCR(
-    imageBuffer: Buffer,
-    logger?: serverLogger,
-    attempt: number = 1
-): Promise<Buffer> {
-    try {
-        const metadata = await sharp(imageBuffer).metadata();
-        
-        // Ensure minimum size for OCR (Tesseract works better with larger images)
-        const minWidth = 300;
-        const minHeight = 300;
-
-        let pipeline = sharp(imageBuffer).greyscale();
-
-        // Vary enhancement on retries so a weak first pass can recover.
-        if (attempt === 2) {
-            pipeline = pipeline.normalize().threshold(160);
-            logger?.debug('OCR preprocess attempt 2: binarize threshold');
-        } else if (attempt >= 3) {
-            pipeline = pipeline.modulate({brightness: 1.15}).normalize().sharpen({sigma: 2});
-            logger?.debug('OCR preprocess attempt 3+: brighter + stronger sharpen');
-        } else {
-            pipeline = pipeline.normalize().sharpen();
-        }
-        
-        // Resize if too small
-        if (metadata.width && metadata.height) {
-            if (metadata.width < minWidth || metadata.height < minHeight) {
-                const scale = Math.max(minWidth / metadata.width, minHeight / metadata.height);
-                pipeline = pipeline.resize(
-                    Math.round(metadata.width * scale),
-                    Math.round(metadata.height * scale),
-                    {kernel: sharp.kernel.lanczos3}
-                );
-                logger?.debug(`Resized image from ${metadata.width}x${metadata.height} for better OCR`);
-            }
-        }
-        
-        return await pipeline.png().toBuffer();
-    } catch (error) {
-        logger?.warn('Image preprocessing failed, using original image', error);
-        return imageBuffer;
-    }
-}
-
-/**
- * True when OCR confidence is high enough to trust net/shared/veranda areas.
- */
-function hasRequiredAreaConfidence(confidence: number): boolean {
-    return confidence >= config.OCR_AREA_REQUIRED_CONFIDENCE;
-}
-
-/**
- * Drops area fields when OCR never reached the required confidence.
- */
-function discardUntrustedAreas(data: ExtractedImageOcrData, logger?: serverLogger): ExtractedImageOcrData {
-    if (hasRequiredAreaConfidence(data.confidence)) {
-        return data;
-    }
-    logger?.warn(
-        `OCR confidence ${data.confidence.toFixed(2)}% < ${config.OCR_AREA_REQUIRED_CONFIDENCE}% — discarding net/shared/veranda/total areas`
-    );
-    return {
-        ...data,
-        netArea: 0,
-        sharedArea: 0,
-        totalArea: 0,
-        verandaArea: 0,
-    };
-}
-
-/**
- * Parses structured data from extracted text (full version from utilities)
- * Uses regex patterns to find: name, net area, shared area, total area
- */
-function parseFloorPlanData(
-    text: string,
-    logger?: serverLogger
-): {
-    name: string;
-    netArea: number;
-    sharedArea: number;
-    totalArea: number;
-    verandaArea: number;
-} {
-    // Extract name
-    const name = extractNameFull(text, logger);
-
-    // Extract areas using regex patterns (Albanian and English, handling OCR errors)
-    const netArea = extractAreaFull(text, [
-        /siperfaqe\s+neto[:\s]+(\d+[.,]?\d*)\s*m[²2?]/i,
-        /siperfaqe\s+neto[:\s]+(\d+[.,]?\d*)/i,
-        /(?:net|bruto|usable)\s*area[:\s]*(\d+[.,]?\d*)\s*m[²2?]/i,
-        /(?:net|bruto|usable)\s*area[:\s]*(\d+[.,]?\d*)/i,
-        /neto[:\s]+(\d+[.,]?\d*)\s*m[²2?]/i
-    ], 'net', logger);
-
-    const sharedArea = extractAreaFull(text, [
-        /siperfaqe\s+e\s+perbashket[:\s]+(\d+[.,]?\d*)\s*m[²2?n]/i,
-        /siperfaqe\s+e\s+perbashket[:\s]+(\d+[.,]?\d*)/i,
-        /(?:shared|common|joint)\s*area[:\s]*(\d+[.,]?\d*)\s*m[²2?]/i,
-        /(?:shared|common|joint)\s*area[:\s]*(\d+[.,]?\d*)/i,
-        /perbashket[:\s]+(\d+[.,]?\d*)\s*m[²2?]/i
-    ], 'shared', logger);
-
-    const totalArea = extractAreaFull(text, [
-        /sperfaqetotale[:\s]+(\d+[.,]?\d*)/i,
-        /siperfaqe\s+totale[:\s]+(\d+[.,]?\d*)\s*m[²2?]/i,
-        /siperfaqe\s+totale[:\s]+(\d+[.,]?\d*)/i,
-        /(?:total|gross|brutto)\s*area[:\s]*(\d+[.,]?\d*)\s*m[²2?]/i,
-        /(?:total|gross|brutto)\s*area[:\s]*(\d+[.,]?\d*)/i,
-        /totale[:\s]+(\d+[.,]?\d*)\s*m[²2?]/i
-    ], 'total', logger);
-
-    const verandaArea = extractAreaFull(text, [
-        /veranda?[:\s]+(\d+[.,]?\d*)\s*m[²2?]/i,
-        /veranda?[:\s]+(\d+[.,]?\d*)/i
-    ], 'veranda', logger);
-
-    // If total area not found, calculate from net + shared
-    const calculatedTotal = netArea + sharedArea;
-    const finalTotalArea = totalArea > 0 ? totalArea : (calculatedTotal > 0 ? calculatedTotal : 0);
-
-    return {
-        name,
-        netArea,
-        sharedArea,
-        totalArea: finalTotalArea,
-        verandaArea
-    };
-}
-
-/**
- * Extracts unit name from text (full version from utilities)
- */
-function extractNameFull(text: string, logger?: serverLogger): string {
-    if (!text || text.trim().length === 0) {
-        return 'Unknown Unit';
-    }
-
-    const albanianName = extractAlbanianApartmentNameFromText(text, logger);
-    if (albanianName) {
-        return albanianName;
-    }
-
-    // Split into lines and get first few non-empty lines
-    const lines = text.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0)
-        .slice(0, 10);
-
-    // Look for patterns like "2+1", "K2", "Unit 2", etc.
-    for (const line of lines) {
-        const unitPattern = /(\d+\+\d+[\s\d]*[A-Z]?\d*|[A-Z]?\d+[\s\d]*[A-Z]?\d*)/i;
-        const match = line.match(unitPattern);
-        if (match && match[0].length >= 2) {
-            logger?.debug(`Extracted name from pattern: ${match[0]}`);
-            return match[0].trim();
-        }
-    }
-
-    // Fallback: use first substantial line
-    const firstLine = lines[0];
-    if (firstLine && firstLine.length >= 2 && firstLine.length < 100) {
-        logger?.debug(`Using first line as name: ${firstLine}`);
-        return firstLine;
-    }
-
-    logger?.warn('Could not extract unit name, using default');
-    return 'Unknown Unit';
-}
-
-/**
- * Extracts area value from text using regex patterns (full version from utilities)
- */
-function extractAreaFull(
-    text: string,
-    patterns: RegExp[],
-    areaType: string,
-    logger?: serverLogger
-): number {
-    for (const pattern of patterns) {
-        const match = text.match(pattern);
-        if (match && match[1]) {
-            // Handle both comma and dot as decimal separator
-            const valueStr = match[1].replace(',', '.');
-            const value = parseFloat(valueStr);
-            
-            if (!isNaN(value) && value > 0) {
-                logger?.debug(`Extracted ${areaType} area: ${value} m²`);
-                return value;
-            }
-        }
-    }
-
-    logger?.debug(`Could not extract ${areaType} area`);
-    return 0;
-}
-
-/**
- * Calculates confidence score based on extracted data quality (full version from utilities).
- * Score reaches 100 when name, net, shared, total, and sufficient text are all present —
- * the gate used before accepting net/shared/veranda areas from OCR.
- */
-function calculateConfidenceFull(
-    parsedData: {name: string; netArea: number; sharedArea: number; totalArea: number; verandaArea?: number},
-    _ocrConfidence: number,
-    textLength: number
-): number {
-    let score = 0;
-
-    // Name extraction (20 points)
-    if (parsedData.name && parsedData.name !== 'Unknown Unit') {
-        score += 20;
-    }
-
-    // Net area extraction (25 points) — required for 100%
-    if (parsedData.netArea > 0) {
-        score += 25;
-    }
-
-    // Shared area extraction (15 points) — required for 100%
-    if (parsedData.sharedArea > 0) {
-        score += 15;
-    }
-
-    // Total area extraction (20 points) — required for 100%
-    if (parsedData.totalArea > 0) {
-        score += 20;
-    }
-
-    // Veranda area (10 points) — contributes when present; not required to hit 100
-    if (parsedData.verandaArea != null && parsedData.verandaArea > 0) {
-        score += 10;
-    }
-
-    // Text quality (20 points without veranda path, 10 with — keeps max at 100)
-    if (textLength > 100) {
-        score += parsedData.verandaArea != null && parsedData.verandaArea > 0 ? 10 : 20;
-    } else if (textLength > 50) {
-        score += 5;
-    }
-
-    return Math.min(100, Math.round(score));
-}
-
-/**
- * Extracts floor plan data from an image buffer using OCR only.
- * Retries until area confidence reaches OCR_AREA_REQUIRED_CONFIDENCE (default 100%),
- * or OCR_AREA_MAX_ATTEMPTS is exhausted. Areas are discarded if the bar is never met.
- */
-export async function extractFloorPlanDataFromImage(
-    imageBuffer: Buffer,
-    logger?: serverLogger
-): Promise<ExtractedImageOcrData> {
-    try {
-        logger?.start('Extracting floor plan data from image via OCR...');
-
-        const maxAttempts = config.OCR_AREA_MAX_ATTEMPTS;
-        const required = config.OCR_AREA_REQUIRED_CONFIDENCE;
-        let best: ExtractedImageOcrData | null = null;
-
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            const ocrResult = await performOCR(imageBuffer, 'eng', logger, attempt);
-            const parsedData = parseFloorPlanData(ocrResult.text, logger);
-            const confidence = calculateConfidenceFull(parsedData, ocrResult.confidence, ocrResult.text.length);
-
-            const candidate: ExtractedImageOcrData = {
-                name: parsedData.name,
-                netArea: parsedData.netArea,
-                sharedArea: parsedData.sharedArea,
-                totalArea: parsedData.totalArea,
-                verandaArea: parsedData.verandaArea,
-                rawText: ocrResult.text,
-                confidence,
-                metadata: {
-                    extractionMethod: 'ocr'
-                }
-            };
-
-            if (!best || candidate.confidence > best.confidence) {
-                best = candidate;
-            }
-
-            if (hasRequiredAreaConfidence(confidence)) {
-                logger?.finish(
-                    `OCR extraction completed with confidence: ${confidence.toFixed(2)}% (attempt ${attempt}/${maxAttempts})`
-                );
-                return candidate;
-            }
-
-            logger?.warn(
-                `OCR area confidence ${confidence.toFixed(2)}% < ${required}% ` +
-                `(net=${parsedData.netArea}, shared=${parsedData.sharedArea}, veranda=${parsedData.verandaArea}); ` +
-                `retrying (${attempt}/${maxAttempts})`
-            );
-        }
-
-        logger?.finish(
-            `OCR extraction finished below ${required}% after ${maxAttempts} attempts ` +
-            `(best ${best!.confidence.toFixed(2)}%) — areas will not be used`
-        );
-        return discardUntrustedAreas(best!, logger);
-    } catch (error) {
-        logger?.err('Error extracting floor plan data from image', error);
-        throw new Error(`Image OCR extraction failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-}
-
-/**
- * Saves OCR data extracted from an image buffer (faster - uses in-memory image)
- */
-export async function saveOcrDataFromBuffer(
-    imageBuffer: Buffer,
-    outputFolder: string,
-    pageNumber: number,
-    parentLogger: serverLogger,
-    timer: PerformanceTimer
-): Promise<ExtractedImageOcrData> {
-    return await timer.timeAsync('saveOcrDataFromBuffer', async () => {
-        const logger = getLogger("ocr_image_buffer", parentLogger);
-        logger.start(`Extracting OCR data from image buffer...`);
-        const ocrData = await extractFloorPlanDataFromImage(imageBuffer);
-
-        const jsonPath = path.join(outputFolder, `page-${pageNumber}-ocr.json`);
-        const textPath = path.join(outputFolder, `page-${pageNumber}-ocr.txt`);
-
-        fs.writeFileSync(
-            jsonPath,
-            JSON.stringify(
-                {
-                    name: ocrData.name,
-                    netArea: ocrData.netArea,
-                    sharedArea: ocrData.sharedArea,
-                    totalArea: ocrData.totalArea,
-                    verandaArea: ocrData.verandaArea,
-                    confidence: ocrData.confidence,
-                    rawTextLength: ocrData.rawText.length,
-                    metadata: ocrData.metadata
-                },
-                null,
-                2
-            ),
-            'utf-8'
-        );
-        fs.writeFileSync(textPath, ocrData.rawText, 'utf-8');
-
-        logger.finish(`Finished extracting OCR data from image buffer!`);
-
-        return ocrData;
-    });
-}
-
-/**
- * Saves OCR data extracted from an image file (slower, use saveOcrDataFromBuffer when possible)
- */
-export async function saveOcrDataForImage(
-    imagePath: string,
-    outputFolder: string,
-    pageNumber: number,
-    parentLogger: serverLogger,
-    timer: PerformanceTimer
-): Promise<ExtractedImageOcrData> {
-    return await timer.timeAsync('saveOcrDataForImage', async () => {
-        const logger = getLogger("ocr_image_to_json", parentLogger);
-        logger.start(`Extracting OCR data from image...`);
-        const imageBuffer = fs.readFileSync(imagePath);
-        const ocrData = await extractFloorPlanDataFromImage(imageBuffer);
-
-        const jsonPath = path.join(outputFolder, `page-${pageNumber}-ocr.json`);
-        const textPath = path.join(outputFolder, `page-${pageNumber}-ocr.txt`);
-
-        fs.writeFileSync(
-            jsonPath,
-            JSON.stringify(
-                {
-                    name: ocrData.name,
-                    netArea: ocrData.netArea,
-                    sharedArea: ocrData.sharedArea,
-                    totalArea: ocrData.totalArea,
-                    verandaArea: ocrData.verandaArea,
-                    confidence: ocrData.confidence,
-                    rawTextLength: ocrData.rawText.length,
-                    metadata: ocrData.metadata
-                },
-                null,
-                2
-            ),
-            'utf-8'
-        );
-        fs.writeFileSync(textPath, ocrData.rawText, 'utf-8');
-
-        logger.finish(`Finished extracting OCR data from image!`);
-
-        return ocrData;
-    });
 }

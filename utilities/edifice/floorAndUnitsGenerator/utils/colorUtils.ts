@@ -1,10 +1,3 @@
-/**
- * Converts HSL color values to RGB
- * @param hue - Hue in degrees (0-360)
- * @param saturation - Saturation as percentage (0-100)
- * @param lightness - Lightness as percentage (0-100)
- * @returns RGB values as { r, g, b } with values 0-255
- */
 export function hslToRgb(hue: number, saturation: number, lightness: number): { r: number; g: number; b: number } {
     const h = hue / 360;
     const s = saturation / 100;
@@ -42,12 +35,11 @@ export function hslToRgb(hue: number, saturation: number, lightness: number): { 
  * @returns Hex color string (e.g., "#ff0000")
  */
 export function generateLineColor(index: number): string {
-    // Generate distinct colors using HSL color space for better distribution
-    const hue = (index * 137.508) % 360; // Golden angle approximation for better distribution
-    const saturation = 70 + (index % 3) * 10; // Vary saturation between 70-90%
-    const lightness = 50 + (index % 2) * 5; // Vary lightness between 50-55%
-
-    const { r, g, b } = hslToRgb(hue, saturation, lightness);
+    const { r, g, b } = hslToRgb(
+        (index * 137.508) % 360, // Golden angle approximation for better distribution
+        70 + (index % 3) * 10, // Vary saturation between 70-90%
+        50 + (index % 2) * 5 // Vary lightness between 50-55%
+    );
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
@@ -58,14 +50,12 @@ export function generateLineColor(index: number): string {
  * @returns Object with stroke and fill color strings
  */
 export function generateColorForIndex(index: number, total: number): { stroke: string; fill: string } {
-    // Generate distinct colors using HSL color space for better distribution
-    const hue = (index * 137.508) % 360; // Golden angle approximation for better distribution
-    const saturation = 70 + (index % 3) * 10; // Vary saturation between 70-90%
-    const lightness = 50 + (index % 2) * 5; // Vary lightness between 50-55%
-
-    const { r, g, b } = hslToRgb(hue, saturation, lightness);
+    const { r, g, b } = hslToRgb(
+        (index * 137.508) % 360, // Golden angle approximation for better distribution
+        70 + (index % 3) * 10, // Vary saturation between 70-90%
+        50 + (index % 2) * 5 // Vary lightness between 50-55%
+    );
     const strokeColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     const fillColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
-
     return { stroke: strokeColor, fill: fillColor };
 }

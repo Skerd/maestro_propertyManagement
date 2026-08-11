@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
 import {PDFDocument} from 'pdf-lib';
 import {getLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
@@ -12,21 +11,26 @@ import {
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
 import {
     batchRenderAndProcessPages,
-} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/pageProcessor';
-import {batchExtractTextWithGhostscript} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/imageProcessing';
+} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/pageProcessorUtils';
+import {
+    batchExtractTextSpansWithGhostscript,
+    filterTextSpansOutsideRectangles,
+} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/pdfTextBboxFilterUtils';
 import {
     classifyPageType,
     extractFloorLabel,
     extractPdfTextData,
     getFloorFolderName,
     organizeImages,
-    saveOcrDataFromBuffer
-} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/ocrUtils';
+} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/ocrUtils';
 import {overlayPolygonsOnImage} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/polygonExtraction';
-import {extractHighlightPolygonsOpencv4, type ThumbMasterRegistration} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/highlightPolygonOpencv4nodejs';
-import {ProgressReporter} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/progressReporter';
+import {alignAndHighlight} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/orbHomographyAlign';
 import type {OcrSummary, PageImageResult} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types';
-import type {serverLogger} from '@coreModule/loggers/serverLog';
+import {
+    batchExtractTextWithGhostscript
+} from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/imageUtils";
+
+global.ServerName = "FloorAndUnitsGenerator";
 
 export interface PdfProcessingOptions {
     /**
@@ -43,66 +47,9 @@ export interface PdfProcessingOptions {
 
 const timer = new PerformanceTimer();
 
-/**
- * Letterboxes a unit thumbnail to the same aspect ratio as the master floor plan
- * by padding with white. This aligns normalized line positions between the two
- * images, which directly improves the registration quality in polygon extraction.
- */
-async function letterboxToMatchMaster(
-    thumbnailPath: string,
-    masterPath: string,
-    logger: serverLogger
-): Promise<void> {
-    try {
-        const [thumbMeta, masterMeta] = await Promise.all([
-            sharp(thumbnailPath).metadata(),
-            sharp(masterPath).metadata(),
-        ]);
-        const mw = masterMeta.width ?? 1;
-        const mh = masterMeta.height ?? 1;
-        const targetAspect = mw / mh;
-        const tw = thumbMeta.width ?? 1;
-        const th = thumbMeta.height ?? 1;
-        const thumbAspect = tw / th;
 
-        let newW: number, newH: number;
-        if (thumbAspect > targetAspect) {
-            newW = tw;
-            newH = Math.round(tw / targetAspect);
-        } else {
-            newH = th;
-            newW = Math.round(th * targetAspect);
-        }
+export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot: string, options: PdfProcessingOptions = {}): Promise<OcrSummary> => {
 
-        // Already the right aspect (within 1px rounding) — nothing to do
-        if (Math.abs(newW - tw) <= 1 && Math.abs(newH - th) <= 1) return;
-
-        const padTop = Math.round((newH - th) / 2);
-        const padLeft = Math.round((newW - tw) / 2);
-        const tmpPath = thumbnailPath + '.letterbox.tmp.png';
-
-        await sharp(thumbnailPath)
-            .extend({
-                top: padTop,
-                bottom: newH - th - padTop,
-                left: padLeft,
-                right: newW - tw - padLeft,
-                background: {r: 255, g: 255, b: 255, alpha: 1},
-            })
-            .png()
-            .toFile(tmpPath);
-        fs.renameSync(tmpPath, thumbnailPath);
-        logger.debug(`Letterboxed thumbnail from ${tw}×${th} → ${newW}×${newH} (master aspect ${mw}×${mh})`);
-    } catch (err) {
-        logger.warn(`letterboxToMatchMaster failed for ${thumbnailPath}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-}
-
-export const processPdfForFloorsAndUnits = async (
-    inputPath: string,
-    outputRoot: string,
-    options: PdfProcessingOptions = {}
-): Promise<OcrSummary> => {
     timer.startTotal();
     const pdfBytes = timer.timeSync('readPdfBytes', () => readPdfBytes(inputPath));
     const pdfDoc = await timer.timeAsync('PDFDocument.load', () => PDFDocument.load(pdfBytes));
@@ -110,54 +57,75 @@ export const processPdfForFloorsAndUnits = async (
     const pdfFilePath = path.resolve(inputPath);
 
     const logger = getLogger("automatically_generate_floors_and_units");
-    logger.start(`Starting to automatically generate floors and units, [${config.DEFAULT_DPI} dpi] [${config.DEFAULT_SCALE}x scale] [${pageCount} pages]`);
+    logger.start(`Starting to automatically generate floors and units, [${pageCount} pages]`);
 
     ensureDir(outputRoot, logger);
 
-    const reporter = new ProgressReporter(outputRoot, pageCount);
     const ocrSummary: OcrSummary = { floors: {} };
 
     logger.debug("Extracting images (batch Ghostscript)...");
-    const pageIndices: number[] = Array.from({ length: pageCount }, (_, i) => i);
-    const results: PageImageResult[] = await batchRenderAndProcessPages(inputPath, pdfDoc, logger, pageIndices, outputRoot, timer);
+    const results: PageImageResult[] = [];
+    for (let i = 0; i < pageCount; i += config.BATCH_PDF_PAGES_TO_IMAGES) {
+        const indexes = [];
+        for (let j = i; j < Math.min(i + config.BATCH_PDF_PAGES_TO_IMAGES, pageCount); j++) {
+            indexes.push(j);
+        }
+        results.push(...await batchRenderAndProcessPages(inputPath, pdfDoc, logger, indexes, outputRoot, timer, pageCount))
+    }
+    logger.debug("Finished extracting and processing images!");
 
-    // Batch-extract page text with a single GS process
+    // Extract positioned text from the original PDF, then drop spans that fall inside
+    // detected plan rectangles.
     const gsTempDir = path.join(outputRoot, '_temp_gs_text');
     let gsPageTextMap: Map<number, string> = new Map();
-    if (config.TEXT_EXTRACTION_METHOD === 'pdf') {
-        ensureDir(gsTempDir, logger);
-        try {
-            gsPageTextMap = batchExtractTextWithGhostscript(pdfFilePath, 1, pageCount, gsTempDir, logger, timer);
-        } catch (err) {
-            logger.warn(`Batch GS text extraction failed: ${err instanceof Error ? err.message : String(err)}`);
-        } finally {
-            try { fs.rmSync(gsTempDir, { recursive: true, force: true }); } catch {}
+    ensureDir(gsTempDir, logger);
+    try {
+        const spanMap = batchExtractTextSpansWithGhostscript(pdfFilePath, 1, pageCount, gsTempDir, logger, timer);
+        const resultByPage = new Map(results.map((r) => [r.pageNumber, r]));
+        for (let page = 1; page <= pageCount; page++) {
+            const spans = spanMap.get(page) ?? [];
+            const pageResult = resultByPage.get(page);
+            if (!pageResult || !pageResult.excludeRectangles?.length) {
+                gsPageTextMap.set(page, spans.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim());
+                continue;
+            }
+            const filtered = filterTextSpansOutsideRectangles(spans, {
+                imageWidth: pageResult.width,
+                imageHeight: pageResult.height,
+                rotationNeeded: pageResult.rotationNeeded ?? 0,
+                excludeRectangles: pageResult.excludeRectangles,
+            });
+            gsPageTextMap.set(page, filtered);
+            logger.debug(
+                `Page ${page}: bbox text ${spans.length} spans → ${filtered.length} chars after rectangle filter`
+            );
         }
     }
+    catch (err) {
+        logger.warn(`Batch GS bbox text extraction failed: ${err instanceof Error ? err.message : String(err)}`);
+        try {
+            gsPageTextMap = batchExtractTextWithGhostscript(pdfFilePath, 1, pageCount, gsTempDir, logger, timer);
+        } catch (fallbackErr) {
+            logger.warn(`Fallback GS text extraction failed: ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`);
+        }
+    }
+    finally {
+        try { fs.rmSync(gsTempDir, { recursive: true, force: true }); } catch {}
+    }
+
 
     // Process results for text extraction summary
     for (const result of results) {
         try {
             const pageFolder = path.dirname(result.outputPath);
 
-            let ocrData;
-            if (config.TEXT_EXTRACTION_METHOD === 'pdf') {
-                // Area fields (net/shared/veranda) require 100% confidence; OCR retries when below.
-                ocrData = await extractPdfTextData(
-                    pdfBytes, result.pageNumber - 1, pageFolder, result.pageNumber, logger, timer,
-                    result.renderedImageBuffer, pdfFilePath,
-                    gsPageTextMap.get(result.pageNumber)
-                );
-            } else {
-                if (result.renderedImageBuffer) {
-                    // OCR path: retries until OCR_AREA_REQUIRED_CONFIDENCE (100%) or max attempts.
-                    ocrData = await saveOcrDataFromBuffer(result.renderedImageBuffer, pageFolder, result.pageNumber, logger, timer);
-                } else {
-                    logger.warn(`OCR method selected but no image available for page ${result.pageNumber}. Falling back to PDF text extraction.`);
-                    ocrData = await extractPdfTextData(pdfBytes, result.pageNumber - 1, pageFolder, result.pageNumber, logger, timer);
-                }
-            }
-
+            let ocrData  = await extractPdfTextData(
+                pageFolder,
+                result.pageNumber,
+                logger,
+                timer,
+                gsPageTextMap.get(result.pageNumber) ?? ''
+            );
             const floorLabel = extractFloorLabel(ocrData);
             const floorKey = getFloorFolderName(floorLabel);
             const pageType = classifyPageType(ocrData, result.pageNumber, result.rectangleCount);
@@ -180,19 +148,12 @@ export const processPdfForFloorsAndUnits = async (
                 if (!ocrSummary.floors[floorKey].units[unitName]) {
                     ocrSummary.floors[floorKey].units[unitName] = [];
                 }
-                // Areas only enter the summary at 100% confidence; otherwise store zeros.
-                const areasTrusted = ocrData.confidence >= config.OCR_AREA_REQUIRED_CONFIDENCE;
-                if (!areasTrusted && (ocrData.netArea > 0 || ocrData.sharedArea > 0 || ocrData.verandaArea > 0)) {
-                    logger.warn(
-                        `Page ${result.pageNumber} unit ${unitName}: confidence ${ocrData.confidence.toFixed(2)}% < ${config.OCR_AREA_REQUIRED_CONFIDENCE}% — rejecting area values`
-                    );
-                }
                 ocrSummary.floors[floorKey].units[unitName].push({
                     name: unitName,
-                    netArea: areasTrusted ? ocrData.netArea : 0,
-                    sharedArea: areasTrusted ? ocrData.sharedArea : 0,
-                    totalArea: areasTrusted ? ocrData.totalArea : 0,
-                    verandaArea: areasTrusted ? ocrData.verandaArea : 0,
+                    netArea: ocrData.netArea,
+                    sharedArea: ocrData.sharedArea,
+                    totalArea: ocrData.totalArea,
+                    verandaArea: ocrData.verandaArea,
                     confidence: ocrData.confidence,
                     rawTextLength: ocrData.rawText.length,
                     pageNumber: result.pageNumber
@@ -205,23 +166,10 @@ export const processPdfForFloorsAndUnits = async (
                 floorPlanPath: result.floorPlanPath,
                 rectangleCount: result.rectangleCount
             }, pageType, logger, result.outputPath);
-
-            reporter.reportPageComplete(result.pageNumber, {
-                classification: pageType,
-                floorLabel,
-                unitName: pageType === 'unit' ? unitName : undefined,
-                rectangleCount: result.rectangleCount,
-            });
         }
         catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             console.warn(`Text extraction summary skipped for page ${result.pageNumber}: ${message}`);
-            reporter.reportPageComplete(result.pageNumber, {
-                classification: 'floor',
-                floorLabel: 'Unknown',
-                rectangleCount: result.rectangleCount,
-                warning: message.slice(0, 80),
-            });
         }
     }
 
@@ -254,12 +202,14 @@ export const processPdfForFloorsAndUnits = async (
         logger.warn(`No floor plan found for ${floorKey} (${floorData.floor}) — polygon extraction will be skipped for this floor`);
     }
 
-    // Extract polygons from each unit's `floor-plan.png` (under units/<slug>/).
-    logger.debug("Extracting polygon coordinates from unit floor plans...");
-    const floorRegCache = new Map<string, ThumbMasterRegistration>();
+    // ORB + homography: warp unit teal highlight onto floor master, extract polygons (master fractional coords).
+    logger.debug('Aligning unit floor plans via ORB homography and extracting highlight polygons...');
     for (const [floorKey, floorData] of Object.entries(ocrSummary.floors)) {
         const floorMasterPlanPath = path.join(outputRoot, 'floors', floorKey, 'floor-plan.png');
-        const masterExists = fs.existsSync(floorMasterPlanPath);
+        if (!fs.existsSync(floorMasterPlanPath)) {
+            logger.warn(`No floor master at ${floorMasterPlanPath}; skipping homography polygons for ${floorKey}`);
+            continue;
+        }
 
         for (const [unitName, unitSummaries] of Object.entries(floorData.units)) {
             for (const unitSummary of unitSummaries) {
@@ -270,81 +220,58 @@ export const processPdfForFloorsAndUnits = async (
 
                     if (!fs.existsSync(floorPlanPath)) {
                         logger.warn(`Floor plan thumbnail not found at ${floorPlanPath} for unit ${unitName}`);
-                        reporter.reportPolygonResult(unitName, floorKey, false);
                         continue;
                     }
 
-                    // Letterbox the unit thumbnail to the master's aspect ratio before registration.
-                    // This makes structural lines appear at proportionally similar positions in
-                    // both images, improving the angle+position segment matching.
-                    if (config.UNIT_FLOOR_PLAN_MATCH_MASTER_ASPECT && masterExists) {
-                        await letterboxToMatchMaster(floorPlanPath, floorMasterPlanPath, logger);
-                    }
+                    const outDir = path.join(unitFolder, 'new');
+                    ensureDir(outDir, logger);
+                    const highlightPath = path.join(outDir, 'orb-homography-highlight.png');
 
-                    if (!masterExists) {
-                        logger.debug(`No floor master at ${floorMasterPlanPath}; polygon uses unit floor-plan only for ${unitName}`);
-                    }
-
-                    logger.debug(`Extracting polygon from ${floorPlanPath} for unit ${unitName}...`);
-                    const {unitPolygon, allPolygons, allPolygonAreas, registeredToMaster, registrationSource, computedRegistration} = await extractHighlightPolygonsOpencv4(
+                    const {inliers, polygons, allPolygons, allPolygonAreas} = await alignAndHighlight(
+                        floorMasterPlanPath,
                         floorPlanPath,
-                        masterExists ? floorMasterPlanPath : undefined,
-                        path.join(unitFolder, 'highlight-debug'),
-                        logger,
-                        timer,
-                        floorRegCache.get(floorKey),
+                        highlightPath,
                     );
 
-                    if (computedRegistration) {
-                        floorRegCache.set(floorKey, computedRegistration);
-                    }
-
-                    if (unitPolygon && unitPolygon.length > 0) {
-                        unitSummary.polygonCoordinates = unitPolygon;
+                    if (polygons.length > 0) {
+                        unitSummary.polygonCoordinates = polygons;
                         logger.debug(
-                            `Successfully extracted polygon with ${unitPolygon.length} points for unit ${unitName} ` +
-                            `(registeredToMaster=${registeredToMaster}, reg=${registrationSource ?? 'none'})`
+                            `ORB homography OK for ${unitName}: inliers=${inliers}, ` +
+                            `unit polygon ${polygons.length} pts, ${allPolygons.length} region(s) → ${highlightPath}`
                         );
-                        reporter.reportPolygonResult(unitName, floorKey, true, unitPolygon.length, registeredToMaster);
 
-                        if (config.SAVE_POLYGON_OVERLAY) {
-                            const pageNumber = unitSummary.pageNumber;
-                            const pageFolder = path.join(outputRoot, `page-${pageNumber}`);
-                            const overlayPath = path.join(pageFolder, `page-${pageNumber}-polygon-overlay.png`);
-                            if (!fs.existsSync(pageFolder)) {
-                                ensureDir(pageFolder, logger);
-                            }
-                            try {
-                                await overlayPolygonsOnImage(floorPlanPath, overlayPath, allPolygons, allPolygonAreas, logger, timer);
-                                logger.debug(`Saved polygon overlay (${allPolygons.length} region(s)) to ${overlayPath} for unit ${unitName} (page ${pageNumber})`);
-                            } catch (overlayError) {
-                                const overlayMessage = overlayError instanceof Error ? overlayError.message : String(overlayError);
-                                logger.warn(`Failed to create polygon overlay for unit ${unitName}: ${overlayMessage}`);
-                            }
+                        try {
+                            await overlayPolygonsOnImage(
+                                floorMasterPlanPath,
+                                path.join(outDir, 'orb-homography-polygons.png'),
+                                allPolygons,
+                                allPolygonAreas,
+                                logger,
+                                timer,
+                            );
+                        } catch (overlayError) {
+                            const overlayMessage = overlayError instanceof Error ? overlayError.message : String(overlayError);
+                            logger.warn(`Failed polygon overlay for ${unitName}: ${overlayMessage}`);
                         }
-                    } else if (allPolygons.length > 0) {
-                        logger.debug(`No unit polygon after filters for ${unitName}; saving ${allPolygons.length} overlay region(s) for QA`);
-                        reporter.reportPolygonResult(unitName, floorKey, false);
                     } else {
-                        logger.warn(`No highlight regions in ${floorPlanPath} for unit ${unitName}`);
-                        reporter.reportPolygonResult(unitName, floorKey, false);
+                        logger.warn(
+                            `ORB homography aligned (${inliers} inliers) but no teal highlight polygon for ${unitName}`
+                        );
                     }
                 } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
-                    logger.warn(`Failed to extract polygon for unit ${unitName}: ${message}`);
-                    reporter.reportPolygonResult(unitName, floorKey, false);
+                    logger.warn(`Failed ORB homography / polygon extract for unit ${unitName}: ${message}`);
                 }
             }
         }
     }
-    logger.debug("Finished extracting polygon coordinates.");
+    logger.debug('Finished ORB homography highlight polygon extraction.');
 
     const summaryPath = path.join(outputRoot, 'ocr-summary.json');
     timer.timeSync('writeOcrSummary', () => {
         fs.writeFileSync(summaryPath, JSON.stringify(ocrSummary, null, 2), 'utf-8');
     });
 
-    reporter.finish(ocrSummary);
     console.log(timer.getSummary());
     logger.finish("Finished automatically generate floors and units!");
     return ocrSummary;

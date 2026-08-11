@@ -1,191 +1,8 @@
 import sharp from 'sharp';
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
-import {config} from './config';
-import type {HorizontalRun, HorizontalSegment, LineDetection, VerticalRun, VerticalSegment} from './types';
-
-/**
- * Checks if two ranges overlap
- */
-function rangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
-    return Math.min(endA, endB) >= Math.max(startA, startB);
-}
-
-/**
- * Groups horizontal runs into horizontal segments
- * For thick dark regions, only keeps top and bottom edges (borders)
- * For single-pixel-thick lines, keeps them as-is
- */
-function groupHorizontalRuns(runs: HorizontalRun[]): HorizontalSegment[] {
-    if (runs.length === 0) {
-        return [];
-    }
-
-    const minThickness = Math.max(1, Math.round(config.MIN_LINE_THICKNESS));
-    const gapTolerance = 2; // Allow small gaps when grouping
-    const sorted = [...runs].sort((a, b) => (a.y - b.y) || (a.xStart - b.xStart));
-    const segments: HorizontalSegment[] = [];
-    
-    // Track runs that form a continuous group (thick dark region)
-    let currentGroup: HorizontalRun[] = [sorted[0]];
-
-    for (let index = 1; index < sorted.length; index += 1) {
-        const run = sorted[index];
-        const lastRun = currentGroup[currentGroup.length - 1];
-        
-        // Check if this run continues the current group
-        // Allow adjacent rows or small gaps, and require some overlap
-        const rowGap = run.y - lastRun.y;
-        const hasOverlap = rangesOverlap(
-            currentGroup[0].xStart, 
-            currentGroup[0].xEnd, 
-            run.xStart, 
-            run.xEnd
-        );
-        
-        if (rowGap >= 1 && rowGap <= gapTolerance + 1 && hasOverlap) {
-            currentGroup.push(run);
-            continue;
-        }
-
-        // Process the completed group
-        const thickness = currentGroup.length;
-        if (thickness > 1) {
-            // Thick dark region: only keep top and bottom edges (borders)
-            segments.push({
-                y: currentGroup[0].y,  // Top edge
-                xStart: currentGroup[0].xStart,
-                xEnd: currentGroup[0].xEnd
-            });
-            segments.push({
-                y: currentGroup[currentGroup.length - 1].y,  // Bottom edge
-                xStart: currentGroup[currentGroup.length - 1].xStart,
-                xEnd: currentGroup[currentGroup.length - 1].xEnd
-            });
-        } else {
-            // Single-pixel-thick line: keep as-is
-            segments.push({
-                y: currentGroup[0].y,
-                xStart: currentGroup[0].xStart,
-                xEnd: currentGroup[0].xEnd
-            });
-        }
-
-        // Start new group
-        currentGroup = [run];
-    }
-
-    // Handle final group
-    const finalThickness = currentGroup.length;
-    if (finalThickness > 1) {
-        segments.push({
-            y: currentGroup[0].y,
-            xStart: currentGroup[0].xStart,
-            xEnd: currentGroup[0].xEnd
-        });
-        segments.push({
-            y: currentGroup[currentGroup.length - 1].y,
-            xStart: currentGroup[currentGroup.length - 1].xStart,
-            xEnd: currentGroup[currentGroup.length - 1].xEnd
-        });
-    } else {
-        segments.push({
-            y: currentGroup[0].y,
-            xStart: currentGroup[0].xStart,
-            xEnd: currentGroup[0].xEnd
-        });
-    }
-
-    return segments;
-}
-
-/**
- * Groups vertical runs into vertical segments
- * For thick dark regions, only keeps left and right edges (borders)
- * For single-pixel-thick lines, keeps them as-is
- */
-function groupVerticalRuns(runs: VerticalRun[]): VerticalSegment[] {
-    if (runs.length === 0) {
-        return [];
-    }
-
-    const minThickness = Math.max(1, Math.round(config.MIN_LINE_THICKNESS));
-    const gapTolerance = 2; // Allow small gaps when grouping
-    const sorted = [...runs].sort((a, b) => (a.x - b.x) || (a.yStart - b.yStart));
-    const segments: VerticalSegment[] = [];
-    
-    // Track runs that form a continuous group (thick dark region)
-    let currentGroup: VerticalRun[] = [sorted[0]];
-
-    for (let index = 1; index < sorted.length; index += 1) {
-        const run = sorted[index];
-        const lastRun = currentGroup[currentGroup.length - 1];
-        
-        // Check if this run continues the current group
-        // Allow adjacent columns or small gaps, and require some overlap
-        const colGap = run.x - lastRun.x;
-        const hasOverlap = rangesOverlap(
-            currentGroup[0].yStart, 
-            currentGroup[0].yEnd, 
-            run.yStart, 
-            run.yEnd
-        );
-        
-        if (colGap >= 1 && colGap <= gapTolerance + 1 && hasOverlap) {
-            currentGroup.push(run);
-            continue;
-        }
-
-        // Process the completed group
-        const thickness = currentGroup.length;
-        if (thickness > 1) {
-            // Thick dark region: only keep left and right edges (borders)
-            segments.push({
-                x: currentGroup[0].x,  // Left edge
-                yStart: currentGroup[0].yStart,
-                yEnd: currentGroup[0].yEnd
-            });
-            segments.push({
-                x: currentGroup[currentGroup.length - 1].x,  // Right edge
-                yStart: currentGroup[currentGroup.length - 1].yStart,
-                yEnd: currentGroup[currentGroup.length - 1].yEnd
-            });
-        } else {
-            // Single-pixel-thick line: keep as-is
-            segments.push({
-                x: currentGroup[0].x,
-                yStart: currentGroup[0].yStart,
-                yEnd: currentGroup[0].yEnd
-            });
-        }
-
-        // Start new group
-        currentGroup = [run];
-    }
-
-    // Handle final group
-    const finalThickness = currentGroup.length;
-    if (finalThickness > 1) {
-        segments.push({
-            x: currentGroup[0].x,
-            yStart: currentGroup[0].yStart,
-            yEnd: currentGroup[0].yEnd
-        });
-        segments.push({
-            x: currentGroup[currentGroup.length - 1].x,
-            yStart: currentGroup[currentGroup.length - 1].yStart,
-            yEnd: currentGroup[currentGroup.length - 1].yEnd
-        });
-    } else {
-        segments.push({
-            x: currentGroup[0].x,
-            yStart: currentGroup[0].yStart,
-            yEnd: currentGroup[0].yEnd
-        });
-    }
-
-    return segments;
-}
+import {config} from '../config';
+import type {HorizontalSegment, LineDetection, VerticalSegment} from '../types';
 
 /**
  * Trims horizontal segments to exact pixel boundaries
@@ -374,150 +191,18 @@ function isHorizontalLineInDarkRegion(data: Buffer, width: number, height: numbe
 }
 
 /**
- * Checks if a pixel is on a horizontal edge (top or bottom of a dark region)
- * Detects dark pixels that form the boundary of dark regions
- * Uses a lower contrast threshold to catch all edges, including sharp transitions
- */
-function isHorizontalEdge(data: Buffer, width: number, height: number, x: number, y: number): boolean {
-    if (x < 0 || x >= width || y < 0 || y >= height) return false;
-    
-    const value = data[y * width + x];
-    
-    // Only detect edges on dark pixels (lines should be drawn on dark side)
-    if (value > config.DARK_PIXEL_THRESHOLD) return false;
-    
-    // Check row above (top edge) - dark pixel with light pixel above
-    if (y > 0) {
-        const aboveValue = data[(y - 1) * width + x];
-        // Primary check: if above is light, this is definitely an edge
-        if (aboveValue > config.DARK_PIXEL_THRESHOLD) {
-            return true; // Clear top edge: dark pixel with light above
-        }
-        // Secondary check: even if above is somewhat dark, check for significant contrast
-        // This catches gradual transitions and ensures we don't miss edges
-        const contrast = aboveValue - value;
-        if (contrast >= 15) { // Lower threshold to catch more edges
-            return true; // Top edge with sufficient contrast
-        }
-    } else {
-        // Top of image and pixel is dark = edge
-        return true;
-    }
-    
-    // Check row below (bottom edge) - dark pixel with light pixel below
-    if (y < height - 1) {
-        const belowValue = data[(y + 1) * width + x];
-        // Primary check: if below is light, this is definitely an edge
-        if (belowValue > config.DARK_PIXEL_THRESHOLD) {
-            return true; // Clear bottom edge: dark pixel with light below
-        }
-        // Secondary check: even if below is somewhat dark, check for significant contrast
-        const contrast = belowValue - value;
-        if (contrast >= 15) { // Lower threshold to catch more edges
-            return true; // Bottom edge with sufficient contrast
-        }
-    } else {
-        // Bottom of image and pixel is dark = edge
-        return true;
-    }
-    
-    return false;
-}
-
-/**
- * Checks if a pixel is part of a continuous horizontal line
- * Detects BOTH dark and light pixels that form lines
- * Ensures lines continue seamlessly from light regions into dark regions
- * OPTIMIZED: Caches pixel lookups and uses early exits
- */
-function isHorizontalLinePixel(data: Buffer, width: number, height: number, x: number, y: number): boolean {
-    if (x < 0 || x >= width || y < 0 || y >= height) return false;
-    
-    const rowOffset = y * width;
-    const value = data[rowOffset + x];
-    
-    // OPTIMIZATION: Check edge first (fastest check, most common case)
-    // Early exit if it's an edge
-    if (value <= config.DARK_PIXEL_THRESHOLD) {
-        // Quick edge check without full function call overhead
-        if (y > 0) {
-            const aboveValue = data[(y - 1) * width + x];
-            if (aboveValue > config.DARK_PIXEL_THRESHOLD) {
-                return true; // Top edge
-            }
-        } else {
-            return true; // Top of image
-        }
-        
-        if (y < height - 1) {
-            const belowValue = data[(y + 1) * width + x];
-            if (belowValue > config.DARK_PIXEL_THRESHOLD) {
-                return true; // Bottom edge
-            }
-        } else {
-            return true; // Bottom of image
-        }
-    }
-    
-    // Check if it's a line in dark region (more expensive, so do this second)
-    const isLineInDark = isHorizontalLineInDarkRegion(data, width, height, x, y);
-    if (isLineInDark) {
-        return true;
-    }
-    
-    // OPTIMIZATION: For continuous line check, cache pixel lookups
-    // Check if there are similar pixels to the left and/or right (indicating a horizontal line)
-    let hasLeftSimilar = false;
-    let hasRightSimilar = false;
-    
-    if (x > 0) {
-        const leftValue = data[rowOffset + (x - 1)];
-        // Similar if both are dark or both are light (within threshold)
-        const bothDark = value <= config.DARK_PIXEL_THRESHOLD && leftValue <= config.DARK_PIXEL_THRESHOLD;
-        const bothLight = value > config.DARK_PIXEL_THRESHOLD && leftValue > config.DARK_PIXEL_THRESHOLD;
-        hasLeftSimilar = bothDark || bothLight || Math.abs(value - leftValue) < 20;
-    }
-    
-    if (x < width - 1) {
-        const rightValue = data[rowOffset + (x + 1)];
-        const bothDark = value <= config.DARK_PIXEL_THRESHOLD && rightValue <= config.DARK_PIXEL_THRESHOLD;
-        const bothLight = value > config.DARK_PIXEL_THRESHOLD && rightValue > config.DARK_PIXEL_THRESHOLD;
-        hasRightSimilar = bothDark || bothLight || Math.abs(value - rightValue) < 20;
-    }
-    
-    // If it has similar neighbors on both sides, it's definitely part of a line
-    if (hasLeftSimilar && hasRightSimilar) {
-        // Additional check: verify it's not just a filled region
-        if (y > 0 && y < height - 1) {
-            const aboveValue = data[(y - 1) * width + x];
-            const belowValue = data[(y + 1) * width + x];
-            
-            // If rows above and below are significantly different, it's likely a line
-            const aboveIsLight = aboveValue > config.DARK_PIXEL_THRESHOLD;
-            const belowIsLight = belowValue > config.DARK_PIXEL_THRESHOLD;
-            const valueIsDark = value <= config.DARK_PIXEL_THRESHOLD;
-            
-            // Line if: dark pixel with light above/below, OR light pixel with dark above/below
-            if ((valueIsDark && (aboveIsLight || belowIsLight)) || 
-                (!valueIsDark && (!aboveIsLight || !belowIsLight))) {
-                return true;
-            }
-        } else {
-            // At image boundary, if it has similar neighbors, it's likely a line
-            return true;
-        }
-    }
-    
-    return false;
-}
-
-/**
  * Detects horizontal lines from image data
  * Detects edges of dark regions, lines inside dark regions, AND continuous lines that span boundaries
  */
-function detectHorizontalLines(data: Buffer, width: number, height: number, timer: PerformanceTimer): HorizontalSegment[] {
+function detectHorizontalLines(
+    data: Buffer,
+    width: number,
+    height: number,
+    timer: PerformanceTimer,
+    horizontalRunRatio: number = config.HORIZONTAL_RUN_RATIO,
+): HorizontalSegment[] {
     const segments: HorizontalSegment[] = [];
-    const minRun = Math.max(1, Math.round(width * config.HORIZONTAL_RUN_RATIO));
+    const minRun = Math.max(1, Math.round(width * horizontalRunRatio));
     
     // OPTIMIZATION: Pre-compute threshold check to avoid repeated comparisons
     const darkThreshold = config.DARK_PIXEL_THRESHOLD;
@@ -679,44 +364,18 @@ function trimVerticalSegments(
 }
 
 /**
- * Checks if a pixel is on a vertical edge (left or right of a dark region)
- */
-function isVerticalEdge(data: Buffer, width: number, height: number, x: number, y: number): boolean {
-    if (x < 0 || x >= width || y < 0 || y >= height) return false;
-    
-    const value = data[y * width + x];
-    if (value > config.DARK_PIXEL_THRESHOLD) return false; // Not dark
-    
-    // Check column to the left (left edge)
-    if (x > 0) {
-        const leftValue = data[y * width + (x - 1)];
-        if (leftValue > config.DARK_PIXEL_THRESHOLD) {
-            return true; // Dark pixel with light pixel to left = left edge
-        }
-    } else {
-        return true; // Left edge of image = edge
-    }
-    
-    // Check column to the right (right edge)
-    if (x < width - 1) {
-        const rightValue = data[y * width + (x + 1)];
-        if (rightValue > config.DARK_PIXEL_THRESHOLD) {
-            return true; // Dark pixel with light pixel to right = right edge
-        }
-    } else {
-        return true; // Right edge of image = edge
-    }
-    
-    return false;
-}
-
-/**
  * Detects vertical lines from image data
  * Only detects edges of dark regions (left/right borders), not fills
  */
-function detectVerticalLines(data: Buffer, width: number, height: number, timer: PerformanceTimer): VerticalSegment[] {
+function detectVerticalLines(
+    data: Buffer,
+    width: number,
+    height: number,
+    timer: PerformanceTimer,
+    verticalRunRatio: number = config.VERTICAL_RUN_RATIO,
+): VerticalSegment[] {
     const segments: VerticalSegment[] = [];
-    const minRun = Math.max(1, Math.round(height * config.VERTICAL_RUN_RATIO));
+    const minRun = Math.max(1, Math.round(height * verticalRunRatio));
     
     // OPTIMIZATION: Pre-compute threshold check
     const darkThreshold = config.DARK_PIXEL_THRESHOLD;
@@ -1055,20 +714,37 @@ function mergeCollinearVerticalGroup(group: VerticalSegment[], merged: VerticalS
     merged.push(current);
 }
 
+export type DetectLinesOptions = {
+    /** Override {@link config.HORIZONTAL_RUN_RATIO}. Lower = shorter wall segments kept. */
+    horizontalRunRatio?: number;
+    /** Override {@link config.VERTICAL_RUN_RATIO}. */
+    verticalRunRatio?: number;
+};
+
 /**
  * Detects lines from an image Buffer or Sharp instance (in-memory, faster)
  */
-export async function detectLinesFromBuffer(inputImage: Buffer | sharp.Sharp, parentLogger: serverLogger, timer: PerformanceTimer): Promise<LineDetection> {
+export async function detectLinesFromBuffer(
+    inputImage: Buffer | sharp.Sharp,
+    parentLogger: serverLogger,
+    timer: PerformanceTimer,
+    options: DetectLinesOptions = {},
+): Promise<LineDetection> {
     return await timer.timeAsync('detectLinesFromBuffer', async () => {
         const logger = getLogger("detect_lines_from_buffer", parentLogger);
         logger.start("Detecting lines from image buffer...");
 
+        const hRatio = options.horizontalRunRatio ?? config.HORIZONTAL_RUN_RATIO;
+        const vRatio = options.verticalRunRatio ?? config.VERTICAL_RUN_RATIO;
+
         const sharpInstance = Buffer.isBuffer(inputImage) ? sharp(inputImage) : inputImage;
         const { data, info } = await sharpInstance.greyscale().raw().toBuffer({ resolveWithObject: true });
         const { width, height } = info;
-        logger.debug("Detecting horizontal and vertical lines...");
-        let horizontals = timer.timeSync('detectHorizontalLines', () => detectHorizontalLines(data, width, height, timer));
-        let verticals = timer.timeSync('detectVerticalLines', () => detectVerticalLines(data, width, height, timer));
+        logger.debug(
+            `Detecting horizontal and vertical lines (minRun H=${(hRatio * 100).toFixed(1)}% W, V=${(vRatio * 100).toFixed(1)}% H)...`
+        );
+        let horizontals = timer.timeSync('detectHorizontalLines', () => detectHorizontalLines(data, width, height, timer, hRatio));
+        let verticals = timer.timeSync('detectVerticalLines', () => detectVerticalLines(data, width, height, timer, vRatio));
         logger.debug("Finished detecting horizontal and vertical lines!");
 
         logger.debug("Splitting lines at intersections...");

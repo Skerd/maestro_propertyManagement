@@ -1,96 +1,27 @@
 export const config = {
-    DEFAULT_SCALE: 1,
-    DEFAULT_DPI: 50,
 
-    HORIZONTAL_RUN_RATIO: 0.15,
-    VERTICAL_RUN_RATIO: 0.15,
-    RECT_MIN_WIDTH_RATIO: 0.20,
-    RECT_MIN_HEIGHT_RATIO: 0.20,
-    RECT_MAX_WIDTH_RATIO: 0.9999999,
-    RECT_MAX_HEIGHT_RATIO: 0.99,
-    RECT_DEDUP_TOLERANCE: 3,
+    // batch turning PDF pages to images
+    BATCH_PDF_PAGES_TO_IMAGES: 2, // how many pages of the PDF are turned into images in one go
+    BATCH_PDF_PAGES_DPI: 100, // how good the quality of the PDF page is when batch turned into image
 
-    DARK_PIXEL_THRESHOLD: 65,
+    // image processing
     OVERLAY_LINE_THICKNESS: 4,
-
-    LINE_MERGE_TOLERANCE: 0,
-    LINE_GAP_TOLERANCE: 20,
-    LINE_SNAP_TOLERANCE: 20,
-    MIN_LINE_THICKNESS: 0.01,
+    CROP_EDGE_INSET_PX: 4, // Pixels shaved from each side of rectangle crops after padding (0 = no inset)
+    DETAIL_PDF_PAGES_DPI: 300, // Ghostscript `-r` for crop re-export.
     CROP_PADDING: 0,
 
-    /** Pixels shaved from each side of rectangle crops after padding (0 = no inset). */
-    CROP_EDGE_INSET_PX: 4,
+    // rectangle processing
+    RECT_MIN_WIDTH_RATIO: 0.20,         // minimum width of a rectangle
+    RECT_MIN_HEIGHT_RATIO: 0.20,        // minimum height of a rectangle
+    RECT_MAX_WIDTH_RATIO: 0.9999999,    // maximum width of a rectangle
+    RECT_MAX_HEIGHT_RATIO: 0.99,        // maximum height of a rectangle
+    RECT_DEDUP_TOLERANCE: 3,            // check if rectangles include each other with boundary match tolerance
 
-    /**
-     * Re-rasterize the full PDF page at {@link CROP_DETAIL_RASTER_DPI}, then crop the same rectangles
-     * (after matching rotation as the preview PNG). Much sharper for vector PDFs; high RAM use on large pages.
-     */
-    CROP_HIGH_DETAIL_FROM_PDF: true,
-    /** Ghostscript `-r` for crop re-export. Preview raster uses `DEFAULT_DPI * DEFAULT_SCALE`. */
-    CROP_DETAIL_RASTER_DPI: 300,
-
-    // Image saving toggles - disable to skip saving and speed up processing
-    SAVE_ORIGINAL_IMAGE: true,      // Save base rendered image (page-N.png)
-    SAVE_BOOSTED_IMAGE: true,      // Save boosted contrast image (page-N-boosted.png)
-    SAVE_LINES_OVERLAY: true,      // Save lines overlay image (page-N-lines.png)
-    SAVE_RECTANGLES_OVERLAY: true, // Save rectangles overlay image (page-N-rectangles.png)
-    SAVE_POLYGON_OVERLAY: true,    // Save polygon overlay image (floor-plan-polygon-overlay.png)
-
-
-    /**
-     * opencv4nodejs highlight extraction: save intermediate PNGs (BGR, HSV blur viz, raw mask, morph steps, final mask)
-     * under each unit folder at `units/<slug>/highlight-debug/`. Off by default to avoid extra I/O.
-     */
-    SAVE_HIGHLIGHT_DEBUG_ARTIFACTS: true,
-    // Text extraction method - 'pdf' is much faster (extracts embedded text), 'ocr' is slower but works on scanned PDFs
-    TEXT_EXTRACTION_METHOD: 'pdf' as 'pdf' | 'ocr',
-    /**
-     * OCR must reach this confidence before net/shared/veranda areas are accepted.
-     * Below this threshold, OCR is retried (see OCR_AREA_MAX_ATTEMPTS).
-     */
-    OCR_AREA_REQUIRED_CONFIDENCE: 100,
-    /** Max OCR attempts when area confidence is below OCR_AREA_REQUIRED_CONFIDENCE. */
-    OCR_AREA_MAX_ATTEMPTS: 3,
-    /**
-     * Fraction of min(width,height) cropped from each side before highlight polygon detection
-     * to ignore decorative borders around floor plans.
-     */
-    POLYGON_DETECT_BORDER_INSET_FRACTION: 0.025,
-    /**
-     * opencv4nodejs: after HSV + morphology, distance-threshold → thick mask (08). When T>0 and 08 is non-empty,
-     * 09 is **only** repeated 3×3 dilate of 08; iteration count is **round(T/2)** (min 1, max 64), still with no 07 clip.
-     * 0 = disabled (contours run on morph mask before thickness step).
-     * Effective T is also capped to ~1% of min(image dim) so small thumbnails are not wiped.
-     */
-    HIGHLIGHT_MASK_MIN_DISTANCE_TO_BACKGROUND_PX: 8,
-    /**
-     * After polygon extraction, rewrite each unit's saved floor-plan.png onto a canvas with the
-     * same width/height ratio as the per-floor master floor-plan.png (letterboxed, no stretch).
-     */
-    UNIT_FLOOR_PLAN_MATCH_MASTER_ASPECT: true,
-    /**
-     * When registering unit thumb → master, downscale master toward thumb size.
-     * Primary: match distinctive landmarks (grey fills, voids, polygons) in a *local*
-     * neighborhood (plans are similarly framed — no wild jumps across the page).
-     * Fallback: matchTemplate, then ORB+estimateAffinePartial2D.
-     */
-    REGISTRATION_DOWNSCALE_MASTER_TO_THUMB: true,
-    /** Min landmark area as a fraction of the image (filters tiny blobs). */
-    REGISTRATION_LANDMARK_MIN_AREA_FRACTION: 0.003,
-    /** Keep at most this many landmarks per image (largest first). */
-    REGISTRATION_LANDMARK_MAX: 24,
-    /** Min matched landmark pairs to accept landmark registration. */
-    REGISTRATION_LANDMARK_MIN_MATCHES: 2,
-    /**
-     * Max normalized |Δcx|,|Δcy| when searching/accepting a landmark match.
-     * Top-left on thumb may only match near top-left on master (± this fraction of image size).
-     */
-    REGISTRATION_LANDMARK_POS_TOLERANCE: 0.12,
-    /** Min TM_CCOEFF_NORMED score to accept template registration (0..1). */
-    REGISTRATION_TEMPLATE_MIN_SCORE: 0.28,
-    /** Min RANSAC inliers for ORB → estimateAffinePartial2D acceptance. */
-    REGISTRATION_ORB_MIN_INLIERS: 6,
-    /** Blank CAD grid-bubble annotations via HoughCircles before matching. */
-    REGISTRATION_SUPPRESS_GRID_BUBBLES: true,
+    // line detection processing
+    DARK_PIXEL_THRESHOLD: 65,   // Greyscale ≤ this (0–255) counts as ink when scanning / trimming H/V line runs
+    HORIZONTAL_RUN_RATIO: 0.15, // Min horizontal run length as a fraction of image width (shorter dark runs are ignored).
+    VERTICAL_RUN_RATIO: 0.15,   // Min vertical run length as a fraction of image height (shorter dark runs are ignored)
+    LINE_SNAP_TOLERANCE: 20,    // Max px between H and V segments to treat as intersecting (corners, splits, rectangles)
+    LINE_MERGE_TOLERANCE: 0,    // Max px |Δy| (horizontals) or |Δx| (verticals) to group as the same row/column before merging
+    LINE_GAP_TOLERANCE: 20,     // Max px gap along a collinear run to join end-to-end into one longer segment
 } as const;

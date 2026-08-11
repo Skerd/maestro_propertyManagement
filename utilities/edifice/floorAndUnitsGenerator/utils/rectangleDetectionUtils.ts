@@ -1,6 +1,6 @@
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
-import {config} from './config';
-import type {HorizontalSegment, Rectangle, VerticalSegment} from './types';
+import {config} from '../config';
+import type {HorizontalSegment, Rectangle, VerticalSegment} from '../types';
 
 /**
  * Checks if rectangle A contains rectangle B
@@ -32,115 +32,23 @@ function contains(outer: Rectangle, inner: Rectangle, tolerance: number = config
 }
 
 /**
- * Removes rectangles that contain other rectangles
+ * Removes rectangles that are nested inside a larger rectangle.
+ * Prefers the outer frame (e.g. the full plan panel) over a tighter inner outline.
  */
-function removeContainingRectangles(rectangles: Rectangle[]): Rectangle[] {
+function removeContainedRectangles(rectangles: Rectangle[]): Rectangle[] {
     if (rectangles.length === 0) {
         return [];
     }
 
-    // Filter out rectangles that contain any other rectangles
     return rectangles.filter((rect) => {
-        // Check if this rectangle contains any other rectangle
-        const containsOther = rectangles.some((other) => {
+        const isContainedByOther = rectangles.some((other) => {
             if (rect === other) {
-                return false; // Skip self
+                return false;
             }
-            return contains(rect, other);
+            return contains(other, rect);
         });
-
-        // Keep only rectangles that don't contain others
-        return !containsOther;
-    });
-}
-
-/**
- * Merges horizontal segments that are close together
- */
-function mergeHorizontalSegments(segments: HorizontalSegment[], timer: PerformanceTimer): HorizontalSegment[] {
-    return timer.timeSync('mergeHorizontalSegments', () => {
-        if (segments.length === 0) {
-            return [];
-        }
-        const sorted = [...segments].sort((a, b) => (a.y - b.y) || (a.xStart - b.xStart));
-        const merged: HorizontalSegment[] = [];
-        let group: HorizontalSegment[] = [sorted[0]];
-        let groupSumY = sorted[0].y;
-
-        const flushGroup = (): void => {
-            const y = Math.round(groupSumY / group.length);
-            const parts = [...group].sort((a, b) => a.xStart - b.xStart);
-            let current = { ...parts[0], y };
-            for (let index = 1; index < parts.length; index += 1) {
-                const next = parts[index];
-                if (next.xStart - current.xEnd <= config.LINE_GAP_TOLERANCE) {
-                    current.xEnd = Math.max(current.xEnd, next.xEnd);
-                } else {
-                    merged.push(current);
-                    current = { ...next, y };
-                }
-            }
-            merged.push(current);
-        };
-
-        for (let index = 1; index < sorted.length; index += 1) {
-            const segment = sorted[index];
-            if (Math.abs(segment.y - group[group.length - 1].y) <= config.LINE_MERGE_TOLERANCE) {
-                group.push(segment);
-                groupSumY += segment.y;
-            } else {
-                flushGroup();
-                group = [segment];
-                groupSumY = segment.y;
-            }
-        }
-        flushGroup();
-        return merged;
-    });
-}
-
-/**
- * Merges vertical segments that are close together
- */
-function mergeVerticalSegments(segments: VerticalSegment[], timer: PerformanceTimer): VerticalSegment[] {
-    return timer.timeSync('mergeVerticalSegments', () => {
-        if (segments.length === 0) {
-            return [];
-        }
-        const sorted = [...segments].sort((a, b) => (a.x - b.x) || (a.yStart - b.yStart));
-        const merged: VerticalSegment[] = [];
-        let group: VerticalSegment[] = [sorted[0]];
-        let groupSumX = sorted[0].x;
-
-        const flushGroup = (): void => {
-            const x = Math.round(groupSumX / group.length);
-            const parts = [...group].sort((a, b) => a.yStart - b.yStart);
-            let current = { ...parts[0], x };
-            for (let index = 1; index < parts.length; index += 1) {
-                const next = parts[index];
-                if (next.yStart - current.yEnd <= config.LINE_GAP_TOLERANCE) {
-                    current.yEnd = Math.max(current.yEnd, next.yEnd);
-                } else {
-                    merged.push(current);
-                    current = { ...next, x };
-                }
-            }
-            merged.push(current);
-        };
-
-        for (let index = 1; index < sorted.length; index += 1) {
-            const segment = sorted[index];
-            if (Math.abs(segment.x - group[group.length - 1].x) <= config.LINE_MERGE_TOLERANCE) {
-                group.push(segment);
-                groupSumX += segment.x;
-            } else {
-                flushGroup();
-                group = [segment];
-                groupSumX = segment.x;
-            }
-        }
-        flushGroup();
-        return merged;
+        // Keep only rectangles that are not inside another detected rectangle
+        return !isContainedByOther;
     });
 }
 
@@ -168,18 +76,14 @@ function dedupeRectangles(rectangles: Rectangle[]): Rectangle[] {
  * Checks if a vertical line intersects with a horizontal range
  */
 function verticalIntersectsHorizontal(vLine: VerticalSegment, hY: number, tolerance: number = config.LINE_SNAP_TOLERANCE): boolean {
-    return Math.abs(vLine.yStart - hY) <= tolerance ||
-        Math.abs(vLine.yEnd - hY) <= tolerance ||
-        (vLine.yStart <= hY && vLine.yEnd >= hY);
+    return Math.abs(vLine.yStart - hY) <= tolerance || Math.abs(vLine.yEnd - hY) <= tolerance || (vLine.yStart <= hY && vLine.yEnd >= hY);
 }
 
 /**
  * Checks if a horizontal line intersects with a vertical range
  */
 function horizontalIntersectsVertical(hLine: HorizontalSegment, vX: number, tolerance: number = config.LINE_SNAP_TOLERANCE): boolean {
-    return Math.abs(hLine.xStart - vX) <= tolerance ||
-        Math.abs(hLine.xEnd - vX) <= tolerance ||
-        (hLine.xStart <= vX && hLine.xEnd >= vX);
+    return Math.abs(hLine.xStart - vX) <= tolerance || Math.abs(hLine.xEnd - vX) <= tolerance || (hLine.xStart <= vX && hLine.xEnd >= vX);
 }
 
 /**
@@ -192,21 +96,16 @@ function getRectKey(left: number, right: number, top: number, bottom: number): s
 /**
  * Finds rectangles from horizontal and vertical line segments
  */
-export function findRectanglesFromLines(
-    horizontals: HorizontalSegment[],
-    verticals: VerticalSegment[],
-    width: number,
-    height: number,
-    timer: PerformanceTimer
-): Rectangle[] {
+export function findRectanglesFromLines(horizontals: HorizontalSegment[], verticals: VerticalSegment[], width: number, height: number, timer: PerformanceTimer): Rectangle[] {
     return timer.timeSync('findRectanglesFromLines', () => {
+
         const minWidth = Math.round(width * config.RECT_MIN_WIDTH_RATIO);
         const minHeight = Math.round(height * config.RECT_MIN_HEIGHT_RATIO);
         const maxWidth = Math.round(width * config.RECT_MAX_WIDTH_RATIO);
         const maxHeight = Math.round(height * config.RECT_MAX_HEIGHT_RATIO);
 
-        const mergedHorizontals = mergeHorizontalSegments(horizontals, timer).filter((line) => line.xEnd - line.xStart + 1 >= minWidth);
-        const mergedVerticals = mergeVerticalSegments(verticals, timer).filter((line) => line.yEnd - line.yStart + 1 >= minHeight);
+        const filteredHorizontals = horizontals.filter((line) => line.xEnd - line.xStart + 1 >= minWidth);
+        const filteredVerticals = verticals.filter((line) => line.yEnd - line.yStart + 1 >= minHeight);
 
         const rectangles: Rectangle[] = [];
         const rectangleSet = new Set<string>(); // For deduplication during construction
@@ -248,10 +147,10 @@ export function findRectanglesFromLines(
         const doubleTolerance = config.LINE_SNAP_TOLERANCE * 2;
         
         // Method 1: Find rectangles from all horizontal line pairs
-        for (let i = 0; i < mergedHorizontals.length; i += 1) {
-            const topLine = mergedHorizontals[i];
-            for (let j = i + 1; j < mergedHorizontals.length; j += 1) {
-                const bottomLine = mergedHorizontals[j];
+        for (let i = 0; i < filteredHorizontals.length; i += 1) {
+            const topLine = filteredHorizontals[i];
+            for (let j = i + 1; j < filteredHorizontals.length; j += 1) {
+                const bottomLine = filteredHorizontals[j];
                 const rectHeight = bottomLine.y - topLine.y;
                 
                 // OPTIMIZATION: Early exit if height doesn't meet requirements
@@ -268,7 +167,7 @@ export function findRectanglesFromLines(
                 // Find all vertical lines that could form left/right boundaries
                 // OPTIMIZATION: Use for loop instead of filter for better performance
                 const candidateVerticals: VerticalSegment[] = [];
-                for (const vLine of mergedVerticals) {
+                for (const vLine of filteredVerticals) {
                     // Early exits for faster filtering
                     const topIntersect = verticalIntersectsHorizontal(vLine, topY, doubleTolerance);
                     const bottomIntersect = verticalIntersectsHorizontal(vLine, bottomY, doubleTolerance);
@@ -333,10 +232,10 @@ export function findRectanglesFromLines(
         }
 
         // Method 2: Find rectangles from all vertical line pairs
-        for (let i = 0; i < mergedVerticals.length; i += 1) {
-            const vLine1 = mergedVerticals[i];
-            for (let j = i + 1; j < mergedVerticals.length; j += 1) {
-                const vLine2 = mergedVerticals[j];
+        for (let i = 0; i < filteredVerticals.length; i += 1) {
+            const vLine1 = filteredVerticals[i];
+            for (let j = i + 1; j < filteredVerticals.length; j += 1) {
+                const vLine2 = filteredVerticals[j];
 
                 // Determine which is actually left and which is right
                 const actualLeftLine = vLine1.x < vLine2.x ? vLine1 : vLine2;
@@ -356,7 +255,7 @@ export function findRectanglesFromLines(
                 // Find all horizontal lines that could form top/bottom boundaries
                 // OPTIMIZATION: Use for loop instead of filter for better performance
                 const candidateHorizontals: HorizontalSegment[] = [];
-                for (const hLine of mergedHorizontals) {
+                for (const hLine of filteredHorizontals) {
                     const leftIntersect = horizontalIntersectsVertical(hLine, leftX, doubleTolerance);
                     const rightIntersect = horizontalIntersectsVertical(hLine, rightX, doubleTolerance);
                     const spansWidth = hLine.xStart <= leftXMin && hLine.xEnd >= rightXMax;
@@ -419,7 +318,7 @@ export function findRectanglesFromLines(
         // LINE_GAP_TOLERANCE=30 on the merged segments handles the same broken-segment cases.
 
         const deduped = timer.timeSync('dedupeRectangles', () => dedupeRectangles(rectangles));
-        return timer.timeSync('removeContainingRectangles', () => removeContainingRectangles(deduped));
+        return timer.timeSync('removeContainedRectangles', () => removeContainedRectangles(deduped));
     });
 }
 
@@ -557,12 +456,7 @@ export function selectTopRightRectangle(rectangles: Rectangle[], width: number, 
  * Applies padding to a rectangle for cropping, then optionally removes a uniform inset from each side.
  * Inset is clamped so the crop stays at least 1×1 and within the padded bounds.
  */
-export function applyCropPadding(
-    rect: Rectangle,
-    width: number,
-    height: number,
-    insetPerSide: number = 0
-): { left: number; top: number; width: number; height: number } {
+export function applyCropPadding(rect: Rectangle, width: number, height: number, insetPerSide: number = 0): { left: number; top: number; width: number; height: number } {
     let left = Math.max(0, Math.floor(rect.left - config.CROP_PADDING));
     let top = Math.max(0, Math.floor(rect.top - config.CROP_PADDING));
     let right = Math.min(width - 1, Math.ceil(rect.right + config.CROP_PADDING));

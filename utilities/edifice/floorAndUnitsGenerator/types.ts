@@ -5,15 +5,9 @@ export type PageImageResult = {
     height: number;
     centerUnitPath?: string;
     floorPlanPath?: string;
-    /**
-     * Number of "big" rectangles (>= RECT_MIN_*_RATIO of page) detected on this page.
-     * Used by classifyPageType as the strongest visual signal: a floor page should
-     * show exactly 1 big rectangle (the master plan), a unit page 2+ (top-right
-     * floor thumbnail + center unit detail). 0 means line detection did not yield
-     * any usable rectangle, in which case classification falls back to OCR text rules.
-     */
     rectangleCount: number;
-    renderedImageBuffer?: Buffer; // Keep rendered image in memory for OCR if needed
+    rotationNeeded?: number;
+    excludeRectangles?: Rectangle[];
 };
 
 export type PolygonPoint = {
@@ -33,10 +27,8 @@ export type UnitSummary = {
     /**
      * Outline of the highlighted unit region, as polygon vertices in fractional
      * coordinates (x∈[0,1] of reference width, y∈[0,1] of reference height).
-     * When thumbnail-to-floor registration succeeds (opencvNode pipeline), the
-     * reference is the per-floor master `floor-plan.png` so overlays map onto
-     * the full layout; otherwise fractions are relative to the unit's cropped
-     * top-right floor thumbnail.
+     * When ORB+homography registration succeeds, the reference is the per-floor
+     * master `floor-plan.png` so overlays map onto the full layout.
      */
     polygonCoordinates?: PolygonPoint[];
 };
@@ -57,6 +49,8 @@ export type CropResult = {
     floorPlanPath?: string;
     /** Total number of big rectangles detected on the page (after dedup/size filtering). */
     rectangleCount: number;
+    /** Center + top-right plan rectangles only (detection space); used to filter PDF text. */
+    excludeRectangles?: Rectangle[];
 };
 
 export type HorizontalSegment = {
@@ -87,18 +81,6 @@ export type Rectangle = {
     height: number;
     centerX: number;
     centerY: number;
-};
-
-export type HorizontalRun = {
-    y: number;
-    xStart: number;
-    xEnd: number;
-};
-
-export type VerticalRun = {
-    x: number;
-    yStart: number;
-    yEnd: number;
 };
 
 export interface ExtractedImageOcrData {

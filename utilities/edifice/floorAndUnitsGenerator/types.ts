@@ -84,6 +84,7 @@ export type Rectangle = {
 };
 
 export type PageType = 'floor' | 'unit';
+export type TextExtractionMethod = 'poppler' | 'ghostscript';
 
 export interface ExtractedImageOcrData {
     name: string;
@@ -97,6 +98,6 @@ export interface ExtractedImageOcrData {
     type?: PageType;
     metadata?: {
         pageCount?: number;
-        extractionMethod: "text" | "ocr" | "mixed" | "ghostscript";
+        extractionMethod: TextExtractionMethod;
     };
 }

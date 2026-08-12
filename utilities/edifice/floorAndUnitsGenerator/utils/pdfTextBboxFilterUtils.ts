@@ -4,7 +4,7 @@ import path from 'path';
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
 import {config} from '../config';
-import type {Rectangle} from '../types';
+import type {Rectangle, TextExtractionMethod} from '../types';
 
 export type TextSpanBBox = {
     left: number;
@@ -39,6 +39,7 @@ export function decodePdfTextEntities(text: string): string {
         .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
         .replace(/&#(\d+);/g, (_, dec: string) => String.fromCharCode(Number(dec)))
         .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
@@ -87,19 +88,27 @@ export function dedupeOverlappingTextSpans(spans: TextSpanBBox[], minOverlapRati
 export function formatTextSpansAsPageText(spans: TextSpanBBox[], lineGapPx = 8): string {
     const unique = dedupeOverlappingTextSpans(spans);
     const sorted = [...unique].sort((a, b) => (a.top - b.top) || (a.left - b.left));
-    const lines: string[] = [];
-    let currentLine = '';
+    const rows: TextSpanBBox[][] = [];
+    let currentRow: TextSpanBBox[] = [];
     let lastTop = Number.NEGATIVE_INFINITY;
     for (const span of sorted) {
-        if (currentLine && Math.abs(span.top - lastTop) > lineGapPx) {
-            lines.push(collapseRepeatedPhrases(currentLine));
-            currentLine = span.text;
+        if (currentRow.length && Math.abs(span.top - lastTop) > lineGapPx) {
+            rows.push(currentRow);
+            currentRow = [span];
         } else {
-            currentLine = currentLine ? `${currentLine} ${span.text}` : span.text;
+            currentRow.push(span);
         }
         lastTop = span.top;
     }
-    if (currentLine.trim()) lines.push(collapseRepeatedPhrases(currentLine));
+    if (currentRow.length) rows.push(currentRow);
+
+    // Reading order within a row is horizontal. The outer sort is top-first, so
+    // word-level spans whose glyph boxes start a fraction of a point apart
+    // vertically (a digit next to a capital, say) would otherwise be emitted
+    // back-to-front — "0 KATIT E PLANIMETRI" instead of "PLANIMETRI E KATIT 0".
+    const lines = rows.map((row) =>
+        collapseRepeatedPhrases([...row].sort((a, b) => a.left - b.left).map((s) => s.text).join(' '))
+    );
     return lines.filter(Boolean).join('\n').trim();
 }
 
@@ -236,6 +245,130 @@ export function batchExtractTextSpansWithGhostscript(
     });
 }
 
+/**
+ * Parse poppler `pdftotext -bbox-layout` XHTML into per-page word spans.
+ *
+ * `<word>` boxes are already top-left origin in PDF points (72 dpi) and in the
+ * rotated display space, i.e. the same convention `parseGhostscriptHtmlTextSpans`
+ * produces, so the spans drop straight into the rest of the pipeline. Unlike
+ * Ghostscript these are true glyph boxes, so no font-size guesswork is needed.
+ *
+ * @param xml        Full pdftotext output document
+ * @param firstPage  1-based page number the first `<page>` element corresponds to
+ */
+export function parsePopplerBboxLayoutXml(xml: string, firstPage: number): Map<number, TextSpanBBox[]> {
+    const result = new Map<number, TextSpanBBox[]>();
+    const pageRe = /<page\b[^>]*>([\s\S]*?)<\/page>/gi;
+    const wordRe = /<word\b([^>]*)>([\s\S]*?)<\/word>/gi;
+    const readAttr = (attrs: string, name: string): number => {
+        const match = new RegExp(`\\b${name}="([^"]*)"`, 'i').exec(attrs);
+        return match ? Number(match[1]) : NaN;
+    };
+
+    let pageMatch: RegExpExecArray | null;
+    let pageNumber = firstPage;
+    while ((pageMatch = pageRe.exec(xml)) !== null) {
+        const spans: TextSpanBBox[] = [];
+        wordRe.lastIndex = 0;
+        let wordMatch: RegExpExecArray | null;
+        while ((wordMatch = wordRe.exec(pageMatch[1])) !== null) {
+            const x0 = readAttr(wordMatch[1], 'xMin');
+            const y0 = readAttr(wordMatch[1], 'yMin');
+            const x1 = readAttr(wordMatch[1], 'xMax');
+            const y1 = readAttr(wordMatch[1], 'yMax');
+            if ([x0, y0, x1, y1].some((n) => Number.isNaN(n))) continue;
+            const text = decodePdfTextEntities(wordMatch[2].replace(/\s+/g, ' ').trim());
+            if (!text) continue;
+            spans.push({
+                left: Math.min(x0, x1),
+                top: Math.min(y0, y1),
+                right: Math.max(x0, x1),
+                bottom: Math.max(y0, y1),
+                text,
+            });
+        }
+        result.set(pageNumber, spans);
+        pageNumber++;
+    }
+    return result;
+}
+
+/**
+ * Batch-extract positioned text spans with poppler (`pdftotext -bbox-layout`).
+ *
+ * Preferred over the Ghostscript path because `txtwrite` intermittently drops
+ * whole text runs: across 12 identical 62-page runs of Dyeus_Album, 4 lost the
+ * "APARTAMENTI <id> KATI <n>" title on at least one page — a different page set
+ * each time — which silently cost those units their name. poppler is
+ * byte-identical run to run and several times faster.
+ *
+ * @returns spans per page, or null when pdftotext is unavailable / failed, so
+ *          the caller can fall back to Ghostscript.
+ */
+export function batchExtractTextSpansWithPoppler(
+    inputPath: string,
+    firstPage: number,
+    lastPage: number,
+    outputDir: string,
+    parentLogger: serverLogger,
+    timer: PerformanceTimer
+): Map<number, TextSpanBBox[]> | null {
+    return timer.timeSync('batchExtractTextSpansWithPoppler', () => {
+        const logger = getLogger('batch_extract_text_spans_poppler', parentLogger);
+        logger.start(`Batch extracting bbox text from pages ${firstPage}-${lastPage} (pdftotext -bbox-layout)...`);
+
+        const outputPath = path.join(outputDir, `_poppler_bbox.xml`);
+        try {
+            execFileSync(
+                'pdftotext',
+                ['-q', '-bbox-layout', '-f', String(firstPage), '-l', String(lastPage), inputPath, outputPath],
+                { stdio: 'ignore' }
+            );
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            logger.warn(`pdftotext bbox extraction unavailable or failed (${msg}); falling back to Ghostscript.`);
+            return null;
+        }
+
+        try {
+            const raw = fs.readFileSync(outputPath, 'utf-8');
+            fs.unlinkSync(outputPath);
+            const result = parsePopplerBboxLayoutXml(raw, firstPage);
+            for (let page = firstPage; page <= lastPage; page++) {
+                if (!result.has(page)) result.set(page, []);
+            }
+            logger.finish(`Poppler bbox extract complete for ${result.size} pages.`);
+            return result;
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            logger.warn(`Reading pdftotext output failed: ${msg}; falling back to Ghostscript.`);
+            return null;
+        }
+    });
+}
+
+/**
+ * Positioned text spans for a page range, preferring poppler and falling back
+ * to Ghostscript when `pdftotext` is not installed.
+ */
+export function batchExtractTextSpans(
+    inputPath: string,
+    firstPage: number,
+    lastPage: number,
+    outputDir: string,
+    parentLogger: serverLogger,
+    timer: PerformanceTimer
+): { spans: Map<number, TextSpanBBox[]>; extractionMethod: TextExtractionMethod } {
+    const viaPoppler = batchExtractTextSpansWithPoppler(inputPath, firstPage, lastPage, outputDir, parentLogger, timer);
+    if (viaPoppler) {
+        return { spans: viaPoppler, extractionMethod: 'poppler' };
+    }
+    return {
+        spans: batchExtractTextSpansWithGhostscript(inputPath, firstPage, lastPage, outputDir, parentLogger, timer),
+        extractionMethod: 'ghostscript',
+    };
+}
+
 export type PageRectFilterContext = {
     /** Detection-space image size (after landscape correction). */
     imageWidth: number;
@@ -245,6 +378,36 @@ export type PageRectFilterContext = {
     /** Rectangles in detection-space pixels (same space as line detection). */
     excludeRectangles: Rectangle[];
 };
+
+function mapSpansToDetectionSpace(
+    spans: TextSpanBBox[],
+    ctx: Pick<PageRectFilterContext, 'imageWidth' | 'imageHeight' | 'rotationNeeded'>,
+    dpi: number = config.BATCH_PDF_PAGES_DPI
+): TextSpanBBox[] {
+    if (spans.length === 0) return [];
+
+    const scale = dpi / 72;
+    const rot = ((ctx.rotationNeeded % 360) + 360) % 360;
+    const preW = rot === 90 || rot === 270 ? ctx.imageHeight : ctx.imageWidth;
+    const preH = rot === 90 || rot === 270 ? ctx.imageWidth : ctx.imageHeight;
+
+    return spans.map((span) => {
+        const inPreRotate = {
+            left: span.left * scale,
+            top: span.top * scale,
+            right: span.right * scale,
+            bottom: span.bottom * scale,
+        };
+        const inDetection = mapRectThroughLandscapeRotation(inPreRotate, preW, preH, ctx.rotationNeeded);
+        return {
+            ...span,
+            left: inDetection.left,
+            top: inDetection.top,
+            right: inDetection.right,
+            bottom: inDetection.bottom,
+        };
+    });
+}
 
 /**
  * Convert GS PDF-point spans into detection image space and drop spans overlapping exclude rects.
@@ -256,34 +419,12 @@ export function filterTextSpansOutsideRectangles(
 ): string {
     if (spans.length === 0) return '';
 
-    const scale = dpi / 72;
-    const rot = ((ctx.rotationNeeded % 360) + 360) % 360;
-    const preW = rot === 90 || rot === 270 ? ctx.imageHeight : ctx.imageWidth;
-    const preH = rot === 90 || rot === 270 ? ctx.imageWidth : ctx.imageHeight;
-
-    const kept: TextSpanBBox[] = [];
-    for (const span of spans) {
-        const inPreRotate = {
-            left: span.left * scale,
-            top: span.top * scale,
-            right: span.right * scale,
-            bottom: span.bottom * scale,
-        };
-        const inDetection = mapRectThroughLandscapeRotation(inPreRotate, preW, preH, ctx.rotationNeeded);
-
-        const hitsExclude = ctx.excludeRectangles.some((r) =>
+    const detectionSpans = mapSpansToDetectionSpace(spans, ctx, dpi);
+    const kept = detectionSpans.filter((inDetection) =>
+        !ctx.excludeRectangles.some((r) =>
             overlaps(inDetection, { left: r.left, top: r.top, right: r.right, bottom: r.bottom })
-        );
-        if (!hitsExclude) {
-            kept.push({
-                ...span,
-                left: inDetection.left,
-                top: inDetection.top,
-                right: inDetection.right,
-                bottom: inDetection.bottom,
-            });
-        }
-    }
+        )
+    );
 
     const lineGapPx = Math.max(8, dpi / 10);
     return formatTextSpansAsPageText(kept, lineGapPx);

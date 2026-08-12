@@ -13,7 +13,7 @@ import {
     batchRenderAndProcessPages,
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/pageProcessorUtils';
 import {
-    batchExtractTextSpansWithGhostscript,
+    batchExtractTextSpans,
     filterTextSpansOutsideRectangles,
     formatTextSpansAsPageText,
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/pdfTextBboxFilterUtils';
@@ -30,7 +30,7 @@ import {
     beginFloorAlign,
     groupBySchematicSize,
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/orbHomographyAlign';
-import type {OcrSummary, PageImageResult} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types';
+import type {OcrSummary, PageImageResult, TextExtractionMethod} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types';
 import {
     batchExtractTextWithGhostscript
 } from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/imageUtils";
@@ -83,9 +83,11 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
     // detected plan rectangles.
     const gsTempDir = path.join(outputRoot, '_temp_gs_text');
     let gsPageTextMap: Map<number, string> = new Map();
+    let textExtractionMethod: TextExtractionMethod = 'ghostscript';
     ensureDir(gsTempDir, logger);
     try {
-        const spanMap = batchExtractTextSpansWithGhostscript(pdfFilePath, 1, pageCount, gsTempDir, logger, timer);
+        const {spans: spanMap, extractionMethod} = batchExtractTextSpans(pdfFilePath, 1, pageCount, gsTempDir, logger, timer);
+        textExtractionMethod = extractionMethod;
         const resultByPage = new Map(results.map((r) => [r.pageNumber, r]));
         for (let page = 1; page <= pageCount; page++) {
             const spans = spanMap.get(page) ?? [];
@@ -94,12 +96,13 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
                 gsPageTextMap.set(page, formatTextSpansAsPageText(spans));
                 continue;
             }
-            const filtered = filterTextSpansOutsideRectangles(spans, {
+            const filterCtx = {
                 imageWidth: pageResult.width,
                 imageHeight: pageResult.height,
                 rotationNeeded: pageResult.rotationNeeded ?? 0,
                 excludeRectangles: pageResult.excludeRectangles,
-            });
+            };
+            const filtered = filterTextSpansOutsideRectangles(spans, filterCtx);
             gsPageTextMap.set(page, filtered);
             logger.debug(
                 `Page ${page}: bbox text ${spans.length} spans → ${filtered.length} chars after rectangle filter`
@@ -131,6 +134,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
                 timer,
                 gsPageTextMap.get(result.pageNumber) ?? '',
                 result.rectangleCount,
+                textExtractionMethod,
             );
             const floorLabel = extractFloorLabel(ocrData);
             const floorKey = getFloorFolderName(floorLabel);

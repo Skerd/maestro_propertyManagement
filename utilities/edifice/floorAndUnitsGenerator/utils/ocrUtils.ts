@@ -3,7 +3,7 @@ import path from 'path';
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
 import {ensureDir, slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
-import type {CropResult, ExtractedImageOcrData, PageType} from '../types';
+import type {CropResult, ExtractedImageOcrData, PageType, TextExtractionMethod} from '../types';
 
 /**
  * Classifies page type as 'floor' or 'unit'.
@@ -411,6 +411,7 @@ export async function extractPdfTextData(
     timer: PerformanceTimer,
     extractedText: string,
     rectangleCount?: number,
+    extractionMethod: TextExtractionMethod = 'ghostscript',
 ): Promise<ExtractedImageOcrData> {
     return await timer.timeAsync('extractPdfTextData', async () => {
         const logger = getLogger("extract_pdf_text", parentLogger);
@@ -435,7 +436,7 @@ export async function extractPdfTextData(
                         verandaArea: data.verandaArea,
                         confidence: data.confidence,
                         rawTextLength: data.rawText.length,
-                        metadata: {extractionMethod: 'ghostscript', ...(data.metadata ?? {})}
+                        metadata: {extractionMethod, ...(data.metadata ?? {})}
                     },
                     null,
                     2
@@ -446,7 +447,6 @@ export async function extractPdfTextData(
         };
 
         const parsedData = parseFloorPlanDataSimple(extractedText, logger);
-        const confidence = calculateConfidenceSimple(parsedData, extractedText.length);
 
         let ocrData: ExtractedImageOcrData = {
             name: parsedData.name,
@@ -455,10 +455,23 @@ export async function extractPdfTextData(
             totalArea: parsedData.totalArea,
             verandaArea: parsedData.verandaArea,
             rawText: extractedText,
-            confidence,
-            metadata: { extractionMethod: 'ghostscript' }
+            confidence: 0,
+            metadata: { extractionMethod }
         };
         ocrData.type = classifyPageType(ocrData, pageNumber, rectangleCount);
+
+        // The page-header fallback ("PLANIMETRI E APARTAMENTIT …") is a reasonable
+        // descriptive label for a floor master, but on a unit page it masquerades as
+        // a unit name and becomes the unit's summary key and folder slug. When the
+        // text never yielded a real "APARTAMENTI <id> KATI <n>", say so instead.
+        if (ocrData.type === 'unit' && parsedData.nameSource !== 'unit-pattern') {
+            logger.warn(
+                `Page ${pageNumber}: no unit title found in extracted text ` +
+                `(${extractionMethod}); falling back to 'Unknown Unit' instead of the page header.`
+            );
+            ocrData.name = 'Unknown Unit';
+        }
+        ocrData.confidence = calculateConfidenceSimple(ocrData, extractedText.length);
 
         writePageOcrArtifacts(ocrData);
 
@@ -544,6 +557,14 @@ function extractAlbanianApartmentNameFromText(text: string, logger?: serverLogge
 }
 
 /**
+ * Where `parseFloorPlanDataSimple` got its name from:
+ *   'unit-pattern'    — a real "APARTAMENTI <id> KATI <n>" (or inline id+KATI) title
+ *   'header-fallback' — first substantial line of the page, a descriptive label only
+ *   'none'            — nothing usable in the text
+ */
+type NameSource = 'unit-pattern' | 'header-fallback' | 'none';
+
+/**
  * Simple parser for floor plan data (no image extraction, just text parsing)
  */
 function parseFloorPlanDataSimple(
@@ -551,6 +572,7 @@ function parseFloorPlanDataSimple(
     logger?: serverLogger
 ): {
     name: string;
+    nameSource: NameSource;
     netArea: number;
     sharedArea: number;
     totalArea: number;
@@ -558,10 +580,12 @@ function parseFloorPlanDataSimple(
 } {
     // Extract name - handle both OCR and Ghostscript formats
     let name = 'Unknown Unit';
+    let nameSource: NameSource = 'none';
     if (text && text.trim().length > 0) {
         const albanianName = extractAlbanianApartmentNameFromText(text, logger);
         if (albanianName) {
             name = albanianName;
+            nameSource = 'unit-pattern';
         }
 
         if (name === 'Unknown Unit') {
@@ -570,6 +594,7 @@ function parseFloorPlanDataSimple(
             const looseLine = /([A-Z]?[-]?\d+)[_\s]+KATI\s+(-?\d+)/i.exec(normalizedText);
             if (looseLine?.[1] != null && looseLine[2] != null) {
                 name = formatAlbanianUnitDisplayName(looseLine[1], looseLine[2]);
+                nameSource = 'unit-pattern';
                 logger?.debug(`Extracted name from inline id+KATI: ${name}`);
             }
         }
@@ -582,6 +607,7 @@ function parseFloorPlanDataSimple(
                     const match = line.match(/([A-Z]?[-]?\d+)[_\s]+KATI\s+(-?\d+)/i);
                     if (match && match[1] && match[2]) {
                         name = formatAlbanianUnitDisplayName(match[1], match[2]);
+                        nameSource = 'unit-pattern';
                         logger?.debug(`Extracted name from line: ${name}`);
                         break;
                     }
@@ -593,6 +619,7 @@ function parseFloorPlanDataSimple(
                 const firstLine = lines.find(l => l.length >= 2 && l.length < 100 && !/^\d+[\s\d]*$/.test(l));
                 if (firstLine) {
                     name = firstLine;
+                    nameSource = 'header-fallback';
                 }
             }
         }
@@ -607,7 +634,7 @@ function parseFloorPlanDataSimple(
 
     const finalTotalArea = totalArea > 0 ? totalArea : (netArea + sharedArea > 0 ? netArea + sharedArea : 0);
 
-    return { name, netArea, sharedArea, totalArea: finalTotalArea, verandaArea };
+    return { name, nameSource, netArea, sharedArea, totalArea: finalTotalArea, verandaArea };
 }
 
 /**
@@ -680,12 +707,16 @@ function extractAreaSimple(text: string, labelPattern: RegExp, logger?: serverLo
     return 0;
 }
 
-function calculateConfidenceSimple(parsedData: {name: string; netArea: number; sharedArea: number; totalArea: number}, textLength: number): number {
+/**
+ * Scores the finalised page data (i.e. after any unit-title fallback has been
+ * rejected), so a page that lost its name cannot still report 100.
+ */
+function calculateConfidenceSimple(pageData: {name: string; netArea: number; sharedArea: number; totalArea: number}, textLength: number): number {
     let confidence = 0;
-    if (parsedData.name !== 'Unknown Unit') confidence += 20;
-    if (parsedData.netArea > 0) confidence += 25;
-    if (parsedData.sharedArea > 0) confidence += 15;
-    if (parsedData.totalArea > 0) confidence += 20;
+    if (pageData.name !== 'Unknown Unit') confidence += 20;
+    if (pageData.netArea > 0) confidence += 25;
+    if (pageData.sharedArea > 0) confidence += 15;
+    if (pageData.totalArea > 0) confidence += 20;
     if (textLength > 100) confidence += 20;
     return Math.min(100, confidence);
 }

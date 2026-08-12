@@ -28,6 +28,7 @@ import {overlayPolygonsOnImage} from '@propertyManagement/utilities/edifice/floo
 import {
     alignUnitHighlight,
     beginFloorAlign,
+    groupBySchematicSize,
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/orbHomographyAlign';
 import type {OcrSummary, PageImageResult} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types';
 import {
@@ -207,7 +208,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
         logger.warn(`No floor plan found for ${floorKey} (${floorData.floor}) — polygon extraction will be skipped for this floor`);
     }
 
-    // ORB + homography once per floor; fast polygon extract+composite per unit.
+    // ORB + homography once per (floor, schematic size); fast polygon extract+composite per unit.
     logger.debug('Aligning unit floor plans via ORB homography and extracting highlight polygons...');
     for (const [floorKey, floorData] of Object.entries(ocrSummary.floors)) {
         const floorMasterPlanPath = path.join(outputRoot, 'floors', floorKey, 'floor-plan.png');
@@ -244,56 +245,72 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
             continue;
         }
 
-        let session: Awaited<ReturnType<typeof beginFloorAlign>> | undefined;
-        try {
-            session = await beginFloorAlign(floorMasterPlanPath, unitJobs[0].floorPlanPath);
+        // Unit pages within one floor are not guaranteed to share a paper size
+        // (Dyeus_Album mixes A4 and A3), and the thumbnail scales with the page.
+        // The homography bakes in its reference schematic's scale, so reusing an
+        // A4-fitted matrix on an A3 thumbnail throws the polygon off the master.
+        // One session per distinct thumbnail size.
+        const sizeGroups = await groupBySchematicSize(unitJobs, (job) => job.floorPlanPath);
+        if (sizeGroups.length > 1) {
             logger.debug(
-                `ORB homography ready for ${floorKey}: inliers=${session.inliers}, ` +
-                `master ${session.width}×${session.height}, units=${unitJobs.length}`
+                `${floorKey}: unit schematics span ${sizeGroups.length} sizes ` +
+                `(${sizeGroups.map((g) => `${g.width}×${g.height}×${g.jobs.length}u`).join(', ')}) — ` +
+                `fitting one homography per size`
             );
+        }
 
-            for (const job of unitJobs) {
-                try {
-                    const highlightPath = path.join(job.outDir, 'orb-homography-highlight.png');
-                    const {polygons, allPolygons, allPolygonAreas} = await alignUnitHighlight(
-                        session,
-                        job.floorPlanPath,
-                        highlightPath,
-                        {polygonJsonPath: path.join(job.outDir, 'orb-homography-polygon.json')},
-                    );
+        for (const group of sizeGroups) {
+            let session: Awaited<ReturnType<typeof beginFloorAlign>> | undefined;
+            try {
+                session = await beginFloorAlign(floorMasterPlanPath, group.jobs[0].floorPlanPath);
+                logger.debug(
+                    `ORB homography ready for ${floorKey} [${group.width}×${group.height}]: inliers=${session.inliers}, ` +
+                    `master ${session.width}×${session.height}, units=${group.jobs.length}`
+                );
 
-                    if (polygons.length > 0) {
-                        job.unitSummary.polygonCoordinates = polygons;
-                        logger.debug(
-                            `Unit highlight OK for ${job.unitName}: ${polygons.length} pts → ${highlightPath}`
+                for (const job of group.jobs) {
+                    try {
+                        const highlightPath = path.join(job.outDir, 'orb-homography-highlight.png');
+                        const {polygons, allPolygons, allPolygonAreas} = await alignUnitHighlight(
+                            session,
+                            job.floorPlanPath,
+                            highlightPath,
+                            {polygonJsonPath: path.join(job.outDir, 'orb-homography-polygon.json')},
                         );
 
-                        try {
-                            await overlayPolygonsOnImage(
-                                floorMasterPlanPath,
-                                path.join(job.outDir, 'orb-homography-polygons.png'),
-                                allPolygons,
-                                allPolygonAreas,
-                                logger,
-                                timer,
+                        if (polygons.length > 0) {
+                            job.unitSummary.polygonCoordinates = polygons;
+                            logger.debug(
+                                `Unit highlight OK for ${job.unitName}: ${polygons.length} pts → ${highlightPath}`
                             );
-                        } catch (overlayError) {
-                            const overlayMessage = overlayError instanceof Error ? overlayError.message : String(overlayError);
-                            logger.warn(`Failed polygon overlay for ${job.unitName}: ${overlayMessage}`);
+
+                            try {
+                                await overlayPolygonsOnImage(
+                                    floorMasterPlanPath,
+                                    path.join(job.outDir, 'orb-homography-polygons.png'),
+                                    allPolygons,
+                                    allPolygonAreas,
+                                    logger,
+                                    timer,
+                                );
+                            } catch (overlayError) {
+                                const overlayMessage = overlayError instanceof Error ? overlayError.message : String(overlayError);
+                                logger.warn(`Failed polygon overlay for ${job.unitName}: ${overlayMessage}`);
+                            }
+                        } else {
+                            logger.warn(`No teal highlight polygon for ${job.unitName}`);
                         }
-                    } else {
-                        logger.warn(`No teal highlight polygon for ${job.unitName}`);
+                    } catch (error) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        logger.warn(`Failed unit highlight for ${job.unitName}: ${message}`);
                     }
-                } catch (error) {
-                    const message = error instanceof Error ? error.message : String(error);
-                    logger.warn(`Failed unit highlight for ${job.unitName}: ${message}`);
                 }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                logger.warn(`Failed ORB homography for floor ${floorKey} [${group.width}×${group.height}]: ${message}`);
+            } finally {
+                session?.dispose();
             }
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            logger.warn(`Failed ORB homography for floor ${floorKey}: ${message}`);
-        } finally {
-            session?.dispose();
         }
     }
     logger.debug('Finished ORB homography highlight polygon extraction.');

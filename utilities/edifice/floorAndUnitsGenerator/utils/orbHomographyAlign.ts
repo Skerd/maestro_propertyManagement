@@ -1,9 +1,11 @@
 /**
  * Batch-align unit schematics onto a floor master plan.
  *
- * For each floor, the alignment (detailed <-> schematic) is computed ONCE
- * from the first unit's schematic and reused for every other unit on that
- * floor — this is the expensive step (feature matching + homography).
+ * For each floor, the alignment (detailed <-> schematic) is computed once per
+ * distinct schematic size and reused for every unit sharing that size — this is
+ * the expensive step (feature matching + homography). Grouping matters because a
+ * floor's unit pages may mix paper sizes, which scales their schematics; the
+ * homography is only valid at the scale it was fitted for.
  *
  * For each unit, the highlighted region is extracted as a polygon (contour +
  * approxPolyDP + perspectiveTransform on a handful of points) and composited
@@ -20,6 +22,16 @@ import path from "path";
 import type {PolygonPoint} from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types";
 
 export type Point = { x: number; y: number };
+
+/**
+ * Max relative difference in schematic dimensions still considered "the same
+ * framing". Crop bounds come from per-page line detection, so sibling pages of
+ * identical paper size still vary by a pixel or two (999 vs 1002 px wide).
+ */
+const SCHEMATIC_SIZE_TOLERANCE = 0.02;
+
+/** How far outside the master a mapped polygon may stray before it is rejected. */
+const POLYGON_BOUNDS_MARGIN = 0.02;
 
 // ---- IO helpers -----------------------------------------------------
 
@@ -274,12 +286,71 @@ function polygonAreaPx(points: Point[]): number {
   return Math.abs(area) / 2;
 }
 
+/**
+ * The homography bakes in the reference schematic's scale
+ * (`scale = schematic.cols / detailedFull.cols`), so it is only valid for
+ * schematics framed like the one it was fitted against. Feeding it a thumbnail
+ * cropped from a differently-sized PDF page silently lands the polygon far from
+ * the real unit, so refuse rather than emit a plausible-looking wrong answer.
+ */
+function assertSchematicMatchesSession(
+  schematic: InstanceType<typeof cv.Mat>,
+  session: FloorAlignSession,
+  schematicPath: string
+): void {
+  const dw = Math.abs(schematic.cols - session.schematicWidth) / session.schematicWidth;
+  const dh = Math.abs(schematic.rows - session.schematicHeight) / session.schematicHeight;
+  if (dw > SCHEMATIC_SIZE_TOLERANCE || dh > SCHEMATIC_SIZE_TOLERANCE) {
+    throw new Error(
+      `Schematic ${path.basename(schematicPath)} is ${schematic.cols}x${schematic.rows}, but the ` +
+      `homography was fitted on ${session.schematicWidth}x${session.schematicHeight}. ` +
+      `Align it with a session built from a same-sized schematic.`
+    );
+  }
+}
+
+/**
+ * Backstop for a homography gone wild (a degenerate RANSAC fit, say) that the
+ * size check cannot see: a polygon landing off the master is unambiguously
+ * wrong, whatever its shape. Deliberately geometric — unit sizes vary far too
+ * much between buildings to threshold on area.
+ */
+function assertPlausiblePolygon(polygon: Point[], masterWidth: number, masterHeight: number): void {
+  if (polygon.length < 3) {
+    throw new Error(`Highlight polygon has only ${polygon.length} vertices.`);
+  }
+
+  const xs = polygon.map((p) => p.x);
+  const ys = polygon.map((p) => p.y);
+  const marginX = masterWidth * POLYGON_BOUNDS_MARGIN;
+  const marginY = masterHeight * POLYGON_BOUNDS_MARGIN;
+  if (
+    Math.min(...xs) < -marginX ||
+    Math.min(...ys) < -marginY ||
+    Math.max(...xs) > masterWidth + marginX ||
+    Math.max(...ys) > masterHeight + marginY
+  ) {
+    throw new Error(
+      `Highlight polygon falls outside the master plan ` +
+      `(x ${Math.round(Math.min(...xs))}..${Math.round(Math.max(...xs))}, ` +
+      `y ${Math.round(Math.min(...ys))}..${Math.round(Math.max(...ys))} vs ${masterWidth}x${masterHeight}).`
+    );
+  }
+}
+
 // ---- Public API -----------------------------------------------------------
 
 export type FloorAlignSession = {
   inliers: number;
   width: number;
   height: number;
+  /**
+   * Size of the schematic the homography was fitted against. Only schematics
+   * of this size (within {@link SCHEMATIC_SIZE_TOLERANCE}) may be aligned with
+   * this session — see {@link groupBySchematicSize}.
+   */
+  schematicWidth: number;
+  schematicHeight: number;
   /** Release OpenCV mats held by this session. */
   dispose: () => void;
 };
@@ -290,8 +361,9 @@ type FloorAlignInternal = FloorAlignSession & {
 };
 
 /**
- * Load master + compute homography from the first unit schematic.
- * Call once per floor, then {@link alignUnitHighlight} for each unit.
+ * Load master + compute homography from a reference unit schematic.
+ * Call once per {@link groupBySchematicSize} group, then
+ * {@link alignUnitHighlight} for each unit in that group.
  */
 export async function beginFloorAlign(
   detailedPath: string,
@@ -301,13 +373,25 @@ export async function beginFloorAlign(
 
   const detailed = await loadMatRGBA(detailedPath);
   const firstSchematic = await loadMatRGBA(firstSchematicPath);
-  const { H_full_inv, inliers } = computeHomography(detailed, firstSchematic);
-  firstSchematic.delete();
+  const schematicWidth = firstSchematic.cols;
+  const schematicHeight = firstSchematic.rows;
+  let H_full_inv: InstanceType<typeof cv.Mat>;
+  let inliers: number;
+  try {
+    ({ H_full_inv, inliers } = computeHomography(detailed, firstSchematic));
+  } catch (error) {
+    detailed.delete();
+    throw error;
+  } finally {
+    firstSchematic.delete();
+  }
 
   const session: FloorAlignInternal = {
     inliers,
     width: detailed.cols,
     height: detailed.rows,
+    schematicWidth,
+    schematicHeight,
     detailed,
     H_full_inv,
     dispose: () => {
@@ -316,6 +400,48 @@ export async function beginFloorAlign(
     },
   };
   return session;
+}
+
+/**
+ * Bucket unit jobs by the pixel size of their schematic thumbnail.
+ *
+ * A floor's unit pages are not guaranteed to share a paper size — Dyeus_Album
+ * mixes A4 and A3 within one floor — and the thumbnail scales with the page, so
+ * one homography cannot serve all of them. Build a session per bucket.
+ */
+export async function groupBySchematicSize<T>(
+  jobs: T[],
+  getSchematicPath: (job: T) => string,
+  tolerance: number = SCHEMATIC_SIZE_TOLERANCE
+): Promise<Array<{ width: number; height: number; jobs: T[] }>> {
+  const groups: Array<{ width: number; height: number; jobs: T[] }> = [];
+
+  for (const job of jobs) {
+    let width = 0;
+    let height = 0;
+    try {
+      const meta = await sharp(getSchematicPath(job)).metadata();
+      width = meta.width ?? 0;
+      height = meta.height ?? 0;
+    } catch {
+      // Unreadable schematic: give it its own bucket so it fails in isolation
+      // rather than poisoning a good group's reference.
+    }
+
+    const match = groups.find(
+      (g) =>
+        width > 0 &&
+        Math.abs(g.width - width) / g.width <= tolerance &&
+        Math.abs(g.height - height) / g.height <= tolerance
+    );
+    if (match) {
+      match.jobs.push(job);
+    } else {
+      groups.push({ width, height, jobs: [job] });
+    }
+  }
+
+  return groups;
 }
 
 export type AlignUnitResult = {
@@ -346,20 +472,29 @@ export async function alignUnitHighlight(
   const color = opts.highlightColorRGBA ?? ([77, 131, 134, 255] as [number, number, number, number]);
 
   const schematic = await loadMatRGBA(schematicPath);
-  const mask = isolateTealMask(schematic);
-  const pixelPolygon = extractPolygon(mask, internal.H_full_inv);
-  const result = compositePolygonHighlight(internal.detailed, pixelPolygon, color, alpha);
+  let mask: InstanceType<typeof cv.Mat> | undefined;
+  let result: InstanceType<typeof cv.Mat> | undefined;
+  let pixelPolygon: Point[];
 
-  await saveMatRGBA(result, outputPath);
+  try {
+    assertSchematicMatchesSession(schematic, session, schematicPath);
+    mask = isolateTealMask(schematic);
+    pixelPolygon = extractPolygon(mask, internal.H_full_inv);
+    // Validate before compositing so a bad mapping never reaches disk.
+    assertPlausiblePolygon(pixelPolygon, session.width, session.height);
+    result = compositePolygonHighlight(internal.detailed, pixelPolygon, color, alpha);
 
-  if (opts.polygonJsonPath) {
-    fs.writeFileSync(
-      opts.polygonJsonPath,
-      JSON.stringify({ points: pixelPolygon }, null, 2)
-    );
+    await saveMatRGBA(result, outputPath);
+
+    if (opts.polygonJsonPath) {
+      fs.writeFileSync(
+        opts.polygonJsonPath,
+        JSON.stringify({ points: pixelPolygon }, null, 2)
+      );
+    }
+  } finally {
+    [schematic, mask, result].forEach((m) => m?.delete());
   }
-
-  [schematic, mask, result].forEach((m) => m.delete());
 
   const fractional = toFractional(pixelPolygon, session.width, session.height);
   const area = polygonAreaPx(pixelPolygon);
@@ -403,21 +538,27 @@ export async function processFloorsRoot(floorsRoot: string, outRoot: string): Pr
     const outDir = path.join(outRoot, floorName);
     fs.mkdirSync(outDir, { recursive: true });
 
-    const session = await beginFloorAlign(
-      detailedPath,
-      path.join(unitsDir, unitNames[0], "floor-plan.png")
+    const groups = await groupBySchematicSize(unitNames, (unitName) =>
+      path.join(unitsDir, unitName, "floor-plan.png")
     );
-    try {
-      for (const unitName of unitNames) {
-        await alignUnitHighlight(
-          session,
-          path.join(unitsDir, unitName, "floor-plan.png"),
-          path.join(outDir, `${unitName}.png`),
-          { polygonJsonPath: path.join(outDir, `${unitName}.polygon.json`) }
-        );
+
+    for (const group of groups) {
+      const session = await beginFloorAlign(
+        detailedPath,
+        path.join(unitsDir, group.jobs[0], "floor-plan.png")
+      );
+      try {
+        for (const unitName of group.jobs) {
+          await alignUnitHighlight(
+            session,
+            path.join(unitsDir, unitName, "floor-plan.png"),
+            path.join(outDir, `${unitName}.png`),
+            { polygonJsonPath: path.join(outDir, `${unitName}.polygon.json`) }
+          );
+        }
+      } finally {
+        session.dispose();
       }
-    } finally {
-      session.dispose();
     }
   }
 }

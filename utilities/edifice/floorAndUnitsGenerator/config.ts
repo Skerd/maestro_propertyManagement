@@ -9,7 +9,7 @@ export const config = {
     CROP_EDGE_INSET_PX: 4, // Pixels shaved from each side of rectangle crops after padding (0 = no inset)
     DETAIL_PDF_PAGES_DPI: 300, // Ghostscript `-r` for crop re-export.
     CROP_PADDING: 0,
-    LINE_INK_THRESHOLD: 236, // darkens faded lines
+    LINE_INK_THRESHOLD: 100, // darkens faded lines
 
     // rectangle processing
     RECT_MIN_WIDTH_RATIO: 0.20,         // minimum width of a rectangle

@@ -1,7 +1,7 @@
 export const config = {
 
     // batch turning PDF pages to images
-    BATCH_PDF_PAGES_TO_IMAGES: 2, // how many pages of the PDF are turned into images in one go
+    BATCH_PDF_PAGES_TO_IMAGES: 200, // how many pages of the PDF are turned into images in one go
     BATCH_PDF_PAGES_DPI: 100, // how good the quality of the PDF page is when batch turned into image
 
     // image processing
@@ -9,6 +9,7 @@ export const config = {
     CROP_EDGE_INSET_PX: 4, // Pixels shaved from each side of rectangle crops after padding (0 = no inset)
     DETAIL_PDF_PAGES_DPI: 300, // Ghostscript `-r` for crop re-export.
     CROP_PADDING: 0,
+    LINE_INK_THRESHOLD: 236, // darkens faded lines
 
     // rectangle processing
     RECT_MIN_WIDTH_RATIO: 0.20,         // minimum width of a rectangle

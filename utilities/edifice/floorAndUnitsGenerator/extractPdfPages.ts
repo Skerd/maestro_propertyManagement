@@ -15,6 +15,7 @@ import {
 import {
     batchExtractTextSpansWithGhostscript,
     filterTextSpansOutsideRectangles,
+    formatTextSpansAsPageText,
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/pdfTextBboxFilterUtils';
 import {
     classifyPageType,
@@ -89,7 +90,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
             const spans = spanMap.get(page) ?? [];
             const pageResult = resultByPage.get(page);
             if (!pageResult || !pageResult.excludeRectangles?.length) {
-                gsPageTextMap.set(page, spans.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim());
+                gsPageTextMap.set(page, formatTextSpansAsPageText(spans));
                 continue;
             }
             const filtered = filterTextSpansOutsideRectangles(spans, {

@@ -32,23 +32,38 @@ function contains(outer: Rectangle, inner: Rectangle, tolerance: number = config
 }
 
 /**
- * Removes rectangles that are nested inside a larger rectangle.
- * Prefers the outer frame (e.g. the full plan panel) over a tighter inner outline.
+ * A nested rectangle is only a redundant re-tracing of its container when it fills
+ * almost all of it — a panel drawn with a double border, where the two outlines sit
+ * a few pixels apart. Anything appreciably smaller is a real sub-panel.
+ */
+const REDUNDANT_NESTED_AREA_RATIO = 0.9;
+
+/**
+ * Removes rectangles that merely re-trace a larger one, e.g. the inner line of a
+ * double-stroked panel border.
+ *
+ * Genuine sub-panels are kept. Some brochures draw a frame around a whole column and
+ * divide it into stacked panels (GARDA_TOWER wraps the position thumbnail, the
+ * elevation/render row and the areas table in one border); dropping every nested
+ * rectangle collapsed that column to a single box, which both handed ORB a composite
+ * image instead of the floor thumbnail and pulled the areas table into the
+ * text-exclusion zone, zeroing the unit's SIPERFAQE values.
  */
 function removeContainedRectangles(rectangles: Rectangle[]): Rectangle[] {
     if (rectangles.length === 0) {
         return [];
     }
 
+    const area = (rect: Rectangle): number => Math.max(1, rect.width * rect.height);
+
     return rectangles.filter((rect) => {
-        const isContainedByOther = rectangles.some((other) => {
+        const isRedundantCopyOfOther = rectangles.some((other) => {
             if (rect === other) {
                 return false;
             }
-            return contains(other, rect);
+            return contains(other, rect) && area(rect) / area(other) >= REDUNDANT_NESTED_AREA_RATIO;
         });
-        // Keep only rectangles that are not inside another detected rectangle
-        return !isContainedByOther;
+        return !isRedundantCopyOfOther;
     });
 }
 

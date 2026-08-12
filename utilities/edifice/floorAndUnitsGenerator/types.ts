@@ -83,7 +83,12 @@ export type Rectangle = {
     centerY: number;
 };
 
-export type PageType = 'floor' | 'unit';
+/**
+ * 'other' is a page the layout heuristics called a floor or a unit but whose text
+ * carries no evidence for it — cover renders, site-position and site-layout pages.
+ * Those pages are excluded from the summary rather than becoming phantom floors.
+ */
+export type PageType = 'floor' | 'unit' | 'other';
 export type TextExtractionMethod = 'poppler' | 'ghostscript';
 
 export interface ExtractedImageOcrData {

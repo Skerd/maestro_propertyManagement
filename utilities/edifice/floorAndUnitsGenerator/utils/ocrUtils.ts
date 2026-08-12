@@ -402,6 +402,41 @@ export function ensureFloorPlanPlaceholders(
 }
 
 /**
+ * Typical unit areas sit well under this; anything larger is a dimension string
+ * ("2250") that leaked out of a plan panel rather than a real area.
+ */
+const MAX_PLAUSIBLE_AREA_M2 = 500;
+
+/**
+ * Checks that a page's text actually supports the floor/unit label the layout
+ * heuristics gave it.
+ *
+ * @returns null when the classification is corroborated, otherwise a short reason
+ *          describing what was missing (suitable for a log line).
+ */
+function pageClassificationEvidence(
+    data: ExtractedImageOcrData,
+    nameSource: NameSource,
+): string | null {
+    if (data.type === 'floor') {
+        return extractFloorLabel(data) === 'Unknown Floor'
+            ? 'its text names no floor (no "KATI <n>" / "Floor <n>")'
+            : null;
+    }
+
+    if (data.type === 'unit') {
+        if (nameSource === 'unit-pattern') return null;
+        // A unit page whose title failed to extract is still a unit if it reports a
+        // credible area, so real units are not dropped over a missed title.
+        const hasPlausibleArea = [data.netArea, data.sharedArea, data.totalArea]
+            .some((area) => area > 0 && area < MAX_PLAUSIBLE_AREA_M2);
+        return hasPlausibleArea ? null : 'its text names no unit and reports no plausible area';
+    }
+
+    return null;
+}
+
+/**
  * Parses structured floor/unit fields from batch Ghostscript page text.
  */
 export async function extractPdfTextData(
@@ -460,6 +495,19 @@ export async function extractPdfTextData(
         };
         ocrData.type = classifyPageType(ocrData, pageNumber, rectangleCount);
 
+        // An explicit "APARTAMENTI <id> KATI <n>" title is the one unambiguous unit
+        // fingerprint, so it outranks the rectangle count. A unit page whose floor
+        // thumbnail went undetected yields a single rectangle and would otherwise be
+        // read as a floor master — ARIA_GODINA_D pages 5 and 6 do exactly that, which
+        // both loses the units and puts a unit page forward as the floor's master plan.
+        if (ocrData.type === 'floor' && parsedData.nameSource === 'unit-pattern') {
+            logger.debug(
+                `Page ${pageNumber}: layout suggested a floor, but the text names unit ` +
+                `'${ocrData.name}' — treating it as a unit.`
+            );
+            ocrData.type = 'unit';
+        }
+
         // The page-header fallback ("PLANIMETRI E APARTAMENTIT …") is a reasonable
         // descriptive label for a floor master, but on a unit page it masquerades as
         // a unit name and becomes the unit's summary key and folder slug. When the
@@ -471,6 +519,25 @@ export async function extractPdfTextData(
             );
             ocrData.name = 'Unknown Unit';
         }
+
+        // Corroborate the layout heuristic against the page text. Brochures open with
+        // cover renders and site-position/site-layout drawings whose rectangles look
+        // exactly like a plan panel, so classifyPageType happily calls them floors —
+        // ARIA_GODINA_D pages 1-2 and ARIA_GODINA_A pages 1-2 all do this, and each one
+        // manufactures a phantom "Unknown Floor" that can then collide with a real
+        // level-0 floor on import. A page only counts as a floor if its text names a
+        // floor, and as a unit if it names a unit or reports a plausible area.
+        if (ocrData.type !== 'other') {
+            const reason = pageClassificationEvidence(ocrData, parsedData.nameSource);
+            if (reason) {
+                logger.debug(
+                    `Page ${pageNumber}: classified '${ocrData.type}' by layout but ${reason}; ` +
+                    `treating as a non-plan page and excluding it.`
+                );
+                ocrData.type = 'other';
+            }
+        }
+
         ocrData.confidence = calculateConfidenceSimple(ocrData, extractedText.length);
 
         writePageOcrArtifacts(ocrData);

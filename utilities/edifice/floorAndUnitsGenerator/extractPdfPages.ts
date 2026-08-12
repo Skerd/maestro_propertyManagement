@@ -122,6 +122,10 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
     }
 
 
+    // Pages the text gave no reason to treat as a floor or a unit; reported once at
+    // the end so an album full of covers/renders is obvious rather than silent.
+    const nonPlanPages: number[] = [];
+
     // Process results for text extraction summary
     for (const result of results) {
         try {
@@ -140,6 +144,14 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
             const floorKey = getFloorFolderName(floorLabel);
             const pageType = ocrData.type ?? classifyPageType(ocrData, result.pageNumber, result.rectangleCount);
             logger.debug(`Page ${result.pageNumber}: rectangleCount=${result.rectangleCount} → classified as '${pageType}' (floor=${floorLabel})`);
+
+            // Cover renders and site-layout pages: nothing in the text backs a floor or
+            // unit reading. Skipped before touching the summary, so they cannot create a
+            // floor key of their own or contribute images to one.
+            if (pageType === 'other') {
+                nonPlanPages.push(result.pageNumber);
+                continue;
+            }
 
             if (!ocrSummary.floors[floorKey]) {
                 ocrSummary.floors[floorKey] = {
@@ -184,6 +196,13 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
     }
 
     logger.debug("Finished extracting images.");
+
+    if (nonPlanPages.length > 0) {
+        logger.debug(
+            `Excluded ${nonPlanPages.length} non-plan page(s) with no floor/unit evidence in their text: ` +
+            `${nonPlanPages.join(', ')}`
+        );
+    }
 
     // For each floor missing a master plan, try the DB callback — no placeholder fallback.
     for (const [floorKey, floorData] of Object.entries(ocrSummary.floors)) {

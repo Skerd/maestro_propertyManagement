@@ -24,7 +24,10 @@ import {
     organizeImages,
 } from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/ocrUtils';
 import {overlayPolygonsOnImage} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/polygonExtraction';
-import {alignAndHighlight} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/orbHomographyAlign';
+import {
+    alignUnitHighlight,
+    beginFloorAlign,
+} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/orbHomographyAlign';
 import type {OcrSummary, PageImageResult} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types';
 import {
     batchExtractTextWithGhostscript
@@ -202,7 +205,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
         logger.warn(`No floor plan found for ${floorKey} (${floorData.floor}) — polygon extraction will be skipped for this floor`);
     }
 
-    // ORB + homography: warp unit teal highlight onto floor master, extract polygons (master fractional coords).
+    // ORB + homography once per floor; fast polygon extract+composite per unit.
     logger.debug('Aligning unit floor plans via ORB homography and extracting highlight polygons...');
     for (const [floorKey, floorData] of Object.entries(ocrSummary.floors)) {
         const floorMasterPlanPath = path.join(outputRoot, 'floors', floorKey, 'floor-plan.png');
@@ -211,39 +214,62 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
             continue;
         }
 
+        const unitJobs: Array<{
+            unitName: string;
+            unitSummary: (typeof floorData.units)[string][number];
+            unitSlug: string;
+            floorPlanPath: string;
+            outDir: string;
+        }> = [];
+
         for (const [unitName, unitSummaries] of Object.entries(floorData.units)) {
             for (const unitSummary of unitSummaries) {
+                const unitSlug = slugifyLabel(unitName);
+                const unitFolder = path.join(outputRoot, 'floors', floorKey, 'units', unitSlug);
+                const floorPlanPath = path.join(unitFolder, 'floor-plan.png');
+                if (!fs.existsSync(floorPlanPath)) {
+                    logger.warn(`Floor plan thumbnail not found at ${floorPlanPath} for unit ${unitName}`);
+                    continue;
+                }
+                const outDir = path.join(unitFolder, 'new');
+                ensureDir(outDir, logger);
+                unitJobs.push({unitName, unitSummary, unitSlug, floorPlanPath, outDir});
+            }
+        }
+
+        if (unitJobs.length === 0) {
+            logger.warn(`No unit schematics for ${floorKey}; skipping homography`);
+            continue;
+        }
+
+        let session: Awaited<ReturnType<typeof beginFloorAlign>> | undefined;
+        try {
+            session = await beginFloorAlign(floorMasterPlanPath, unitJobs[0].floorPlanPath);
+            logger.debug(
+                `ORB homography ready for ${floorKey}: inliers=${session.inliers}, ` +
+                `master ${session.width}×${session.height}, units=${unitJobs.length}`
+            );
+
+            for (const job of unitJobs) {
                 try {
-                    const unitSlug = slugifyLabel(unitName);
-                    const unitFolder = path.join(outputRoot, 'floors', floorKey, 'units', unitSlug);
-                    const floorPlanPath = path.join(unitFolder, 'floor-plan.png');
-
-                    if (!fs.existsSync(floorPlanPath)) {
-                        logger.warn(`Floor plan thumbnail not found at ${floorPlanPath} for unit ${unitName}`);
-                        continue;
-                    }
-
-                    const outDir = path.join(unitFolder, 'new');
-                    ensureDir(outDir, logger);
-                    const highlightPath = path.join(outDir, 'orb-homography-highlight.png');
-
-                    const {inliers, polygons, allPolygons, allPolygonAreas} = await alignAndHighlight(
-                        floorMasterPlanPath,
-                        floorPlanPath,
+                    const highlightPath = path.join(job.outDir, 'orb-homography-highlight.png');
+                    const {polygons, allPolygons, allPolygonAreas} = await alignUnitHighlight(
+                        session,
+                        job.floorPlanPath,
                         highlightPath,
+                        {polygonJsonPath: path.join(job.outDir, 'orb-homography-polygon.json')},
                     );
 
                     if (polygons.length > 0) {
-                        unitSummary.polygonCoordinates = polygons;
+                        job.unitSummary.polygonCoordinates = polygons;
                         logger.debug(
-                            `ORB homography OK for ${unitName}: inliers=${inliers}, ` +
-                            `unit polygon ${polygons.length} pts, ${allPolygons.length} region(s) → ${highlightPath}`
+                            `Unit highlight OK for ${job.unitName}: ${polygons.length} pts → ${highlightPath}`
                         );
 
                         try {
                             await overlayPolygonsOnImage(
                                 floorMasterPlanPath,
-                                path.join(outDir, 'orb-homography-polygons.png'),
+                                path.join(job.outDir, 'orb-homography-polygons.png'),
                                 allPolygons,
                                 allPolygonAreas,
                                 logger,
@@ -251,18 +277,21 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
                             );
                         } catch (overlayError) {
                             const overlayMessage = overlayError instanceof Error ? overlayError.message : String(overlayError);
-                            logger.warn(`Failed polygon overlay for ${unitName}: ${overlayMessage}`);
+                            logger.warn(`Failed polygon overlay for ${job.unitName}: ${overlayMessage}`);
                         }
                     } else {
-                        logger.warn(
-                            `ORB homography aligned (${inliers} inliers) but no teal highlight polygon for ${unitName}`
-                        );
+                        logger.warn(`No teal highlight polygon for ${job.unitName}`);
                     }
                 } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
-                    logger.warn(`Failed ORB homography / polygon extract for unit ${unitName}: ${message}`);
+                    logger.warn(`Failed unit highlight for ${job.unitName}: ${message}`);
                 }
             }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn(`Failed ORB homography for floor ${floorKey}: ${message}`);
+        } finally {
+            session?.dispose();
         }
     }
     logger.debug('Finished ORB homography highlight polygon extraction.');

@@ -1,20 +1,30 @@
 /**
- * Align two raster floor plans (e.g. a detailed plan and a simplified
- * schematic of the same floor) using shared grid-line features, then
- * project a highlighted region from the schematic onto the detailed plan
- * and extract that region's polygon in master-image coordinates.
+ * Batch-align unit schematics onto a floor master plan.
+ *
+ * For each floor, the alignment (detailed <-> schematic) is computed ONCE
+ * from the first unit's schematic and reused for every other unit on that
+ * floor — this is the expensive step (feature matching + homography).
+ *
+ * For each unit, the highlighted region is extracted as a polygon (contour +
+ * approxPolyDP + perspectiveTransform on a handful of points) and composited
+ * onto the detailed plan by rasterizing that polygon into a small bounding-box
+ * crop — no full-image mask warp.
  *
  * Uses @techstark/opencv-js (as provided — not ported to opencv4nodejs).
  */
 
 import cv from "@techstark/opencv-js";
 import sharp from "sharp";
+import fs from "fs";
+import path from "path";
 import type {PolygonPoint} from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types";
+
+export type Point = { x: number; y: number };
 
 // ---- IO helpers -----------------------------------------------------
 
-async function loadMatRGBA(path: string): Promise<InstanceType<typeof cv.Mat>> {
-  const { data, info } = await sharp(path)
+async function loadMatRGBA(filePath: string): Promise<InstanceType<typeof cv.Mat>> {
+  const { data, info } = await sharp(filePath)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -24,16 +34,13 @@ async function loadMatRGBA(path: string): Promise<InstanceType<typeof cv.Mat>> {
   return mat;
 }
 
-async function saveMatRGBA(
-  mat: InstanceType<typeof cv.Mat>,
-  path: string
-): Promise<void> {
+async function saveMatRGBA(mat: InstanceType<typeof cv.Mat>, filePath: string): Promise<void> {
   const buffer = Buffer.from(mat.data);
   await sharp(buffer, {
     raw: { width: mat.cols, height: mat.rows, channels: 4 },
   })
     .png()
-    .toFile(path);
+    .toFile(filePath);
 }
 
 function waitForOpenCV(): Promise<void> {
@@ -43,26 +50,19 @@ function waitForOpenCV(): Promise<void> {
   });
 }
 
-// ---- Core alignment ---------------------------------------------------
+// ---- Per-floor setup (expensive — run once per floor) --------------------
 
-/**
- * Finds a homography mapping points in `detailedFull` -> points in
- * `schematic`, by matching features on a downscaled copy of `detailed`
- * (so both images are compared at similar resolution).
- */
+/** Returns H_full_inv: maps schematic-space points -> detailed-space points. */
 function computeHomography(
   detailedFull: InstanceType<typeof cv.Mat>,
   schematic: InstanceType<typeof cv.Mat>
-): { H_full: InstanceType<typeof cv.Mat>; inliers: number } {
+): { H_full_inv: InstanceType<typeof cv.Mat>; inliers: number } {
   const scale = schematic.cols / detailedFull.cols;
   const detailedSmall = new cv.Mat();
   cv.resize(
     detailedFull,
     detailedSmall,
-    new cv.Size(
-      Math.round(detailedFull.cols * scale),
-      Math.round(detailedFull.rows * scale)
-    ),
+    new cv.Size(Math.round(detailedFull.cols * scale), Math.round(detailedFull.rows * scale)),
     0,
     0,
     cv.INTER_AREA
@@ -74,8 +74,8 @@ function computeHomography(
   cv.cvtColor(schematic, gray2, cv.COLOR_RGBA2GRAY);
 
   // ORB is bundled in the standard opencv.js WASM build (unlike SIFT,
-  // which some builds omit). 3000 features gives enough density for a
-  // line-drawing like a floor plan.
+  // which some builds omit). Since this only runs once per floor, feel
+  // free to bump nFeatures if matches are sparse.
   const orb = new cv.ORB(3000);
   const kp1 = new cv.KeyPointVector();
   const kp2 = new cv.KeyPointVector();
@@ -104,9 +104,7 @@ function computeHomography(
   }
 
   if (srcPts.length < 8) {
-    throw new Error(
-      `Only found ${srcPts.length / 2} good matches — too few for a reliable homography.`
-    );
+    throw new Error(`Only found ${srcPts.length / 2} good matches — too few for a reliable homography.`);
   }
 
   const srcMat = cv.matFromArray(srcPts.length / 2, 1, cv.CV_32FC2, srcPts);
@@ -117,117 +115,23 @@ function computeHomography(
   let inliers = 0;
   for (let i = 0; i < mask.rows; i++) if (mask.data[i]) inliers++;
 
-  // H_small maps detailedSmall -> schematic. Compose with the scale
-  // matrix to get H_full: detailedFull -> schematic.
   const S = cv.matFromArray(3, 3, cv.CV_64F, [scale, 0, 0, 0, scale, 0, 0, 0, 1]);
   const H_full = new cv.Mat();
   cv.gemm(H_small, S, 1, new cv.Mat(), 0, H_full);
 
-  [detailedSmall, gray1, gray2, des1, des2, srcMat, dstMat, mask, H_small, S].forEach(
-    (m) => m.delete()
-  );
-
-  return { H_full, inliers };
-}
-
-/**
- * Contour the warped teal mask → polygons in fractional master coordinates.
- * Returns largest region first; drops tiny noise blobs.
- */
-function polygonsFromWarpedMask(
-  maskWarped: InstanceType<typeof cv.Mat>,
-  width: number,
-  height: number
-): { polygons: PolygonPoint[][]; areasPxSq: number[] } {
-  const binary = new cv.Mat();
-  cv.threshold(maskWarped, binary, 127, 255, cv.THRESH_BINARY);
-
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  cv.findContours(
-    binary,
-    contours,
-    hierarchy,
-    cv.RETR_EXTERNAL,
-    cv.CHAIN_APPROX_SIMPLE
-  );
-
-  const minArea = Math.max(64, (width * height) * 0.00005);
-  const scored: Array<{ points: PolygonPoint[]; area: number }> = [];
-
-  for (let i = 0; i < contours.size(); i++) {
-    const contour = contours.get(i);
-    const area = cv.contourArea(contour);
-    if (area < minArea) continue;
-
-    const peri = cv.arcLength(contour, true);
-    const approx = new cv.Mat();
-    cv.approxPolyDP(contour, approx, Math.max(2, 0.005 * peri), true);
-
-    const points: PolygonPoint[] = [];
-    // approx is N×1 CV_32SC2 → data32S [x0,y0,x1,y1,...]
-    const n = approx.rows;
-    for (let j = 0; j < n; j++) {
-      const x = approx.data32S[j * 2];
-      const y = approx.data32S[j * 2 + 1];
-      points.push({
-        x: Math.min(1, Math.max(0, x / width)),
-        y: Math.min(1, Math.max(0, y / height)),
-      });
-    }
-    approx.delete();
-
-    if (points.length >= 3) {
-      scored.push({ points, area });
-    }
-  }
-
-  contours.delete();
-  hierarchy.delete();
-  binary.delete();
-
-  scored.sort((a, b) => b.area - a.area);
-  return {
-    polygons: scored.map((s) => s.points),
-    areasPxSq: scored.map((s) => s.area),
-  };
-}
-
-// ---- Main pipeline ------------------------------------------------------
-
-export type AlignAndHighlightResult = {
-  inliers: number;
-  /** Highlight outline(s) in fractional coords of the detailed (master) image. Largest first. */
-  polygons: PolygonPoint[];
-  /** All highlight regions (largest first), fractional master coords. */
-  allPolygons: PolygonPoint[][];
-  allPolygonAreas: number[];
-  width: number;
-  height: number;
-};
-
-export async function alignAndHighlight(
-  detailedPath: string,
-  schematicPath: string,
-  outputPath: string,
-  opts: { alpha?: number; highlightColorRGBA?: [number, number, number, number] } = {}
-): Promise<AlignAndHighlightResult> {
-  await waitForOpenCV();
-
-  const alpha = opts.alpha ?? 0.45;
-  const highlight = opts.highlightColorRGBA ?? [77, 131, 134, 255]; // RGBA teal
-
-  const detailed = await loadMatRGBA(detailedPath);
-  const schematic = await loadMatRGBA(schematicPath);
-
-  const { H_full, inliers } = computeHomography(detailed, schematic);
-
   const H_full_inv = new cv.Mat();
   cv.invert(H_full, H_full_inv);
 
-  // --- Isolate the teal highlight in the schematic ---
-  // Same color-difference heuristic as the Python version: teal pixels
-  // have G and B well above R.
+  [detailedSmall, gray1, gray2, des1, des2, srcMat, dstMat, mask, H_small, S, H_full].forEach((m) =>
+    m.delete()
+  );
+
+  return { H_full_inv, inliers };
+}
+
+// ---- Per-unit work (cheap — run once per unit) ----------------------------
+
+function isolateTealMask(schematic: InstanceType<typeof cv.Mat>): InstanceType<typeof cv.Mat> {
   const mask = new cv.Mat(schematic.rows, schematic.cols, cv.CV_8UC1);
   for (let y = 0; y < schematic.rows; y++) {
     for (let x = 0; x < schematic.cols; x++) {
@@ -241,82 +145,279 @@ export async function alignAndHighlight(
   }
   cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, cv.Mat.ones(3, 3, cv.CV_8U));
   cv.morphologyEx(mask, mask, cv.MORPH_OPEN, cv.Mat.ones(3, 3, cv.CV_8U));
+  return mask;
+}
 
-  // --- Warp the mask into the detailed image's coordinate space ---
-  const maskWarped = new cv.Mat();
-  cv.warpPerspective(
-    mask,
-    maskWarped,
-    H_full_inv,
-    new cv.Size(detailed.cols, detailed.rows),
-    cv.INTER_LINEAR,
-    cv.BORDER_CONSTANT,
-    new cv.Scalar(0)
-  );
-  cv.GaussianBlur(maskWarped, maskWarped, new cv.Size(9, 9), 0);
+/**
+ * Finds the highlighted region in `mask` (schematic pixel space), simplifies
+ * it into a clean polygon, and maps each vertex into the detailed image's
+ * pixel space via `H_full_inv`. Uses cv.perspectiveTransform on the (few)
+ * polygon vertices rather than warping the full raster mask.
+ */
+function extractPolygon(
+  mask: InstanceType<typeof cv.Mat>,
+  H_full_inv: InstanceType<typeof cv.Mat>,
+  epsilonFraction = 0.005
+): Point[] {
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+  cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  const { polygons: allPolygons, areasPxSq: allPolygonAreas } = polygonsFromWarpedMask(
-    maskWarped,
-    detailed.cols,
-    detailed.rows
-  );
+  if (contours.size() === 0) {
+    contours.delete();
+    hierarchy.delete();
+    throw new Error("No highlighted region found in the schematic mask.");
+  }
 
-  // --- Also warp full schematic onto detailed for overlap QA ---
-  const schematicWarped = new cv.Mat();
-  cv.warpPerspective(
-    schematic,
-    schematicWarped,
-    H_full_inv,
-    new cv.Size(detailed.cols, detailed.rows),
-    cv.INTER_LINEAR,
-    cv.BORDER_CONSTANT,
-    new cv.Scalar(255, 255, 255, 255)
-  );
+  let largestIdx = 0;
+  let largestArea = -Infinity;
+  for (let i = 0; i < contours.size(); i++) {
+    const area = cv.contourArea(contours.get(i));
+    if (area > largestArea) {
+      largestArea = area;
+      largestIdx = i;
+    }
+  }
+  const largest = contours.get(largestIdx);
 
-  // --- Composite the highlight onto the detailed plan ---
+  const epsilon = epsilonFraction * cv.arcLength(largest, true);
+  const approx = new cv.Mat();
+  cv.approxPolyDP(largest, approx, epsilon, true);
+
+  const n = approx.rows;
+  // approx is N×1 CV_32SC2 — prefer data32S (reliable in @techstark/opencv-js)
+  const flat: number[] = [];
+  for (let i = 0; i < n; i++) {
+    flat.push(approx.data32S[i * 2], approx.data32S[i * 2 + 1]);
+  }
+  const srcPts = cv.matFromArray(n, 1, cv.CV_32FC2, flat);
+  const dstPts = new cv.Mat();
+  cv.perspectiveTransform(srcPts, dstPts, H_full_inv);
+
+  const polygon: Point[] = [];
+  for (let i = 0; i < n; i++) {
+    polygon.push({
+      x: dstPts.data32F[i * 2],
+      y: dstPts.data32F[i * 2 + 1],
+    });
+  }
+
+  [contours, hierarchy, approx, srcPts, dstPts].forEach((m) => m.delete());
+  return polygon;
+}
+
+/**
+ * Rasterizes `polygon` directly into a small bounding-box crop of `detailed`
+ * and blends it there — no full-image mask warp.
+ */
+function compositePolygonHighlight(
+  detailed: InstanceType<typeof cv.Mat>,
+  polygon: Point[],
+  colorRGBA: [number, number, number, number] = [77, 131, 134, 255],
+  alpha = 0.45,
+  pad = 5
+): InstanceType<typeof cv.Mat> {
+  const xs = polygon.map((p) => p.x);
+  const ys = polygon.map((p) => p.y);
+  const x0 = Math.max(Math.floor(Math.min(...xs)) - pad, 0);
+  const y0 = Math.max(Math.floor(Math.min(...ys)) - pad, 0);
+  const x1 = Math.min(Math.ceil(Math.max(...xs)) + pad, detailed.cols);
+  const y1 = Math.min(Math.ceil(Math.max(...ys)) + pad, detailed.rows);
+  const w = Math.max(1, x1 - x0);
+  const h = Math.max(1, y1 - y0);
+
+  const localPtsFlat: number[] = [];
+  for (const p of polygon) localPtsFlat.push(Math.round(p.x - x0), Math.round(p.y - y0));
+  const localPtsMat = cv.matFromArray(polygon.length, 1, cv.CV_32SC2, localPtsFlat);
+  const ptsVec = new cv.MatVector();
+  ptsVec.push_back(localPtsMat);
+
+  const smallMask = cv.Mat.zeros(h, w, cv.CV_8UC1);
+  cv.fillPoly(smallMask, ptsVec, new cv.Scalar(255));
+  cv.GaussianBlur(smallMask, smallMask, new cv.Size(7, 7), 0);
+
   const result = detailed.clone();
-  for (let y = 0; y < result.rows; y++) {
-    for (let x = 0; x < result.cols; x++) {
-      const mIdx = y * result.cols + x;
-      const a = (maskWarped.data[mIdx] / 255) * alpha;
+  const rect = new cv.Rect(x0, y0, w, h);
+  // .roi() returns a Mat header sharing the same underlying buffer as
+  // `result`, so writing into roi.data updates `result` in place.
+  const roi = result.roi(rect);
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = (smallMask.data[y * w + x] / 255) * alpha;
       if (a <= 0) continue;
-      const pIdx = mIdx * 4;
+      const pIdx = (y * w + x) * 4;
       for (let c = 0; c < 3; c++) {
-        result.data[pIdx + c] =
-          result.data[pIdx + c] * (1 - a) + highlight[c] * a;
+        roi.data[pIdx + c] = roi.data[pIdx + c] * (1 - a) + colorRGBA[c] * a;
       }
     }
   }
+
+  [localPtsMat, ptsVec, smallMask, roi].forEach((m) => m.delete());
+  return result;
+}
+
+function toFractional(polygon: Point[], width: number, height: number): PolygonPoint[] {
+  return polygon.map((p) => ({
+    x: Math.min(1, Math.max(0, p.x / width)),
+    y: Math.min(1, Math.max(0, p.y / height)),
+  }));
+}
+
+function polygonAreaPx(points: Point[]): number {
+  if (points.length < 3) return 0;
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const j = (i + 1) % points.length;
+    area += points[i].x * points[j].y - points[j].x * points[i].y;
+  }
+  return Math.abs(area) / 2;
+}
+
+// ---- Public API -----------------------------------------------------------
+
+export type FloorAlignSession = {
+  inliers: number;
+  width: number;
+  height: number;
+  /** Release OpenCV mats held by this session. */
+  dispose: () => void;
+};
+
+type FloorAlignInternal = FloorAlignSession & {
+  detailed: InstanceType<typeof cv.Mat>;
+  H_full_inv: InstanceType<typeof cv.Mat>;
+};
+
+/**
+ * Load master + compute homography from the first unit schematic.
+ * Call once per floor, then {@link alignUnitHighlight} for each unit.
+ */
+export async function beginFloorAlign(
+  detailedPath: string,
+  firstSchematicPath: string
+): Promise<FloorAlignSession> {
+  await waitForOpenCV();
+
+  const detailed = await loadMatRGBA(detailedPath);
+  const firstSchematic = await loadMatRGBA(firstSchematicPath);
+  const { H_full_inv, inliers } = computeHomography(detailed, firstSchematic);
+  firstSchematic.delete();
+
+  const session: FloorAlignInternal = {
+    inliers,
+    width: detailed.cols,
+    height: detailed.rows,
+    detailed,
+    H_full_inv,
+    dispose: () => {
+      detailed.delete();
+      H_full_inv.delete();
+    },
+  };
+  return session;
+}
+
+export type AlignUnitResult = {
+  /** Largest highlight outline in fractional master coords. */
+  polygons: PolygonPoint[];
+  allPolygons: PolygonPoint[][];
+  allPolygonAreas: number[];
+  /** Pixel-space polygon on the master image. */
+  pixelPolygon: Point[];
+};
+
+/**
+ * Extract teal highlight polygon from a unit schematic, map onto the floor
+ * master via the shared homography, composite highlight, and write PNG.
+ */
+export async function alignUnitHighlight(
+  session: FloorAlignSession,
+  schematicPath: string,
+  outputPath: string,
+  opts: {
+    alpha?: number;
+    highlightColorRGBA?: [number, number, number, number];
+    polygonJsonPath?: string;
+  } = {}
+): Promise<AlignUnitResult> {
+  const internal = session as FloorAlignInternal;
+  const alpha = opts.alpha ?? 0.45;
+  const color = opts.highlightColorRGBA ?? ([77, 131, 134, 255] as [number, number, number, number]);
+
+  const schematic = await loadMatRGBA(schematicPath);
+  const mask = isolateTealMask(schematic);
+  const pixelPolygon = extractPolygon(mask, internal.H_full_inv);
+  const result = compositePolygonHighlight(internal.detailed, pixelPolygon, color, alpha);
 
   await saveMatRGBA(result, outputPath);
 
-  // 50/50 overlay next to the highlight output when possible.
-  const overlayPath = outputPath.replace(/\.png$/i, "-overlay.png");
-  const overlay = detailed.clone();
-  for (let y = 0; y < overlay.rows; y++) {
-    for (let x = 0; x < overlay.cols; x++) {
-      const pIdx = (y * overlay.cols + x) * 4;
-      for (let c = 0; c < 3; c++) {
-        overlay.data[pIdx + c] =
-          overlay.data[pIdx + c] * 0.5 + schematicWarped.data[pIdx + c] * 0.5;
-      }
-    }
+  if (opts.polygonJsonPath) {
+    fs.writeFileSync(
+      opts.polygonJsonPath,
+      JSON.stringify({ points: pixelPolygon }, null, 2)
+    );
   }
-  await saveMatRGBA(overlay, overlayPath);
 
-  const width = detailed.cols;
-  const height = detailed.rows;
+  [schematic, mask, result].forEach((m) => m.delete());
 
-  [detailed, schematic, H_full, H_full_inv, mask, maskWarped, schematicWarped, result, overlay].forEach((m) =>
-    m.delete()
-  );
+  const fractional = toFractional(pixelPolygon, session.width, session.height);
+  const area = polygonAreaPx(pixelPolygon);
 
   return {
-    inliers,
-    polygons: allPolygons[0] ?? [],
-    allPolygons,
-    allPolygonAreas,
-    width,
-    height,
+    polygons: fractional,
+    allPolygons: fractional.length >= 3 ? [fractional] : [],
+    allPolygonAreas: fractional.length >= 3 ? [area] : [],
+    pixelPolygon,
   };
+}
+
+/**
+ * Standalone batch helper matching the floors / floor-* / units / * directory layout.
+ * Optional — the PDF pipeline uses {@link beginFloorAlign} + {@link alignUnitHighlight}.
+ */
+export async function processFloorsRoot(floorsRoot: string, outRoot: string): Promise<void> {
+  await waitForOpenCV();
+  fs.mkdirSync(outRoot, { recursive: true });
+
+  const floorDirs = fs
+    .readdirSync(floorsRoot, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => path.join(floorsRoot, d.name))
+    .sort();
+
+  for (const floorDir of floorDirs) {
+    const detailedPath = path.join(floorDir, "floor-plan.png");
+    const unitsDir = path.join(floorDir, "units");
+    if (!fs.existsSync(detailedPath) || !fs.existsSync(unitsDir)) continue;
+
+    const unitNames = fs
+      .readdirSync(unitsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .filter((name) => fs.existsSync(path.join(unitsDir, name, "floor-plan.png")))
+      .sort();
+    if (unitNames.length === 0) continue;
+
+    const floorName = path.basename(floorDir);
+    const outDir = path.join(outRoot, floorName);
+    fs.mkdirSync(outDir, { recursive: true });
+
+    const session = await beginFloorAlign(
+      detailedPath,
+      path.join(unitsDir, unitNames[0], "floor-plan.png")
+    );
+    try {
+      for (const unitName of unitNames) {
+        await alignUnitHighlight(
+          session,
+          path.join(unitsDir, unitName, "floor-plan.png"),
+          path.join(outDir, `${unitName}.png`),
+          { polygonJsonPath: path.join(outDir, `${unitName}.polygon.json`) }
+        );
+      }
+    } finally {
+      session.dispose();
+    }
+  }
 }

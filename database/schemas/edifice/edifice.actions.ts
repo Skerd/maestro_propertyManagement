@@ -248,12 +248,10 @@ export class EdificeActions {
 
             fs.writeFileSync(pdfPath, pdfBuffer);
 
-            const summaryData  = await processPdfForFloorsAndUnits(pdfPath, outputRoot);
-            const sourcePdfDoc = await PDFDocument.load(pdfBuffer);
-
             // ── Phase 1: reads ──────────────────────────────────────────────────────
-            // Everything the write phase needs to decide create-vs-update, resolved
-            // before the transaction opens so the transaction is writes only.
+            // Resolved before the generator runs, so the missing-master fallback below
+            // can consult existing floors, and before the transaction opens so that the
+            // transaction is writes only.
 
             const defaultUnitTypes = await unitTypeService.find({company: company._id}, {session, logger, languageCode}, undefined, "_id", {}, 1, 0);
             const unitTypeId = defaultUnitTypes.length > 0 ? defaultUnitTypes[0]._id : null;
@@ -271,6 +269,43 @@ export class EdificeActions {
                 {edifice: foundEdifice._id, company: company._id},
                 {session, logger, languageCode},
             );
+
+            /**
+             * Master plan of last resort. Some brochures ship unit pages for a floor but
+             * no master page for it (ARIA_GODINA_A has units for KATI 2 and masters only
+             * up to KATI 1), and without a master the unit highlights cannot be aligned,
+             * so those units silently get no polygons. If the floor already exists with a
+             * mainImage, reuse it: polygons are stored as fractions of the master, and
+             * that image is what the floor renders with, so the two stay consistent.
+             */
+            const fetchFloorImage = async ({floorLabel}: {floorLabel: string}): Promise<string | null> => {
+                try {
+                    const levelNumber = parseFloorLevelNumber(floorLabel);
+                    const floor = knownFloors.find(
+                        (candidate: any) => candidate.name === floorLabel || candidate.levelNumber === levelNumber,
+                    );
+                    if (!floor?.mainImage) return null;
+
+                    const mainImageId = (floor.mainImage as any)?._id ?? floor.mainImage;
+                    const media = await mediaService.findById(mainImageId, {session, logger, languageCode});
+                    if (!media?.fileId) {
+                        logger.warn(`PDF import: floor ${floorLabel} mainImage has no GridFS file edificeId=${edificeId}`);
+                        return null;
+                    }
+
+                    const buffer = await gridfsStorage.getFileBuffer(media.fileId.toString());
+                    const target = path.join(tempDir, `db-floor-plan-${slugifyLabel(floorLabel)}.png`);
+                    fs.writeFileSync(target, buffer);
+                    logger.debug(`PDF import: no master page for ${floorLabel}; reusing the existing floor mainImage edificeId=${edificeId}`);
+                    return target;
+                } catch (error) {
+                    logger.warn(`PDF import: could not reuse the existing floor image for ${floorLabel} edificeId=${edificeId}: ${error instanceof Error ? error.message : String(error)}`);
+                    return null;
+                }
+            };
+
+            const summaryData  = await processPdfForFloorsAndUnits(pdfPath, outputRoot, {fetchFloorImage});
+            const sourcePdfDoc = await PDFDocument.load(pdfBuffer);
 
             const tasks: FloorTask[] = Object.entries(summaryData.floors).map(([floorKey, floorData]) => ({
                 floorKey,

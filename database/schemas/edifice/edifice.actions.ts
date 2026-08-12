@@ -16,7 +16,6 @@ import Floor from '../floor/floor';
 import Unit from '../unit/unit';
 import {edificeService} from './edifice.service';
 import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
-import {config as floorUnitsGeneratorConfig} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/config';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
 import {slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
 import {PDFDocument} from 'pdf-lib';
@@ -42,9 +41,36 @@ function hasMarketingBooklet(entity: {marketingBooklet?: unknown} | null | undef
     return !!entity?.marketingBooklet;
 }
 
+/** Reads a generator artifact, or undefined when that page produced none. */
+function readGeneratedFile(filePath: string): Buffer | undefined {
+    try {
+        return fs.readFileSync(filePath);
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return undefined;
+        }
+        throw error;
+    }
+}
+
+/** Reads the numeric level out of a floor label ("Floor -1", "K2", "Kati 0-1"). */
+function parseFloorLevelNumber(floorName: string): number {
+    const rangeMatch = floorName.match(/(?:floor|kati|kat)\s*(-?\d+-\d+)|^k(-?\d+-\d+)/i);
+    if (rangeMatch) {
+        const rangeStr = rangeMatch[1] || rangeMatch[2];
+        return isNaN(parseInt(rangeStr)) ? -99999 : parseInt(rangeStr);
+    }
+    const match = floorName.match(/(?:floor|kati|kat)\s*(-?\d+)|^k(-?\d+)/i);
+    if (match) {
+        const numStr = match[1] || match[2];
+        return isNaN(parseInt(numStr)) ? -99999 : parseInt(numStr);
+    }
+    return 0;
+}
+
 /**
- * Brochure OCR zeros out areas when confidence < 100%. Never wipe a non-zero
- * existing value (user/manual edit) with an untrusted 0 from a re-import.
+ * Never wipe a non-zero existing area (user/manual edit) with a 0 from a
+ * re-import when OCR failed to parse that field.
  */
 function preferExistingAreaWhenIncomingZero(
     existing: number | null | undefined,
@@ -56,6 +82,83 @@ function preferExistingAreaWhenIncomingZero(
         return prev;
     }
     return next;
+}
+
+/** A file already written to GridFS, waiting for its media document. */
+type UploadedBlob = {
+    gridFsId: ObjectId;
+    fileName: string;
+    size: number;
+    mediaType: 'image' | 'pdf';
+    mimeType: string;
+    extension: string;
+};
+
+/** One brochure unit's uploaded artifacts. */
+type UnitAssets = {
+    unitName: string;
+    unitSummary: any;
+    unitPlan?: UploadedBlob;
+    unitFloorPlan?: UploadedBlob;
+    booklet?: UploadedBlob;
+};
+
+/**
+ * The floor document one or more brochure keys resolve to. Two keys can land on
+ * the same floor (an unparsed label and "Floor 0" both yield levelNumber 0), so
+ * the resolved state — including a booklet added by an earlier key — is shared.
+ */
+type FloorTarget = {
+    existing?: any;
+    /** Set once the floor is inserted, so later keys write to the same document. */
+    created?: any;
+    name: string;
+    levelNumber: number;
+    hasBooklet: boolean;
+    unitsByName: Map<string, any>;
+};
+
+/** One brochure floor key with its blobs uploaded, ready to be written. */
+type FloorTask = {
+    floorKey: string;
+    floorData: any;
+    floorName: string;
+    levelNumber: number;
+    floorPlan?: UploadedBlob;
+    booklet?: UploadedBlob;
+    units: UnitAssets[];
+};
+
+/**
+ * Maps each brochure floor key onto the floor document it will write to, matching
+ * the name-or-level lookup the import used to run per key. Keys that resolve to the
+ * same floor share one target, so a booklet or rename applied by an earlier key is
+ * visible to a later one — exactly what a per-key query inside the transaction saw.
+ */
+function resolveFloorTargets(
+    existingFloors: any[],
+    keys: Array<{floorName: string; levelNumber: number}>,
+): {perKey: FloorTarget[]; all: FloorTarget[]} {
+    const all: FloorTarget[] = existingFloors.map((floor: any) => ({
+        existing:    floor,
+        name:        floor.name,
+        levelNumber: floor.levelNumber,
+        hasBooklet:  hasMarketingBooklet(floor),
+        unitsByName: new Map<string, any>(),
+    }));
+
+    const perKey = keys.map(({floorName, levelNumber}) => {
+        let target = all.find((t) => t.name === floorName || t.levelNumber === levelNumber);
+        if (!target) {
+            target = {name: floorName, levelNumber, hasBooklet: false, unitsByName: new Map<string, any>()};
+            all.push(target);
+        }
+        target.name        = floorName;
+        target.levelNumber = levelNumber;
+        return target;
+    });
+
+    return {perKey, all};
 }
 
 export class EdificeActions {
@@ -109,164 +212,279 @@ export class EdificeActions {
 
         let floorsCreated = 0;
         let unitsCreated  = 0;
+        let unitsSkipped  = 0;
+
+        // GridFS writes cannot join a Mongo transaction, so every blob is uploaded up
+        // front and tracked here. If the import fails these are deleted; if it succeeds,
+        // any blob no document ended up referencing is swept. Either way nothing leaks.
+        const uploadedGridFsIds: ObjectId[] = [];
+        const referencedGridFsIds = new Set<string>();
+        let committed = false;
+
+        const gridfsStorage = new GridFSStorage(languageCode, 'media', logger);
+
+        const deleteGridFsBlobs = async (ids: ObjectId[], reason: string): Promise<void> => {
+            if (ids.length === 0) return;
+            const results = await Promise.allSettled(ids.map((id) => gridfsStorage.deleteFile(id)));
+            const failed = results.filter((r) => r.status === 'rejected').length;
+            if (failed > 0) {
+                logger.warn(`PDF import: ${failed}/${ids.length} GridFS blobs could not be removed (${reason}) edificeId=${edificeId}`);
+            } else {
+                logger.debug(`PDF import: removed ${ids.length} GridFS blobs (${reason}) edificeId=${edificeId}`);
+            }
+        };
 
         try {
-            const gridfs        = new GridFSStorage(languageCode, 'media', logger);
-            const rawPdfFileId  = mediaDoc.fileId;
+            const rawPdfFileId = mediaDoc.fileId;
             if (rawPdfFileId == null) {
                 logger.err(`PDF import: media missing fileId mediaId=${mediaDoc._id} edificeId=${edificeId}`);
                 throw apiValidationException("pdf_processing_failed", "media_missing_file_id", null, languageCode);
             }
-            const gridfsFileId = rawPdfFileId instanceof ObjectId ? rawPdfFileId : new ObjectId(rawPdfFileId.toString());
-            const pdfBuffer    = await gridfs.getFileBuffer(gridfsFileId);
+            // Passed as hex: mongoose's ObjectId and the driver's come from different
+            // bson copies, so handing the document's instance straight to GridFS both
+            // fails to typecheck and risks a cross-version mismatch. getFileBuffer
+            // rebuilds the id with the bucket's own ObjectId class.
+            const pdfBuffer = await gridfsStorage.getFileBuffer(rawPdfFileId.toString());
 
             fs.writeFileSync(pdfPath, pdfBuffer);
 
-            const summaryData = await processPdfForFloorsAndUnits(pdfPath, outputRoot);
-            const gridfsStorage  = new GridFSStorage(languageCode, 'media', logger);
-            const sourcePdfDoc   = await PDFDocument.load(pdfBuffer);
+            const summaryData  = await processPdfForFloorsAndUnits(pdfPath, outputRoot);
+            const sourcePdfDoc = await PDFDocument.load(pdfBuffer);
 
-            const createPdfPageMedia = async (
+            // ── Phase 1: reads ──────────────────────────────────────────────────────
+            // Everything the write phase needs to decide create-vs-update, resolved
+            // before the transaction opens so the transaction is writes only.
+
+            const defaultUnitTypes = await unitTypeService.find({company: company._id}, {session, logger, languageCode}, undefined, "_id", {}, 1, 0);
+            const unitTypeId = defaultUnitTypes.length > 0 ? defaultUnitTypes[0]._id : null;
+            if (!unitTypeId) {
+                logger.warn(`PDF import: no unit type found for company, skipping all units edificeId=${edificeId}`);
+            }
+
+            const defaultCurrencies = await currencyService.find({}, {session, logger, languageCode}, undefined, "_id", {}, 1, 0);
+            const currencyId = defaultCurrencies.length > 0 ? defaultCurrencies[0]._id : null;
+            if (!currencyId) {
+                logger.warn(`PDF import: no currency found, skipping all units edificeId=${edificeId}`);
+            }
+
+            const knownFloors: any[] = await floorService.find(
+                {edifice: foundEdifice._id, company: company._id},
+                {session, logger, languageCode},
+            );
+
+            const tasks: FloorTask[] = Object.entries(summaryData.floors).map(([floorKey, floorData]) => ({
+                floorKey,
+                floorData,
+                floorName:   (floorData as any).floor,
+                levelNumber: parseFloorLevelNumber((floorData as any).floor),
+                units:       [],
+            }));
+
+            // Resolution used only to decide which booklets are worth uploading; the
+            // write phase resolves again against its own reads.
+            const planned = resolveFloorTargets(knownFloors, tasks);
+
+            // One read per existing floor, rather than a findOne per unit.
+            for (const target of planned.all) {
+                if (!target.existing) continue;
+                const existingUnits: any[] = await unitService.find(
+                    {floor: target.existing._id, company: company._id},
+                    {session, logger, languageCode},
+                );
+                target.unitsByName = new Map(existingUnits.map((unit: any) => [unit.name, unit]));
+            }
+
+            // ── Phase 2: uploads ────────────────────────────────────────────────────
+            // All GridFS I/O and PDF page extraction, outside the transaction.
+
+            const uploadBlob = async (
+                buffer: Buffer,
+                fileName: string,
+                meta: Record<string, string>,
+                kind: 'image' | 'pdf',
+            ): Promise<UploadedBlob> => {
+                const gridFsId = await gridfsStorage.uploadFile(buffer, fileName, meta);
+                uploadedGridFsIds.push(gridFsId);
+                return {
+                    gridFsId,
+                    fileName,
+                    size:      buffer.length,
+                    mediaType: kind,
+                    mimeType:  kind === 'image' ? 'image/png' : 'application/pdf',
+                    extension: kind === 'image' ? 'png' : 'pdf',
+                };
+            };
+
+            const uploadBrochurePage = async (
                 pageNumber: number,
                 fileName: string,
                 meta: Record<string, string>,
-                txSession: any,
-            ) => {
-                const pageBuffer = await extractSinglePdfPage(sourcePdfDoc, pageNumber);
-                const gfsId = await gridfsStorage.uploadFile(pageBuffer, fileName, meta);
-                return mediaService.create({
-                    type:         'pdf',
-                    originalName: fileName,
-                    fileName,
-                    fileId:       gfsId,
-                    createdBy:    actionUserCtx.userId,
-                    metadata:     {size: pageBuffer.length, extension: 'pdf', mime: 'application/pdf', safeCheckedFlag: false},
-                    mimeType:     'application/pdf',
-                    extension:    'pdf',
-                    fileSize:     pageBuffer.length,
-                    sizeInBytes:  pageBuffer.length,
-                    company,
-                }, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                describeTarget: string,
+            ): Promise<UploadedBlob | undefined> => {
+                try {
+                    const pageBuffer = await extractSinglePdfPage(sourcePdfDoc, pageNumber);
+                    return await uploadBlob(pageBuffer, fileName, meta, 'pdf');
+                } catch (bookletErr) {
+                    logger.warn(`PDF import: failed to extract booklet page edificeId=${edificeId} ${describeTarget} page=${pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
+                    return undefined;
+                }
             };
+
+            for (const [taskIndex, task] of tasks.entries()) {
+                const {floorKey, floorData} = task;
+                const target = planned.perKey[taskIndex];
+
+                const floorPlanBuffer = readGeneratedFile(path.join(outputRoot, "floors", floorKey, 'floor-plan.png'));
+                if (floorPlanBuffer) {
+                    task.floorPlan = await uploadBlob(
+                        floorPlanBuffer,
+                        `floor-plan-${floorKey}.png`,
+                        {edifice: edificeId, floor: floorKey, type: 'floorPlan'},
+                        'image',
+                    );
+                }
+
+                // Single-page PDF from the brochure, used when marketingBooklet is unset.
+                if (!target.hasBooklet && typeof floorData.pageNumber === 'number') {
+                    task.booklet = await uploadBrochurePage(
+                        floorData.pageNumber,
+                        `floor-booklet-${floorKey}-page-${floorData.pageNumber}.pdf`,
+                        {edifice: edificeId, floor: floorKey, type: 'marketingBooklet'},
+                        `floor=${floorKey}`,
+                    );
+                    if (task.booklet) target.hasBooklet = true;
+                }
+
+                for (const [unitName, unitSummaries] of Object.entries(floorData.units)) {
+                    const unitSummary = (unitSummaries as any[])[0];
+
+                    if (!unitTypeId) {
+                        logger.warn(`PDF import: skipping unit (no unit type) edificeId=${edificeId} floorKey=${floorKey} unit=${unitName}`);
+                        unitsSkipped++;
+                        continue;
+                    }
+                    if (!currencyId) {
+                        logger.warn(`PDF import: skipping unit (no currency) edificeId=${edificeId} floorKey=${floorKey} unit=${unitName}`);
+                        unitsSkipped++;
+                        continue;
+                    }
+
+                    const assets: UnitAssets = {unitName, unitSummary};
+                    const unitFolder = path.join(outputRoot, "floors", floorKey, "units", slugifyLabel(unitName));
+
+                    const unitPlanBuffer = readGeneratedFile(path.join(unitFolder, 'unit-plan.png'));
+                    if (unitPlanBuffer) {
+                        assets.unitPlan = await uploadBlob(
+                            unitPlanBuffer,
+                            `unit-plan-${unitName}-${floorKey}.png`,
+                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'unitPlan'},
+                            'image',
+                        );
+                    }
+
+                    const unitFloorPlanBuffer = readGeneratedFile(path.join(unitFolder, 'floor-plan.png'));
+                    if (unitFloorPlanBuffer) {
+                        assets.unitFloorPlan = await uploadBlob(
+                            unitFloorPlanBuffer,
+                            `floor-plan-${unitName}-${floorKey}.png`,
+                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'unitFloorPlan'},
+                            'image',
+                        );
+                    }
+
+                    if (!hasMarketingBooklet(target.unitsByName.get(unitName)) && typeof unitSummary.pageNumber === 'number') {
+                        assets.booklet = await uploadBrochurePage(
+                            unitSummary.pageNumber,
+                            `unit-booklet-${slugifyLabel(unitName)}-${floorKey}-page-${unitSummary.pageNumber}.pdf`,
+                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'marketingBooklet'},
+                            `unit=${unitName}`,
+                        );
+                    }
+
+                    task.units.push(assets);
+                }
+            }
+
+            logger.debug(`PDF import: uploaded ${uploadedGridFsIds.length} blobs for ${tasks.length} floors edificeId=${edificeId}`);
+
+            // ── Phase 3: document writes ────────────────────────────────────────────
+            // Short transaction: no file I/O, no PDF work, no reads.
 
             const floorImportSession = await mongooseInstance.startSession();
             try {
                 await floorImportSession.withTransaction(async () => {
                     const txSession = floorImportSession;
 
-                    const defaultUnitTypes = await unitTypeService.find({company: company._id}, {session: txSession, logger, languageCode}, undefined, "_id", {}, 1, 0);
-                    const unitTypeId = defaultUnitTypes.length > 0 ? defaultUnitTypes[0]._id : null;
-                    if (!unitTypeId) {
-                        logger.warn(`PDF import: no unit type found for company, skipping all units edificeId=${edificeId}`);
-                    }
+                    // withTransaction re-runs this callback on transient errors, so every
+                    // attempt must start from scratch: counters reset, and floors/units
+                    // re-read rather than reusing documents an aborted attempt mutated
+                    // (whose inserts have since been rolled away).
+                    floorsCreated = 0;
+                    unitsCreated  = 0;
+                    referencedGridFsIds.clear();
 
-                    const defaultCurrencies = await currencyService.find({}, {session: txSession, logger, languageCode}, undefined, "_id", {}, 1, 0);
-                    const currencyId = defaultCurrencies.length > 0 ? defaultCurrencies[0]._id : null;
-                    if (!currencyId) {
-                        logger.warn(`PDF import: no currency found, skipping all units edificeId=${edificeId}`);
-                    }
-
-                    for (const [floorKey, floorData] of Object.entries(summaryData.floors)) {
-                        const floorName = floorData.floor;
-
-                        let levelNumber = 0;
-                        const rangeMatch = floorName.match(/(?:floor|kati|kat)\s*(-?\d+-\d+)|^k(-?\d+-\d+)/i);
-                        if (rangeMatch) {
-                            const rangeStr = rangeMatch[1] || rangeMatch[2];
-                            levelNumber = isNaN(parseInt(rangeStr)) ? -99999 : parseInt(rangeStr);
-                        } else {
-                            const match = floorName.match(/(?:floor|kati|kat)\s*(-?\d+)|^k(-?\d+)/i);
-                            if (match) {
-                                const numStr = match[1] || match[2];
-                                levelNumber = isNaN(parseInt(numStr)) ? -99999 : parseInt(numStr);
-                            }
-                        }
-
-                        let floorPlanImageId: ObjectId | undefined;
-                        const floorPlanPath = path.join(outputRoot, "floors", floorKey, 'floor-plan.png');
-                        let floorPlanBuffer: Buffer | undefined;
-                        let floorPlanFileName = "";
-
-                        if (fs.existsSync(floorPlanPath)) {
-                            floorPlanBuffer   = fs.readFileSync(floorPlanPath);
-                            floorPlanFileName = `floor-plan-${floorKey}.png`;
-                        }
-
-                        let existingFloor = await floorService.findOne(
-                            {
-                                edifice: foundEdifice._id,
-                                company: company._id,
-                                $or: [{name: floorName}, {levelNumber: levelNumber}],
-                            },
+                    const txFloors: any[] = await floorService.find(
+                        {edifice: foundEdifice._id, company: company._id},
+                        {session: txSession, logger, languageCode},
+                    );
+                    const resolved = resolveFloorTargets(txFloors, tasks);
+                    for (const target of resolved.all) {
+                        if (!target.existing) continue;
+                        const existingUnits: any[] = await unitService.find(
+                            {floor: target.existing._id, company: company._id},
                             {session: txSession, logger, languageCode},
                         );
+                        target.unitsByName = new Map(existingUnits.map((unit: any) => [unit.name, unit]));
+                    }
 
-                        if (floorPlanBuffer) {
-                            const gridfsFileId = await gridfsStorage.uploadFile(
-                                floorPlanBuffer,
-                                floorPlanFileName,
-                                {edifice: edificeId, floor: floorKey, type: 'floorPlan'},
-                            );
+                    const createMediaDoc = (blob: UploadedBlob) => {
+                        referencedGridFsIds.add(blob.gridFsId.toString());
+                        return mediaService.create({
+                            type:         blob.mediaType,
+                            originalName: blob.fileName,
+                            fileName:     blob.fileName,
+                            fileId:       blob.gridFsId,
+                            createdBy:    actionUserCtx.userId,
+                            metadata:     {size: blob.size, extension: blob.extension, mime: blob.mimeType, safeCheckedFlag: false},
+                            mimeType:     blob.mimeType,
+                            extension:    blob.extension,
+                            fileSize:     blob.size,
+                            sizeInBytes:  blob.size,
+                            company,
+                        } as any, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                    };
 
-                            const mediaData: any = {
-                                type:         'image',
-                                originalName: floorPlanFileName,
-                                fileName:     floorPlanFileName,
-                                fileId:       gridfsFileId,
-                                createdBy:    actionUserCtx.userId,
-                                metadata:     {size: floorPlanBuffer.length, extension: 'png', mime: 'image/png', safeCheckedFlag: false},
-                                mimeType:     'image/png',
-                                extension:    'png',
-                                fileSize:     floorPlanBuffer.length,
-                                sizeInBytes:  floorPlanBuffer.length,
-                                company:      company,
-                            };
+                    for (const [taskIndex, task] of tasks.entries()) {
+                        const {floorData, floorName, levelNumber} = task;
+                        const target = resolved.perKey[taskIndex];
 
-                            const media     = await mediaService.create(mediaData, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
-                            floorPlanImageId = media._id;
-                        }
+                        const floorPlanMedia = task.floorPlan ? await createMediaDoc(task.floorPlan) : undefined;
 
-                        // Single-page PDF from the brochure, used when marketingBooklet is unset.
-                        let floorBookletMedia: any = undefined;
-                        const shouldSetFloorBooklet = !hasMarketingBooklet(existingFloor) && typeof floorData.pageNumber === 'number';
-                        if (shouldSetFloorBooklet) {
-                            try {
-                                floorBookletMedia = await createPdfPageMedia(
-                                    floorData.pageNumber!,
-                                    `floor-booklet-${floorKey}-page-${floorData.pageNumber}.pdf`,
-                                    {edifice: edificeId, floor: floorKey, type: 'marketingBooklet'},
-                                    txSession,
-                                );
-                            } catch (bookletErr) {
-                                logger.warn(`PDF import: failed to extract floor booklet page edificeId=${edificeId} floor=${floorKey} page=${floorData.pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
-                            }
-                        }
-
+                        const floorDoc = target.created ?? target.existing;
                         let createdFloor;
-                        if (existingFloor) {
-                            existingFloor.name        = floorName;
-                            existingFloor.levelNumber = levelNumber;
-                            existingFloor.totalUnits  = Object.keys(floorData.units).length;
+                        const isNewFloor = !floorDoc;
 
-                            if (floorPlanImageId) {
-                                const newMedia = await mediaService.findByIdOrThrow(floorPlanImageId, {session: txSession, logger, languageCode});
-                                existingFloor.mainImage = newMedia;
-                            }
-                            if (floorBookletMedia) {
-                                existingFloor.marketingBooklet = floorBookletMedia;
-                            }
+                        // Re-checked against the document this attempt actually read: the
+                        // upload phase only guessed, and a floor that already has a booklet
+                        // must keep it. An unused blob is swept after the commit.
+                        const floorBookletMedia = task.booklet && !hasMarketingBooklet(floorDoc)
+                            ? await createMediaDoc(task.booklet)
+                            : undefined;
 
-                            existingFloor.$locals = existingFloor.$locals || {};
-                            existingFloor.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
+                        if (floorDoc) {
+                            floorDoc.name        = floorName;
+                            floorDoc.levelNumber = levelNumber;
+                            floorDoc.totalUnits  = Object.keys(floorData.units).length;
 
-                            await existingFloor.save({session: txSession});
-                            createdFloor = existingFloor;
+                            if (floorPlanMedia)    floorDoc.mainImage        = floorPlanMedia;
+                            if (floorBookletMedia) floorDoc.marketingBooklet = floorBookletMedia;
+
+                            floorDoc.$locals = floorDoc.$locals || {};
+                            floorDoc.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
+
+                            // Saved once, after the unit loop has computed `area`.
+                            createdFloor = floorDoc;
                         } else {
-                            let mainImageMedia: any = undefined;
-                            if (floorPlanImageId) {
-                                mainImageMedia = await mediaService.findByIdOrThrow(floorPlanImageId, {session: txSession, logger, languageCode});
-                            }
-
                             const floorDataToCreate: any = {
                                 name:              floorName,
                                 levelNumber,
@@ -280,47 +498,20 @@ export class EdificeActions {
                                 imageGallery:      [],
                                 videoGallery:      [],
                             };
-                            if (mainImageMedia) floorDataToCreate.mainImage = mainImageMedia;
+                            if (floorPlanMedia)    floorDataToCreate.mainImage        = floorPlanMedia;
                             if (floorBookletMedia) floorDataToCreate.marketingBooklet = floorBookletMedia;
 
                             createdFloor = await floorService.create(floorDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
                             floorsCreated++;
+                            target.created = createdFloor;
                         }
 
                         let floorTotalArea = 0;
-                        for (const [unitName, unitSummaries] of Object.entries(floorData.units)) {
-                            const unitSummary = unitSummaries[0];
+                        for (const assets of task.units) {
+                            const {unitName, unitSummary} = assets;
 
-                            if (!unitTypeId) {
-                                logger.warn(`PDF import: skipping unit (no unit type) edificeId=${edificeId} floorKey=${floorKey} unit=${unitName}`);
-                                continue;
-                            }
-                            if (!currencyId) {
-                                logger.warn(`PDF import: skipping unit (no currency) edificeId=${edificeId} floorKey=${floorKey} unit=${unitName}`);
-                                continue;
-                            }
-
-                            let unitPlanImageId: ObjectId | undefined;
-                            let unitFloorPlanImageId: ObjectId | undefined;
-                            const unitFolder = path.join(outputRoot, "floors", floorKey, "units", slugifyLabel(unitName));
-
-                            const unitPlanPath = path.join(unitFolder, 'unit-plan.png');
-                            if (fs.existsSync(unitPlanPath)) {
-                                const unitPlanBuffer = fs.readFileSync(unitPlanPath);
-                                const gfsId = await gridfsStorage.uploadFile(unitPlanBuffer, `unit-plan-${unitName}-${floorKey}.png`, {edifice: edificeId, floor: floorKey, unit: unitName, type: 'unitPlan'});
-                                const mediaData: any = {type: 'image', originalName: `unit-plan-${unitName}-${floorKey}.png`, fileName: `unit-plan-${unitName}-${floorKey}.png`, fileId: gfsId, createdBy: actionUserCtx.userId, metadata: {size: unitPlanBuffer.length, extension: 'png', mime: 'image/png', safeCheckedFlag: false}, mimeType: 'image/png', extension: 'png', fileSize: unitPlanBuffer.length, sizeInBytes: unitPlanBuffer.length, company: company};
-                                const media = await mediaService.create(mediaData, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
-                                unitPlanImageId = media._id;
-                            }
-
-                            const unitFloorPlanPath = path.join(unitFolder, 'floor-plan.png');
-                            if (fs.existsSync(unitFloorPlanPath)) {
-                                const unitFloorPlanBuffer = fs.readFileSync(unitFloorPlanPath);
-                                const gfsId = await gridfsStorage.uploadFile(unitFloorPlanBuffer, `floor-plan-${unitName}-${floorKey}.png`, {edifice: edificeId, floor: floorKey, unit: unitName, type: 'unitFloorPlan'});
-                                const mediaData: any = {type: 'image', originalName: `floor-plan-${unitName}-${floorKey}.png`, fileName: `floor-plan-${unitName}-${floorKey}.png`, fileId: gfsId, createdBy: actionUserCtx.userId, metadata: {size: unitFloorPlanBuffer.length, extension: 'png', mime: 'image/png', safeCheckedFlag: false}, mimeType: 'image/png', extension: 'png', fileSize: unitFloorPlanBuffer.length, sizeInBytes: unitFloorPlanBuffer.length, company: company};
-                                const media = await mediaService.create(mediaData, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
-                                unitFloorPlanImageId = media._id;
-                            }
+                            const unitPlanMedia      = assets.unitPlan      ? await createMediaDoc(assets.unitPlan)      : undefined;
+                            const unitFloorPlanMedia = assets.unitFloorPlan ? await createMediaDoc(assets.unitFloorPlan) : undefined;
 
                             // Keep the full unit name as the unit number so every unit is unique.
                             // The old regex only captured the trailing digits (e.g. "13" for both
@@ -328,20 +519,12 @@ export class EdificeActions {
                             // unit matched the first via {unitNumber} and was "updated" instead of created.
                             const unitNumber = unitName;
 
-                            let existingUnit = await unitService.findOne(
-                                {floor: createdFloor._id, company: company._id, name: unitName},
-                                {session: txSession, logger, languageCode},
-                            );
+                            const existingUnit = target.unitsByName.get(unitName);
 
                             if (existingUnit) {
-                                existingUnit.name      = unitName;
                                 existingUnit.unitNumber = unitNumber;
 
-                                // Areas only overwrite when OCR is trusted (100%). Untrusted runs
-                                // send 0s — keep any non-zero values already on the unit (user edits).
-                                const areasTrusted =
-                                    typeof unitSummary.confidence === 'number'
-                                    && unitSummary.confidence >= floorUnitsGeneratorConfig.OCR_AREA_REQUIRED_CONFIDENCE;
+                                // Keep non-zero existing areas when OCR returns 0 for that field.
                                 const incomingTotal =
                                     (unitSummary.totalArea || 0) > 0
                                         ? unitSummary.totalArea
@@ -353,38 +536,26 @@ export class EdificeActions {
                                 existingUnit.verandaArea = preferExistingAreaWhenIncomingZero(existingUnit.verandaArea, unitSummary.verandaArea);
                                 existingUnit.polygonCoordinates = unitSummary.polygonCoordinates || existingUnit.polygonCoordinates || [];
 
-                                // Recompute sale price only when area OCR was trusted — otherwise
-                                // leave a manually set price alone.
-                                if (areasTrusted && pricePerM2 != null) {
+                                if (pricePerM2 != null) {
                                     existingUnit.price = (pricePerM2 * existingUnit.area
                                         + (verandaPricePerM2 != null ? verandaPricePerM2 * (existingUnit.verandaArea || 0) : 0)) as any;
                                     if (saleCurrencyId) existingUnit.priceCurrency = saleCurrencyId;
                                 }
 
-                                if (unitFloorPlanImageId) {
-                                    existingUnit.mainImage = await mediaService.findByIdOrThrow(unitFloorPlanImageId, {session: txSession, logger, languageCode});
+                                if (unitFloorPlanMedia) {
+                                    existingUnit.mainImage = unitFloorPlanMedia;
                                 }
-                                if (unitPlanImageId) {
-                                    const unitPlanMedia    = await mediaService.findByIdOrThrow(unitPlanImageId, {session: txSession, logger, languageCode});
+                                if (unitPlanMedia) {
                                     const currentGallery   = existingUnit.imageGallery || [];
                                     const alreadyInGallery = currentGallery.some((img: any) => {
                                         const imgId = img instanceof ObjectId ? img : img._id || img;
-                                        return imgId.toString() === unitPlanImageId!.toString();
+                                        return imgId.toString() === unitPlanMedia._id.toString();
                                     });
                                     if (!alreadyInGallery) existingUnit.imageGallery = [...currentGallery, unitPlanMedia];
                                 }
 
-                                if (!hasMarketingBooklet(existingUnit) && typeof unitSummary.pageNumber === 'number') {
-                                    try {
-                                        existingUnit.marketingBooklet = await createPdfPageMedia(
-                                            unitSummary.pageNumber,
-                                            `unit-booklet-${slugifyLabel(unitName)}-${floorKey}-page-${unitSummary.pageNumber}.pdf`,
-                                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'marketingBooklet'},
-                                            txSession,
-                                        );
-                                    } catch (bookletErr) {
-                                        logger.warn(`PDF import: failed to extract unit booklet page edificeId=${edificeId} unit=${unitName} page=${unitSummary.pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
-                                    }
+                                if (assets.booklet && !hasMarketingBooklet(existingUnit)) {
+                                    existingUnit.marketingBooklet = await createMediaDoc(assets.booklet);
                                 }
 
                                 existingUnit.$locals = existingUnit.$locals || {};
@@ -393,11 +564,8 @@ export class EdificeActions {
                                 await existingUnit.save({session: txSession});
                                 floorTotalArea += existingUnit.area;
                             } else {
-                                let mainImageMedia: any = undefined;
                                 const imageGallery: any[] = [];
-
-                                if (unitFloorPlanImageId) mainImageMedia = await mediaService.findByIdOrThrow(unitFloorPlanImageId, {session: txSession, logger, languageCode});
-                                if (unitPlanImageId)      imageGallery.push(await mediaService.findByIdOrThrow(unitPlanImageId, {session: txSession, logger, languageCode}));
+                                if (unitPlanMedia) imageGallery.push(unitPlanMedia);
 
                                 const unitArea = unitSummary.totalArea || unitSummary.netArea + unitSummary.sharedArea || 0;
                                 const unitVerandaArea = unitSummary.verandaArea || 0;
@@ -405,19 +573,7 @@ export class EdificeActions {
                                     ? pricePerM2 * unitArea + (verandaPricePerM2 != null ? verandaPricePerM2 * unitVerandaArea : 0)
                                     : 0;
 
-                                let unitBookletMedia: any = undefined;
-                                if (typeof unitSummary.pageNumber === 'number') {
-                                    try {
-                                        unitBookletMedia = await createPdfPageMedia(
-                                            unitSummary.pageNumber,
-                                            `unit-booklet-${slugifyLabel(unitName)}-${floorKey}-page-${unitSummary.pageNumber}.pdf`,
-                                            {edifice: edificeId, floor: floorKey, unit: unitName, type: 'marketingBooklet'},
-                                            txSession,
-                                        );
-                                    } catch (bookletErr) {
-                                        logger.warn(`PDF import: failed to extract unit booklet page edificeId=${edificeId} unit=${unitName} page=${unitSummary.pageNumber} error=${bookletErr instanceof Error ? bookletErr.message : String(bookletErr)}`);
-                                    }
-                                }
+                                const unitBookletMedia = assets.booklet ? await createMediaDoc(assets.booklet) : undefined;
 
                                 const unitDataToCreate: any = {
                                     name:               unitName,
@@ -446,35 +602,65 @@ export class EdificeActions {
                                     videoGallery:       [],
                                     connectedUnits:     [],
                                 };
-                                if (mainImageMedia) unitDataToCreate.mainImage = mainImageMedia;
-                                if (unitBookletMedia) unitDataToCreate.marketingBooklet = unitBookletMedia;
+                                if (unitFloorPlanMedia) unitDataToCreate.mainImage = unitFloorPlanMedia;
+                                if (unitBookletMedia)   unitDataToCreate.marketingBooklet = unitBookletMedia;
 
-                                await unitService.create(unitDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                                const newUnit = await unitService.create(unitDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
                                 unitsCreated++;
+                                target.unitsByName.set(unitName, newUnit);
                                 floorTotalArea += unitDataToCreate.area;
                             }
                         }
 
                         if (floorTotalArea > 0) {
                             createdFloor.area = floorTotalArea;
+                        }
+                        // A new floor was already persisted by create(); it only needs a second
+                        // write when the unit loop produced an area. An existing floor carries
+                        // this iteration's edits and is written exactly once, here.
+                        if (!isNewFloor || floorTotalArea > 0) {
                             await createdFloor.save({session: txSession});
                         }
                     }
                 });
+                committed = true;
             } finally {
                 await floorImportSession.endSession();
             }
 
-            const floorsUpdated = Object.keys(summaryData.floors).length - floorsCreated;
-            const unitsUpdated  = Object.values(summaryData.floors).reduce((t, f) => t + Object.keys(f.units).length, 0) - unitsCreated;
+            // Blobs whose media document was never written (e.g. a booklet the target
+            // turned out to already have) would otherwise sit in GridFS unreferenced.
+            try {
+                const unreferenced = uploadedGridFsIds.filter((id) => !referencedGridFsIds.has(id.toString()));
+                await deleteGridFsBlobs(unreferenced, 'unreferenced after import');
+            } catch (sweepError) {
+                logger.warn(`PDF import: unreferenced-blob sweep failed edificeId=${edificeId}`, sweepError);
+            }
 
-            logger.finish(`Successfully processed PDF: ${floorsCreated} floors created, ${floorsUpdated} floors updated, ${unitsCreated} units created, ${unitsUpdated} units updated`);
+            const floorsUpdated = Object.keys(summaryData.floors).length - floorsCreated;
+            const unitsTotal    = Object.values(summaryData.floors).reduce((t, f: any) => t + Object.keys(f.units).length, 0);
+            // Units skipped for a missing unit type / currency were neither created nor
+            // updated — counting them as updated claimed work that never happened.
+            const unitsUpdated  = unitsTotal - unitsCreated - unitsSkipped;
+
+            const summaryMessage = `Successfully processed PDF: ${floorsCreated} floors created, ${floorsUpdated} floors updated, ${unitsCreated} units created, ${unitsUpdated} units updated`
+                + (unitsSkipped > 0 ? `, ${unitsSkipped} units skipped` : '');
+
+            logger.finish(summaryMessage);
             return {
-                message: `Successfully processed PDF: ${floorsCreated} floors created, ${floorsUpdated} floors updated, ${unitsCreated} units created, ${unitsUpdated} units updated`,
+                message: summaryMessage,
                 floorsCreated,
                 unitsCreated,
             };
         } catch (error) {
+            // Nothing committed, so every blob uploaded above is unreachable.
+            if (!committed) {
+                try {
+                    await deleteGridFsBlobs(uploadedGridFsIds, 'import failed');
+                } catch (cleanupError) {
+                    logger.warn("Failed to clean up uploaded GridFS blobs", cleanupError);
+                }
+            }
             const errMsg   = error instanceof Error ? error.message : String(error);
             const errStack = error instanceof Error ? error.stack   : undefined;
             logger.err(`PDF floor/unit import failed edificeId=${edificeId} error=${errMsg}${errStack ? ` stack=${errStack}` : ""}`, error);

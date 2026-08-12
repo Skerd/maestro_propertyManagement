@@ -83,6 +83,8 @@ export type Rectangle = {
     centerY: number;
 };
 
+export type PageType = 'floor' | 'unit';
+
 export interface ExtractedImageOcrData {
     name: string;
     netArea: number;
@@ -91,6 +93,8 @@ export interface ExtractedImageOcrData {
     verandaArea: number;
     rawText: string;
     confidence: number;
+    /** Visual/OCR classification: master floor plan vs unit detail page. */
+    type?: PageType;
     metadata?: {
         pageCount?: number;
         extractionMethod: "text" | "ocr" | "mixed" | "ghostscript";

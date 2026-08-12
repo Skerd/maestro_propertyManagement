@@ -127,11 +127,12 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
                 result.pageNumber,
                 logger,
                 timer,
-                gsPageTextMap.get(result.pageNumber) ?? ''
+                gsPageTextMap.get(result.pageNumber) ?? '',
+                result.rectangleCount,
             );
             const floorLabel = extractFloorLabel(ocrData);
             const floorKey = getFloorFolderName(floorLabel);
-            const pageType = classifyPageType(ocrData, result.pageNumber, result.rectangleCount);
+            const pageType = ocrData.type ?? classifyPageType(ocrData, result.pageNumber, result.rectangleCount);
             logger.debug(`Page ${result.pageNumber}: rectangleCount=${result.rectangleCount} → classified as '${pageType}' (floor=${floorLabel})`);
 
             if (!ocrSummary.floors[floorKey]) {

@@ -3,7 +3,7 @@ import path from 'path';
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
 import {ensureDir, slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
-import type {CropResult, ExtractedImageOcrData} from '../types';
+import type {CropResult, ExtractedImageOcrData, PageType} from '../types';
 
 /**
  * Classifies page type as 'floor' or 'unit'.
@@ -30,7 +30,7 @@ export function classifyPageType(
     data: ExtractedImageOcrData,
     pageNumber?: number,
     rectangleCount?: number
-): 'floor' | 'unit' {
+): PageType {
     // PRIORITY 0 — Visual layout signal (authoritative when available).
     // A single big rectangle is the unambiguous fingerprint of a floor plan
     // page; two or more big rectangles is the unambiguous fingerprint of a
@@ -404,7 +404,14 @@ export function ensureFloorPlanPlaceholders(
 /**
  * Parses structured floor/unit fields from batch Ghostscript page text.
  */
-export async function extractPdfTextData(outputFolder: string, pageNumber: number, parentLogger: serverLogger, timer: PerformanceTimer, extractedText: string): Promise<ExtractedImageOcrData> {
+export async function extractPdfTextData(
+    outputFolder: string,
+    pageNumber: number,
+    parentLogger: serverLogger,
+    timer: PerformanceTimer,
+    extractedText: string,
+    rectangleCount?: number,
+): Promise<ExtractedImageOcrData> {
     return await timer.timeAsync('extractPdfTextData', async () => {
         const logger = getLogger("extract_pdf_text", parentLogger);
         logger.start(`Extracting text data from PDF page ${pageNumber}...`);
@@ -421,6 +428,7 @@ export async function extractPdfTextData(outputFolder: string, pageNumber: numbe
                 JSON.stringify(
                     {
                         name: data.name,
+                        type: data.type,
                         netArea: data.netArea,
                         sharedArea: data.sharedArea,
                         totalArea: data.totalArea,
@@ -450,6 +458,7 @@ export async function extractPdfTextData(outputFolder: string, pageNumber: numbe
             confidence,
             metadata: { extractionMethod: 'ghostscript' }
         };
+        ocrData.type = classifyPageType(ocrData, pageNumber, rectangleCount);
 
         writePageOcrArtifacts(ocrData);
 

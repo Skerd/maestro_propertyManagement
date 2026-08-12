@@ -21,6 +21,88 @@ function overlaps(
     return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
+function spanArea(s: { left: number; top: number; right: number; bottom: number }): number {
+    return Math.max(0, s.right - s.left) * Math.max(0, s.bottom - s.top);
+}
+
+function overlapArea(
+    a: { left: number; top: number; right: number; bottom: number },
+    b: { left: number; top: number; right: number; bottom: number }
+): number {
+    const w = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+    const h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    return w * h;
+}
+
+export function decodePdfTextEntities(text: string): string {
+    return text
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/&#(\d+);/g, (_, dec: string) => String.fromCharCode(Number(dec)))
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ');
+}
+
+/**
+ * Collapse adjacent duplicate phrases ("LABEL : LABEL : 12 m2 12 m2" → "LABEL : 12 m2").
+ * Vector PDFs often paint the same string many times (fill+stroke / fake bold).
+ */
+export function collapseRepeatedPhrases(line: string): string {
+    let current = line.replace(/\s+/g, ' ').trim();
+    if (!current) return '';
+    let previous = '';
+    while (current !== previous) {
+        previous = current;
+        // Must start on a token boundary so the "E" in SIPERFAQE is not
+        // collapsed with the following Albanian "E" in "SIPERFAQE E PERBASHKET".
+        current = current.replace(/(^|\s)(\S+(?:\s+\S+){0,12}?)\s+\2(?=\s|$)/g, '$1$2');
+    }
+    return current;
+}
+
+/**
+ * Drop stacked copies of the same string (same text + overlapping bbox).
+ */
+export function dedupeOverlappingTextSpans(spans: TextSpanBBox[], minOverlapRatio = 0.45): TextSpanBBox[] {
+    const sorted = [...spans].sort((a, b) => (a.top - b.top) || (a.left - b.left));
+    const kept: TextSpanBBox[] = [];
+    for (const span of sorted) {
+        const key = span.text.replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!key) continue;
+        const duplicate = kept.some((other) => {
+            if (other.text.replace(/\s+/g, ' ').trim().toLowerCase() !== key) return false;
+            const smaller = Math.min(spanArea(span), spanArea(other));
+            if (smaller <= 0) {
+                return Math.abs(span.top - other.top) < 2 && Math.abs(span.left - other.left) < 2;
+            }
+            return overlapArea(span, other) / smaller >= minOverlapRatio;
+        });
+        if (!duplicate) kept.push(span);
+    }
+    return kept;
+}
+
+export function formatTextSpansAsPageText(spans: TextSpanBBox[], lineGapPx = 8): string {
+    const unique = dedupeOverlappingTextSpans(spans);
+    const sorted = [...unique].sort((a, b) => (a.top - b.top) || (a.left - b.left));
+    const lines: string[] = [];
+    let currentLine = '';
+    let lastTop = Number.NEGATIVE_INFINITY;
+    for (const span of sorted) {
+        if (currentLine && Math.abs(span.top - lastTop) > lineGapPx) {
+            lines.push(collapseRepeatedPhrases(currentLine));
+            currentLine = span.text;
+        } else {
+            currentLine = currentLine ? `${currentLine} ${span.text}` : span.text;
+        }
+        lastTop = span.top;
+    }
+    if (currentLine.trim()) lines.push(collapseRepeatedPhrases(currentLine));
+    return lines.filter(Boolean).join('\n').trim();
+}
+
 /**
  * Maps a point from pre-landscape-rotate image space into detection space
  * (same convention as sharp.rotate(rotationNeeded) clockwise).
@@ -78,8 +160,8 @@ export function parseGhostscriptHtmlTextSpans(html: string): TextSpanBBox[] {
         const size = sizeMatch && !Number.isNaN(Number(sizeMatch[1]))
             ? Number(sizeMatch[1])
             : Math.max(1, Math.abs(y1 - y0) || 8);
-        const chars = [...match[3].matchAll(/\bc="([^"]*)"/g)].map((m) => m[1]);
-        const text = chars.join('').replace(/\s+/g, ' ').trim();
+        const chars = [...match[3].matchAll(/\bc="([^"]*)"/g)].map((m) => decodePdfTextEntities(m[1]));
+        const text = decodePdfTextEntities(chars.join('').replace(/\s+/g, ' ').trim());
         if (!text) continue;
 
         const left = Math.min(x0, x1);
@@ -203,22 +285,6 @@ export function filterTextSpansOutsideRectangles(
         }
     }
 
-    kept.sort((a, b) => (a.top - b.top) || (a.left - b.left));
-
-    const lines: string[] = [];
-    let currentLine = '';
-    let lastTop = Number.NEGATIVE_INFINITY;
     const lineGapPx = Math.max(8, dpi / 10);
-    for (const span of kept) {
-        if (currentLine && Math.abs(span.top - lastTop) > lineGapPx) {
-            lines.push(currentLine.trim());
-            currentLine = span.text;
-        } else {
-            currentLine = currentLine ? `${currentLine} ${span.text}` : span.text;
-        }
-        lastTop = span.top;
-    }
-    if (currentLine.trim()) lines.push(currentLine.trim());
-
-    return lines.join('\n').trim();
+    return formatTextSpansAsPageText(kept, lineGapPx);
 }

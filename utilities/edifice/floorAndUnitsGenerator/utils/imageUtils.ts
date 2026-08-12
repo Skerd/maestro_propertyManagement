@@ -8,6 +8,7 @@ import {detectLinesFromBuffer} from "@propertyManagement/utilities/edifice/floor
 import {execFileSync} from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import {collapseRepeatedPhrases} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/pdfTextBboxFilterUtils';
 
 export function rotationNeededToLandscapeTheImage(pngWidth: number, pngHeight: number, displayWidthPts: number, displayHeightPts: number, DPI: number): number {
     // 72 is the dots per inch
@@ -39,6 +40,7 @@ export async function boostImageMaxInMemory(input: Buffer | string, parentLogger
         logger.debug("Boosting image in memory...");
         const boostedBuffer = await sharp(input)
             .grayscale()
+            .threshold(config.LINE_INK_THRESHOLD)
             .gamma(3)
             .modulate({ brightness: 3, saturation: 5, hue: -360, lightness: -57 })
             .gamma(3)
@@ -226,7 +228,7 @@ function normalizeGhostscriptText(text: string): string {
             }
         }
 
-        normalizedLines.push(line);
+        normalizedLines.push(collapseRepeatedPhrases(line));
     }
 
     // Join lines with single newline (like OCR output)

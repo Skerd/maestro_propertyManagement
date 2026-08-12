@@ -598,14 +598,12 @@ function parseFloorPlanDataSimple(
         }
     }
     
-    // Extract areas — values may appear after the label ("SIPERFAQE NETO: 97.46 m2")
-    // or before it ("101.31 m2 SIPERFAQE NETO :"), often one pair per line.
-    const normalizedText = text.replace(/:\s*\n\s*(\d+[.,]?\d*\s*m[²2']?)/gi, ': $1');
-
-    const netArea = extractAreaSimple(normalizedText, /siperfaqe\s+neto|(?:net|bruto|usable)\s*area|\bneto\b/i, logger);
-    const sharedArea = extractAreaSimple(normalizedText, /siperfaqe\s+e\s+perbashket|(?:shared|common|joint)\s*area|\bperbashket\b/i, logger);
-    const totalArea = extractAreaSimple(normalizedText, /siperfaqe\s+totale|sperfaqetotale|(?:total|gross|brutto)\s*area|\btotale\b/i, logger);
-    const verandaArea = extractAreaSimple(normalizedText, /siperfaqe\s+veranda|\bveranda\b/i, logger);
+    // Extract areas one line at a time. Value may sit after the label
+    // ("SIPERFAQE NETO: 97.46 m2") or before it ("101.31 m2 SIPERFAQE VERANDE :").
+    const netArea = extractAreaSimple(text, /siperfaqe\s+neto|(?:net|bruto|usable)\s*area|\bneto\b/i, logger);
+    const sharedArea = extractAreaSimple(text, /siperfaqe\s+e\s+p[eë]rbashk[eë]t|(?:shared|common|joint)\s*area|\bp[eë]rbashk[eë]t\b/i, logger);
+    const totalArea = extractAreaSimple(text, /siperfaqe\s+totale|sperfaqetotale|(?:total|gross|brutto)\s*area|\btotale\b/i, logger);
+    const verandaArea = extractAreaSimple(text, /siperfaqe\s+verand[aeë]|siperfaqe\s+teras[eë]|\bverand[aeë]\b|\bteras[eë]\b|\bterrace\b/i, logger);
 
     const finalTotalArea = totalArea > 0 ? totalArea : (netArea + sharedArea > 0 ? netArea + sharedArea : 0);
 
@@ -613,28 +611,29 @@ function parseFloorPlanDataSimple(
 }
 
 /**
- * Finds an area value next to a label. Checks each line first, then the full text.
- * Supports both orders: "LABEL: 12.3 m2" and "12.3 m2 LABEL".
+ * Finds an area value on a single line that contains the label.
+ * Prefers a number with an m2 unit so a leading dimension ("482 SIPERFAQE NETO : 71.50 m2")
+ * cannot steal the value. Supports both orders: "LABEL: 12.3 m2" and "12.3 m2 LABEL".
  */
 function extractAreaSimple(text: string, labelPattern: RegExp, logger?: serverLogger): number {
-    const labelSrc = labelPattern.source;
-    const valueThenLabel = new RegExp(
-        `(\\d+[.,]?\\d*)\\s*m[²2']?\\s*${labelSrc}`,
-        'i'
-    );
-    const labelThenValueWithUnit = new RegExp(
-        `${labelSrc}[:\\s]+(\\d+[.,]?\\d*)\\s*m[²2']?`,
-        'i'
-    );
-    const labelThenValue = new RegExp(
-        `${labelSrc}[:\\s]+(\\d+[.,]?\\d*)`,
-        'i'
-    );
-    const patterns = [valueThenLabel, labelThenValueWithUnit, labelThenValue];
+    const label = `(?:${labelPattern.source})`;
+    const number = `(\\d+[.,]\\d+|\\d+)`;
+    const m2 = `m[²2']`;
+    const withUnit = [
+        new RegExp(`${number}\\s*${m2}\\s+${label}`, 'i'),
+        new RegExp(`${label}\\s*[:\\-]?\\s*${number}\\s*${m2}`, 'i'),
+    ];
+    const withoutUnit = [
+        new RegExp(`${number}\\s+${label}`, 'i'),
+        new RegExp(`${label}\\s*[:\\-]?\\s*${number}\\b`, 'i'),
+    ];
+    const labelOnLine = new RegExp(label, 'i');
+    const valueOnly = /^\d+[.,]?\d*\s*m[²2']?\s*$/i;
+    const labelOnly = /siperfaqe|(?:net|shared|common|total|usable|gross)\s*area|neto|p[eë]rbashk|totale|verand|teras/i;
 
-    const tryMatch = (chunk: string): number | null => {
+    const parseMatch = (line: string, patterns: RegExp[]): number | null => {
         for (const pattern of patterns) {
-            const match = chunk.match(pattern);
+            const match = line.match(pattern);
             if (match?.[1]) {
                 const value = parseFloat(match[1].replace(',', '.'));
                 if (!isNaN(value) && value > 0) {
@@ -645,18 +644,40 @@ function extractAreaSimple(text: string, labelPattern: RegExp, logger?: serverLo
         return null;
     };
 
-    for (const line of text.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        const value = tryMatch(trimmed);
+    const tryMatch = (line: string): number | null => {
+        if (!labelOnLine.test(line)) {
+            return null;
+        }
+        return parseMatch(line, withUnit) ?? parseMatch(line, withoutUnit);
+    };
+
+    const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    const lines: string[] = [];
+    for (let i = 0; i < rawLines.length; i += 1) {
+        const line = rawLines[i];
+        const next = rawLines[i + 1];
+        if (next && labelOnly.test(line) && /[:\-]\s*$/.test(line) && valueOnly.test(next)) {
+            lines.push(`${line} ${next}`);
+            i += 1;
+            continue;
+        }
+        if (next && valueOnly.test(line) && labelOnly.test(next)) {
+            lines.push(`${line} ${next}`);
+            i += 1;
+            continue;
+        }
+        lines.push(line);
+    }
+
+    for (const line of lines) {
+        const value = tryMatch(line);
         if (value != null) {
-            logger?.debug(`Extracted area from line "${trimmed.slice(0, 80)}": ${value}`);
+            logger?.debug(`Extracted area from line "${line.slice(0, 80)}": ${value}`);
             return value;
         }
     }
 
-    const value = tryMatch(text);
-    return value ?? 0;
+    return 0;
 }
 
 function calculateConfidenceSimple(parsedData: {name: string; netArea: number; sharedArea: number; totalArea: number}, textLength: number): number {

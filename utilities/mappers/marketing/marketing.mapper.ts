@@ -4,14 +4,11 @@ import {IProject} from "../../../database/schemas/project/project";
 import {IEdifice} from "../../../database/schemas/edifice/edifice";
 import {IFloor} from "../../../database/schemas/floor/floor";
 import {IUnit, UnitStatus} from "../../../database/schemas/unit/unit";
-import {IUser} from "@coreModule/database/schemas/user/user";
-
 import type {
     MarketingProjectSingleItem as MarketingProjectSingleDTO,
     MarketingUnitStatus
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProject/marketingProjectSingle.form.response.type";
 import type {MarketingUnitSingleItem as MarketingUnitSingleDTO} from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingUnit/marketingUnitSingle.form.response.type";
-import type {MarketingTeamMemberItem as MarketingTeamMemberDTO} from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingTeam/marketingTeam.form.response.type";
 import {mapUnitTypeToPropertyTypeId} from "../../marketing/marketingPropertyType.util";
 import {
     MarketingProjectListItem
@@ -257,19 +254,5 @@ export function mapMarketingUnitSingle(
         hasLakeView: unit.hasLakeView ?? undefined,
         hasElevator: unit.hasElevator ?? undefined,
         priceHistory: mapMarketingUnitPriceHistory(unit),
-    };
-}
-
-export function mapMarketingTeamMember(user: IUser | any): MarketingTeamMemberDTO {
-    const companyRole = user.roles?.find((role: any) => role.active)?.role;
-    const roleName = typeof companyRole === "object" && companyRole?.name
-        ? companyRole.name
-        : "Team member";
-
-    return {
-        _id: objectIdToString(user._id),
-        name: [user.name, user.surname].filter(Boolean).join(" ").trim() || user.username,
-        role: roleName,
-        image: marketingMediaUrl(user.photo),
     };
 }

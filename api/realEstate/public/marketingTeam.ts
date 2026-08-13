@@ -31,11 +31,19 @@ async function marketingTeam(params: MarketingTeamParams): Promise<MarketingTeam
 
     const company = await resolveMarketingCompany(origin, languageCode);
 
+    // Real team members only. Without the role filter this query also matches the
+    // company's AI bot user and public-chat visitor users — both of which carry
+    // `companies: [companyId]` — and only the `user.photo` filter below was
+    // keeping them off the public page.
     const users = await userService.find(
         {
             companies: company._id,
             isActive: true,
             deletedAt: null,
+            isBot: {$ne: true},
+            isVisitor: {$ne: true},
+            "roles.company": company._id,
+            "roles.active": "active",
         },
         {logger, languageCode},
         ["photo", "roles.role"],

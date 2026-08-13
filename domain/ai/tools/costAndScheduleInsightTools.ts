@@ -22,6 +22,7 @@ import {budgetService} from "@propertyManagement/database/schemas/budget/budget.
 import {boqItemService} from "@propertyManagement/database/schemas/boqItem/boqItem.service";
 import {constructionContractService} from "@propertyManagement/database/schemas/constructionContract/constructionContract.service";
 import {milestoneService} from "@propertyManagement/database/schemas/milestone/milestone.service";
+import {limitParameter, listResult} from "./assistantToolHelpers";
 
 const MAX_RESULTS = 25;
 const DEFAULT_RESULTS = 10;
@@ -66,14 +67,20 @@ async function executeBudgetVariance(rawArgs: unknown, ctx: AssistantToolContext
         MAX_RESULTS
     );
 
+    // The BOQ is summed in full rather than sampled, so the totals below are real
+    // totals. The cap is a memory guard; if it is ever hit the answer would be a
+    // partial sum, so we say so explicitly instead of reporting a short number as
+    // if it were complete.
+    const BOQ_SCAN_CAP = 10_000;
     const boqItems = await boqItemService.find(
         companyScope,
         findOpts,
         [],
         "trade category plannedAmount actualAmount status",
         {},
-        10_000
+        BOQ_SCAN_CAP
     );
+    const boqTruncated = boqItems.length >= BOQ_SCAN_CAP;
 
     const byTrade: Record<string, {planned: number; actual: number}> = {};
     let plannedTotal = 0;
@@ -110,6 +117,10 @@ async function executeBudgetVariance(rawArgs: unknown, ctx: AssistantToolContext
             contingencyPercent: b.contingencyPercent ?? null
         })),
         boq: {
+            itemsSummed: boqItems.length,
+            ...(boqTruncated
+                ? {note: `Only the first ${BOQ_SCAN_CAP} BOQ items were summed — these totals are partial.`}
+                : {}),
             plannedTotal,
             actualTotal,
             variance: plannedTotal - actualTotal,
@@ -167,10 +178,7 @@ const milestoneRiskParameters = {
             type: "string",
             description: "Optional project id to scope the risk report; omit for the whole company."
         },
-        limit: {
-            type: "integer",
-            description: `Maximum number of at-risk milestones (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -221,7 +229,7 @@ async function executeMilestoneRisk(rawArgs: unknown, ctx: AssistantToolContext)
         };
     });
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(milestoneService, query, results, ctx);
 }
 
 export const milestoneRiskTool: AssistantTool = {

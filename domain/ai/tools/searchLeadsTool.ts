@@ -21,10 +21,7 @@ import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {LeadStatus, LeadSource} from "@propertyManagement/database/schemas/lead/lead";
-
-/** Hard cap on rows returned to the model, to protect its context window. */
-const MAX_RESULTS = 25;
-const DEFAULT_RESULTS = 10;
+import {DEFAULT_RESULTS, MAX_RESULTS, limitParameter, listResult} from "./assistantToolHelpers";
 
 const LEAD_STATUS_VALUES = Object.values(LeadStatus) as string[];
 const LEAD_SOURCE_VALUES = Object.values(LeadSource) as string[];
@@ -49,6 +46,7 @@ const SearchLeadsArgs = z
         minBudget: z.coerce.number().nonnegative().optional(),
         maxBudget: z.coerce.number().nonnegative().optional(),
         followUpBefore: z.coerce.date().optional(),
+        assignedToMe: z.coerce.boolean().optional(),
         limit: z.coerce.number().int().positive().max(MAX_RESULTS).optional()
     })
     .strip();
@@ -76,10 +74,11 @@ const parameters = {
             type: "string",
             description: "ISO date; only leads whose follow-up date is on or before this (find due follow-ups)."
         },
-        limit: {
-            type: "integer",
-            description: `Maximum number of results (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        assignedToMe: {
+            type: "boolean",
+            description: "Set true when the user asks about THEIR OWN leads (\"my leads\", \"assigned to me\")."
+        },
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -97,6 +96,8 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     if (args.status) query.status = args.status;
     if (args.source) query.source = args.source;
     if (args.followUpBefore != null) query.followUpDate = {$lte: args.followUpBefore};
+    // "My leads" — scoped from the trusted context, never from a model-supplied id.
+    if (args.assignedToMe === true) query.assignedTo = new ObjectId(ctx.userId);
 
     if (args.minBudget != null || args.maxBudget != null) {
         const budget: Record<string, Decimal128> = {};
@@ -143,7 +144,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         convertedAt: l.convertedAt ?? null
     }));
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(leadService, query, results, ctx);
 }
 
 export const searchLeadsTool: AssistantTool = {
@@ -152,9 +153,11 @@ export const searchLeadsTool: AssistantTool = {
         "Search the company's CRM leads/contacts (prospective buyers/clients) by " +
         "name, email or phone (free-text `search`), pipeline status (new, contacted, " +
         "qualified, proposal, negotiation, won, lost), source, budget range, or a " +
-        "follow-up-due date. Returns each lead with contact details, status, budget, " +
-        "interests and who it's assigned to. Use this for questions about leads, " +
-        "contacts, clients, prospects, or the sales pipeline.",
+        "follow-up-due date, or only those assigned to the asking user. Returns each " +
+        "lead with contact details, status, budget, interests and who it's assigned " +
+        "to, plus `total` — the true number of matching leads, which is what you must " +
+        "quote when asked how many. Use this for questions about leads, contacts, " +
+        "clients, prospects, or the sales pipeline.",
     parameters,
     execute
 };

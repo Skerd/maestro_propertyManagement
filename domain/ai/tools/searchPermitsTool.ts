@@ -18,6 +18,7 @@ import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {permitService} from "@propertyManagement/database/schemas/permit/permit.service";
+import {limitParameter, listResult} from "./assistantToolHelpers";
 import {permitStatusValues, permitTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/permit/permit.schema-def";
 
 /** Hard cap on rows returned to the model, to protect its context window. */
@@ -60,10 +61,7 @@ const parameters = {
             type: "string",
             description: "ISO date; only permits that expire on or before this date (find upcoming expiries)."
         },
-        limit: {
-            type: "integer",
-            description: `Maximum number of results (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -111,7 +109,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         expiresAt: p.expiresAt ?? null
     }));
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(permitService, query, results, ctx);
 }
 
 export const searchPermitsTool: AssistantTool = {

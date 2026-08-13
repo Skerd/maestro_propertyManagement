@@ -23,6 +23,7 @@ import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {projectService} from "@propertyManagement/database/schemas/project/project.service";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {limitParameter, listResult} from "./assistantToolHelpers";
 
 /** Hard cap on rows returned to the model, to protect its context window. */
 const MAX_RESULTS = 25;
@@ -46,10 +47,7 @@ const parameters = {
     type: "object" as const,
     properties: {
         search: {type: "string", description: "Free text matched against the project name."},
-        limit: {
-            type: "integer",
-            description: `Maximum number of projects to return (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -122,6 +120,10 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const projectIds = projects.map((p: any) => p._id).filter(Boolean);
     const unitSummary = await rollUpUnits(projectIds, companyId, ctx);
 
+    // Commission rates are internal business terms. A website visitor gets the
+    // same view of a project the marketing pages already give them.
+    const isPublic = ctx.audience === "public";
+
     const results = projects.map((p: any) => {
         const id = p._id?.toString();
         const units = (id && unitSummary.get(id)) || {total: 0, byStatus: {}};
@@ -129,17 +131,22 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
             id,
             name: p.name ?? null,
             description: shortDescription(p.description),
-            saleCommissionRatePercent: p.saleCommissionRatePercent ?? null,
-            reservationCommissionRatePercent: p.reservationCommissionRatePercent ?? null,
+            ...(isPublic ? {} : {
+                saleCommissionRatePercent: p.saleCommissionRatePercent ?? null,
+                reservationCommissionRatePercent: p.reservationCommissionRatePercent ?? null
+            }),
             units: {total: units.total, byStatus: units.byStatus}
         };
     });
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(projectService, query, results, ctx);
 }
 
 export const searchProjectsTool: AssistantTool = {
     name: "search_projects",
+    // Safe for both audiences: the commission fields are omitted for `public`
+    // inside execute(), leaving name/description/unit availability.
+    audience: "both",
     description:
         "List the company's real-estate projects (developments), optionally filtered " +
         "by name. For each project it returns a live unit rollup: the total number of " +

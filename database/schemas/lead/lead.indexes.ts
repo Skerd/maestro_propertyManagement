@@ -8,4 +8,5 @@ export function applyLeadIndexes(LeadSchema: Schema): void {
     LeadSchema.index({company: 1, interest: 1, createdAt: -1});
     LeadSchema.index({company: 1, followUpDate: 1});
     LeadSchema.index({company: 1, firstName: 1, lastName: 1});
+    LeadSchema.index({company: 1, chat: 1});
 }

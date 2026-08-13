@@ -3,6 +3,7 @@ import {Document, model, Schema, SchemaTypes} from "mongoose";
 import {Decimal128} from "mongodb";
 import {IUser} from "@coreModule/database/schemas/user/user";
 import {ICurrency} from "@coreModule/database/schemas/currency/currency";
+import {IChannel} from "@coreModule/database/schemas/channel/channel";
 import {IProject} from "../project/project";
 import {IUnit} from "../unit/unit";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
@@ -21,6 +22,7 @@ import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/v
 import {LeadSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.schema-def";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {ChannelLeadChatSnippet} from "@coreModule/database/schemas/channel/channel.snippets";
 import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
@@ -42,6 +44,7 @@ export enum LeadSource {
     EVENT     = "event",
     COLD_CALL = "cold_call",
     WALK_IN   = "walk_in",
+    CHAT      = "chat",
     OTHER     = "other",
 }
 
@@ -75,6 +78,7 @@ export interface ILead extends Document, IOwnershipPluginFields, ISoftDeletePlug
     budget?: Decimal128;
     budgetCurrency?: ICurrency;
     notes?: string;
+    chat?: IChannel;
     assignedTo?: IUser;
     followUpDate?: Date;
     convertedAt?: Date;
@@ -132,7 +136,20 @@ const LeadSchema = new Schema<ILead>(
             required:     false,
             refAllowlist: CurrencySimpleSnippet,
         },
-        notes:      {type: SchemaTypes.String, required: false, trim: true},
+        notes: {type: SchemaTypes.String, required: false, trim: true},
+        chat: {
+            type:         SchemaTypes.ObjectId,
+            ref:          "Channel",
+            required:     false,
+            refAllowlist: ChannelLeadChatSnippet,
+            permissions:  {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+                hrefTemplate:  "/company/websiteChats/mine?channelId={_id}",
+                filterable:    true,
+                sortable:      true,
+            },
+        },
         assignedTo: {
             type:         SchemaTypes.ObjectId,
             ref:          "User",
@@ -224,4 +241,4 @@ export default Lead;
 normalizeSchemaPermissions(Lead);
 addModelData(Lead, leadViews);
 // budget stored as Decimal128; status has default so required check is waived; activityLog/convertedAt are server-managed
-validateSchemaDefAgainstMongoose(LeadSchema, LeadSchemaDef, "Lead", ["activityLog", "convertedAt", "name"]);
+validateSchemaDefAgainstMongoose(LeadSchema, LeadSchemaDef, "Lead", ["activityLog", "convertedAt", "name", "chat"]);

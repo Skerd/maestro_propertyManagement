@@ -18,6 +18,7 @@ const leadSourceOptions = [
     {value: "event",     label: "form.sourceEvent"},
     {value: "cold_call", label: "form.sourceColdCall"},
     {value: "walk_in",   label: "form.sourceWalkIn"},
+    {value: "chat",      label: "form.sourceChat"},
     {value: "other",     label: "form.sourceOther"},
 ];
 
@@ -475,6 +476,24 @@ export const leadSheetView: ViewConfig = {
                                 widgetProps: {
                                     icon:                "#Globe",
                                     languageKeyCategory: "sources",
+                                },
+                            },
+                        },
+                        {
+                            render: "#SmallInfoCard",
+                            permissions: {read: "chat"},
+                            dependent: "chat",
+                            field: {
+                                name:        "chat",
+                                widget:      "#SmallInfoCard",
+                                label:       "chat",
+                                widgetProps: {
+                                    icon:                 "#MessageSquare",
+                                    linkedRefPath:        "chat",
+                                    parent:               "chat",
+                                    valuePath:            ["name", "_id"],
+                                    pickFirstTruthyValuePath: true,
+                                    internalHrefTemplate: "/company/websiteChats/mine?channelId={_id}",
                                 },
                             },
                         },

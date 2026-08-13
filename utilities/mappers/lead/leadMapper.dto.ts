@@ -25,6 +25,7 @@ function mapActivityEntry(entry: any): LeadActivityEntry {
 export function leadToDTO(lead: ILead): Lead {
     const projectInterest = lead.projectInterest as any;
     const unitInterest    = lead.unitInterest as any;
+    const chat            = lead.chat as any;
 
     return {
         _id:       lead._id.toString(),
@@ -45,6 +46,10 @@ export function leadToDTO(lead: ILead): Lead {
         budget:         decimal128ToNumber(lead.budget),
         budgetCurrency: mapPopulatedSimpleCurrency(lead.budgetCurrency as any),
         notes:          lead.notes,
+        chat: chat ? {
+            _id:  chat._id?.toString() ?? chat.toString(),
+            name: chat.publicChat?.visitor?.displayName || chat.name || undefined,
+        } : undefined,
         assignedTo:     mapPopulatedSimpleUser(lead.assignedTo),
         followUpDate:   lead.followUpDate ? new Date(lead.followUpDate).toISOString().split("T")[0] : undefined,
         convertedAt:    lead.convertedAt  ? new Date(lead.convertedAt).toISOString()  : undefined,

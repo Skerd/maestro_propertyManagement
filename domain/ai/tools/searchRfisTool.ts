@@ -19,6 +19,7 @@ import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {rfiService} from "@propertyManagement/database/schemas/rfi/rfi.service";
 import {rfiStatusValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/rfi/rfi.schema-def";
+import {limitParameter, listResult} from "./assistantToolHelpers";
 
 /** Hard cap on rows returned to the model, to protect its context window. */
 const MAX_RESULTS = 25;
@@ -59,10 +60,7 @@ const parameters = {
             type: "string",
             description: "ISO date; only RFIs due on or before this date."
         },
-        limit: {
-            type: "integer",
-            description: `Maximum number of results (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -121,7 +119,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         createdAt: r.createdAt ?? null
     }));
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(rfiService, query, results, ctx);
 }
 
 export const searchRfisTool: AssistantTool = {

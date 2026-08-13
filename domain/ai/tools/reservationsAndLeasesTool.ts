@@ -25,10 +25,7 @@ import {reservationService} from "@propertyManagement/database/schemas/reservati
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
 import {ReservationStatus} from "@propertyManagement/database/schemas/reservation/reservation";
 import {LeaseStatus} from "@propertyManagement/database/schemas/lease/lease";
-
-/** Hard cap on rows returned to the model, to protect its context window. */
-const MAX_RESULTS = 25;
-const DEFAULT_RESULTS = 10;
+import {DEFAULT_RESULTS, MAX_RESULTS, emptyResult, limitParameter, listResult} from "./assistantToolHelpers";
 
 const RESERVATION_STATUS_VALUES = Object.values(ReservationStatus) as string[];
 const LEASE_STATUS_VALUES = Object.values(LeaseStatus) as string[];
@@ -89,10 +86,7 @@ const reservationParameters = {
             type: "string",
             description: "ISO date; only reservations expiring on or before this date (find soon-to-expire ones)."
         },
-        limit: {
-            type: "integer",
-            description: `Maximum number of results (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -105,7 +99,7 @@ async function executeReservations(rawArgs: unknown, ctx: AssistantToolContext):
     if (args.unitNumber != null) {
         const unitId = await resolveUnitId(args.unitNumber, ctx);
         if (!unitId) {
-            return {count: 0, capped: false, results: [], note: `No unit "${args.unitNumber}" in this company.`};
+            return emptyResult(`No unit "${args.unitNumber}" in this company.`);
         }
         query.unit = unitId;
     }
@@ -141,7 +135,7 @@ async function executeReservations(rawArgs: unknown, ctx: AssistantToolContext):
         paid: r.paid ?? false
     }));
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(reservationService, query, results, ctx);
 }
 
 export const searchReservationsTool: AssistantTool = {
@@ -185,10 +179,7 @@ const leaseParameters = {
         },
         minRent: {type: "number", description: "Minimum monthly rent (in the lease's own currency)."},
         maxRent: {type: "number", description: "Maximum monthly rent (in the lease's own currency)."},
-        limit: {
-            type: "integer",
-            description: `Maximum number of results (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -201,7 +192,7 @@ async function executeLeases(rawArgs: unknown, ctx: AssistantToolContext): Promi
     if (args.unitNumber != null) {
         const unitId = await resolveUnitId(args.unitNumber, ctx);
         if (!unitId) {
-            return {count: 0, capped: false, results: [], note: `No unit "${args.unitNumber}" in this company.`};
+            return emptyResult(`No unit "${args.unitNumber}" in this company.`);
         }
         query.unit = unitId;
     }
@@ -244,7 +235,7 @@ async function executeLeases(rawArgs: unknown, ctx: AssistantToolContext): Promi
         depositPaid: l.depositPaid ?? false
     }));
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(leaseService, query, results, ctx);
 }
 
 export const searchLeasesTool: AssistantTool = {

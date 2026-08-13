@@ -25,6 +25,7 @@ import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/to
 import {edificeService} from "@propertyManagement/database/schemas/edifice/edifice.service";
 import {projectService} from "@propertyManagement/database/schemas/project/project.service";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {emptyResult, limitParameter, listResult} from "./assistantToolHelpers";
 
 /** Hard cap on rows returned to the model, to protect its context window. */
 const MAX_RESULTS = 25;
@@ -50,10 +51,7 @@ const parameters = {
     properties: {
         search: {type: "string", description: "Free text matched against the building name."},
         projectName: {type: "string", description: "Only buildings that belong to a project whose name matches this."},
-        limit: {
-            type: "integer",
-            description: `Maximum number of buildings to return (default ${DEFAULT_RESULTS}, max ${MAX_RESULTS}).`
-        }
+        limit: limitParameter
     },
     required: [] as string[]
 };
@@ -126,7 +124,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     if (args.projectName != null) {
         const projectIds = await resolveProjectIds(args.projectName, companyId, ctx);
         if (projectIds.length === 0) {
-            return {count: 0, capped: false, results: [], note: `No project matching "${args.projectName}" in this company.`};
+            return emptyResult(`No project matching "${args.projectName}" in this company.`);
         }
         query.project = {$in: projectIds};
     }
@@ -173,11 +171,14 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         };
     });
 
-    return {count: results.length, capped: results.length >= limit, results};
+    return listResult(edificeService, query, results, ctx);
 }
 
 export const searchBuildingsTool: AssistantTool = {
     name: "search_buildings",
+    // Safe for both audiences: the sensitive edifice fields (investment value,
+    // constructors) are already excluded from the select and the output.
+    audience: "both",
     description:
         "List the company's buildings (edifices), optionally filtered by building " +
         "name or by the project they belong to. For each building it returns the " +

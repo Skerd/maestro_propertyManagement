@@ -20,6 +20,12 @@ import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/to
 import {projectDocumentService} from "@propertyManagement/database/schemas/projectDocument/projectDocument.service";
 import {constructorService} from "@propertyManagement/database/schemas/constructor/constructor.service";
 import {warrantyService} from "@propertyManagement/database/schemas/warranty/warranty.service";
+// Imported for its side effect of registering the model: `search_documents`
+// populates `designStage`, and the assistant process does not load every route
+// file the way the API server does. Without this, mongoose throws "Schema hasn't
+// been registered for model 'DesignStage'" the first time a document that HAS a
+// design stage is returned — passing on empty data, failing in production.
+import "@propertyManagement/database/schemas/designStage/designStage";
 import {
     projectDocumentDisciplineValues,
     projectDocumentStatusValues,

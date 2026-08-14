@@ -17,6 +17,13 @@ import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {maintenanceWorkOrderService} from "@propertyManagement/database/schemas/maintenanceWorkOrder/maintenanceWorkOrder.service";
 import {safetyIncidentService} from "@propertyManagement/database/schemas/safetyIncident/safetyIncident.service";
+// Imported for its side effect of registering the model: `search_work_orders`
+// populates `asset`, and the assistant runs in its own process which does not
+// load every route file the way the API server does. Without this, mongoose
+// throws "Schema hasn't been registered for model 'Asset'" the first time a
+// work order that HAS an asset is returned — so it would pass on empty data and
+// fail in production.
+import "@propertyManagement/database/schemas/asset/asset";
 import {
     maintenanceWorkOrderStatusValues,
     maintenanceWorkOrderTypeValues

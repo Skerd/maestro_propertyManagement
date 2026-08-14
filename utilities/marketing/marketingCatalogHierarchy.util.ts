@@ -22,6 +22,7 @@ function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
 export async function loadMarketingCatalogHierarchy(
     projectIds: ObjectId[],
     companyId: ObjectId,
+    options?: {includePriceHistory?: boolean},
 ): Promise<MarketingProjectHierarchy> {
     if (projectIds.length === 0) {
         return {
@@ -58,12 +59,15 @@ export async function loadMarketingCatalogHierarchy(
         : [];
 
     const floorIds = floors.map((floor) => floor._id);
+    const unitPopulate = options?.includePriceHistory
+        ? ["unitType", "mainImage", "imageGallery", "priceCurrency", "priceHistory.currency"]
+        : ["unitType", "mainImage", "imageGallery"];
     const units = floorIds.length > 0
         ? await unitService.find({
             floor: {$in: floorIds},
             company: companyId,
             deletedAt: null,
-        }, {}, ["unitType", "mainImage", "imageGallery"])
+        }, {}, unitPopulate)
         : [];
 
     const floorsByEdifice = groupBy(floors, (floor) => objectIdToString((floor.edifice as any)?._id ?? floor.edifice));
@@ -109,7 +113,7 @@ export async function loadMarketingCatalogHierarchyForProject(
     projectId: ObjectId,
     companyId: ObjectId,
 ): Promise<MarketingProjectHierarchy> {
-    return loadMarketingCatalogHierarchy([projectId], companyId);
+    return loadMarketingCatalogHierarchy([projectId], companyId, {includePriceHistory: true});
 }
 
 export function collectProjectCities(edifices: IEdifice[]): string[] {

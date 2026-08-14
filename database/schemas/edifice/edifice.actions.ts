@@ -406,8 +406,13 @@ export class EdificeActions {
 
                     const assets: UnitAssets = {unitName, unitSummary};
                     const unitFolder = path.join(outputRoot, "floors", floorKey, "units", slugifyLabel(unitName));
+                    const existingUnitForUpload = target.unitsByName.get(unitName);
 
-                    const unitPlanBuffer = readGeneratedFile(path.join(unitFolder, 'unit-plan.png'));
+                    // Center crop is only stored on create (as the first gallery image).
+                    // Re-uploading it on regen used to append a duplicate to every unit.
+                    const unitPlanBuffer = !existingUnitForUpload
+                        ? readGeneratedFile(path.join(unitFolder, 'unit-plan.png'))
+                        : undefined;
                     if (unitPlanBuffer) {
                         assets.unitPlan = await uploadBlob(
                             unitPlanBuffer,
@@ -545,7 +550,6 @@ export class EdificeActions {
                         for (const assets of task.units) {
                             const {unitName, unitSummary} = assets;
 
-                            const unitPlanMedia      = assets.unitPlan      ? await createMediaDoc(assets.unitPlan)      : undefined;
                             const unitFloorPlanMedia = assets.unitFloorPlan ? await createMediaDoc(assets.unitFloorPlan) : undefined;
 
                             // Keep the full unit name as the unit number so every unit is unique.
@@ -580,14 +584,6 @@ export class EdificeActions {
                                 if (unitFloorPlanMedia) {
                                     existingUnit.mainImage = unitFloorPlanMedia;
                                 }
-                                if (unitPlanMedia) {
-                                    const currentGallery   = existingUnit.imageGallery || [];
-                                    const alreadyInGallery = currentGallery.some((img: any) => {
-                                        const imgId = img instanceof ObjectId ? img : img._id || img;
-                                        return imgId.toString() === unitPlanMedia._id.toString();
-                                    });
-                                    if (!alreadyInGallery) existingUnit.imageGallery = [...currentGallery, unitPlanMedia];
-                                }
 
                                 if (assets.booklet && !hasMarketingBooklet(existingUnit)) {
                                     existingUnit.marketingBooklet = await createMediaDoc(assets.booklet);
@@ -599,6 +595,7 @@ export class EdificeActions {
                                 await existingUnit.save({session: txSession});
                                 floorTotalArea += existingUnit.area;
                             } else {
+                                const unitPlanMedia = assets.unitPlan ? await createMediaDoc(assets.unitPlan) : undefined;
                                 const imageGallery: any[] = [];
                                 if (unitPlanMedia) imageGallery.push(unitPlanMedia);
 

@@ -7,10 +7,12 @@ import type {MarketingProjectCatalogListItem} from "armonia/src/modules/property
 import type {
     MarketingProjectCatalogSingleItem,
     MarketingUnitCatalogListItem,
+    MarketingEdificePriceHistoryEntry,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjectCatalog/marketingProjectCatalogSingle.form.response.type";
 import {
     marketingMediaUrl,
     marketingMediaUrls,
+    mapMarketingPriceCurrency,
 } from "./marketing.mapper";
 import {mapUnitTypeToPropertyTypeId} from "../../marketing/marketingPropertyType.util";
 import {computeUnitCatalogStats} from "../../marketing/marketingCatalogFilters.util";
@@ -153,6 +155,60 @@ export function mapMarketingUnitCatalogListItem(
     };
 }
 
+function monthKey(date: Date): string {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function mapEdificePricePerSqmHistory(units: IUnit[] | any[]): MarketingEdificePriceHistoryEntry[] | undefined {
+    const buckets = new Map<string, {sum: number; count: number; changedAt: Date; currency?: ReturnType<typeof mapMarketingPriceCurrency>}>();
+
+    for (const unit of units) {
+        const area = typeof unit.area === "number" ? unit.area : Number(unit.area);
+        if (!Number.isFinite(area) || area <= 0) {
+            continue;
+        }
+        const history = Array.isArray(unit.priceHistory) ? unit.priceHistory : [];
+        for (const entry of history) {
+            const price = decimal128ToNumber(entry?.price);
+            if (price == null || !Number.isFinite(price)) {
+                continue;
+            }
+            const changedAt = entry?.changedAt ? new Date(entry.changedAt) : null;
+            if (!changedAt || Number.isNaN(changedAt.getTime())) {
+                continue;
+            }
+            const key = monthKey(changedAt);
+            const perSqm = price / area;
+            const existing = buckets.get(key);
+            const currency = mapMarketingPriceCurrency(entry.currency) ?? mapMarketingPriceCurrency(unit.priceCurrency);
+            if (existing) {
+                existing.sum += perSqm;
+                existing.count += 1;
+                if (changedAt > existing.changedAt) {
+                    existing.changedAt = changedAt;
+                    if (currency) {
+                        existing.currency = currency;
+                    }
+                }
+            } else {
+                buckets.set(key, {sum: perSqm, count: 1, changedAt, currency});
+            }
+        }
+    }
+
+    if (buckets.size === 0) {
+        return undefined;
+    }
+
+    return [...buckets.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([, bucket]) => ({
+            price: bucket.sum / bucket.count,
+            currency: bucket.currency,
+            changedAt: bucket.changedAt.toISOString(),
+        }));
+}
+
 export function mapMarketingProjectCatalogSingle(
     project: IProject | any,
     edifices: IEdifice[] | any[],
@@ -271,6 +327,7 @@ export function mapMarketingProjectCatalogSingle(
                 unitCount: unitStats.unitCount,
                 availableUnitCount: unitStats.availableUnitCount,
                 soldUnitCount: unitStats.soldUnitCount,
+                priceHistory: mapEdificePricePerSqmHistory(mappedUnits),
                 floorsCoordinates: mappedFloorsCoordinates,
                 floors: floors.map((floor) => {
                     const floorId = objectIdToString(floor._id);

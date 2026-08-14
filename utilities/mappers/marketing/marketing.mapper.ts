@@ -173,7 +173,7 @@ export function mapMarketingProjectSingle(
     };
 }
 
-function mapMarketingPriceCurrency(currency: any): {symbol?: string; abbreviation?: string} | undefined {
+export function mapMarketingPriceCurrency(currency: any): {symbol?: string; abbreviation?: string} | undefined {
     if (!currency || typeof currency !== "object") {
         return undefined;
     }

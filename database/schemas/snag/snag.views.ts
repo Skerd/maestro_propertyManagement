@@ -28,31 +28,31 @@ export const snagSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "title"},
                             field: {
                                 name: "title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "title",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",
@@ -64,25 +64,25 @@ export const snagSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "location"},
                             field: {
                                 name: "location",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "location",
                                 widgetProps: {icon: "#MapPin"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "status"},
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
-                                    languageKeyCategory: "statuses",
+                                    languageKeyCategory: "statuses", type: "enum",
                                     variantLookupField: "status",
                                     variantLookupMap: {
                                         open: "secondary",
@@ -94,15 +94,15 @@ export const snagSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "severity"},
                             field: {
                                 name: "severity",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "severity",
                                 widgetProps: {
                                     icon: "#AlertTriangle",
-                                    languageKeyCategory: "severities",
+                                    languageKeyCategory: "severities", type: "enum",
                                     variantLookupField: "severity",
                                     variantLookupMap: {
                                         low: "secondary",
@@ -114,74 +114,76 @@ export const snagSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "reportedBy"},
                             field: {
                                 name: "reportedBy",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reportedBy",
                                 widgetProps: {
                                     icon: "#IconUser",
                                     parent: "reportedBy",
                                     valuePath: ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "assignedTo"},
                             field: {
                                 name: "assignedTo",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "assignedTo",
                                 widgetProps: {
                                     icon: "#IconUserCheck",
                                     parent: "assignedTo",
                                     valuePath: ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "dueDate"},
                             field: {
                                 name: "dueDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "dueDate",
-                                widgetProps: {icon: "#CalendarDays", format: "date"},
+                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "resolvedAt"},
                             dependent: "resolvedAt",
                             field: {
                                 name: "resolvedAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "resolvedAt",
-                                widgetProps: {icon: "#CalendarCheck", format: "date"},
+                                widgetProps: {icon: "#CalendarCheck", format: "date", type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "trade"},
                             dependent: "trade",
                             field: {
                                 name: "trade",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "trade",
                                 widgetProps: {icon: "#Tools"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "workPackage"},
                             dependent: "workPackage",
                             field: {
                                 name: "workPackage",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "workPackage",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -192,54 +194,54 @@ export const snagSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "rootCause"},
                             dependent: "rootCause",
                             field: {
                                 name: "rootCause",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "rootCause",
                                 widgetProps: {icon: "#AlertCircle"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "costImpact"},
                             dependent: "costImpact",
                             field: {
                                 name: "costImpact",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "costImpact",
-                                widgetProps: {icon: "#CurrencyDollar", format: "locale"},
+                                widgetProps: {icon: "#CurrencyDollar", format: "locale", type: "currency"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "isWarranty"},
                             field: {
                                 name: "isWarranty",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "isWarranty",
-                                widgetProps: {icon: "#ShieldCheck", valueType: "boolean"},
+                                widgetProps: {icon: "#ShieldCheck", valueType: "boolean", type: "boolean"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "isDlp"},
                             field: {
                                 name: "isDlp",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "isDlp",
-                                widgetProps: {icon: "#ShieldCheck", valueType: "boolean"},
+                                widgetProps: {icon: "#ShieldCheck", valueType: "boolean", type: "boolean"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "variationOrder"},
                             dependent: "variationOrder",
                             field: {
                                 name: "variationOrder",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "variationOrder",
                                 widgetProps: {
                                     icon: "#IconFolder",

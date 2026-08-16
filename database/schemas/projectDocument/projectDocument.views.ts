@@ -41,42 +41,42 @@ export const projectDocumentSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "title"},
                             field: {
                                 name: "title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "title",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "documentNumber"},
                             dependent: "documentNumber",
                             field: {
                                 name: "documentNumber",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "documentNumber",
                                 widgetProps: {icon: "#IconHash"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "project"},
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -87,12 +87,12 @@ export const projectDocumentSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
                                 name: "edifice.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
                                     icon: "#Building",
@@ -104,23 +104,23 @@ export const projectDocumentSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "floor"},
                             dependent: "floor",
                             field: {
                                 name: "floor.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "floor",
                                 widgetProps: {icon: "#Layers"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "unit"},
                             dependent: "unit",
                             field: {
                                 name: "unit.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",
@@ -132,53 +132,53 @@ export const projectDocumentSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "discipline"},
                             field: {
                                 name: "discipline",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "discipline",
                                 widgetProps: {icon: "#IconCategory", languageKeyCategory: "disciplines"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "documentType"},
                             field: {
                                 name: "documentType",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "documentType",
                                 widgetProps: {icon: "#IconFileText", languageKeyCategory: "documentTypes"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "revision"},
                             dependent: "revision",
                             field: {
                                 name: "revision",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "revision",
                                 widgetProps: {icon: "#IconGitBranch"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "revisionDate"},
                             dependent: "revisionDate",
                             field: {
                                 name: "revisionDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "revisionDate",
                                 widgetProps: {icon: "#CalendarDays", format: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "status"},
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
@@ -195,22 +195,22 @@ export const projectDocumentSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "isAsBuilt"},
                             field: {
                                 name: "isAsBuilt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "isAsBuilt",
                                 widgetProps: {icon: "#IconCircleCheck", valueType: "boolean"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "supersedes"},
                             dependent: "supersedes",
                             field: {
                                 name: "supersedes.title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "supersedes",
                                 widgetProps: {
                                     icon: "#IconHistory",
@@ -222,22 +222,22 @@ export const projectDocumentSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "designStage"},
                             dependent: "designStage",
                             field: {
                                 name: "designStage.title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "designStage",
                                 widgetProps: {icon: "#IconFolder"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "isRequiredDeliverable"},
                             field: {
                                 name: "isRequiredDeliverable",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "isRequiredDeliverable",
                                 widgetProps: {icon: "#ShieldCheck", valueType: "boolean"},
                             },

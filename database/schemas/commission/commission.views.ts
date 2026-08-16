@@ -21,58 +21,62 @@ export const commissionSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "agent",
                             permissions: {read: "agent"},
                             field: {
                                 name: "agent",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "agent",
                                 widgetProps: {
                                     icon: "#User",
                                     parent: "agent",
                                     valuePath: ["name", "surname"],
-                                    joinSeparator: " "
+                                    joinSeparator: " ",
+                                    type: "user",
                                 }
                             }
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "sourceType"},
                             field: {
                                 name: "sourceType",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "sourceType",
                                 widgetProps: {
                                     icon: "#Tag",
-                                    languageKeyCategory: "fields.!enums.sourceType"
+                                    languageKeyCategory: "fields.!enums.sourceType",
+                                    type: "enum",
                                 }
                             }
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "status"},
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
-                                    languageKeyCategory: "fields.!enums.status"
+                                    languageKeyCategory: "fields.!enums.status",
+                                    type: "enum",
                                 }
                             }
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "basis"},
                             field: {
                                 name: "basis",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "basis",
                                 widgetProps: {
                                     icon: "#FileText",
                                     tooltip: "basisTooltip",
                                     languageKeyCategory: "basisEnum",
+                                    type: "enum",
                                 },
                             },
                         },
@@ -90,11 +94,11 @@ export const commissionSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "basisAmount"},
                             field: {
                                 name: "basisAmount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "basisAmount",
                                 widgetProps: {
                                     icon: "#Calculator",
@@ -105,25 +109,26 @@ export const commissionSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "ratePercent"},
                             field: {
                                 name: "ratePercent",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "ratePercent",
                                 widgetProps: {icon: "#Percent", suffix: "%"}
                             }
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "amount"},
                             field: {
                                 name: "amount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "amount",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -134,6 +139,7 @@ export const commissionSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
@@ -151,12 +157,12 @@ export const commissionSheetView: ViewConfig = {
                     props: {columns: 2},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "sale",
                             permissions: {read: "sale"},
                             field: {
                                 name: "sale.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "sale",
                                 widgetProps: {
                                     icon: "#ShoppingCart",
@@ -168,12 +174,12 @@ export const commissionSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "reservation",
                             permissions: {read: "reservation"},
                             field: {
                                 name: "reservation.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservation",
                                 widgetProps: {
                                     icon: "#BookMarked",
@@ -198,25 +204,25 @@ export const commissionSheetView: ViewConfig = {
                     props: {columns: 2},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "paidAt",
                             permissions: {read: "paidAt"},
                             field: {
                                 name: "paidAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "paidAt",
-                                widgetProps: {icon: "#CalendarCheck", format: "date"}
+                                widgetProps: {icon: "#CalendarCheck", format: "date", type: "date"}
                             }
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "voidedAt",
                             permissions: {read: "voidedAt"},
                             field: {
                                 name: "voidedAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "voidedAt",
-                                widgetProps: {icon: "#XCircle", format: "date"}
+                                widgetProps: {icon: "#XCircle", format: "date", type: "date"}
                             }
                         }
                     ]

@@ -105,12 +105,12 @@ export const inspectionSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",
@@ -125,25 +125,25 @@ export const inspectionSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "type" },
                             field: {
                                 name: "type",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "type",
-                                widgetProps: { icon: "#IconLabel", languageKeyCategory: "types" },
+                                widgetProps: { icon: "#IconLabel", languageKeyCategory: "types", type: "enum" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "status" },
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
-                                    languageKeyCategory: "statuses",
+                                    languageKeyCategory: "statuses", type: "enum",
                                     variantLookupField: "status",
                                     variantLookupMap: {
                                         completed: "success",
@@ -156,33 +156,35 @@ export const inspectionSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "rating" },
                             field: {
                                 name: "rating",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "rating",
                                 widgetProps: {
                                     icon: "#Star",
                                     variantFromRatingTenScale: true,
                                     suffix: "/10",
+                                    type: "number",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "followUpRequiredOutstanding",
                             dependentRuntimeOnly: true,
                             permissions: { read: "followUpRequired" },
                             field: {
                                 name: "followUpRequiredOutstanding",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "followUpRequired",
                                 widgetProps: {
                                     icon: "#AlertCircle",
                                     valueType: "boolean",
                                     dontRenderValue: true,
                                     variant: "warning",
+                                    type: "boolean",
                                 },
                             },
                         },
@@ -199,63 +201,65 @@ export const inspectionSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "scheduledDate",
                             permissions: { read: "scheduledDate" },
                             field: {
                                 name: "scheduledDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "scheduledDate",
-                                widgetProps: { icon: "#Clock", format: "dateTime" },
+                                widgetProps: { icon: "#Clock", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "inspectionDate" },
                             field: {
                                 name: "inspectionDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "inspectionDate",
-                                widgetProps: { icon: "#Calendar", format: "dateTime" },
+                                widgetProps: { icon: "#Calendar", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "nextInspectionDate" },
                             field: {
                                 name: "nextInspectionDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "nextInspectionDate",
-                                widgetProps: { icon: "#CalendarClock", format: "dateTime" },
+                                widgetProps: { icon: "#CalendarClock", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "completedAt",
                             permissions: { read: "completedAt" },
                             field: {
                                 name: "completedAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "completedAt",
                                 widgetProps: {
                                     icon: "#CalendarCheck",
                                     format: "dateTime",
                                     variant: "success",
+                                    type: "dateTime",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "cancelledAt",
                             permissions: { read: "cancelledAt" },
                             field: {
                                 name: "cancelledAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "cancelledAt",
                                 widgetProps: {
                                     icon: "#XCircle",
                                     format: "dateTime",
                                     variant: "destructive",
+                                    type: "dateTime",
                                 },
                             },
                         },
@@ -272,18 +276,19 @@ export const inspectionSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "inspectedBy",
                             permissions: { read: "inspectedBy" },
                             field: {
                                 name: "inspectedBy",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "inspectedBy",
                                 widgetProps: {
                                     icon: "#User",
                                     parent: "inspectedBy",
                                     valuePath: ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
@@ -301,12 +306,12 @@ export const inspectionSheetView: ViewConfig = {
                     props: { columns: 2 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "checklistTemplate",
                             permissions: { read: "checklistTemplate" },
                             field: {
                                 name: "checklistTemplate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "checklistTemplate",
                                 widgetProps: {
                                     icon: "#ListDetails",
@@ -368,12 +373,12 @@ export const inspectionSheetView: ViewConfig = {
                     props: { columns: 2 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "followUpInspection",
                             permissions: { read: "followUpInspection" },
                             field: {
                                 name: "followUpInspection.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "followUpInspection",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -385,12 +390,12 @@ export const inspectionSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "followedUpByInspection",
                             permissions: { read: "followedUpByInspection" },
                             field: {
                                 name: "followedUpByInspection.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "followedUpByInspection",
                                 widgetProps: {
                                     icon: "#IconFolder",

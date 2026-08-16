@@ -32,31 +32,31 @@ export const permitSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "title"},
                             field: {
                                 name: "title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "title",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "project"},
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -67,12 +67,12 @@ export const permitSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
                                 name: "edifice.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
                                     icon: "#Building",
@@ -84,21 +84,21 @@ export const permitSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "permitType"},
                             field: {
                                 name: "permitType",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "permitType",
                                 widgetProps: {icon: "#IconLabel", languageKeyCategory: "permitTypes"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "status"},
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
@@ -116,56 +116,56 @@ export const permitSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "authority"},
                             dependent: "authority",
                             field: {
                                 name: "authority",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "authority",
                                 widgetProps: {icon: "#IconBuildingBank"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "referenceNumber"},
                             dependent: "referenceNumber",
                             field: {
                                 name: "referenceNumber",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "referenceNumber",
                                 widgetProps: {icon: "#IconHash"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "submittedAt"},
                             dependent: "submittedAt",
                             field: {
                                 name: "submittedAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "submittedAt",
                                 widgetProps: {icon: "#CalendarDays", format: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "approvedAt"},
                             dependent: "approvedAt",
                             field: {
                                 name: "approvedAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "approvedAt",
                                 widgetProps: {icon: "#CalendarCheck", format: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "expiresAt"},
                             dependent: "expiresAt",
                             field: {
                                 name: "expiresAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "expiresAt",
                                 widgetProps: {icon: "#CalendarClock", format: "date"},
                             },

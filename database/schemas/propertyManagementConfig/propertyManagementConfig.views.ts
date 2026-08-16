@@ -17,21 +17,21 @@ export const propertyManagementConfigSheetView: ViewConfig = {
                     props: {columns: 2},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "requiresSaleApproval"},
                             field: {
                                 name: "requiresSaleApproval",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "requiresSaleApproval",
                                 widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "requiresSaleApproval"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "requiresHandoverPackageForHandover"},
                             field: {
                                 name: "requiresHandoverPackageForHandover",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "requiresHandoverPackageForHandover",
                                 widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "requiresHandoverPackageForHandover"},
                             },

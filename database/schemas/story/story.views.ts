@@ -21,62 +21,62 @@ export const storySheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "title"},
                             field: {
                                 name: "title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "title",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "published"},
                             field: {
                                 name: "published",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "published",
-                                widgetProps: {icon: "#IconLabel", format: "boolean"},
+                                widgetProps: {icon: "#IconLabel", format: "boolean", type: "boolean"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "publishedAt"},
                             dependent: "publishedAt",
                             field: {
                                 name: "publishedAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "publishedAt",
-                                widgetProps: {icon: "#CalendarDays", format: "date"},
+                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "sortOrder"},
                             field: {
                                 name: "sortOrder",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "sortOrder",
-                                widgetProps: {icon: "#ListOrdered"},
+                                widgetProps: {icon: "#ListOrdered", type: "number"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "project"},
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -87,11 +87,11 @@ export const storySheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "storyType"},
                             field: {
                                 name: "storyType.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "storyType",
                                 widgetProps: {
                                     icon: "#Tag",
@@ -103,12 +103,12 @@ export const storySheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
                                 name: "edifice.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
                                     icon: "#Building",
@@ -120,12 +120,12 @@ export const storySheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "unit"},
                             dependent: "unit",
                             field: {
                                 name: "unit.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",

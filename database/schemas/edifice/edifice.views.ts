@@ -24,21 +24,21 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "name" },
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: { icon: "#IconLabel" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "project" },
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -49,41 +49,41 @@ export const edificeSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "totalArea" },
                             field: {
                                 name: "totalArea",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "totalArea",
-                                widgetProps: { icon: "#IconGrid4x4", format: "locale", suffix: "m²" },
+                                widgetProps: { icon: "#IconGrid4x4", format: "locale", suffix: "m²" , type: "area"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "greenArea" },
                             field: {
                                 name: "greenArea",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "greenArea",
-                                widgetProps: { icon: "#TreePine", format: "locale", suffix: "m²" },
+                                widgetProps: { icon: "#TreePine", format: "locale", suffix: "m²" , type: "area"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "distanceFromCityCenter" },
                             field: {
                                 name: "distanceFromCityCenter",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "distanceFromCityCenter",
-                                widgetProps: { icon: "#MapPin", format: "locale", suffix: "m" },
+                                widgetProps: { icon: "#MapPin", format: "locale", suffix: "m" , type: "locale"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "investmentValue" },
                             field: {
                                 name: "investmentValue",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "investmentValue",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -94,15 +94,16 @@ export const edificeSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "pricePerMeterSquared" },
                             field: {
                                 name: "pricePerMeterSquared",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "pricePerMeterSquared",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -114,15 +115,16 @@ export const edificeSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "verandaPricePerMeterSquared" },
                             field: {
                                 name: "verandaPricePerMeterSquared",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "verandaPricePerMeterSquared",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -134,15 +136,16 @@ export const edificeSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "saleCurrency" },
                             field: {
                                 name: "saleCurrency.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "saleCurrency",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -167,53 +170,53 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "numberOfFloors" },
                             field: {
                                 name: "numberOfFloors",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "numberOfFloors",
-                                widgetProps: { icon: "#Layers" },
+                                widgetProps: { icon: "#Layers" , type: "number"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "numberOfFloorsAboveGround" },
                             field: {
                                 name: "numberOfFloorsAboveGround",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "numberOfFloorsAboveGround",
-                                widgetProps: { icon: "#ArrowUp" },
+                                widgetProps: { icon: "#ArrowUp" , type: "number"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "numberOfFloorsUnderGround" },
                             field: {
                                 name: "numberOfFloorsUnderGround",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "numberOfFloorsUnderGround",
-                                widgetProps: { icon: "#ArrowDown" },
+                                widgetProps: { icon: "#ArrowDown" , type: "number"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "numberOfParkingSpaces" },
                             field: {
                                 name: "numberOfParkingSpaces",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "numberOfParkingSpaces",
-                                widgetProps: { icon: "#Car" },
+                                widgetProps: { icon: "#Car" , type: "number"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "numberOfGarages" },
                             field: {
                                 name: "numberOfGarages",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "numberOfGarages",
-                                widgetProps: { icon: "#IconCarGarage" },
+                                widgetProps: { icon: "#IconCarGarage" , type: "number"},
                             },
                         },
                     ],
@@ -230,51 +233,51 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "constructionStartDate" },
                             field: {
                                 name: "constructionStartDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "constructionStartDate",
-                                widgetProps: { icon: "#Calendar", format: "date" },
+                                widgetProps: { icon: "#Calendar", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "expectedCompletionDate" },
                             field: {
                                 name: "expectedCompletionDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "expectedCompletionDate",
-                                widgetProps: { icon: "#CalendarClock", format: "date" },
+                                widgetProps: { icon: "#CalendarClock", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "actualCompletionDate" },
                             field: {
                                 name: "actualCompletionDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "actualCompletionDate",
-                                widgetProps: { icon: "#CalendarCheck", format: "date" },
+                                widgetProps: { icon: "#CalendarCheck", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "buildingPermitNumber" },
                             field: {
                                 name: "buildingPermitNumber",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "buildingPermitNumber",
                                 widgetProps: { icon: "#FileText" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "energyClass" },
                             field: {
                                 name: "energyClass",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "energyClass",
                                 widgetProps: { icon: "#Bolt" },
                             },
@@ -295,108 +298,114 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.totalFloors",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.floors",
-                                widgetProps: { icon: "#Layers", tooltip: "statistics.floors" },
+                                widgetProps: { icon: "#Layers", tooltip: "statistics.floors" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.totalUnits",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.units",
-                                widgetProps: { icon: "#DoorOpen", tooltip: "statistics.units" },
+                                widgetProps: { icon: "#DoorOpen", tooltip: "statistics.units" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.unitsByStatus.available",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.availableUnits",
-                                widgetProps: { icon: "#CheckCircle", tooltip: "statistics.availableUnits" },
+                                widgetProps: { icon: "#CheckCircle", tooltip: "statistics.availableUnits" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.unitsByStatus.reserved",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.reservedUnits",
-                                widgetProps: { icon: "#BookMarked", tooltip: "statistics.reservedUnits" },
+                                widgetProps: { icon: "#BookMarked", tooltip: "statistics.reservedUnits" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.unitsByStatus.sold",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.soldUnits",
-                                widgetProps: { icon: "#DollarSign", tooltip: "statistics.soldUnits" },
+                                widgetProps: { icon: "#DollarSign", tooltip: "statistics.soldUnits" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.unitsByStatus.leased",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.leasedUnits",
-                                widgetProps: { icon: "#Key", tooltip: "statistics.leasedUnits" },
+                                widgetProps: { icon: "#Key", tooltip: "statistics.leasedUnits" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.unitsByStatus.unavailable",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.unavailableUnits",
-                                widgetProps: { icon: "#XCircle", tooltip: "statistics.unavailableUnits" },
+                                widgetProps: { icon: "#XCircle", tooltip: "statistics.unavailableUnits" , type: "number", show: true},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.totalUnitsArea",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.totalArea",
                                 widgetProps: {
                                     icon: "#IconGrid4x4",
                                     format: "locale",
                                     suffix: "m²",
                                     tooltip: "statistics.totalArea",
-                                },
+                                    type: "area",
+                                     show: true,
+                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.totalUnitsNetArea",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.netArea",
                                 widgetProps: {
                                     icon: "#IconRuler3",
                                     format: "locale",
                                     suffix: "m²",
                                     tooltip: "statistics.netArea",
-                                },
+                                    type: "area",
+                                     show: true,
+                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.totalUnitsSharedArea",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.sharedArea",
                                 widgetProps: {
                                     icon: "#IconRuler3",
                                     format: "locale",
                                     suffix: "m²",
                                     tooltip: "statistics.sharedArea",
-                                },
+                                    type: "area",
+                                     show: true,
+                                 },
                             },
                         },
                         {
@@ -404,17 +413,19 @@ export const edificeSheetView: ViewConfig = {
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     field: {
                                         name: "statistics.totalValue",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "statistics.totalValue",
                                         widgetProps: {
                                             icon: "#IconChartArrowsVertical",
                                             tooltip: "statistics.totalValueTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                        },
+                                            type: "currency",
+                                             show: true,
+                                         },
                                     },
                                 },
                             ],
@@ -424,17 +435,19 @@ export const edificeSheetView: ViewConfig = {
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     field: {
                                         name: "statistics.collectedAmount",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "statistics.collectedAmount",
                                         widgetProps: {
                                             icon: "#IconChartArrowsVertical",
                                             tooltip: "statistics.collectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                        },
+                                            type: "currency",
+                                             show: true,
+                                         },
                                     },
                                 },
                             ],
@@ -444,17 +457,19 @@ export const edificeSheetView: ViewConfig = {
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     field: {
                                         name: "statistics.notCollectedAmount",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "statistics.notCollectedAmount",
                                         widgetProps: {
                                             icon: "#IconChartArrowsVertical",
                                             tooltip: "statistics.notCollectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                        },
+                                            type: "currency",
+                                             show: true,
+                                         },
                                     },
                                 },
                             ],
@@ -464,17 +479,19 @@ export const edificeSheetView: ViewConfig = {
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     field: {
                                         name: "statistics.verifiedPaidUnitCosts",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "statistics.verifiedPaidUnitCosts",
                                         widgetProps: {
                                             icon: "#Receipt",
                                             tooltip: "statistics.verifiedPaidUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                        },
+                                            type: "currency",
+                                             show: true,
+                                         },
                                     },
                                 },
                             ],
@@ -484,17 +501,19 @@ export const edificeSheetView: ViewConfig = {
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     field: {
                                         name: "statistics.verifiedOutstandingUnitCosts",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "statistics.verifiedOutstandingUnitCosts",
                                         widgetProps: {
                                             icon: "#Receipt",
                                             tooltip: "statistics.verifiedOutstandingUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                        },
+                                            type: "currency",
+                                             show: true,
+                                         },
                                     },
                                 },
                             ],
@@ -504,32 +523,36 @@ export const edificeSheetView: ViewConfig = {
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     field: {
                                         name: "statistics.pendingVerificationUnitCosts",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "statistics.pendingVerificationUnitCosts",
                                         widgetProps: {
                                             icon: "#Receipt",
                                             tooltip: "statistics.pendingVerificationUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                        },
+                                            type: "currency",
+                                             show: true,
+                                         },
                                     },
                                 },
                             ],
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             field: {
                                 name: "statistics.totalUnitCostDocuments",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "statistics.totalUnitCostDocuments",
                                 widgetProps: {
                                     icon: "#FileStack",
                                     tooltip: "statistics.totalUnitCostDocumentsTooltip",
                                     format: "locale",
-                                },
+                                    type: "number",
+                                     show: true,
+                                 },
                             },
                         },
                     ],
@@ -546,11 +569,11 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 1 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "propertyTypes" },
                             field: {
                                 name: "propertyTypes",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "propertyTypes",
                                 widgetProps: {
                                     icon: "#IconGrid4x4",
@@ -578,11 +601,11 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 1 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "commercialFacilities" },
                             field: {
                                 name: "commercialFacilities",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "commercialFacilities",
                                 widgetProps: {
                                     icon: "#IconGrid4x4",
@@ -592,11 +615,11 @@ export const edificeSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "neighborhoodFacilities" },
                             field: {
                                 name: "neighborhoodFacilities",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "neighborhoodFacilities",
                                 widgetProps: {
                                     icon: "#IconTrees",
@@ -619,11 +642,11 @@ export const edificeSheetView: ViewConfig = {
                     props: { columns: 1 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "constructors" },
                             field: {
                                 name: "constructors",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "constructors",
                                 widgetProps: {
                                     icon: "#IconGrid4x4",

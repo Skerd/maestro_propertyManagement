@@ -21,31 +21,31 @@ export const constructionUpdateSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "title"},
                             field: {
                                 name: "title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "title",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "project"},
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -56,12 +56,12 @@ export const constructionUpdateSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
                                 name: "edifice.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
                                     icon: "#Building",
@@ -73,12 +73,12 @@ export const constructionUpdateSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "milestone"},
                             dependent: "milestone",
                             field: {
                                 name: "milestone.title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "milestone",
                                 widgetProps: {
                                     icon: "#Flag",
@@ -90,12 +90,12 @@ export const constructionUpdateSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "scheduleTask"},
                             dependent: "scheduleTask",
                             field: {
                                 name: "scheduleTask.title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "scheduleTask",
                                 widgetProps: {
                                     icon: "#ListChecks",
@@ -107,23 +107,23 @@ export const constructionUpdateSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "progressPercent"},
                             field: {
                                 name: "progressPercent",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "progressPercent",
                                 widgetProps: {icon: "#Percent", suffix: "%"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "updateDate"},
                             field: {
                                 name: "updateDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "updateDate",
-                                widgetProps: {icon: "#CalendarDays", format: "date"},
+                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
                             },
                         },
                     ],

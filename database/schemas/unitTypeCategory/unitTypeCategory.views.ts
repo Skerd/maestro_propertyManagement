@@ -21,11 +21,11 @@ export const unitTypeCategorySheetView: ViewConfig = {
                     props: {columns: 1},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#Tag"},
                             },

@@ -21,23 +21,23 @@ export const storyTypeSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "slug"},
                             field: {
                                 name: "slug",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "slug",
                                 widgetProps: {icon: "#Hash"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "sortOrder"},
                             field: {
                                 name: "sortOrder",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "sortOrder",
-                                widgetProps: {icon: "#ListOrdered"},
+                                widgetProps: {icon: "#ListOrdered", type: "number"},
                             },
                         },
                     ],
@@ -114,10 +114,6 @@ const storyTypeFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.descriptionLabel",
                                     placeholder: "form.descriptionPlaceholder",
-                                    widgetProps: {
-                                        className:
-                                            "min-h-[140px] max-h-[320px] w-full resize-y overflow-y-auto leading-relaxed",
-                                    },
                                 },
                             },
                         ],

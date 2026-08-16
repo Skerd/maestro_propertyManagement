@@ -22,26 +22,26 @@ export const paymentPlanSheetView: ViewConfig = {
                     props: { columns: 2 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "name",
                             permissions: { read: "name" },
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "code",
                                 widgetProps: { icon: "#IconLabel" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "status" },
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
-                                    languageKeyCategory: "paymentPlanStatusState",
+                                    languageKeyCategory: "paymentPlanStatusState", type: "enum",
                                     variantLookupField: "status",
                                     variantLookupMap: {
                                         active: "warning",
@@ -66,11 +66,11 @@ export const paymentPlanSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "totalAmount" },
                             field: {
                                 name: "totalAmount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "totalAmount",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -81,15 +81,16 @@ export const paymentPlanSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "downPayment" },
                             field: {
                                 name: "downPayment",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "downPayment",
                                 widgetProps: {
                                     icon: "#Banknote",
@@ -100,19 +101,21 @@ export const paymentPlanSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "downPaymentPaid" },
                             field: {
                                 name: "downPaymentPaid",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "downPaymentPaid",
                                 widgetProps: {
                                     icon: "#CheckCircle",
                                     languageKeyCategory: "downPaymentPaidState",
+                                    type: "boolean",
                                     variantLookupField: "downPaymentPaid",
                                     variantLookupMap: {
                                         true: "success",
@@ -122,11 +125,11 @@ export const paymentPlanSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "remainingBalance" },
                             field: {
                                 name: "remainingBalance",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "remainingBalance",
                                 widgetProps: {
                                     icon: "#Wallet",
@@ -137,15 +140,16 @@ export const paymentPlanSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "installmentAmount" },
                             field: {
                                 name: "installmentAmount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "installmentAmount",
                                 widgetProps: {
                                     icon: "#Receipt",
@@ -156,27 +160,28 @@ export const paymentPlanSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "interestRate",
                             permissions: { read: "interestRate" },
                             field: {
                                 name: "interestRate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "interestRate",
                                 widgetProps: { icon: "#Percent", suffix: "%" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "lateFeePercentage",
                             permissions: { read: "lateFeePercentage" },
                             field: {
                                 name: "lateFeePercentage",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "lateFeePercentage",
                                 widgetProps: { icon: "#AlarmClock", suffix: "%" },
                             },
@@ -195,43 +200,43 @@ export const paymentPlanSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "startDate" },
                             field: {
                                 name: "startDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "startDate",
-                                widgetProps: { icon: "#Calendar", format: "date" },
+                                widgetProps: { icon: "#Calendar", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "endDate" },
                             field: {
                                 name: "endDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "endDate",
-                                widgetProps: { icon: "#CalendarCheck", format: "date" },
+                                widgetProps: { icon: "#CalendarCheck", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "downPaymentDate",
                             permissions: { read: "downPaymentDate" },
                             field: {
                                 name: "downPaymentDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "downPaymentDate",
-                                widgetProps: { icon: "#CalendarClock", format: "date" },
+                                widgetProps: { icon: "#CalendarClock", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "gracePeriodDays",
                             permissions: { read: "gracePeriodDays" },
                             field: {
                                 name: "gracePeriodDays",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "gracePeriodDays",
                                 widgetProps: { icon: "#Clock", suffix: " days" },
                             },
@@ -249,13 +254,13 @@ export const paymentPlanSheetView: ViewConfig = {
                     props: { columns: 2 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "numberOfInstallments" },
                             field: {
                                 name: "numberOfInstallments",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "installments",
-                                widgetProps: { icon: "#ListOrdered" },
+                                widgetProps: { icon: "#ListOrdered" , type: "number"},
                             },
                         },
                     ],

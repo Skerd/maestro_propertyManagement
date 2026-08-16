@@ -393,22 +393,22 @@ export const unitCostSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#Hash"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",
@@ -423,12 +423,12 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "floor",
                             permissions: {read: "floor"},
                             field: {
                                 name: "floor",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "floor",
                                 widgetProps: {
                                     icon: "#Stack2",
@@ -443,12 +443,12 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "edifice",
                             permissions: {read: "edifice"},
                             field: {
                                 name: "edifice",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
                                     icon: "#BuildingSkyscraper",
@@ -463,12 +463,12 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "project",
                             permissions: {read: "project"},
                             field: {
                                 name: "project",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#BuildingCommunity",
@@ -483,12 +483,12 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "currency",
                             permissions: {read: "currency"},
                             field: {
                                 name: "currency",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "currency",
                                 widgetProps: {
                                     icon: "#CurrencyDollar",
@@ -503,97 +503,98 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "purchasePerson"},
                             field: {
                                 name: "purchasePerson",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "purchasePerson",
                                 widgetProps: {
                                     icon: "#User",
                                     parent: "purchasePerson",
                                     valuePath: ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "purchaseDate"},
                             field: {
                                 name: "purchaseDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "purchaseDate",
-                                widgetProps: {icon: "#Calendar", format: "date"},
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "paymentDate"},
                             field: {
                                 name: "paymentDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "paymentDate",
-                                widgetProps: {icon: "#CalendarDue", format: "date"},
+                                widgetProps: {icon: "#CalendarDue", format: "date", type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "verificationStatus"},
                             field: {
                                 name: "verificationStatus",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "verificationStatus",
-                                widgetProps: {icon: "#Shield", languageKeyCategory: "unitCostVerification"},
+                                widgetProps: {icon: "#Shield", languageKeyCategory: "unitCostVerification", type: "enum"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "paymentStatus"},
                             field: {
                                 name: "paymentStatus",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "paymentStatus",
-                                widgetProps: {icon: "#CreditCard", languageKeyCategory: "unitCostPayment"},
+                                widgetProps: {icon: "#CreditCard", languageKeyCategory: "unitCostPayment", type: "enum"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "tag"},
                             field: {
                                 name: "tag",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "tag",
                                 widgetProps: {icon: "#Tag"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "invoiceNumber"},
                             field: {
                                 name: "invoiceNumber",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "invoiceNumber",
                                 widgetProps: {icon: "#FileInvoice"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "vendorName"},
                             field: {
                                 name: "vendorName",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "vendorName",
                                 widgetProps: {icon: "#BuildingStore"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "relatedModificationRequest",
                             permissions: {read: "relatedModificationRequest"},
                             field: {
                                 name: "relatedModificationRequest",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "relatedModificationRequest",
                                 widgetProps: {
                                     icon: "#Hammer",
@@ -608,22 +609,22 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "documentSubtotal"},
                             field: {
                                 name: "documentSubtotal",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "documentSubtotal",
-                                widgetProps: {icon: "#Receipt", format: "locale"},
+                                widgetProps: {icon: "#Receipt", format: "locale", type: "currency"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "constructorRef",
                             permissions: {read: "constructorRef"},
                             field: {
                                 name: "constructorRef.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "constructor",
                                 widgetProps: {
                                     icon: "#IconGrid4x4",
@@ -635,12 +636,12 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "boqItem",
                             permissions: {read: "boqItem"},
                             field: {
                                 name: "boqItem",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "boqItem",
                                 widgetProps: {
                                     icon: "#ListDetails",
@@ -651,12 +652,12 @@ export const unitCostSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "costCommitment",
                             permissions: {read: "costCommitment"},
                             field: {
                                 name: "costCommitment",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "costCommitment",
                                 widgetProps: {
                                     icon: "#FileText",

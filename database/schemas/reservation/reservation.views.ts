@@ -24,12 +24,12 @@ export const reservationSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",
@@ -44,70 +44,73 @@ export const reservationSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "client",
                             permissions: { read: "client" },
                             field: {
                                 name: "client",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "client",
                                 widgetProps: {
                                     icon: "#User",
                                     parent: "client",
                                     valuePath: ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "reservedBy",
                             permissions: { read: "reservedBy" },
                             field: {
                                 name: "reservedBy",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservedBy",
                                 widgetProps: {
                                     icon: "#User",
                                     parent: "reservedBy",
                                     valuePath: ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "reservedByCompany",
                             permissions: { read: "reservedByCompany" },
                             field: {
                                 name: "reservedByCompany.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservedByCompany",
                                 widgetProps: { icon: "#Building2" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "isActive",
                             permissions: { read: "isActive" },
                             field: {
                                 name: "isActive",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
                                     variant: "success",
                                     languageKeyCategory: "activeState",
+                                    type: "boolean",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             // dependent: "paid",
                             permissions: { read: "paid" },
                             field: {
                                 name: "paid",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "paid",
                                 widgetProps: {
                                     icon: "#CircleDot",
@@ -118,44 +121,45 @@ export const reservationSheetView: ViewConfig = {
                                         false: "destructive",
                                     },
                                     languageKeyCategory: "paidState",
+                                    type: "boolean",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "status",
                             permissions: { read: "status" },
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservationStatus",
                                 widgetProps: {
                                     icon: "#Tag",
-                                    languageKeyCategory: "statusValues",
+                                    languageKeyCategory: "statusValues", type: "enum",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "source",
                             permissions: { read: "source" },
                             field: {
                                 name: "source",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "source",
                                 widgetProps: {
                                     icon: "#Globe",
-                                    languageKeyCategory: "sourceValues",
+                                    languageKeyCategory: "sourceValues", type: "enum",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "referralCode",
                             permissions: { read: "referralCode" },
                             field: {
                                 name: "referralCode",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "referralCode",
                                 widgetProps: { icon: "#Hash" },
                             },
@@ -173,35 +177,35 @@ export const reservationSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "reservationDate" },
                             field: {
                                 name: "reservationDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservationDate",
-                                widgetProps: { icon: "#Calendar", format: "dateTime" },
+                                widgetProps: { icon: "#Calendar", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "expirationDate",
                             permissions: { read: "expirationDate" },
                             field: {
                                 name: "expirationDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "expirationDate",
-                                widgetProps: { icon: "#CalendarClock", format: "date" },
+                                widgetProps: { icon: "#CalendarClock", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "cancelledAt",
                             permissions: { read: "cancelledAt" },
                             field: {
                                 name: "cancelledAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "cancelledAt",
-                                widgetProps: { icon: "#XCircle", format: "dateTime" },
+                                widgetProps: { icon: "#XCircle", format: "dateTime" , type: "dateTime"},
                             },
                         },
                     ],
@@ -217,58 +221,58 @@ export const reservationSheetView: ViewConfig = {
                     props: { columns: 2 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "confirmationEmailSentAt",
                             permissions: { read: "confirmationEmailSentAt" },
                             field: {
                                 name: "confirmationEmailSentAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "confirmationEmailSentAt",
-                                widgetProps: { icon: "#Mail", format: "dateTime" },
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "expirationReminderEmailAt3d",
                             permissions: { read: "expirationReminderEmailAt3d" },
                             field: {
                                 name: "expirationReminderEmailAt3d",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "expirationReminderEmailAt3d",
-                                widgetProps: { icon: "#Mail", format: "dateTime" },
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "expirationReminderEmailAt1d",
                             permissions: { read: "expirationReminderEmailAt1d" },
                             field: {
                                 name: "expirationReminderEmailAt1d",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "expirationReminderEmailAt1d",
-                                widgetProps: { icon: "#Mail", format: "dateTime" },
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "expirationReminderEmailAt0d",
                             permissions: { read: "expirationReminderEmailAt0d" },
                             field: {
                                 name: "expirationReminderEmailAt0d",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "expirationReminderEmailAt0d",
-                                widgetProps: { icon: "#Mail", format: "dateTime" },
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "expiredAt",
                             permissions: { read: "expiredAt" },
                             field: {
                                 name: "expiredAt",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservationExpiredAt",
-                                widgetProps: { icon: "#XCircle", format: "dateTime" },
+                                widgetProps: { icon: "#XCircle", format: "dateTime" , type: "dateTime"},
                             },
                         },
                     ],
@@ -284,12 +288,12 @@ export const reservationSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "depositAmount",
                             permissions: { readAny: ["depositAmount", "depositCurrency"] },
                             field: {
                                 name: "depositAmount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "depositAmount",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -300,16 +304,17 @@ export const reservationSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "paymentMethod",
                             permissions: { read: "paymentMethod" },
                             field: {
                                 name: "paymentMethod",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "paymentMethod",
                                 widgetProps: { icon: "#CreditCard" },
                             },
@@ -334,12 +339,12 @@ export const reservationSheetView: ViewConfig = {
                             props: { columns: 3 },
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     dependent: "unit",
                                     permissions: { read: "unit" },
                                     field: {
                                         name: "unit.price",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "unitTotalPrice",
                                         widgetProps: {
                                             icon: "#Wallet",
@@ -348,15 +353,16 @@ export const reservationSheetView: ViewConfig = {
                                             valuePath: ["price", "priceCurrency.name"],
                                             joinSeparator: " ",
                                             format: "locale",
+                                            type: "currency",
                                         },
                                     },
                                 },
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     permissions: { read: "depositAmount" },
                                     field: {
                                         name: "depositAmount",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "amountPaidReservationDeposit",
                                         widgetProps: {
                                             icon: "#Landmark",
@@ -364,15 +370,16 @@ export const reservationSheetView: ViewConfig = {
                                             valuePath: ["depositAmount", "depositCurrency.name"],
                                             joinSeparator: " ",
                                             format: "locale",
+                                            type: "currency",
                                         },
                                     },
                                 },
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     permissions: { readAny: ["unit", "depositAmount", "paid"] },
                                     field: {
                                         name: "remainingBalance",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "remainingBalance",
                                         skipReadAccessGate: true,
                                         widgetProps: {
@@ -386,15 +393,16 @@ export const reservationSheetView: ViewConfig = {
                                             valuePath: ["remainingBalance", "unit.priceCurrency.name"],
                                             joinSeparator: " ",
                                             format: "locale",
+                                            type: "currency",
                                         },
                                     },
                                 },
                                 // {
-                                //     render: "#SmallInfoCard",
+                                //     render: "#DisplayCard",
                                 //     permissions: { readAny: ["paid", "depositAmount"] },
                                 //     field: {
                                 //         name: "reservationFinancialPaymentState",
-                                //         widget: "#SmallInfoCard",
+                                //         widget: "#DisplayCard",
                                 //         label: "reservationPaymentStatus",
                                 //         widgetProps: {
                                 //             icon: "#Receipt",
@@ -405,7 +413,7 @@ export const reservationSheetView: ViewConfig = {
                                 //                 partiallyPaid: "warning",
                                 //                 unpaid: "warning",
                                 //             },
-                                //             languageKeyCategory: "reservationFinancialPaymentState",
+                                //             languageKeyCategory: "reservationFinancialPaymentState", type: "enum",
                                 //         },
                                 //     },
                                 // }
@@ -416,16 +424,17 @@ export const reservationSheetView: ViewConfig = {
                             props: {className: "grid grid-cols-1 mt-2"},
                             children: [
                                 {
-                                    render: "#SmallInfoCard",
+                                    render: "#DisplayCard",
                                     permissions: { read: "expirationDate" },
                                     field: {
                                         name: "expirationDate",
-                                        widget: "#SmallInfoCard",
+                                        widget: "#DisplayCard",
                                         label: "remainingBalanceDueDate",
                                         widgetProps: {
                                             icon: "#Calendar",
                                             variant: "default",
                                             format: "date",
+                                            type: "date",
                                         },
                                     },
                                 },

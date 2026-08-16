@@ -424,35 +424,35 @@ export const leadSheetView: ViewConfig = {
                     props:  {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "firstName"},
                             field: {
                                 name:        "firstName",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "firstName",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "lastName"},
                             field: {
                                 name:        "lastName",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "lastName",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "status"},
                             field: {
                                 name:        "status",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "status",
                                 widgetProps: {
                                     icon:                 "#CircleDot",
-                                    languageKeyCategory:  "statuses",
+                                    languageKeyCategory:  "statuses", type: "enum",
                                     variantLookupField:   "status",
                                     variantLookupMap: {
                                         new:         "info",
@@ -467,25 +467,25 @@ export const leadSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "source"},
                             field: {
                                 name:        "source",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "source",
                                 widgetProps: {
                                     icon:                "#Globe",
-                                    languageKeyCategory: "sources",
+                                    languageKeyCategory: "sources", type: "enum",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "chat"},
                             dependent: "chat",
                             field: {
                                 name:        "chat",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "chat",
                                 widgetProps: {
                                     icon:                 "#MessageSquare",
@@ -498,44 +498,44 @@ export const leadSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "interest"},
                             field: {
                                 name:        "interest",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "interest",
                                 widgetProps: {
                                     icon:                "#IconLabel",
-                                    languageKeyCategory: "interests",
+                                    languageKeyCategory: "interests", type: "enum",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "email"},
                             field: {
                                 name:        "email",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "email",
-                                widgetProps: {icon: "#IconLabel"},
+                                widgetProps: {icon: "#IconLabel", type: "email"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "phone"},
                             field: {
                                 name:        "phone",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "phone",
-                                widgetProps: {icon: "#Phone"},
+                                widgetProps: {icon: "#Phone", type: "phoneNumber"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "projectInterest"},
                             field: {
                                 name:        "projectInterest",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "projectInterest",
                                 widgetProps: {
                                     icon:                  "#IconFolder",
@@ -549,11 +549,11 @@ export const leadSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "unitInterest"},
                             field: {
                                 name:        "unitInterest",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "unitInterest",
                                 widgetProps: {
                                     icon:                  "#DoorOpen",
@@ -568,11 +568,11 @@ export const leadSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {readAny: ["budget", "budgetCurrency"]},
                             field: {
                                 name:        "budget",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "budget",
                                 widgetProps: {
                                     icon:                  "#DollarSign",
@@ -583,15 +583,16 @@ export const leadSheetView: ViewConfig = {
                                     linkedSheetModel:      "currencies",
                                     linkedSheetWidget:     "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "budgetCurrency"},
                             field: {
                                 name:        "budgetCurrency",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "budgetCurrency",
                                 widgetProps: {
                                     icon:                  "#IconCurrencyDollar",
@@ -605,42 +606,44 @@ export const leadSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "assignedTo"},
                             field: {
                                 name:        "assignedTo",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "assignedTo",
                                 widgetProps: {
                                     icon:          "#User",
                                     parent:        "assignedTo",
                                     valuePath:     ["name", "surname"],
                                     joinSeparator: " ",
+                                    type: "user",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "followUpDate"},
                             field: {
                                 name:        "followUpDate",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "followUpDate",
-                                widgetProps: {icon: "#Calendar", format: "date"},
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "convertedAt",
                             permissions: {read: "convertedAt"},
                             field: {
                                 name:        "convertedAt",
-                                widget:      "#SmallInfoCard",
+                                widget:      "#DisplayCard",
                                 label:       "convertedAt",
                                 widgetProps: {
                                     icon:    "#CalendarCheck",
                                     format:  "dateTime",
                                     variant: "success",
+                                    type: "dateTime",
                                 },
                             },
                         },

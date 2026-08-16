@@ -21,23 +21,23 @@ export const saleSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "name",
                             permissions: { read: "name" },
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "code",
                                 widgetProps: { icon: "#IconLabel" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
                                     icon: "#DoorOpen",
@@ -52,25 +52,25 @@ export const saleSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "paymentType" },
                             field: {
                                 name: "paymentType",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "paymentType",
                                 widgetProps: {
                                     icon: "#CreditCard",
-                                    languageKeyCategory: "paymentTypeEnum",
+                                    languageKeyCategory: "paymentTypeEnum", type: "enum",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "project",
                             dependentRuntimeOnly: true,
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 skipReadAccessGate: true,
                                 widgetProps: {
@@ -82,12 +82,12 @@ export const saleSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "edifice",
                             dependentRuntimeOnly: true,
                             field: {
                                 name: "edifice.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 skipReadAccessGate: true,
                                 widgetProps: {
@@ -100,12 +100,12 @@ export const saleSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "floor",
                             dependentRuntimeOnly: true,
                             field: {
                                 name: "floor.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "floor",
                                 skipReadAccessGate: true,
                                 widgetProps: {
@@ -131,12 +131,12 @@ export const saleSheetView: ViewConfig = {
                     props: { columns: 3 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "listedUnitPrice",
                             permissions: { read: "listedUnitPrice" },
                             field: {
                                 name: "listedUnitPrice",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "listedUnitPrice",
                                 widgetProps: {
                                     icon: "#Tag",
@@ -147,16 +147,17 @@ export const saleSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "saleCurrency",
                             permissions: { read: "saleCurrency" },
                             field: {
                                 name: "saleCurrency.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "saleCurrency",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -170,22 +171,22 @@ export const saleSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "localDiscount",
                             permissions: { read: "localDiscount" },
                             field: {
                                 name: "localDiscount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "localDiscount",
                                 widgetProps: { icon: "#Percent", suffix: "%" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "finalPrice" },
                             field: {
                                 name: "finalPrice",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "finalPrice",
                                 widgetProps: {
                                     icon: "#DollarSign",
@@ -196,27 +197,28 @@ export const saleSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "saleExchangeRate",
                             permissions: { read: "saleExchangeRate" },
                             field: {
                                 name: "saleExchangeRate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "saleExchangeRate",
-                                widgetProps: { icon: "#ArrowUpDown" },
+                                widgetProps: { icon: "#ArrowUpDown" , type: "number"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "reservationConvertedAmount",
                             permissions: { read: "reservationConvertedAmount" },
                             field: {
                                 name: "reservationConvertedAmount",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservationConvertedAmount",
                                 widgetProps: {
                                     icon: "#Banknote",
@@ -227,18 +229,19 @@ export const saleSheetView: ViewConfig = {
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
+                                    type: "currency",
                                 },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "reservationExchangeRate",
                             permissions: { read: "reservationExchangeRate" },
                             field: {
                                 name: "reservationExchangeRate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "reservationExchangeRate",
-                                widgetProps: { icon: "#ArrowUpDown" },
+                                widgetProps: { icon: "#ArrowUpDown" , type: "number"},
                             },
                         },
                     ],
@@ -255,55 +258,55 @@ export const saleSheetView: ViewConfig = {
                     props: { columns: 2 },
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "buyer",
                             permissions: { read: "buyer" },
                             field: {
                                 name: "buyer.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "buyer",
                                 widgetProps: { icon: "#User" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "buyerCompany",
                             permissions: { read: "buyerCompany" },
                             field: {
                                 name: "buyerCompany.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "buyerCompany",
                                 widgetProps: { icon: "#Building2" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "soldBy",
                             permissions: { read: "soldBy" },
                             field: {
                                 name: "soldBy.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "soldBy",
                                 widgetProps: { icon: "#UserCheck" },
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: { read: "saleDate" },
                             field: {
                                 name: "saleDate",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "saleDate",
-                                widgetProps: { icon: "#Calendar", format: "date" },
+                                widgetProps: { icon: "#Calendar", format: "date" , type: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             dependent: "transactionReference",
                             permissions: { read: "transactionReference" },
                             field: {
                                 name: "transactionReference",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "transactionReference",
                                 widgetProps: { icon: "#MessageSquare" },
                             },

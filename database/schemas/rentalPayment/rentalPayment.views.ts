@@ -20,9 +20,9 @@ export const rentalPaymentSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props:  {columns: 3},
                     children: [
-                        {render: "#SmallInfoCard", permissions: {read: "status"},  field: {name: "status",  widget: "#SmallInfoCard", label: "status",  widgetProps: {icon: "#IconLabel", languageKeyCategory: "statuses"}}},
-                        {render: "#SmallInfoCard", permissions: {read: "dueDate"}, field: {name: "dueDate", widget: "#SmallInfoCard", label: "dueDate", widgetProps: {icon: "#CalendarDays", format: "date"}}},
-                        {render: "#SmallInfoCard", permissions: {read: "amount"},  field: {name: "amount",  widget: "#SmallInfoCard", label: "amount",  widgetProps: {icon: "#IconLabel"}}},
+                        {render: "#DisplayCard", permissions: {read: "status"},  field: {name: "status",  widget: "#DisplayCard", label: "status",  widgetProps: {icon: "#IconLabel", languageKeyCategory: "statuses", type: "enum"}}},
+                        {render: "#DisplayCard", permissions: {read: "dueDate"}, field: {name: "dueDate", widget: "#DisplayCard", label: "dueDate", widgetProps: {icon: "#CalendarDays", format: "date", type: "date"}}},
+                        {render: "#DisplayCard", permissions: {read: "amount"},  field: {name: "amount",  widget: "#DisplayCard", label: "amount",  widgetProps: {icon: "#IconLabel", type: "currency"}}},
                     ],
                 },
             ],

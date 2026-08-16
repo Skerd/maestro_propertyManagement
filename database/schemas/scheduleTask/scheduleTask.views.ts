@@ -21,31 +21,31 @@ export const scheduleTaskSheetView: ViewConfig = {
                     props: {columns: 3},
                     children: [
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "title"},
                             field: {
                                 name: "title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "title",
                                 widgetProps: {icon: "#IconLabel"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "project"},
                             field: {
                                 name: "project.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
                                     icon: "#IconFolder",
@@ -56,12 +56,12 @@ export const scheduleTaskSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
                                 name: "edifice.name",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
                                     icon: "#Building",
@@ -73,12 +73,12 @@ export const scheduleTaskSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "milestone"},
                             dependent: "milestone",
                             field: {
                                 name: "milestone.title",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "milestone",
                                 widgetProps: {
                                     icon: "#Flag",
@@ -90,11 +90,11 @@ export const scheduleTaskSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "status"},
                             field: {
                                 name: "status",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
@@ -111,21 +111,21 @@ export const scheduleTaskSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "percentComplete"},
                             field: {
                                 name: "percentComplete",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "percentComplete",
                                 widgetProps: {icon: "#Percent", suffix: "%"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "assignee"},
                             field: {
                                 name: "assignee",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "assignee",
                                 widgetProps: {
                                     icon: "#IconUserCheck",
@@ -136,43 +136,43 @@ export const scheduleTaskSheetView: ViewConfig = {
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "plannedStart"},
                             field: {
                                 name: "plannedStart",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "plannedStart",
                                 widgetProps: {icon: "#CalendarDays", format: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "plannedEnd"},
                             field: {
                                 name: "plannedEnd",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "plannedEnd",
                                 widgetProps: {icon: "#CalendarDays", format: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "actualStart"},
                             dependent: "actualStart",
                             field: {
                                 name: "actualStart",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "actualStart",
                                 widgetProps: {icon: "#CalendarCheck", format: "date"},
                             },
                         },
                         {
-                            render: "#SmallInfoCard",
+                            render: "#DisplayCard",
                             permissions: {read: "actualEnd"},
                             dependent: "actualEnd",
                             field: {
                                 name: "actualEnd",
-                                widget: "#SmallInfoCard",
+                                widget: "#DisplayCard",
                                 label: "actualEnd",
                                 widgetProps: {icon: "#CalendarCheck", format: "date"},
                             },

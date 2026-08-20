@@ -64,6 +64,9 @@ import MaintenancePlan from "@propertyManagement/database/schemas/maintenancePla
 import MaintenanceWorkOrder from "@propertyManagement/database/schemas/maintenanceWorkOrder/maintenanceWorkOrder";
 import BimModel from "@propertyManagement/database/schemas/bimModel/bimModel";
 import BimQuantity from "@propertyManagement/database/schemas/bimQuantity/bimQuantity";
+import DashboardCache from "@propertyManagement/database/schemas/dashboardCache/dashboardCache";
+import {realEstateDefaultRoles} from "@propertyManagement/database/schemas/role/realEstate.role.defaults";
+import {registerDefaultRoles} from "@coreModule/database/schemas/role/role.defaults";
 
 export const propertyManagementModels: Model<any>[] = [
     Project,
@@ -131,6 +134,7 @@ export const propertyManagementModels: Model<any>[] = [
     MaintenanceWorkOrder,
     BimModel,
     BimQuantity,
+    DashboardCache,
 ];
 
 export async function dropPropertyManagementCollections(): Promise<void> {
@@ -139,7 +143,10 @@ export async function dropPropertyManagementCollections(): Promise<void> {
     }
 }
 
+registerDefaultRoles(realEstateDefaultRoles);
+
 export const moduleBootstrap = {
     models: propertyManagementModels,
     dropModuleCollections: dropPropertyManagementCollections,
+    defaultRoles: realEstateDefaultRoles,
 };

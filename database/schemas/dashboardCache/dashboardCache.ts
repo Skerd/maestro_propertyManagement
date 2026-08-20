@@ -1,4 +1,5 @@
 import {Document, model, Schema, SchemaTypes} from "mongoose";
+import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 
 export interface IDashboardCache extends Document {
     cacheKey: string;
@@ -18,4 +19,5 @@ const DashboardCacheSchema = new Schema<IDashboardCache>(
 );
 
 const DashboardCache = model<IDashboardCache>("DashboardCache", DashboardCacheSchema);
+normalizeSchemaPermissions(DashboardCache);
 export default DashboardCache;

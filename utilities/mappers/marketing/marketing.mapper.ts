@@ -228,10 +228,12 @@ export function mapMarketingUnitSingle(
         price,
         sharePrice: price,
         projectedYield: undefined,
+        mainImage: marketingMediaUrl(unit.mainImage),
         imageGallery: marketingMediaUrls([
             unit.mainImage,
             ...(unit.imageGallery ?? []),
         ]),
+        videoGallery: marketingMediaUrls(unit.videoGallery),
         description: unit.description || undefined,
         grossAreaSqm: grossArea,
         netAreaSqm: unit.netArea ?? undefined,

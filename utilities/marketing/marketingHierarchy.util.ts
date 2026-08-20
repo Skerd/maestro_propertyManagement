@@ -65,7 +65,7 @@ export async function loadMarketingHierarchyForProjects(
             floor: {$in: floorIds},
             company: companyId,
             deletedAt: null,
-        }, {}, ["mainImage", "imageGallery", "unitType", "priceCurrency", "priceHistory.currency"])
+        }, {}, ["mainImage", "imageGallery", "videoGallery", "unitType", "priceCurrency", "priceHistory.currency"])
         : [];
 
     const floorsByEdifice = groupBy(floors, (floor) => objectIdToString((floor.edifice as any)?._id ?? floor.edifice));

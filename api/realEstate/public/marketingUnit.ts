@@ -55,7 +55,7 @@ router.post(
 );
 
 async function resolveFallbackUnitFloorContext(
-    unit: {_id: ObjectId; floor?: any},
+    unit: {_id?: ObjectId; floor?: any},
     companyId: ObjectId,
     logger: NotAuthenticatedMWType["logger"],
     languageCode: string,
@@ -108,7 +108,7 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
     );
 
     if (!project) {
-        throw apiValidationException("project_not_found", "projectId", projectId, languageCode);
+        throw apiValidationException("project_not_found", "projectId", [projectId], languageCode);
     }
 
     const hierarchy = await loadMarketingHierarchyForProject(projectObjectId, company._id);
@@ -118,10 +118,10 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
         const fallbackUnit = await unitService.findOne(
             {_id: unitObjectId, company: company._id, deletedAt: null},
             {logger, languageCode},
-            ["mainImage", "imageGallery", "unitType", "priceCurrency", "priceHistory.currency", "floor"],
+            ["mainImage", "imageGallery", "videoGallery", "unitType", "priceCurrency", "priceHistory.currency", "floor"],
         );
         if (!fallbackUnit) {
-            throw apiValidationException("unit_not_found", "unitId", unitId, languageCode);
+            throw apiValidationException("unit_not_found", "unitId", [unitId], languageCode);
         }
 
         const floorContext = await resolveFallbackUnitFloorContext(
@@ -159,7 +159,7 @@ async function marketingUnitBrochure(
         {logger, languageCode},
     );
     if (!project) {
-        throw apiValidationException("project_not_found", "projectId", projectId, languageCode);
+        throw apiValidationException("project_not_found", "projectId", [projectId], languageCode);
     }
 
     const unit = await unitService.findOne(
@@ -167,12 +167,12 @@ async function marketingUnitBrochure(
         {logger, languageCode},
     );
     if (!unit) {
-        throw apiValidationException("unit_not_found", "unitId", unitId, languageCode);
+        throw apiValidationException("unit_not_found", "unitId", [unitId], languageCode);
     }
 
     const unitProjectId = (unit.project as any)?._id ?? unit.project;
     if (!unitProjectId || objectIdToString(unitProjectId) !== projectId) {
-        throw apiValidationException("unit_not_found", "unitId", unitId, languageCode);
+        throw apiValidationException("unit_not_found", "unitId", [unitId], languageCode);
     }
 
     const {buffer, filename} = await buildUnitMarketingBookletPdf({
@@ -180,7 +180,7 @@ async function marketingUnitBrochure(
         companyId: company._id as ObjectId,
         projectId: projectObjectId,
         languageCode,
-        logger,
+        logger: {warn: (...args: unknown[]) => logger.warn(...args)},
     });
 
     res.setHeader("Content-Type", "application/pdf");

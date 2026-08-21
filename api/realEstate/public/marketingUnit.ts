@@ -6,6 +6,7 @@ import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {projectService} from "../../../database/schemas/project/project.service";
+import {edificeService} from "../../../database/schemas/edifice/edifice.service";
 import {floorService} from "../../../database/schemas/floor/floor.service";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {
@@ -67,12 +68,11 @@ async function resolveFallbackUnitFloorContext(
     }
 
     const floorObjectId = floorId instanceof ObjectId ? floorId : new ObjectId(String(floorId));
-    const floor = typeof floorRef === "object" && floorRef?.name
-        ? floorRef
-        : await floorService.findOne(
-            {_id: floorObjectId, company: companyId, deletedAt: null},
-            {logger, languageCode},
-        );
+    const floor = await floorService.findOne(
+        {_id: floorObjectId, company: companyId, deletedAt: null},
+        {logger, languageCode},
+        ["imageGallery", "videoGallery"],
+    );
 
     if (!floor) {
         return {};
@@ -83,13 +83,22 @@ async function resolveFallbackUnitFloorContext(
         return {floor};
     }
 
-    const edificeFloors = await floorService.find(
-        {edifice: edificeId, company: companyId, deletedAt: null},
-        {logger, languageCode},
-    );
+    const edificeObjectId = edificeId instanceof ObjectId ? edificeId : new ObjectId(String(edificeId));
+    const [edifice, edificeFloors] = await Promise.all([
+        edificeService.findOne(
+            {_id: edificeObjectId, company: companyId, deletedAt: null},
+            {logger, languageCode},
+            ["imageGallery", "videoGallery"],
+        ),
+        floorService.find(
+            {edifice: edificeObjectId, company: companyId, deletedAt: null},
+            {logger, languageCode},
+        ),
+    ]);
 
     return {
         floor,
+        edifice: edifice ?? undefined,
         totalFloorsInEdifice: edificeFloors.length,
     };
 }
@@ -111,7 +120,9 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
         throw apiValidationException("project_not_found", "projectId", [projectId], languageCode);
     }
 
-    const hierarchy = await loadMarketingHierarchyForProject(projectObjectId, company._id);
+    const hierarchy = await loadMarketingHierarchyForProject(projectObjectId, company._id, {
+        includeGalleries: true,
+    });
     const unit = hierarchy.units.find((item) => objectIdToString(item._id) === unitId);
 
     if (!unit) {

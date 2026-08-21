@@ -28,9 +28,15 @@ function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
     return map;
 }
 
+export type LoadMarketingHierarchyOptions = {
+    /** Populate floor/edifice imageGallery + videoGallery (unit-single marketing only). */
+    includeGalleries?: boolean;
+};
+
 export async function loadMarketingHierarchyForProjects(
     projectIds: ObjectId[],
     companyId: ObjectId,
+    options: LoadMarketingHierarchyOptions = {},
 ): Promise<MarketingProjectHierarchy> {
     if (projectIds.length === 0) {
         return {
@@ -44,11 +50,18 @@ export async function loadMarketingHierarchyForProjects(
         };
     }
 
+    const edificePopulate = options.includeGalleries
+        ? ["mainImage", "address.city", "address.country", "imageGallery", "videoGallery"]
+        : ["mainImage", "address.city", "address.country"];
+    const floorPopulate = options.includeGalleries
+        ? ["mainImage", "imageGallery", "videoGallery"]
+        : ["mainImage"];
+
     const edifices = await edificeService.find({
         project: {$in: projectIds},
         company: companyId,
         deletedAt: null,
-    }, {}, ["mainImage", "address.city", "address.country"]);
+    }, {}, edificePopulate);
 
     const edificeIds = edifices.map((edifice) => edifice._id);
     const floors = edificeIds.length > 0
@@ -56,7 +69,7 @@ export async function loadMarketingHierarchyForProjects(
             edifice: {$in: edificeIds},
             company: companyId,
             deletedAt: null,
-        }, {}, ["mainImage"])
+        }, {}, floorPopulate)
         : [];
 
     const floorIds = floors.map((floor) => floor._id);
@@ -110,12 +123,14 @@ export async function loadMarketingHierarchyForProjects(
 export async function loadMarketingHierarchyForProject(
     projectId: ObjectId,
     companyId: ObjectId,
+    options: LoadMarketingHierarchyOptions = {},
 ): Promise<MarketingProjectHierarchy> {
-    return loadMarketingHierarchyForProjects([projectId], companyId);
+    return loadMarketingHierarchyForProjects([projectId], companyId, options);
 }
 
 export type MarketingUnitFloorContext = {
     floor?: IFloor;
+    edifice?: IEdifice;
     totalFloorsInEdifice?: number;
 };
 
@@ -134,10 +149,12 @@ export function resolveUnitFloorContext(
         }
 
         const edificeId = objectIdToString((floor.edifice as any)?._id ?? floor.edifice);
+        const edifice = hierarchy.edifices.find((item) => objectIdToString(item._id) === edificeId);
         const totalFloorsInEdifice = hierarchy.floorsByEdifice.get(edificeId)?.length;
 
         return {
             floor,
+            edifice,
             totalFloorsInEdifice,
         };
     }

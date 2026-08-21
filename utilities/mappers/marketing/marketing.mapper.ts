@@ -18,8 +18,24 @@ const MEDIA_BASE = "/api/auxiliary/media/";
 
 export type MarketingUnitSingleContext = {
     floor?: IFloor | any;
+    edifice?: IEdifice | any;
     totalFloorsInEdifice?: number;
 };
+
+function uniqueMarketingMediaUrls(
+    ...mediaLists: Array<Array<{_id?: ObjectId | string} | ObjectId | string | null | undefined> | undefined>
+): string[] {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const list of mediaLists) {
+        for (const url of marketingMediaUrls(list)) {
+            if (seen.has(url)) continue;
+            seen.add(url);
+            result.push(url);
+        }
+    }
+    return result;
+}
 
 export function marketingMediaUrl(
     media: {_id?: ObjectId | string} | ObjectId | string | null | undefined,
@@ -39,7 +55,9 @@ export function marketingMediaUrl(
     return id && id !== "[object Object]" ? `${MEDIA_BASE}${id}` : undefined;
 }
 
-export function marketingMediaUrls(mediaList: Array<{_id?: ObjectId | string} | null | undefined> | undefined): string[] {
+export function marketingMediaUrls(
+    mediaList: Array<{_id?: ObjectId | string} | ObjectId | string | null | undefined> | undefined,
+): string[] {
     if (!Array.isArray(mediaList)) {
         return [];
     }
@@ -204,7 +222,7 @@ export function mapMarketingUnitSingle(
     context: MarketingUnitSingleContext = {},
 ): MarketingUnitSingleDTO {
     const price = decimal128ToNumber(unit.price);
-    const {floor, totalFloorsInEdifice} = context;
+    const {floor, edifice, totalFloorsInEdifice} = context;
     const floorLevel = floor?.levelNumber;
     const grossArea = unit.area ?? undefined;
     const priceCurrency = mapMarketingPriceCurrency(unit.priceCurrency);
@@ -229,11 +247,17 @@ export function mapMarketingUnitSingle(
         sharePrice: price,
         projectedYield: undefined,
         mainImage: marketingMediaUrl(unit.mainImage),
-        imageGallery: marketingMediaUrls([
-            unit.mainImage,
-            ...(unit.imageGallery ?? []),
-        ]),
-        videoGallery: marketingMediaUrls(unit.videoGallery),
+        // Unit media first, then floor, then edifice — deduped for the public gallery mosaic.
+        imageGallery: uniqueMarketingMediaUrls(
+            [unit.mainImage, ...(unit.imageGallery ?? [])],
+            floor?.imageGallery,
+            edifice?.imageGallery,
+        ),
+        videoGallery: uniqueMarketingMediaUrls(
+            unit.videoGallery,
+            floor?.videoGallery,
+            edifice?.videoGallery,
+        ),
         description: unit.description || undefined,
         grossAreaSqm: grossArea,
         netAreaSqm: unit.netArea ?? undefined,

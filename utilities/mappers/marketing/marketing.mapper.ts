@@ -225,11 +225,13 @@ export function mapMarketingUnitSingle(
     const {floor, edifice, totalFloorsInEdifice} = context;
     const floorLevel = floor?.levelNumber;
     const grossArea = unit.area ?? undefined;
+    const verandaArea = typeof unit.verandaArea === "number" ? unit.verandaArea : 0;
+    const areaForPricePerSqm = grossArea != null ? grossArea + verandaArea : undefined;
     const priceCurrency = mapMarketingPriceCurrency(unit.priceCurrency);
     const averagePricePerSquareMeter =
-        price != null && grossArea != null && grossArea > 0
+        price != null && areaForPricePerSqm != null && areaForPricePerSqm > 0
             ? {
-                value: price / grossArea,
+                value: price / areaForPricePerSqm,
                 currency: priceCurrency,
             }
             : undefined;

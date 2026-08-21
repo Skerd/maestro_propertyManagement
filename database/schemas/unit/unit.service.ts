@@ -212,12 +212,17 @@ export class UnitService extends BaseCrudService<IUnit, typeof Unit> {
                 ? inheritedUnitCostCountByUnitPipeline(companyIdForInherited, unitIds, hierarchySets)
                 : emptyInheritedAgg;
 
-        // List price per m² (unit area only): one row per unit with priceCurrency metadata.
+        // List price per m² (unit area + veranda): one row per unit with priceCurrency metadata.
         const unitAveragePricePerSqmPipeline = [
             {$match: {_id: {$in: unitIds}}},
             {
                 $addFields: {
-                    areaForSqm: {$toDouble: {$ifNull: ['$area', 0]}},
+                    areaForSqm: {
+                        $add: [
+                            {$toDouble: {$ifNull: ['$area', 0]}},
+                            {$toDouble: {$ifNull: ['$verandaArea', 0]}},
+                        ],
+                    },
                     priceDouble: {$toDouble: {$ifNull: ['$price', 0]}},
                 },
             },

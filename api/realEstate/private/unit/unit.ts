@@ -29,6 +29,7 @@ import {UnitActions} from '../../../../database/schemas/unit/unit.actions';
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
+    fieldMimeTypes: { marketingBooklet: ["application/pdf"] },
     maxFileSize: 250 * 1024 * 1024,
 });
 

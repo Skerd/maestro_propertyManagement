@@ -1348,7 +1348,7 @@ const edificeFormFields: ViewConfig["nodes"] = [
                     name: "marketingBooklet",
                     widget: "#MediaField",
                     label: "form.marketingBookletLabel",
-                    widgetProps: { mediaType: "file", mode: "single", maxCount: 1 },
+                    widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
                 },
             },
         ],

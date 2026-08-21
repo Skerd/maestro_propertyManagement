@@ -19,6 +19,7 @@ import {editFloorFormSchema} from "armonia/src/modules/propertyManagement/api/re
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
+    fieldMimeTypes: { marketingBooklet: ["application/pdf"] },
     maxFileSize: 250 * 1024 * 1024,
 });
 

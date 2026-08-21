@@ -27,6 +27,10 @@ const mediaUpload = mediaUploadMW({
         marketingBooklet: 1,
         magazineFile: 1,
     },
+    fieldMimeTypes: {
+        marketingBooklet: ["application/pdf"],
+        magazineFile: ["application/pdf"],
+    },
     maxFileSize: 250 * 1024 * 1024,
 });
 

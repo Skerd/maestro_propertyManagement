@@ -7,16 +7,13 @@ import {floorService} from "../../database/schemas/floor/floor.service";
 import {edificeService} from "../../database/schemas/edifice/edifice.service";
 import {projectService} from "../../database/schemas/project/project.service";
 import {PDFDocument} from "pdf-lib";
-
-type BookletLogger = {
-    warn: (...args: any[]) => void;
-};
+import {serverLogger} from "@coreModule/loggers/serverLog";
 
 type BuildMarketingBookletParams = {
     unitId: ObjectId;
     companyId: ObjectId;
     languageCode: string;
-    logger: BookletLogger;
+    logger: serverLogger;
     /** When set, unit must belong to this project. */
     projectId?: ObjectId;
 };
@@ -54,7 +51,7 @@ export async function buildUnitMarketingBookletPdf(
 
     const unitProjectId = toObjectId(unit.project);
     if (projectId && unitProjectId && !unitProjectId.equals(projectId)) {
-        throw apiValidationException("unit_not_found", "unitId", String(unitId), languageCode);
+        throw apiValidationException("unit_not_found", "unitId", [unitId?.toString()], languageCode);
     }
 
     const floorId = toObjectId(unit.floor);

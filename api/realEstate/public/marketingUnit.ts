@@ -180,7 +180,7 @@ async function marketingUnitBrochure(
         companyId: company._id as ObjectId,
         projectId: projectObjectId,
         languageCode,
-        logger: {warn: (...args: unknown[]) => logger.warn(...args)},
+        logger,
     });
 
     res.setHeader("Content-Type", "application/pdf");

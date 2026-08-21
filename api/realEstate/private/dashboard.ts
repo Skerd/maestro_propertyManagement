@@ -308,6 +308,7 @@ async function getDashboardStats(
         expiringReservationsCount,
         totalReservationDepositsAgg,
         paymentAlertsListAgg,
+        reservationAlertsListAgg,
         unitCostsVerifiedPaidAgg,
         unitCostsVerifiedOutstandingAgg,
         unitCostsPendingVerificationAgg,
@@ -537,6 +538,43 @@ async function getDashboardStats(
                   opts
               )
             : Promise.resolve([]),
+        reservationService.aggregate(
+            [
+                {
+                    $match: {
+                        unit: { $in: companyUnitIds },
+                        isActive: true,
+                        paid: false,
+                        expirationDate: {
+                            $exists: true,
+                            $ne: null,
+                            $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                        },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "units",
+                        localField: "unit",
+                        foreignField: "_id",
+                        as: "unitDoc",
+                    },
+                },
+                { $unwind: "$unitDoc" },
+                {
+                    $project: {
+                        reservationId: "$_id",
+                        unitId: "$unitDoc._id",
+                        unitNumber: "$unitDoc.unitNumber",
+                        unitName: "$unitDoc.name",
+                        amount: { $ifNull: ["$depositAmount", 0] },
+                        dueDate: "$expirationDate",
+                    },
+                },
+                { $limit: 50 },
+            ],
+            opts
+        ),
         unitCostService.aggregate(
             unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
                 verificationStatus: "verified",
@@ -728,10 +766,15 @@ async function getDashboardStats(
 
     const nowMs = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
-    const paymentAlerts: PaymentAlertItem[] = (paymentAlertsListAgg || []).map((row: any) => {
+
+    const mapAlertRow = (
+        row: any,
+        kind: "installment" | "reservation"
+    ): PaymentAlertItem => {
         const dueDate = row.dueDate ? new Date(row.dueDate) : new Date();
         const daysUntilDue = Math.ceil((dueDate.getTime() - nowMs) / oneDayMs);
         return {
+            kind,
             unit: {
                 _id: row.unitId?.toString?.() ?? "",
                 unitNumber: row.unitNumber,
@@ -742,8 +785,18 @@ async function getDashboardStats(
                 dueDate: dueDate.toISOString(),
             },
             daysUntilDue,
+            ...(kind === "reservation"
+                ? { reservationId: row.reservationId?.toString?.() ?? row._id?.toString?.() }
+                : {}),
         };
-    });
+    };
+
+    const paymentAlerts: PaymentAlertItem[] = [
+        ...(paymentAlertsListAgg || []).map((row: any) => mapAlertRow(row, "installment")),
+        ...(reservationAlertsListAgg || []).map((row: any) => mapAlertRow(row, "reservation")),
+    ]
+        .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
+        .slice(0, 50);
 
     const sanitizedSummary = sanitizeDashboardSummary(summary, actionUserCtx, languageCode);
 

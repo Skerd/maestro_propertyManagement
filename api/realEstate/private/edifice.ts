@@ -23,14 +23,6 @@ import {IConstructor} from "@propertyManagement/database/schemas/constructor/con
 import {IUnitType} from "@propertyManagement/database/schemas/unitType/unitType";
 import {computeUnitPriceFromEdificeRates} from "@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates";
 
-function idString(value: unknown): string | undefined {
-    if (value == null) return undefined;
-    if (typeof value === "string") return value;
-    const asAny = value as {_id?: unknown; toString?: () => string};
-    if (asAny._id != null) return idString(asAny._id);
-    return typeof asAny.toString === "function" ? asAny.toString() : undefined;
-}
-
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
     fieldMimeTypes: { marketingBooklet: ["application/pdf"] },
@@ -163,14 +155,14 @@ export const { router } = createCrudRouter({
 
         const existingPricePerM2 = existing.pricePerMeterSquared;
         const existingVerandaPricePerM2 = existing.verandaPricePerMeterSquared;
-        const existingSaleCurrencyId = idString(existing.saleCurrency);
+        const existingSaleCurrencyId = existing.saleCurrency?.toString() ?? undefined;
 
         const pricePerM2Changed =
             pricePerMeterSquared !== undefined && pricePerMeterSquared !== existingPricePerM2;
         const verandaPricePerM2Changed =
             verandaPricePerMeterSquared !== undefined && verandaPricePerMeterSquared !== existingVerandaPricePerM2;
         const saleCurrencyChanged =
-            saleCurrency !== undefined && idString(saleCurrency) !== existingSaleCurrencyId;
+            saleCurrency !== undefined && (existing.saleCurrency?.toString()) !== existingSaleCurrencyId;
 
         if (!pricePerM2Changed && !verandaPricePerM2Changed && !saleCurrencyChanged) {
             return;
@@ -183,7 +175,7 @@ export const { router } = createCrudRouter({
                 ? verandaPricePerMeterSquared
                 : existingVerandaPricePerM2;
         const nextSaleCurrencyId =
-            saleCurrency !== undefined ? idString(saleCurrency) : existingSaleCurrencyId;
+            saleCurrency !== undefined ? saleCurrency?.toString() : existingSaleCurrencyId;
 
         // Same rule as PDF import: without a unit-area rate, do not invent prices.
         if (typeof nextPricePerM2 !== "number") {
@@ -194,7 +186,6 @@ export const { router } = createCrudRouter({
             {
                 edifice: existing._id,
                 company: company._id,
-                // Explicit false only — missing (legacy) and true are left alone.
                 priceManuallyEdited: false,
             },
             {session, logger, languageCode},

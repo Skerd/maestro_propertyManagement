@@ -12,6 +12,7 @@ import {CreateEdificeFormType} from "armonia/src/modules/propertyManagement/api/
 import {constructorService} from "../../../database/schemas/constructor/constructor.service";
 import {edificeService} from "../../../database/schemas/edifice/edifice.service";
 import {unitTypeService} from "../../../database/schemas/unitType/unitType.service";
+import {unitService} from "../../../database/schemas/unit/unit.service";
 import {projectService} from "../../../database/schemas/project/project.service";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {cityService} from "@coreModule/database/schemas/city/city.service";
@@ -20,6 +21,15 @@ import {countryService} from "@coreModule/database/schemas/country/country.servi
 import {EdificeActions} from "../../../database/schemas/edifice/edifice.actions";
 import {IConstructor} from "@propertyManagement/database/schemas/constructor/constructor";
 import {IUnitType} from "@propertyManagement/database/schemas/unitType/unitType";
+import {computeUnitPriceFromEdificeRates} from "@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates";
+
+function idString(value: unknown): string | undefined {
+    if (value == null) return undefined;
+    if (typeof value === "string") return value;
+    const asAny = value as {_id?: unknown; toString?: () => string};
+    if (asAny._id != null) return idString(asAny._id);
+    return typeof asAny.toString === "function" ? asAny.toString() : undefined;
+}
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
@@ -138,6 +148,105 @@ export const { router } = createCrudRouter({
         }
 
         return data;
+    },
+    afterUpdate: async (params, existing) => {
+        const {
+            session,
+            logger,
+            languageCode,
+            actionUserCtx,
+            company,
+            pricePerMeterSquared,
+            verandaPricePerMeterSquared,
+            saleCurrency,
+        } = params;
+
+        const existingPricePerM2 = existing.pricePerMeterSquared;
+        const existingVerandaPricePerM2 = existing.verandaPricePerMeterSquared;
+        const existingSaleCurrencyId = idString(existing.saleCurrency);
+
+        const pricePerM2Changed =
+            pricePerMeterSquared !== undefined && pricePerMeterSquared !== existingPricePerM2;
+        const verandaPricePerM2Changed =
+            verandaPricePerMeterSquared !== undefined && verandaPricePerMeterSquared !== existingVerandaPricePerM2;
+        const saleCurrencyChanged =
+            saleCurrency !== undefined && idString(saleCurrency) !== existingSaleCurrencyId;
+
+        if (!pricePerM2Changed && !verandaPricePerM2Changed && !saleCurrencyChanged) {
+            return;
+        }
+
+        const nextPricePerM2 =
+            pricePerMeterSquared !== undefined ? pricePerMeterSquared : existingPricePerM2;
+        const nextVerandaPricePerM2 =
+            verandaPricePerMeterSquared !== undefined
+                ? verandaPricePerMeterSquared
+                : existingVerandaPricePerM2;
+        const nextSaleCurrencyId =
+            saleCurrency !== undefined ? idString(saleCurrency) : existingSaleCurrencyId;
+
+        // Same rule as PDF import: without a unit-area rate, do not invent prices.
+        if (typeof nextPricePerM2 !== "number") {
+            return;
+        }
+
+        const derivedUnits = await unitService.find(
+            {
+                edifice: existing._id,
+                company: company._id,
+                // Explicit false only — missing (legacy) and true are left alone.
+                priceManuallyEdited: false,
+            },
+            {session, logger, languageCode},
+        );
+
+        if (derivedUnits.length === 0) {
+            return;
+        }
+
+        const saleCurrencyObjectId = nextSaleCurrencyId ? new ObjectId(nextSaleCurrencyId) : null;
+        const changedBy = new ObjectId(actionUserCtx.userId);
+        const changedAt = new Date();
+
+        for (const unit of derivedUnits) {
+            const computed = computeUnitPriceFromEdificeRates({
+                pricePerMeterSquared: nextPricePerM2,
+                verandaPricePerMeterSquared: nextVerandaPricePerM2,
+                area: unit.area,
+                verandaArea: unit.verandaArea,
+            });
+            if (computed == null) continue;
+
+            const newPrice = Decimal128.fromString(String(computed));
+            const $set: Record<string, unknown> = {
+                price: newPrice,
+                priceManuallyEdited: false,
+            };
+            if (saleCurrencyObjectId) {
+                $set.priceCurrency = saleCurrencyObjectId;
+            }
+
+            await unitService.updateByIdOrThrow(
+                unit._id,
+                {
+                    $set,
+                    $push: {
+                        priceHistory: {
+                            price: newPrice,
+                            currency: saleCurrencyObjectId ?? (unit.priceCurrency?._id ?? unit.priceCurrency),
+                            changedAt,
+                            changedBy,
+                            reason: "Edifice rate update",
+                        },
+                    },
+                },
+                {session, logger, languageCode},
+            );
+        }
+
+        logger.debug(
+            `Cascaded edifice rates to ${derivedUnits.length} non-manual unit(s) edificeId=${existing._id}`,
+        );
     },
     actions: EdificeActions,
     beforeDelete: async () => {},

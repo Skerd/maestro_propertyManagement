@@ -102,6 +102,8 @@ export interface IUnit extends Document, IOwnershipPluginFields, ISoftDeletePlug
     saleCommissionRatePercent?: number;
     reservationCommissionRatePercent?: number;
     priceHistory?: IPriceHistoryEntry[];
+    /** When false, unit price follows edifice m² rates on cascade / PDF re-import. */
+    priceManuallyEdited?: boolean;
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
 }
@@ -512,6 +514,21 @@ const UnitSchema = new Schema<IUnit>(
                 sortable: false
             }
         },
+        priceManuallyEdited: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            permissions: {
+                self: {write: "no-permission"},
+                others: {write: "no-permission"},
+            },
+            dynamicTableConfiguration: {
+                hideColumn: true,
+                visible: false,
+                filterable: false,
+                sortable: false,
+            },
+        },
         floor: {
             type: Schema.Types.ObjectId,
             ref: 'Floor',
@@ -617,4 +634,4 @@ export {UnitStatus, UnitConstructionStatus, UnitOrientation, UNIT_CONSTRUCTION_S
 
 addModelData(Unit, unitViews);
 // status is required in Mongoose but system-managed (set via pre-save hook) — not a form field
-validateSchemaDefAgainstMongoose(UnitSchema, UnitSchemaDef, "Unit", ["status", "priceHistory", "edifice", "project"]);
+validateSchemaDefAgainstMongoose(UnitSchema, UnitSchemaDef, "Unit", ["status", "priceHistory", "priceManuallyEdited", "edifice", "project"]);

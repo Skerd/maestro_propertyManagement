@@ -100,6 +100,9 @@ export const { router } = createCrudRouter({
             data.constructionStatus = constructionStatus || undefined;
         }
 
+        // Panel-created units always carry an explicit operator-set price.
+        data.priceManuallyEdited = true;
+
         return data;
 
     },
@@ -193,6 +196,7 @@ export const { router } = createCrudRouter({
                 await unitService.updateByIdOrThrow(
                     existingUnit._id,
                     {
+                        $set: {priceManuallyEdited: true},
                         $push: {
                             priceHistory: {
                                 price: updated.price,
@@ -214,6 +218,7 @@ export const { router } = createCrudRouter({
             await unitService.updateByIdOrThrow(
                 createdUnit._id,
                 {
+                    $set: {priceManuallyEdited: true},
                     $push: {
                         priceHistory: {
                             price: createdUnit.price,
@@ -382,7 +387,7 @@ async function bulkUpdateUnitPrice(params: BulkUpdatePriceParams): Promise<{upda
     const result = await Unit.updateMany(
         {_id: {$in: unitObjectIds}, company: company._id},
         {
-            $set: {price: newPrice, priceCurrency: newCurrencyId},
+            $set: {price: newPrice, priceCurrency: newCurrencyId, priceManuallyEdited: true},
             $push: {
                 priceHistory: {
                     price:     newPrice,

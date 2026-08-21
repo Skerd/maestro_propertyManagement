@@ -16,6 +16,7 @@ import Floor from '../floor/floor';
 import Unit from '../unit/unit';
 import {edificeService} from './edifice.service';
 import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
+import {computeUnitPriceFromEdificeRates} from '@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
 import {slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
 import {PDFDocument} from 'pdf-lib';
@@ -575,10 +576,20 @@ export class EdificeActions {
                                 existingUnit.verandaArea = preferExistingAreaWhenIncomingZero(existingUnit.verandaArea, unitSummary.verandaArea);
                                 existingUnit.polygonCoordinates = unitSummary.polygonCoordinates || existingUnit.polygonCoordinates || [];
 
-                                if (pricePerM2 != null) {
-                                    existingUnit.price = (pricePerM2 * existingUnit.area
-                                        + (verandaPricePerM2 != null ? verandaPricePerM2 * (existingUnit.verandaArea || 0) : 0)) as any;
-                                    if (saleCurrencyId) existingUnit.priceCurrency = saleCurrencyId;
+                                // Only recompute for units that still follow edifice rates.
+                                // Missing flag (legacy) is treated as manual — same as migration default.
+                                if (existingUnit.priceManuallyEdited === false) {
+                                    const recomputed = computeUnitPriceFromEdificeRates({
+                                        pricePerMeterSquared: pricePerM2,
+                                        verandaPricePerMeterSquared: verandaPricePerM2,
+                                        area: existingUnit.area,
+                                        verandaArea: existingUnit.verandaArea,
+                                    });
+                                    if (recomputed != null) {
+                                        existingUnit.price = recomputed as any;
+                                        if (saleCurrencyId) existingUnit.priceCurrency = saleCurrencyId;
+                                        existingUnit.priceManuallyEdited = false;
+                                    }
                                 }
 
                                 if (unitFloorPlanMedia) {
@@ -601,9 +612,12 @@ export class EdificeActions {
 
                                 const unitArea = unitSummary.totalArea || unitSummary.netArea + unitSummary.sharedArea || 0;
                                 const unitVerandaArea = unitSummary.verandaArea || 0;
-                                const computedPrice = pricePerM2 != null
-                                    ? pricePerM2 * unitArea + (verandaPricePerM2 != null ? verandaPricePerM2 * unitVerandaArea : 0)
-                                    : 0;
+                                const computedPrice = computeUnitPriceFromEdificeRates({
+                                    pricePerMeterSquared: pricePerM2,
+                                    verandaPricePerMeterSquared: verandaPricePerM2,
+                                    area: unitArea,
+                                    verandaArea: unitVerandaArea,
+                                }) ?? 0;
 
                                 const unitBookletMedia = assets.booklet ? await createMediaDoc(assets.booklet) : undefined;
 
@@ -622,6 +636,7 @@ export class EdificeActions {
                                     polygonCoordinates: unitSummary.polygonCoordinates || [],
                                     price:              computedPrice,
                                     priceCurrency:      saleCurrencyId ?? currencyId,
+                                    priceManuallyEdited: false,
                                     hasBalcony:         false,
                                     hasTerrace:         false,
                                     hasSeaView:         false,

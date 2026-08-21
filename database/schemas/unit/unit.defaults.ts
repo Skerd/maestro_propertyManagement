@@ -117,6 +117,7 @@ export async function createUnits(
                 modificationRequests: [],
                 costs: [],
                 priceHistory: [],
+                priceManuallyEdited: true,
                 floor,
                 ...(row.edificeId && edificeIds.get(row.edificeId)
                     ? {edifice: edificeIds.get(row.edificeId)}

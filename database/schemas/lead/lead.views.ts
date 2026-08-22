@@ -165,6 +165,7 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     widgetProps: {
                         apiUrl:                  "/api/company/users/select",
                         method:                  "POST",
+                        postBody:                { administration: true },
                         normalizeEmptyToUndefined: true,
                     },
                 },
@@ -355,6 +356,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     widgetProps: {
                         apiUrl:                  "/api/company/users/select",
                         method:                  "POST",
+                        postBody:                { administration: true },
                         normalizeEmptyToUndefined: true,
                     },
                 },

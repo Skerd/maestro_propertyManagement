@@ -685,6 +685,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             name: "expirationDate",
                             widget: "#DateInput",
                             label: "form.expirationDateLabel",
+                            placeholder: "form.expirationDatePlaceholder",
                             widgetProps: { valueFormat: "yyyy-MM-dd" },
                         },
                     },

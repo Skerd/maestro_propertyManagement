@@ -18,7 +18,7 @@ import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
 import {applyFloorIndexes} from "./floor.indexes";
 import {floorViews} from "./floor.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {FloorSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.schema-def";
+import {FloorSchemaDef, FLOOR_LONG_TEXT_MAX, FLOOR_SHARED_SPACE_ITEM_MAX, FLOOR_SHARED_SPACE_MAX_ITEMS, FLOOR_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.schema-def";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
 export interface IFloor extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
@@ -105,7 +105,9 @@ const FloorSchema = new Schema<IFloor>(
         name: {
             type: SchemaTypes.String,
             required: true,
-            trim: true
+            trim: true,
+            minlength: 1,
+            maxlength: FLOOR_SHORT_TEXT_MAX,
         },
         levelNumber: {
             type: SchemaTypes.Number,
@@ -135,11 +137,23 @@ const FloorSchema = new Schema<IFloor>(
         },
         description: {
             type: SchemaTypes.String,
-            required: false
+            required: false,
+            maxlength: FLOOR_LONG_TEXT_MAX,
         },
         sharedSpaces: {
-            type: [SchemaTypes.String],
+            type: [{
+                type: SchemaTypes.String,
+                trim: true,
+                minlength: 1,
+                maxlength: FLOOR_SHARED_SPACE_ITEM_MAX,
+            }],
             default: [],
+            validate: {
+                validator: function(value: string[]) {
+                    return !value || value.length <= FLOOR_SHARED_SPACE_MAX_ITEMS;
+                },
+                message: `Cannot have more than ${FLOOR_SHARED_SPACE_MAX_ITEMS} shared spaces`,
+            },
             dynamicTableConfiguration: {
                 filterable: false,
                 sortable: false,

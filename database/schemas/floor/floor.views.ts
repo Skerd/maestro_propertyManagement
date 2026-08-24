@@ -1,4 +1,10 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    FLOOR_LONG_TEXT_MAX,
+    FLOOR_SHARED_SPACE_ITEM_MAX,
+    FLOOR_SHARED_SPACE_MAX_ITEMS,
+    FLOOR_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const floorSheetView: ViewConfig = {
@@ -109,6 +115,27 @@ export const floorSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "hasEmergencyExit",
                                 widgetProps: { icon: "#ShieldAlert", valueType: "boolean" , type: "boolean"},
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "description" },
+                            dependent: "description",
+                            field: {
+                                name: "description",
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -409,28 +436,6 @@ export const floorSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            props: { title: "description" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "description" },
-                            field: {
-                                name: "description",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#SheetGroup",
             props: { title: "gallery" },
             children: [
                 {
@@ -578,6 +583,7 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: { maxLength: FLOOR_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -622,7 +628,10 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
                     widget: "#Textarea",
                     label: "form.descriptionLabel",
                     placeholder: "form.descriptionPlaceholder",
-                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: FLOOR_LONG_TEXT_MAX,
+                    },
                 },
             },
         ],
@@ -661,7 +670,11 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
                     widget: "#StringArrayField",
                     label: "form.sharedSpacesLabel",
                     placeholder: "form.sharedSpacesPlaceholder",
-                    widgetProps: { removeTooltipKey: "removeSharedSpace" },
+                    widgetProps: {
+                        removeTooltipKey: "removeSharedSpace",
+                        maxItems: FLOOR_SHARED_SPACE_MAX_ITEMS,
+                        maxLength: FLOOR_SHARED_SPACE_ITEM_MAX,
+                    },
                 },
             },
         ],

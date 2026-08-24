@@ -19,7 +19,7 @@ import {addModelData} from "@coreModule/database/collections";
 import {leadViews} from "./lead.views";
 import {applyLeadIndexes} from "./lead.indexes";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {LeadSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.schema-def";
+import {LeadSchemaDef, LEAD_EMAIL_MAX, LEAD_LONG_TEXT_MAX, LEAD_PHONE_MAX, LEAD_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.schema-def";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {ChannelLeadChatSnippet} from "@coreModule/database/schemas/channel/channel.snippets";
@@ -94,10 +94,32 @@ const LeadSchema = new Schema<ILead>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
         },
-        firstName: {type: SchemaTypes.String, required: true,  trim: true},
-        lastName:  {type: SchemaTypes.String, required: false, trim: true},
-        email:     {type: SchemaTypes.String, required: false, trim: true, lowercase: true},
-        phone:     {type: SchemaTypes.String, required: false, trim: true},
+        firstName: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: LEAD_SHORT_TEXT_MAX,
+        },
+        lastName: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            maxlength: LEAD_SHORT_TEXT_MAX,
+        },
+        email: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            lowercase: true,
+            maxlength: LEAD_EMAIL_MAX,
+        },
+        phone: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            maxlength: LEAD_PHONE_MAX,
+        },
         status: {
             type:     SchemaTypes.String,
             required: true,
@@ -136,7 +158,12 @@ const LeadSchema = new Schema<ILead>(
             required:     false,
             refAllowlist: CurrencySimpleSnippet,
         },
-        notes: {type: SchemaTypes.String, required: false, trim: true},
+        notes: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            maxlength: LEAD_LONG_TEXT_MAX,
+        },
         chat: {
             type:         SchemaTypes.ObjectId,
             ref:          "Channel",
@@ -180,6 +207,7 @@ const LeadSchema = new Schema<ILead>(
                 notes: {
                     type: SchemaTypes.String,
                     required: false,
+                    maxlength: LEAD_LONG_TEXT_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true,
                         filterable: false,

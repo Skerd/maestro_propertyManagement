@@ -1,4 +1,10 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    LEAD_EMAIL_MAX,
+    LEAD_LONG_TEXT_MAX,
+    LEAD_PHONE_MAX,
+    LEAD_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const leadStatusOptions = [
@@ -43,6 +49,7 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     label:       "form.firstNameLabel",
                     placeholder: "form.firstNamePlaceholder",
                     required:    true,
+                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
                 },
             },
             {
@@ -52,6 +59,7 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     widget:      "#Input",
                     label:       "form.lastNameLabel",
                     placeholder: "form.lastNamePlaceholder",
+                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
                 },
             },
             {
@@ -61,7 +69,7 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     widget:      "#Input",
                     label:       "form.emailLabel",
                     placeholder: "form.emailPlaceholder",
-                    widgetProps: {type: "email"},
+                    widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
                 },
             },
             {
@@ -71,6 +79,7 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     widget:      "#Input",
                     label:       "form.phoneLabel",
                     placeholder: "form.phonePlaceholder",
+                    widgetProps: {maxLength: LEAD_PHONE_MAX},
                 },
             },
             {
@@ -188,7 +197,10 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
             widget:      "#Textarea",
             label:       "form.notesLabel",
             placeholder: "form.notesPlaceholder",
-            widgetProps: {className: "resize-none max-h-[250px] overflow-y-auto"},
+            widgetProps: {
+                className: "resize-none max-h-[250px] overflow-y-auto",
+                maxLength: LEAD_LONG_TEXT_MAX,
+            },
         },
     },
 ];
@@ -223,6 +235,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     label:       "form.firstNameLabel",
                     placeholder: "form.firstNamePlaceholder",
                     required:    true,
+                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
                 },
             },
             {
@@ -233,6 +246,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     widget:      "#Input",
                     label:       "form.lastNameLabel",
                     placeholder: "form.lastNamePlaceholder",
+                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
                 },
             },
             {
@@ -243,7 +257,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     widget:      "#Input",
                     label:       "form.emailLabel",
                     placeholder: "form.emailPlaceholder",
-                    widgetProps: {type: "email"},
+                    widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
                 },
             },
             {
@@ -254,6 +268,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     widget:      "#Input",
                     label:       "form.phoneLabel",
                     placeholder: "form.phonePlaceholder",
+                    widgetProps: {maxLength: LEAD_PHONE_MAX},
                 },
             },
             {
@@ -381,7 +396,10 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
             widget:      "#Textarea",
             label:       "form.notesLabel",
             placeholder: "form.notesPlaceholder",
-            widgetProps: {className: "resize-none max-h-[250px] overflow-y-auto"},
+            widgetProps: {
+                className: "resize-none max-h-[250px] overflow-y-auto",
+                maxLength: LEAD_LONG_TEXT_MAX,
+            },
         },
     },
 ];
@@ -651,23 +669,23 @@ export const leadSheetView: ViewConfig = {
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props:  {title: "notes"},
-            children: [
                 {
-                    render: "div",
-                    props:  {className: "p-2 rounded-lg bg-muted/30 border border-border/50"},
+                    render: "#SheetGrid",
+                    props:  {columns: 1},
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: {read: "notes"},
+                            dependent: "notes",
                             field: {
                                 name:        "notes",
-                                widget:      "#ExpandableText",
-                                widgetProps: {className: "text-sm"},
+                                widget:      "#DisplayCard",
+                                label:       "notes",
+                                widgetProps: {
+                                    icon:       "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength:  250,
+                                },
                             },
                         },
                     ],

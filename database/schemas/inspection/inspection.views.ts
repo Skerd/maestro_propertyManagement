@@ -1,4 +1,9 @@
 import type {ViewConfig, ViewNode} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    INSPECTION_CHECKLIST_JSON_MAX,
+    INSPECTION_FINDING_NOTES_MAX,
+    INSPECTION_LONG_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const INSPECTION_FINDING_KEYS = [
@@ -190,6 +195,27 @@ export const inspectionSheetView: ViewConfig = {
                         },
                     ],
                 },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "notes" },
+                            dependent: "notes",
+                            field: {
+                                name: "notes",
+                                widget: "#DisplayCard",
+                                label: "notes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
             ],
         },
         {
@@ -335,28 +361,6 @@ export const inspectionSheetView: ViewConfig = {
                                 name: "checklistResponsesJson",
                                 widget: "#ExpandableText",
                                 widgetProps: { className: "text-sm font-mono" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            // dependent: "notes",
-            props: { title: "notes" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-2 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "notes" },
-                            field: {
-                                name: "notes",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
                             },
                         },
                     ],
@@ -754,7 +758,10 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.cancellationReasonLabel",
                                     placeholder: "form.cancellationReasonPlaceholder",
-                                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                                    widgetProps: {
+                                        className: "resize-none max-h-[250px] overflow-y-auto",
+                                        maxLength: INSPECTION_LONG_TEXT_MAX,
+                                    },
                                 },
                             },
                         ],
@@ -775,7 +782,10 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     widget: "#Textarea",
                     label: "form.notesLabel",
                     placeholder: "form.notesPlaceholder",
-                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: INSPECTION_LONG_TEXT_MAX,
+                    },
                 },
             },
         ],
@@ -815,7 +825,10 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     widget: "#Textarea",
                     label: "form.checklistResponsesJsonLabel",
                     placeholder: "form.checklistResponsesJsonPlaceholder",
-                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto font-mono text-xs" },
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto font-mono text-xs",
+                        maxLength: INSPECTION_CHECKLIST_JSON_MAX,
+                    },
                 },
             },
         ],
@@ -889,7 +902,10 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.notesLabel",
                                     placeholder: "form.addFindingPlaceholder",
-                                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                                    widgetProps: {
+                                        className: "resize-none max-h-[250px] overflow-y-auto",
+                                        maxLength: INSPECTION_FINDING_NOTES_MAX,
+                                    },
                                 },
                             },
                             {

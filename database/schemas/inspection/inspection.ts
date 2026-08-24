@@ -17,7 +17,7 @@ import {applyInspectionIndexes} from "./inspection.indexes";
 import {addModelData} from "@coreModule/database/collections";
 import {inspectionViews} from "./inspection.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {InspectionSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
+import {InspectionSchemaDef, INSPECTION_CHECKLIST_JSON_MAX, INSPECTION_FINDING_NOTES_MAX, INSPECTION_LONG_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
 import {UnitSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
@@ -97,6 +97,8 @@ function findingItemSchemaDef() {
             type: SchemaTypes.String,
             required: true,
             trim: true,
+            minlength: 1,
+            maxlength: INSPECTION_FINDING_NOTES_MAX,
             dynamicTableConfiguration: {
                 hideColumn: true,
                 visible: false,
@@ -209,6 +211,7 @@ const InspectionSchema = new Schema<IInspection>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: INSPECTION_LONG_TEXT_MAX,
         },
         findings: {
             type: {
@@ -280,6 +283,7 @@ const InspectionSchema = new Schema<IInspection>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: INSPECTION_LONG_TEXT_MAX,
             dynamicTableConfiguration: {visible: true},
         },
         clientSignatureMediaId: {
@@ -303,6 +307,7 @@ const InspectionSchema = new Schema<IInspection>(
         checklistResponsesJson: {
             type: SchemaTypes.String,
             required: false,
+            maxlength: INSPECTION_CHECKLIST_JSON_MAX,
         },
     },
     {accessMode: "loose"},

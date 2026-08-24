@@ -1,8 +1,16 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {UNIT_ORIENTATION_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
+import {
+    UNIT_LONG_TEXT_MAX,
+    UNIT_NUMBER_MAX,
+    UNIT_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
-const orientationOptions = UNIT_ORIENTATION_VALUES.map((value) => ({value, label: value}));
+const orientationOptions = UNIT_ORIENTATION_VALUES.map((value) => ({
+    value,
+    label: `form.orientation${value}`,
+}));
 
 const constructionStatusOptions = [
     {value: "planned", label: "form.constructionStatusPlanned"},
@@ -136,6 +144,27 @@ export const unitSheetView: ViewConfig = {
                                     linkedSheetModel: "unitTypes",
                                     linkedSheetWidget: "#UnitTypeSheetView",
                                     linkedSheetEntityProp: "unitType",
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "description" },
+                            dependent: "description",
+                            field: {
+                                name: "description",
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
                                 },
                             },
                         },
@@ -537,28 +566,6 @@ export const unitSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "reservationCommission",
                                 widgetProps: { icon: "#Percent", suffix: "%" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#SheetGroup",
-            props: { title: "description" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "description" },
-                            field: {
-                                name: "description",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
                             },
                         },
                     ],
@@ -1029,6 +1036,7 @@ const unitFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: { maxLength: UNIT_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -1039,6 +1047,7 @@ const unitFormFields: ViewConfig["nodes"] = [
                             label: "form.unitNumberLabel",
                             placeholder: "form.unitNumberPlaceholder",
                             required: true,
+                            widgetProps: { maxLength: UNIT_NUMBER_MAX },
                         },
                     },
                     {
@@ -1061,7 +1070,10 @@ const unitFormFields: ViewConfig["nodes"] = [
                     widget: "#Textarea",
                     label: "form.descriptionLabel",
                     placeholder: "form.descriptionPlaceholder",
-                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: UNIT_LONG_TEXT_MAX,
+                    },
                 },
             },
         ],

@@ -24,7 +24,7 @@ import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperator
 import {addModelData} from "@coreModule/database/collections";
 import {unitViews} from "./unit.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {UnitSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
+import {UnitSchemaDef, UNIT_LONG_TEXT_MAX, UNIT_NUMBER_MAX, UNIT_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
 import {
     UNIT_CONSTRUCTION_STATUS_VALUES,
     UNIT_ORIENTATION_VALUES,
@@ -119,12 +119,16 @@ const UnitSchema = new Schema<IUnit>(
         unitNumber: {
             type: Schema.Types.String,
             required: true,
-            trim: true
+            trim: true,
+            minlength: 1,
+            maxlength: UNIT_NUMBER_MAX,
         },
         name: {
             type: Schema.Types.String,
             required: true,
-            trim: true
+            trim: true,
+            minlength: 1,
+            maxlength: UNIT_SHORT_TEXT_MAX,
         },
         area: {
             type: Schema.Types.Number,
@@ -242,7 +246,8 @@ const UnitSchema = new Schema<IUnit>(
         description: {
             type: Schema.Types.String,
             required: false,
-            default: ''
+            default: '',
+            maxlength: UNIT_LONG_TEXT_MAX,
         },
         mainImage: {
             type: SchemaTypes.ObjectId,

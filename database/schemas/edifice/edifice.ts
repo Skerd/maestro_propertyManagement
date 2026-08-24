@@ -23,7 +23,7 @@ import {addModelData} from "@coreModule/database/collections";
 import {edificeViews} from "./edifice.views";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {EdificeSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.schema-def";
+import {EdificeSchemaDef, EDIFICE_FACILITY_ITEM_MAX, EDIFICE_FACILITY_MAX_ITEMS, EDIFICE_PERMIT_NUMBER_MAX, EDIFICE_POSTAL_CODE_MAX, EDIFICE_SHORT_TEXT_MAX, EDIFICE_STREET_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.schema-def";
 import {EDIFICE_ENERGY_CLASS_VALUES, EdificeEnergyClass} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.constants";
 import {CountrySimpleSnippet} from "@coreModule/database/schemas/country/country.snippets";
 import {StateSimpleSnippet} from "@coreModule/database/schemas/state/state.snippets";
@@ -137,7 +137,9 @@ const EdificeSchema = new Schema<IEdifice>(
         name: {
             type: SchemaTypes.String,
             required: true,
-            trim: true
+            trim: true,
+            minlength: 1,
+            maxlength: EDIFICE_SHORT_TEXT_MAX,
         },
         address: {
             type: {
@@ -145,6 +147,8 @@ const EdificeSchema = new Schema<IEdifice>(
                     type: SchemaTypes.String,
                     required: true,
                     trim: true,
+                    minlength: 1,
+                    maxlength: EDIFICE_STREET_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true
                     }
@@ -153,6 +157,8 @@ const EdificeSchema = new Schema<IEdifice>(
                     type: SchemaTypes.String,
                     required: true,
                     trim: true,
+                    minlength: 1,
+                    maxlength: EDIFICE_POSTAL_CODE_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true
                     }
@@ -228,16 +234,38 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.Number
         },
         commercialFacilities: {
-            type: [SchemaTypes.String],
+            type: [{
+                type: SchemaTypes.String,
+                trim: true,
+                minlength: 1,
+                maxlength: EDIFICE_FACILITY_ITEM_MAX,
+            }],
             default: [],
+            validate: {
+                validator: function(value: string[]) {
+                    return !value || value.length <= EDIFICE_FACILITY_MAX_ITEMS;
+                },
+                message: `Cannot have more than ${EDIFICE_FACILITY_MAX_ITEMS} commercial facilities`,
+            },
             dynamicTableConfiguration: {
                 filterable: false,
                 sortable: false,
             }
         },
         neighborhoodFacilities: {
-            type: [SchemaTypes.String],
+            type: [{
+                type: SchemaTypes.String,
+                trim: true,
+                minlength: 1,
+                maxlength: EDIFICE_FACILITY_ITEM_MAX,
+            }],
             default: [],
+            validate: {
+                validator: function(value: string[]) {
+                    return !value || value.length <= EDIFICE_FACILITY_MAX_ITEMS;
+                },
+                message: `Cannot have more than ${EDIFICE_FACILITY_MAX_ITEMS} neighborhood facilities`,
+            },
             dynamicTableConfiguration: {
                 filterable: false,
                 sortable: false,
@@ -357,6 +385,7 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: EDIFICE_PERMIT_NUMBER_MAX,
         },
         energyClass: {
             type: SchemaTypes.String,

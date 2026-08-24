@@ -1,5 +1,13 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {EDIFICE_ENERGY_CLASS_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.constants";
+import {
+    EDIFICE_FACILITY_ITEM_MAX,
+    EDIFICE_FACILITY_MAX_ITEMS,
+    EDIFICE_PERMIT_NUMBER_MAX,
+    EDIFICE_POSTAL_CODE_MAX,
+    EDIFICE_SHORT_TEXT_MAX,
+    EDIFICE_STREET_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const energyClassOptions = EDIFICE_ENERGY_CLASS_VALUES.map((value) => ({value, label: value}));
@@ -810,6 +818,7 @@ const edificeFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: { maxLength: EDIFICE_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -901,11 +910,23 @@ const edificeFormFields: ViewConfig["nodes"] = [
                                 children: [
                                     {
                                         render: "#Field",
-                                        field: {name: "address.street", widget: "#Input", label: "form.streetLabel", placeholder: "form.streetPlaceholder"},
+                                        field: {
+                                            name: "address.street",
+                                            widget: "#Input",
+                                            label: "form.streetLabel",
+                                            placeholder: "form.streetPlaceholder",
+                                            widgetProps: { maxLength: EDIFICE_STREET_MAX },
+                                        },
                                     },
                                     {
                                         render: "#Field",
-                                        field: {name: "address.postalCode", widget: "#Input", label: "form.postalCodeLabel", placeholder: "form.postalCodePlaceholder"},
+                                        field: {
+                                            name: "address.postalCode",
+                                            widget: "#Input",
+                                            label: "form.postalCodeLabel",
+                                            placeholder: "form.postalCodePlaceholder",
+                                            widgetProps: { maxLength: EDIFICE_POSTAL_CODE_MAX },
+                                        },
                                     },
                                 ],
                             },
@@ -1221,6 +1242,7 @@ const edificeFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.buildingPermitNumberLabel",
                             placeholder: "form.buildingPermitNumberPlaceholder",
+                            widgetProps: { maxLength: EDIFICE_PERMIT_NUMBER_MAX },
                         },
                     },
                     {
@@ -1252,7 +1274,11 @@ const edificeFormFields: ViewConfig["nodes"] = [
                             widget: "#StringArrayField",
                             label: "form.commercialFacilitiesLabel",
                             placeholder: "form.commercialFacilitiesPlaceholder",
-                            widgetProps: { removeTooltipKey: "removeCommercialFacility" },
+                            widgetProps: {
+                                removeTooltipKey: "removeCommercialFacility",
+                                maxItems: EDIFICE_FACILITY_MAX_ITEMS,
+                                maxLength: EDIFICE_FACILITY_ITEM_MAX,
+                            },
                         },
                     },
                     {
@@ -1262,7 +1288,11 @@ const edificeFormFields: ViewConfig["nodes"] = [
                             widget: "#StringArrayField",
                             label: "form.neighborhoodFacilitiesLabel",
                             placeholder: "form.neighborhoodFacilitiesPlaceholder",
-                            widgetProps: { removeTooltipKey: "removeNeighborhoodFacility" },
+                            widgetProps: {
+                                removeTooltipKey: "removeNeighborhoodFacility",
+                                maxItems: EDIFICE_FACILITY_MAX_ITEMS,
+                                maxLength: EDIFICE_FACILITY_ITEM_MAX,
+                            },
                         },
                     },
                 ],

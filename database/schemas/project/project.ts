@@ -17,7 +17,7 @@ import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snipp
 import {applyProjectIndexes} from "./project.indexes";
 import {projectViews} from "./project.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {ProjectSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.schema-def";
+import {ProjectSchemaDef, PROJECT_LONG_TEXT_MAX, PROJECT_SHORT_TEXT_MAX, PROJECT_URL_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.schema-def";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
 export type IProjectSocialLink = {
@@ -52,10 +52,13 @@ const ProjectSchema = new Schema<IProject>(
             required: true,
             unique: true,
             trim: true,
+            minlength: 1,
+            maxlength: PROJECT_SHORT_TEXT_MAX,
         },
         description: {
             type: SchemaTypes.String,
-            default: ''
+            default: '',
+            maxlength: PROJECT_LONG_TEXT_MAX,
         },
         saleCommissionRatePercent: {
             type: SchemaTypes.Decimal128,
@@ -168,6 +171,7 @@ const ProjectSchema = new Schema<IProject>(
             required: false,
             trim: true,
             default: "",
+            maxlength: PROJECT_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
             },
@@ -177,6 +181,7 @@ const ProjectSchema = new Schema<IProject>(
             required: false,
             trim: true,
             default: "",
+            maxlength: PROJECT_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
             },
@@ -187,6 +192,8 @@ const ProjectSchema = new Schema<IProject>(
                     type: SchemaTypes.String,
                     required: true,
                     trim: true,
+                    minlength: 1,
+                    maxlength: PROJECT_SHORT_TEXT_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true,
                         filterable: false,
@@ -198,6 +205,7 @@ const ProjectSchema = new Schema<IProject>(
                     type: SchemaTypes.String,
                     required: true,
                     trim: true,
+                    maxlength: PROJECT_URL_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true,
                         filterable: false,

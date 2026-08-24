@@ -1,4 +1,9 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    PROJECT_LONG_TEXT_MAX,
+    PROJECT_SHORT_TEXT_MAX,
+    PROJECT_URL_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const projectSheetView: ViewConfig = {
@@ -19,7 +24,7 @@ export const projectSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGrid",
-                    props: { columns: 3 },
+                    props: { columns: 1 },
                     children: [
                         {
                             render: "#DisplayCard",
@@ -31,6 +36,12 @@ export const projectSheetView: ViewConfig = {
                                 widgetProps: { icon: "#IconLabel" },
                             },
                         },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
                         {
                             render: "#DisplayCard",
                             permissions: { read: "saleCommissionRatePercent" },
@@ -76,6 +87,27 @@ export const projectSheetView: ViewConfig = {
                         },
                     ],
                 },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "description" },
+                            dependent: "description",
+                            field: {
+                                name: "description",
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ]
+                }
             ],
         },
 
@@ -415,29 +447,6 @@ export const projectSheetView: ViewConfig = {
             ],
         },
 
-        // ── Description ──────────────────────────────────────────────
-        {
-            render: "#SheetGroup",
-            props: { title: "description" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-2 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "description" },
-                            field: {
-                                name: "description",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-
         // ── Social links ─────────────────────────────────────────────
         {
             render: "#ReferencesViewModeScope",
@@ -584,7 +593,7 @@ export const projectSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGrid",
-                    props: { columns: 2 },
+                    props: { columns: 1 },
                     children: [
                         {
                             render: "#DisplayCard",
@@ -604,7 +613,11 @@ export const projectSheetView: ViewConfig = {
                                 name: "magazineDescription",
                                 widget: "#DisplayCard",
                                 label: "magazineDescription",
-                                widgetProps: { icon: "#IconAlignLeft" },
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -652,6 +665,7 @@ const projectFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: { maxLength: PROJECT_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -661,7 +675,10 @@ const projectFormFields: ViewConfig["nodes"] = [
                             widget: "#Textarea",
                             label: "form.descriptionLabel",
                             placeholder: "form.descriptionPlaceholder",
-                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                            widgetProps: {
+                                className: "resize-none max-h-[250px] overflow-y-auto",
+                                maxLength: PROJECT_LONG_TEXT_MAX,
+                            },
                         },
                     },
                 ],
@@ -808,6 +825,7 @@ const projectFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.magazineTitleLabel",
                             placeholder: "form.magazineTitlePlaceholder",
+                            widgetProps: { maxLength: PROJECT_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -820,6 +838,7 @@ const projectFormFields: ViewConfig["nodes"] = [
                             widgetProps: {
                                 className:
                                     "min-h-[120px] max-h-[280px] w-full resize-y overflow-y-auto leading-relaxed",
+                                maxLength: PROJECT_LONG_TEXT_MAX,
                             },
                         },
                     },
@@ -898,6 +917,7 @@ const projectFormFields: ViewConfig["nodes"] = [
                                     label: "form.socialLinkNameLabel",
                                     placeholder: "form.socialLinkNamePlaceholder",
                                     required: true,
+                                    widgetProps: { maxLength: PROJECT_SHORT_TEXT_MAX },
                                 },
                             },
                             {
@@ -908,7 +928,7 @@ const projectFormFields: ViewConfig["nodes"] = [
                                     label: "form.socialLinkUrlLabel",
                                     placeholder: "form.socialLinkUrlPlaceholder",
                                     required: true,
-                                    widgetProps: { type: "url" },
+                                    widgetProps: { type: "url", maxLength: PROJECT_URL_MAX },
                                 },
                             },
                             {

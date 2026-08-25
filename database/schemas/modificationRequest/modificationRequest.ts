@@ -24,7 +24,14 @@ import {
     modificationRequestViews
 } from "./modificationRequest.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {ModificationRequestSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/modificationRequest.schema-def";
+import {
+    ModificationRequestSchemaDef,
+    MODIFICATION_REQUEST_CONSTRUCTION_TYPE_VALUES,
+    MODIFICATION_REQUEST_LINE_ITEM_MAX,
+    MODIFICATION_REQUEST_LONG_TEXT_MAX,
+    MODIFICATION_REQUEST_TITLE_MAX,
+    MODIFICATION_REQUEST_UNIT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/modificationRequest.schema-def";
 import {UnitSimpleSnippet, UnitSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
@@ -232,7 +239,8 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
         notes: {
             type: SchemaTypes.String,
             required: false,
-            trim: true
+            trim: true,
+            maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
         },
         reviewedAt: {
             type: SchemaTypes.Date,
@@ -252,10 +260,10 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
         base.materialsPlan = {
             type: [{
                 type: {
-                    item:         {type: SchemaTypes.String,   required: true,  trim: true},
+                    item:         {type: SchemaTypes.String,   required: true,  trim: true, minlength: 1, maxlength: MODIFICATION_REQUEST_LINE_ITEM_MAX},
                     quantity:     {type: SchemaTypes.Number,   required: false, min: 0},
-                    unit:         {type: SchemaTypes.String,   required: false, trim: true},
-                    notes:        {type: SchemaTypes.String,   required: false, trim: true},
+                    unit:         {type: SchemaTypes.String,   required: false, trim: true, maxlength: MODIFICATION_REQUEST_UNIT_MAX},
+                    notes:        {type: SchemaTypes.String,   required: false, trim: true, maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX},
                     pricePerUnit: {
                         type:     SchemaTypes.Decimal128,
                         required: false,
@@ -321,15 +329,21 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
         },
         title: {
             type: SchemaTypes.String,
-            required: true
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: MODIFICATION_REQUEST_TITLE_MAX,
         },
         description: {
             type: SchemaTypes.String,
-            required: true
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
         },
         constructionType: {
             type: SchemaTypes.String,
-            enum: Object.values(ConstructionType),
+            enum: [...MODIFICATION_REQUEST_CONSTRUCTION_TYPE_VALUES],
             required: true,
             default: ConstructionType.OTHER,
             index: true
@@ -337,7 +351,8 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
         specifications: {
             type: SchemaTypes.String,
             required: false,
-            trim: true
+            trim: true,
+            maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
         },
         status: {
             type: SchemaTypes.String,
@@ -378,7 +393,9 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                         item: {
                             type: SchemaTypes.String,
                             required: true,
-                            trim: true
+                            trim: true,
+                            minlength: 1,
+                            maxlength: MODIFICATION_REQUEST_LINE_ITEM_MAX,
                         },
                         cost: {
                             type: SchemaTypes.Number,
@@ -392,7 +409,8 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                         unit: {
                             type: SchemaTypes.String,
                             required: false,
-                            trim: true
+                            trim: true,
+                            maxlength: MODIFICATION_REQUEST_UNIT_MAX,
                         },
                         source: {
                             type: SchemaTypes.String,
@@ -415,7 +433,9 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                 },
                 notes: {
                     type: SchemaTypes.String,
-                    required: false
+                    required: false,
+                    trim: true,
+                    maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
                 },
                 estimatedCompletionDate: {
                     type: SchemaTypes.Date,
@@ -491,7 +511,9 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
         },
         cancellationReason: {
             type: SchemaTypes.String,
-            required: false
+            required: false,
+            trim: true,
+            maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
         }
     },
     {

@@ -310,9 +310,18 @@ export class ModificationRequestActions {
             throw apiValidationException("invalid_status_for_deliver", null, null, languageCode);
         }
 
-        const inspectionsDb = inspections
-            ? await inspectionService.find({company: company._id, unit: existingRequest.unit, _id: {$in: inspections}})
-            : undefined;
+        const inspectionIds = Array.isArray(inspections)
+            ? inspections.map((id: string) => new ObjectId(id))
+            : [];
+
+        let savedInspectionIds: ObjectId[] | undefined;
+        if (inspectionIds.length > 0) {
+            const found = await inspectionService.find(
+                {company: company._id, _id: {$in: inspectionIds}},
+                {session, logger, languageCode},
+            );
+            savedInspectionIds = found.map((doc) => doc._id);
+        }
 
         const updateData = {
             deliveryApproval: {
@@ -321,9 +330,9 @@ export class ModificationRequestActions {
                 reviewedAt: new Date(),
                 notes,
                 media:       media ? (Array.isArray(media) ? media.map((id: string) => new ObjectId(id)) : [new ObjectId(media)]) : undefined,
-                inspections: inspectionsDb,
+                inspections: savedInspectionIds,
             },
-            inspections:  inspectionsDb,
+            inspections:  savedInspectionIds,
             status:       ModificationRequestStatus.COMPLETED,
             completedAt:  new Date(),
         };

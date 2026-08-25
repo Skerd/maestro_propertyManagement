@@ -1,4 +1,8 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    MODIFICATION_REQUEST_LONG_TEXT_MAX,
+    MODIFICATION_REQUEST_TITLE_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/modificationRequest.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const modificationRequestSheetView: ViewConfig = {
@@ -18,6 +22,22 @@ export const modificationRequestSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "title" },
+                            field: {
+                                name: "title",
+                                widget: "#DisplayCard",
+                                label: "title",
+                                widgetProps: { icon: "#IconLabel" },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
                     props: { columns: 3 },
                     children: [
                         {
@@ -28,16 +48,6 @@ export const modificationRequestSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "name",
                                 widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "title" },
-                            field: {
-                                name: "title",
-                                widget: "#DisplayCard",
-                                label: "title",
-                                widgetProps: { icon: "#Type" },
                             },
                         },
                         {
@@ -68,6 +78,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         pending_architect_revision: "warning",
                                         pending_engineer_revision: "warning",
                                         pending_finance: "warning",
+                                        pending_client_approval: "warning",
                                         finance_completed: "info",
                                         pending_delivery: "warning",
                                         completed: "success",
@@ -137,6 +148,16 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            permissions: { read: "stageDueDate" },
+                            field: {
+                                name: "stageDueDate",
+                                widget: "#DisplayCard",
+                                label: "stageDueDate",
+                                widgetProps: { icon: "#CalendarClock", format: "dateTime" , type: "dateTime"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
                             permissions: { read: "completedAt" },
                             field: {
                                 name: "completedAt",
@@ -175,16 +196,22 @@ export const modificationRequestSheetView: ViewConfig = {
             props: { title: "description" },
             children: [
                 {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: { read: "description" },
+                            dependent: "description",
                             field: {
                                 name: "description",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -197,16 +224,22 @@ export const modificationRequestSheetView: ViewConfig = {
             props: { title: "specifications" },
             children: [
                 {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: { read: "specifications" },
+                            dependent: "specifications",
                             field: {
                                 name: "specifications",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
+                                widget: "#DisplayCard",
+                                label: "specifications",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -266,46 +299,43 @@ export const modificationRequestSheetView: ViewConfig = {
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "notesLabel" },
-                                    children: [
-                                        {
-                                            render: "#ExpandableText",
-                                            permissions: { read: "architectApproval.notes" },
-                                            field: {
-                                                name: "architectApproval.notes",
-                                                widget: "#ExpandableText",
-                                                widgetProps: { className: "text-sm" },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "architectApproval.notes" },
+                                    dependent: "architectApproval.notes",
+                                    field: {
+                                        name: "architectApproval.notes",
+                                        widget: "#DisplayCard",
+                                        label: "notesLabel",
+                                        widgetProps: {
+                                            icon: "#IconAlignLeft",
+                                            expandable: true,
+                                            maxLength: 250,
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "mediaLabel" },
-                                    children: [
-                                        {
-                                            render: "#SheetMediaFilesStrip",
-                                            permissions: { read: "architectApproval.media" },
-                                            field: {
-                                                name: "architectApproval.media",
-                                                widget: "#SheetMediaFilesStrip",
-                                                widgetProps: {
-                                                    combineFromFields: ["architectApproval.media"],
-                                                },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "architectApproval.media" },
+                                    dependent: "architectApproval.media",
+                                    field: {
+                                        name: "architectApproval.media",
+                                        widget: "#DisplayCard",
+                                        label: "mediaLabel",
+                                        widgetProps: {
+                                            icon: "#Paperclip",
+                                            type: "media",
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         }
@@ -376,71 +406,65 @@ export const modificationRequestSheetView: ViewConfig = {
                             ],
                         },
                         {
-                            render: "div",
-                            dependent: "engineerApproval.materialsPlan",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "materials" },
-                                    children: [
-                                        {
-                                            render: "#SheetModificationLineItems",
-                                            permissions: { read: "engineerApproval.materialsPlan" },
-                                            field: {
-                                                name: "engineerApproval.materialsPlan",
-                                                widget: "#SheetModificationLineItems",
-                                                widgetProps: {
-                                                    variant: "materialsPlan",
-                                                    className: "text-sm",
-                                                },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "engineerApproval" },
+                                    dependent: "engineerApproval.notes",
+                                    field: {
+                                        name: "engineerApproval.notes",
+                                        widget: "#DisplayCard",
+                                        label: "notesLabel",
+                                        widgetProps: {
+                                            icon: "#IconAlignLeft",
+                                            expandable: true,
+                                            maxLength: 250,
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "notesLabel" },
-                                    children: [
-                                        {
-                                            render: "#ExpandableText",
-                                            permissions: { read: "engineerApproval" },
-                                            field: {
-                                                name: "engineerApproval.notes",
-                                                widget: "#ExpandableText",
-                                                widgetProps: { className: "text-sm" },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "engineerApproval.materialsPlan" },
+                                    dependent: "engineerApproval.materialsPlan",
+                                    field: {
+                                        name: "engineerApproval.materialsPlan",
+                                        widget: "#DisplayCard",
+                                        label: "materials",
+                                        widgetProps: {
+                                            icon: "#List",
+                                            bodyWidget: "#SheetModificationLineItems",
+                                            variant: "materialsPlan",
+                                            className: "text-sm",
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "mediaLabel" },
-                                    children: [
-                                        {
-                                            render: "#SheetMediaFilesStrip",
-                                            permissions: { read: "engineerApproval.media" },
-                                            field: {
-                                                name: "engineerApproval.media",
-                                                widget: "#SheetMediaFilesStrip",
-                                                widgetProps: {
-                                                    combineFromFields: ["engineerApproval.media"],
-                                                },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "engineerApproval.media" },
+                                    dependent: "engineerApproval.media",
+                                    field: {
+                                        name: "engineerApproval.media",
+                                        widget: "#DisplayCard",
+                                        label: "mediaLabel",
+                                        widgetProps: {
+                                            icon: "#Paperclip",
+                                            type: "media",
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         }
@@ -500,46 +524,43 @@ export const modificationRequestSheetView: ViewConfig = {
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "notesLabel" },
-                                    children: [
-                                        {
-                                            render: "#ExpandableText",
-                                            permissions: { read: "ceoApproval" },
-                                            field: {
-                                                name: "ceoApproval.notes",
-                                                widget: "#ExpandableText",
-                                                widgetProps: { className: "text-sm" },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "ceoApproval" },
+                                    dependent: "ceoApproval.notes",
+                                    field: {
+                                        name: "ceoApproval.notes",
+                                        widget: "#DisplayCard",
+                                        label: "notesLabel",
+                                        widgetProps: {
+                                            icon: "#IconAlignLeft",
+                                            expandable: true,
+                                            maxLength: 250,
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "mediaLabel" },
-                                    children: [
-                                        {
-                                            render: "#SheetMediaFilesStrip",
-                                            permissions: { read: "ceoApproval.media" },
-                                            field: {
-                                                name: "ceoApproval.media",
-                                                widget: "#SheetMediaFilesStrip",
-                                                widgetProps: {
-                                                    combineFromFields: ["ceoApproval.media"],
-                                                },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "ceoApproval.media" },
+                                    dependent: "ceoApproval.media",
+                                    field: {
+                                        name: "ceoApproval.media",
+                                        widget: "#DisplayCard",
+                                        label: "mediaLabel",
+                                        widgetProps: {
+                                            icon: "#Paperclip",
+                                            type: "media",
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         }
@@ -567,7 +588,17 @@ export const modificationRequestSheetView: ViewConfig = {
                                         name: "financeDetails.totalCost",
                                         widget: "#DisplayCard",
                                         label: "totalCost",
-                                        widgetProps: { icon: "#DollarSign", format: "locale" , type: "currency"},
+                                        widgetProps: {
+                                            icon: "#DollarSign",
+                                            format: "locale",
+                                            valuePath: ["financeDetails.currency.symbol", "financeDetails.totalCost"],
+                                            joinSeparator: " ",
+                                            linkedRefPath: "financeDetails.currency",
+                                            linkedSheetModel: "currencies",
+                                            linkedSheetWidget: "#CurrencySheetView",
+                                            linkedSheetEntityProp: "currency",
+                                            type: "currency",
+                                        },
                                     },
                                 },
                                 {
@@ -577,7 +608,15 @@ export const modificationRequestSheetView: ViewConfig = {
                                         name: "financeDetails.currency.name",
                                         widget: "#DisplayCard",
                                         label: "currency",
-                                        widgetProps: { icon: "#Banknote" },
+                                        widgetProps: {
+                                            icon: "#Banknote",
+                                            valuePath: ["financeDetails.currency.symbol", "financeDetails.currency.name"],
+                                            joinSeparator: " ",
+                                            linkedRefPath: "financeDetails.currency",
+                                            linkedSheetModel: "currencies",
+                                            linkedSheetWidget: "#CurrencySheetView",
+                                            linkedSheetEntityProp: "currency",
+                                        },
                                     },
                                 },
                                 {
@@ -594,76 +633,147 @@ export const modificationRequestSheetView: ViewConfig = {
                             ],
                         },
                         {
-                            render: "div",
-                            dependent: "financeDetails.costBreakdown",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "costBreakdown" },
-                                    children: [
-                                        {
-                                            render: "#SheetModificationLineItems",
-                                            permissions: { read: "financeDetails.costBreakdown" },
-                                            field: {
-                                                name: "financeDetails.costBreakdown",
-                                                widget: "#SheetModificationLineItems",
-                                                widgetProps: {
-                                                    variant: "costBreakdown",
-                                                    currencyPath: "financeDetails.currency",
-                                                    totalPath: "financeDetails.totalCost",
-                                                    className: "text-sm",
-                                                },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "financeDetails" },
+                                    dependent: "financeDetails.notes",
+                                    field: {
+                                        name: "financeDetails.notes",
+                                        widget: "#DisplayCard",
+                                        label: "notesLabel",
+                                        widgetProps: {
+                                            icon: "#IconAlignLeft",
+                                            expandable: true,
+                                            maxLength: 250,
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "notesLabel" },
-                                    children: [
-                                        {
-                                            render: "#ExpandableText",
-                                            permissions: { read: "financeDetails" },
-                                            field: {
-                                                name: "financeDetails.notes",
-                                                widget: "#ExpandableText",
-                                                widgetProps: { className: "text-sm" },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "financeDetails.costBreakdown" },
+                                    dependent: "financeDetails.costBreakdown",
+                                    field: {
+                                        name: "financeDetails.costBreakdown",
+                                        widget: "#DisplayCard",
+                                        label: "costBreakdown",
+                                        widgetProps: {
+                                            icon: "#ListOrdered",
+                                            bodyWidget: "#SheetModificationLineItems",
+                                            variant: "costBreakdown",
+                                            currencyPath: "financeDetails.currency",
+                                            totalPath: "financeDetails.totalCost",
+                                            className: "text-sm",
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "mediaLabel" },
-                                    children: [
-                                        {
-                                            render: "#SheetMediaFilesStrip",
-                                            permissions: { read: "financeDetails.media" },
-                                            field: {
-                                                name: "financeDetails.media",
-                                                widget: "#SheetMediaFilesStrip",
-                                                widgetProps: {
-                                                    combineFromFields: ["financeDetails.media"],
-                                                },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "financeDetails.media" },
+                                    dependent: "financeDetails.media",
+                                    field: {
+                                        name: "financeDetails.media",
+                                        widget: "#DisplayCard",
+                                        label: "mediaLabel",
+                                        widgetProps: {
+                                            icon: "#Paperclip",
+                                            type: "media",
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         }
+                    ],
+                },
+            ],
+        },
+
+        {
+            render: "#SheetGroup",
+            dependent: "clientCostApproval",
+            props: { title: "clientCostApproval" },
+            children: [
+                {
+                    render: "div",
+                    props: { className: "p-4 rounded-lg border bg-teal-500/5 border-teal-500/20 space-y-2" },
+                    children: [
+                        {
+                            render: "#SheetGrid",
+                            props: { columns: 3 },
+                            children: [
+                                {
+                                    render: "#DisplayCard",
+                                    permissions: { read: "clientCostApproval.decision" },
+                                    field: {
+                                        name: "clientCostApproval.decision",
+                                        widget: "#DisplayCard",
+                                        label: "decision",
+                                        widgetProps: { icon: "#CircleDot", languageKeyCategory: "decisions", type: "enum" },
+                                    },
+                                },
+                                {
+                                    render: "#DisplayCard",
+                                    permissions: { read: "clientCostApproval.user" },
+                                    field: {
+                                        name: "clientCostApproval.user",
+                                        widget: "#DisplayCard",
+                                        label: "reviewedBy",
+                                        widgetProps: {
+                                            icon: "#User",
+                                            parent: "clientCostApproval.user",
+                                            valuePath: ["name", "surname"],
+                                            joinSeparator: " ",
+                                            type: "user",
+                                        },
+                                    },
+                                },
+                                {
+                                    render: "#DisplayCard",
+                                    permissions: { read: "clientCostApproval.reviewedAt" },
+                                    field: {
+                                        name: "clientCostApproval.reviewedAt",
+                                        widget: "#DisplayCard",
+                                        label: "reviewedAt",
+                                        widgetProps: { icon: "#CalendarCheck", format: "dateTime" , type: "dateTime"},
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
+                            children: [
+                                {
+                                    render: "#DisplayCard",
+                                    permissions: { read: "clientCostApproval.notes" },
+                                    dependent: "clientCostApproval.notes",
+                                    field: {
+                                        name: "clientCostApproval.notes",
+                                        widget: "#DisplayCard",
+                                        label: "notesLabel",
+                                        widgetProps: {
+                                            icon: "#IconAlignLeft",
+                                            expandable: true,
+                                            maxLength: 250,
+                                        },
+                                    },
+                                },
+                            ],
+                        },
                     ],
                 },
             ],
@@ -720,29 +830,50 @@ export const modificationRequestSheetView: ViewConfig = {
                             ],
                         },
                         {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
                             children: [
                                 {
-                                    render: "#SheetGroup",
-                                    props: { title: "notesLabel" },
-                                    children: [
-                                        {
-                                            render: "#ExpandableText",
-                                            permissions: { read: "deliveryApproval" },
-                                            field: {
-                                                name: "deliveryApproval.notes",
-                                                widget: "#ExpandableText",
-                                                widgetProps: { className: "text-sm" },
-                                            },
+                                    render: "#DisplayCard",
+                                    permissions: { read: "deliveryApproval" },
+                                    dependent: "deliveryApproval.notes",
+                                    field: {
+                                        name: "deliveryApproval.notes",
+                                        widget: "#DisplayCard",
+                                        label: "notesLabel",
+                                        widgetProps: {
+                                            icon: "#IconAlignLeft",
+                                            expandable: true,
+                                            maxLength: 250,
                                         },
-                                    ],
+                                    },
                                 },
                             ],
                         },
 
                         {
+                            render: "#SheetGrid",
+                            props: { columns: 1 },
+                            children: [
+                                {
+                                    render: "#DisplayCard",
+                                    permissions: { read: "deliveryApproval.media" },
+                                    dependent: "deliveryApproval.media",
+                                    field: {
+                                        name: "deliveryApproval.media",
+                                        widget: "#DisplayCard",
+                                        label: "mediaLabel",
+                                        widgetProps: {
+                                            icon: "#Paperclip",
+                                            type: "media",
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                        {
                             render: "#ReferencesViewModeScope",
+                            dependent: "deliveryApproval.inspections",
                             props: {
                                 storageKey: "modificationRequest.sheet.deliveryApproval.inspections.listDisplay",
                                 defaultMode: "compact",
@@ -756,66 +887,36 @@ export const modificationRequestSheetView: ViewConfig = {
                                     },
                                     children: [
                                         {
-                                            render: "div",
-                                            props: {
-                                                className: "p-4 rounded-lg bg-muted/30 border border-border/50",
+                                            render: "#ReferencesRender",
+                                            permissions: {
+                                                read: "deliveryApproval.inspections",
                                             },
-                                            children: [
-                                                {
-                                                    render: "#ReferencesRender",
-                                                    permissions: {
-                                                        read: "deliveryApproval.inspections",
-                                                    },
-                                                    field: {
-                                                        name: "deliveryApproval.inspections",
-                                                        widget: "#ReferencesRender",
-                                                        widgetProps: {
-                                                            cardWidget: "#InspectionCard",
-                                                            itemDataProp: "inspection",
-                                                            hideActions: true,
-                                                            pageSize: 3,
-                                                            mediaUrl: "/api/auxiliary/media/",
-                                                            compactRow: {
-                                                                icon: "#ClipboardList",
-                                                                label: "inspection",
-                                                                valuePath: ["name"],
-                                                                joinSeparator: " · ",
-                                                                linkedSheetModel: "inspections",
-                                                                linkedSheetWidget: "#InspectionSheetView",
-                                                                linkedSheetEntityProp: "inspection",
-                                                            },
-                                                        },
+                                            field: {
+                                                name: "deliveryApproval.inspections",
+                                                widget: "#ReferencesRender",
+                                                widgetProps: {
+                                                    cardWidget: "#InspectionCard",
+                                                    itemDataProp: "inspection",
+                                                    hideActions: true,
+                                                    pageSize: 3,
+                                                    mediaUrl: "/api/auxiliary/media/",
+                                                    listClassName: "gap-1",
+                                                    compactRow: {
+                                                        icon: "#ClipboardList",
+                                                        label: "inspection",
+                                                        valuePath: ["name"],
+                                                        joinSeparator: " · ",
+                                                        linkedSheetModel: "inspections",
+                                                        linkedSheetWidget: "#InspectionSheetView",
+                                                        linkedSheetEntityProp: "inspection",
                                                     },
                                                 },
-                                            ],
+                                            },
                                         },
                                     ],
                                 },
                             ],
                         },
-                        {
-                            render: "div",
-                            props: { className: "p-4 rounded-lg bg-background/60 border border-border/40" },
-                            children: [
-                                {
-                                    render: "#SheetGroup",
-                                    props: { title: "mediaLabel" },
-                                    children: [
-                                        {
-                                            render: "#SheetMediaFilesStrip",
-                                            permissions: { read: "deliveryApproval.media" },
-                                            field: {
-                                                name: "deliveryApproval.media",
-                                                widget: "#SheetMediaFilesStrip",
-                                                widgetProps: {
-                                                    combineFromFields: ["deliveryApproval.media"],
-                                                },
-                                            },
-                                        },
-                                    ],
-                                },
-                            ],
-                        }
                     ],
                 },
             ],
@@ -861,16 +962,22 @@ export const modificationRequestSheetView: ViewConfig = {
             props: { title: "cancellation" },
             children: [
                 {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-red-500/10 border border-red-500/20" },
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: { read: "cancellationReason" },
                             field: {
                                 name: "cancellationReason",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm text-red-600 dark:text-red-400" },
+                                widget: "#DisplayCard",
+                                label: "cancellationReason",
+                                widgetProps: {
+                                    icon: "#XCircle",
+                                    expandable: true,
+                                    maxLength: 250,
+                                    variant: "destructive",
+                                },
                             },
                         },
                     ],
@@ -1039,7 +1146,7 @@ const modificationRequestFormFields: ViewConfig["nodes"] = [
                             label: "form.titleLabel",
                             placeholder: "form.titlePlaceholder",
                             required: true,
-                            widgetProps: { maxLength: 255 },
+                            widgetProps: { maxLength: MODIFICATION_REQUEST_TITLE_MAX },
                         },
                     },
                     {
@@ -1050,7 +1157,7 @@ const modificationRequestFormFields: ViewConfig["nodes"] = [
                             label: "form.descriptionLabel",
                             placeholder: "form.descriptionPlaceholder",
                             required: true,
-                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto", maxLength: MODIFICATION_REQUEST_LONG_TEXT_MAX },
                         },
                     },
                     {
@@ -1060,7 +1167,7 @@ const modificationRequestFormFields: ViewConfig["nodes"] = [
                             widget: "#Textarea",
                             label: "form.specificationsLabel",
                             placeholder: "form.specificationsPlaceholder",
-                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto", maxLength: MODIFICATION_REQUEST_LONG_TEXT_MAX },
                         },
                     },
                 ],

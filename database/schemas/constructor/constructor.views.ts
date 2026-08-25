@@ -133,7 +133,7 @@ export const constructorSheetView: ViewConfig = {
                     children: [
                         {
                             render: "div",
-                            props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
                             children: [
                                 {
                                     render: "#ReferencesRender",
@@ -216,7 +216,7 @@ export const constructorSheetView: ViewConfig = {
             children: [
                 {
                     render: "div",
-                    props: { className: "p-4 grid md:grid-cols-2 rounded-lg bg-muted/30 border border-border/50" },
+                    props: { className: "grid md:grid-cols-2 rounded-lg bg-muted/30 border border-border/50" },
                     children: [
                         {
                             render: "#ReferencesRender",

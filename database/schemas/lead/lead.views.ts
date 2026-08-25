@@ -718,7 +718,7 @@ export const leadSheetView: ViewConfig = {
                     children: [
                         {
                             render: "div",
-                            props:  {className: "p-4 rounded-lg bg-muted/30 border border-border/50"},
+                            props:  {className: "rounded-lg bg-muted/30 border border-border/50"},
                             children: [
                                 {
                                     render: "#SheetEmbeddedItemsList",

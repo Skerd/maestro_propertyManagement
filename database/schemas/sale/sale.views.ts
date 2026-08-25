@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {SALE_LONG_TEXT_MAX, SALE_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const saleSheetView: ViewConfig = {
@@ -114,6 +115,27 @@ export const saleSheetView: ViewConfig = {
                                     linkedSheetModel: "floors",
                                     linkedSheetWidget: "#FloorSheetView",
                                     linkedSheetEntityProp: "floor",
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "notes" },
+                            dependent: "notes",
+                            field: {
+                                name: "notes",
+                                widget: "#DisplayCard",
+                                label: "notes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
                                 },
                             },
                         },
@@ -467,29 +489,6 @@ export const saleSheetView: ViewConfig = {
                 },
             ],
         },
-
-        {
-            render: "#SheetGroup",
-            dependent: "notes",
-            props: { title: "notes" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "notes" },
-                            field: {
-                                name: "notes",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
         lifecycleSheetGroup,
     ],
 };
@@ -670,6 +669,7 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.transactionReferenceLabel",
                             placeholder: "form.transactionReferencePlaceholder",
+                            widgetProps: { maxLength: SALE_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -716,7 +716,10 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.notesLabel",
                                     placeholder: "form.notesPlaceholder",
-                                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                                    widgetProps: {
+                                        className: "resize-none max-h-[250px] overflow-y-auto",
+                                        maxLength: SALE_LONG_TEXT_MAX,
+                                    },
                                 },
                             },
                         ]
@@ -793,6 +796,7 @@ const saleEditFormFields: ViewConfig["nodes"] = [
                     widget: "#Input",
                     label: "form.transactionReferenceLabel",
                     placeholder: "form.transactionReferencePlaceholder",
+                    widgetProps: { maxLength: SALE_SHORT_TEXT_MAX },
                 },
             },
             {
@@ -803,7 +807,10 @@ const saleEditFormFields: ViewConfig["nodes"] = [
                     widget: "#Textarea",
                     label: "form.notesLabel",
                     placeholder: "form.notesPlaceholder",
-                    widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto" },
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: SALE_LONG_TEXT_MAX,
+                    },
                 },
             },
         ],

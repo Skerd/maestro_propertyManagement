@@ -9,7 +9,7 @@ import {
     mapPopulatedSimpleCurrency,
     mapPopulatedSimpleUser
 } from "@coreModule/utilities/mappers/common.mapper";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapOwnershipToDTO, mapSoftDeleteToDTO, mapLifeCycleToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 function mapSaleApprovalStage(stage: any): ApprovalStage | undefined {
     if (!stage) return undefined;
@@ -40,9 +40,6 @@ function mapUnitRef(unit: any): Sale["unit"] | undefined {
 }
 
 export function saleToDTO(sale: ISale): Sale {
-
-    console.log(mapPopulatedRef(sale.paymentPlan));
-
     return {
         _id: sale._id.toString(),
         name: sale.name,
@@ -86,6 +83,7 @@ export function saleToDTO(sale: ISale): Sale {
         titleTransferCertificate: sale.titleTransferCertificate ? mapMedia(sale.titleTransferCertificate) : undefined,
         ...mapSoftDeleteToDTO(sale),
         ...mapOwnershipToDTO(sale),
+        ...mapLifeCycleToDTO(sale),
     };
 }
 

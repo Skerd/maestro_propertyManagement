@@ -414,7 +414,11 @@ const paymentPlanFormFields: ViewConfig["nodes"] = [
                             label: "form.endDateLabel",
                             placeholder: "form.endDatePlaceholder",
                             required: true,
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: {
+                                valueFormat: "yyyy-MM-dd",
+                                minDateField: "startDate",
+                                minDateExclusive: true,
+                            },
                         },
                     },
                     {

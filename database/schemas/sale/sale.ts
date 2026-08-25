@@ -23,7 +23,7 @@ import {IReservation} from "../reservation/reservation";
 import {addModelData} from "@coreModule/database/collections";
 import {saleViews} from "./sale.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {SaleSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.schema-def";
+import {SaleSchemaDef, SALE_LONG_TEXT_MAX, SALE_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.schema-def";
 import {UnitSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
@@ -264,6 +264,7 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: SALE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 hideColumn: true,
             }
@@ -293,6 +294,7 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: SALE_SHORT_TEXT_MAX,
         },
 
         reservation: {
@@ -451,11 +453,11 @@ const SaleSchema = new Schema<ISale>(
                 refDisplayKey: ["name", "surname"],
             },
         },
-        handoverNotes: {type: SchemaTypes.String, required: false, trim: true},
+        handoverNotes: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_LONG_TEXT_MAX},
         // FEAT-014 — title transfer tracking
         titleTransferDate: {type: SchemaTypes.Date, required: false},
-        deedNumber: {type: SchemaTypes.String, required: false, trim: true},
-        notaryName: {type: SchemaTypes.String, required: false, trim: true},
+        deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
+        notaryName: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
         titleTransferCertificate: {
             type: SchemaTypes.ObjectId,
             ref: "Media",
@@ -493,5 +495,4 @@ normalizeSchemaPermissions(Sale);
 export default Sale;
 
 addModelData(Sale, saleViews);
-// saleDate is required in Mongoose but the `date` type has no schemaDefBuilder equivalent
-validateSchemaDefAgainstMongoose(SaleSchema, SaleSchemaDef, "Sale", ["saleDate", "approvalStatus", "saleApproval", "handoverDate", "titleTransferDate"]);
+validateSchemaDefAgainstMongoose(SaleSchema, SaleSchemaDef, "Sale", ["approvalStatus", "saleApproval", "handoverDate", "titleTransferDate"]);

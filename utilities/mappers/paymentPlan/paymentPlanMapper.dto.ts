@@ -4,7 +4,7 @@ import {
     PaymentPlanInstallment,
     RestructureHistoryEntry,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/paymentPlan.dto";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {
     decimalToNumber,
     mapPopulatedRef,
@@ -90,7 +90,8 @@ export function paymentPlanToDTO(plan: IPaymentPlan | any): PaymentPlan {
             }))
             : undefined,
         ...mapSoftDeleteToDTO(plan),
-        ...mapOwnershipToDTO(plan)
+        ...mapOwnershipToDTO(plan),
+        ...mapLifeCycleToDTO(plan),
     };
 }
 

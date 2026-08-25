@@ -47,7 +47,7 @@ export interface IReservation extends Document, IOwnershipPluginFields, ISoftDel
     reservedByCompany: ICompany;   // Company that made the reservation
     client: IUser;                  // Client (buyer) user
     reservationDate: Date;          // When reservation was made
-    expirationDate?: Date;          // Optional expiration date for reservation
+    expirationDate: Date;           // When the reservation expires
     reservationNotes?: string;      // Notes about the reservation
     depositAmount?: Decimal128;     // Optional deposit amount
     depositCurrency?: ICurrency;    // Currency for deposit
@@ -158,7 +158,7 @@ const ReservationSchema = new Schema<IReservation>(
         },
         expirationDate: {
             type: SchemaTypes.Date,
-            required: false,
+            required: true,
         },
         reservationNotes: {
             type: SchemaTypes.String,
@@ -357,6 +357,5 @@ normalizeSchemaPermissions(Reservation);
 export default Reservation;
 
 addModelData(Reservation, reservationViews);
-// reservationDate: required in Mongoose with default — no `date` type counterpart in SchemaDef
 // status: server-managed enum with write: "no-permission" — not user-editable via form
-validateSchemaDefAgainstMongoose(ReservationSchema, ReservationSchemaDef, "Reservation", ["reservationDate", "status"]);
+validateSchemaDefAgainstMongoose(ReservationSchema, ReservationSchemaDef, "Reservation", ["status"]);

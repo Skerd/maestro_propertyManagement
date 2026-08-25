@@ -167,6 +167,27 @@ export const reservationSheetView: ViewConfig = {
                         },
                     ],
                 },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "reservationNotes" },
+                            dependent: "reservationNotes",
+                            field: {
+                                name: "reservationNotes",
+                                widget: "#DisplayCard",
+                                label: "notes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
             ],
         },
         {
@@ -175,7 +196,7 @@ export const reservationSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGrid",
-                    props: { columns: 3 },
+                    props: { columns: 2 },
                     children: [
                         {
                             render: "#DisplayCard",
@@ -184,7 +205,7 @@ export const reservationSheetView: ViewConfig = {
                                 name: "reservationDate",
                                 widget: "#DisplayCard",
                                 label: "reservationDate",
-                                widgetProps: { icon: "#Calendar", format: "dateTime" , type: "dateTime"},
+                                widgetProps: { icon: "#Calendar", format: "date" , type: "date"},
                             },
                         },
                         {
@@ -286,11 +307,11 @@ export const reservationSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGrid",
-                    props: { columns: 3 },
+                    props: { columns: 2 },
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "depositAmount",
+                            // dependent: "depositAmount",
                             permissions: { readAny: ["depositAmount", "depositCurrency"] },
                             field: {
                                 name: "depositAmount",
@@ -311,7 +332,7 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "paymentMethod",
+                            // dependent: "paymentMethod",
                             permissions: { read: "paymentMethod" },
                             field: {
                                 name: "paymentMethod",
@@ -464,28 +485,6 @@ export const reservationSheetView: ViewConfig = {
                                 name: "cancellationReason",
                                 widget: "#ExpandableText",
                                 widgetProps: { className: "text-sm text-red-600 dark:text-red-400" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            dependent: "reservationNotes",
-            props: { title: "notes" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "reservationNotes" },
-                            field: {
-                                name: "reservationNotes",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm" },
                             },
                         },
                     ],
@@ -648,7 +647,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: { columns: 3 },
+                props: { columns: 2 },
                 children: [
                     {
                         render: "#Field",
@@ -683,10 +682,22 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
+                            name: "reservationDate",
+                            widget: "#DateInput",
+                            label: "form.reservationDateLabel",
+                            placeholder: "form.reservationDatePlaceholder",
+                            required: true,
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
                             name: "expirationDate",
                             widget: "#DateInput",
                             label: "form.expirationDateLabel",
                             placeholder: "form.expirationDatePlaceholder",
+                            required: true,
                             widgetProps: { valueFormat: "yyyy-MM-dd" },
                         },
                     },

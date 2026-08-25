@@ -148,7 +148,7 @@ export const {router} = createCrudRouter({
         logger.finish(`Finished fetching reservations for select!`);
         return {data: reservationsToSelect(reservations), total};
     },
-    buildCreateData: async ({unit, expirationDate, session, logger, languageCode, company, ...params}: any) => {
+    buildCreateData: async ({unit, expirationDate, reservationDate, session, logger, languageCode, company, ...params}: any) => {
         const foundUnit = await unitService.findOneOrThrow(
             {_id: new ObjectId(unit), company: company._id},
             {session, logger, languageCode},
@@ -156,15 +156,6 @@ export const {router} = createCrudRouter({
 
         if (foundUnit.status !== UnitStatus.AVAILABLE) {
             throw apiValidationException("unit_not_available", "", null, languageCode);
-        }
-
-        if (expirationDate) {
-            const expDate = new Date(expirationDate);
-            const todayUtc = new Date();
-            todayUtc.setUTCHours(0, 0, 0, 0);
-            if (expDate < todayUtc) {
-                throw apiValidationException("reservation_expiration_date_must_be_in_the_future", "", null, languageCode);
-            }
         }
 
         const existingReservation = await reservationService.findOne(
@@ -181,6 +172,7 @@ export const {router} = createCrudRouter({
             ...params,
             unit: foundUnit._id,
             expirationDate,
+            reservationDate,
             // System-managed — never set via create form
             paid: undefined,
             isActive: undefined,

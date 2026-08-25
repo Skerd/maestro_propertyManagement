@@ -58,7 +58,7 @@ export async function createReservations(
                 reservedByCompany: company._id,
                 client,
                 reservationDate: new Date(row.reservationDate),
-                ...optDate("expirationDate", row.expirationDate),
+                expirationDate: new Date(row.expirationDate),
                 reservationNotes: row.reservationNotes,
                 depositAmount: Decimal128.fromString(row.depositAmount),
                 ...opt("depositCurrency", resolveCurrency(refs, row.depositCurrency)),

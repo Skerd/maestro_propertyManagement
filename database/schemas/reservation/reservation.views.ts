@@ -1,5 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {RESERVATION_SOURCE_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.constants";
+import {RESERVATION_LONG_TEXT_MAX, RESERVATION_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const sourceOptions = RESERVATION_SOURCE_VALUES.map((value) => ({value, label: `form.sourceValues.${value}`}));
@@ -738,6 +739,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.referralCodeLabel",
                             placeholder: "form.referralCodePlaceholder",
+                            widgetProps: { maxLength: RESERVATION_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -747,6 +749,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.paymentMethodLabel",
                             placeholder: "form.paymentMethodPlaceholder",
+                            widgetProps: { maxLength: RESERVATION_SHORT_TEXT_MAX },
                         },
                     },
                 ],
@@ -762,6 +765,10 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             widget: "#Textarea",
                             label: "form.reservationNotesLabel",
                             placeholder: "form.reservationNotesPlaceholder",
+                            widgetProps: {
+                                className: "resize-none max-h-[250px] overflow-y-auto",
+                                maxLength: RESERVATION_LONG_TEXT_MAX,
+                            },
                         },
                     },
                 ],

@@ -21,7 +21,7 @@ import {applyReservationIndexes} from "./reservation.indexes";
 import {addModelData} from "@coreModule/database/collections";
 import {reservationViews} from "./reservation.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {ReservationSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.schema-def";
+import {ReservationSchemaDef, RESERVATION_LONG_TEXT_MAX, RESERVATION_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.schema-def";
 import {RESERVATION_SOURCE_VALUES, ReservationSource} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.constants";
 import {UnitSaleSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
@@ -163,7 +163,8 @@ const ReservationSchema = new Schema<IReservation>(
         reservationNotes: {
             type: SchemaTypes.String,
             required: false,
-            trim: true
+            trim: true,
+            maxlength: RESERVATION_LONG_TEXT_MAX,
         },
         depositAmount: {
             type: SchemaTypes.Decimal128,
@@ -191,6 +192,7 @@ const ReservationSchema = new Schema<IReservation>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: RESERVATION_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 hideColumn: true,
             },
@@ -208,6 +210,7 @@ const ReservationSchema = new Schema<IReservation>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: RESERVATION_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 hideColumn: true,
             },
@@ -287,7 +290,8 @@ const ReservationSchema = new Schema<IReservation>(
         cancellationReason: {
             type: SchemaTypes.String,
             required: false,
-            trim: true
+            trim: true,
+            maxlength: RESERVATION_LONG_TEXT_MAX,
         },
         reservationContract: {
             type: [{type: SchemaTypes.ObjectId, ref: 'Media'}],

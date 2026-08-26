@@ -17,7 +17,11 @@ import {
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {ConstructionUpdateSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.schema-def";
+import {
+    ConstructionUpdateSchemaDef,
+    CONSTRUCTION_UPDATE_LONG_TEXT_MAX,
+    CONSTRUCTION_UPDATE_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.schema-def";
 import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
 import {MilestoneSimpleSnippet} from "../milestone/milestone.snippets";
@@ -42,13 +46,29 @@ export interface IConstructionUpdate extends Document, IOwnershipPluginFields, I
 
 const ConstructionUpdateSchema = new Schema<IConstructionUpdate>(
     {
-        name:        {type: SchemaTypes.String, required: true, trim: true},
+        name: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            maxlength: CONSTRUCTION_UPDATE_SHORT_TEXT_MAX,
+        },
         project:     {type: SchemaTypes.ObjectId, ref: "Project",  required: true, refAllowlist: ProjectSimpleSnippet},
         edifice:     {type: SchemaTypes.ObjectId, ref: "Edifice",  required: false, refAllowlist: EdificeSimpleSnippet},
         milestone:   {type: SchemaTypes.ObjectId, ref: "Milestone", required: false, refAllowlist: MilestoneSimpleSnippet},
         scheduleTask:{type: SchemaTypes.ObjectId, ref: "ScheduleTask", required: false, refAllowlist: ScheduleTaskSimpleSnippet},
-        title:       {type: SchemaTypes.String, required: true, trim: true},
-        description: {type: SchemaTypes.String, required: false},
+        title: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: CONSTRUCTION_UPDATE_SHORT_TEXT_MAX,
+        },
+        description: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            maxlength: CONSTRUCTION_UPDATE_LONG_TEXT_MAX,
+        },
         progressPercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100},
         updateDate:  {type: SchemaTypes.Date,   required: true},
         photos: {

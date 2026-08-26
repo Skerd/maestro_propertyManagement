@@ -1,4 +1,8 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    CONSTRUCTION_UPDATE_LONG_TEXT_MAX,
+    CONSTRUCTION_UPDATE_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionUpdate/constructionUpdate.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const constructionUpdateSheetView: ViewConfig = {
@@ -22,12 +26,13 @@ export const constructionUpdateSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "name",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
                                 widget: "#DisplayCard",
                                 label: "name",
-                                widgetProps: {icon: "#IconLabel"},
+                                widgetProps: {icon: "#Tag"},
                             },
                         },
                         {
@@ -42,9 +47,10 @@ export const constructionUpdateSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "project",
                             permissions: {read: "project"},
                             field: {
-                                name: "project.name",
+                                name: "project",
                                 widget: "#DisplayCard",
                                 label: "project",
                                 widgetProps: {
@@ -52,6 +58,10 @@ export const constructionUpdateSheetView: ViewConfig = {
                                     linkedRefPath: "project",
                                     linkedSheetModel: "projects",
                                     linkedSheetWidget: "#ProjectSheetView",
+                                    linkedSheetEntityProp: "project",
+                                    parent: "project",
+                                    valuePath: ["name", "_id"],
+                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -60,7 +70,7 @@ export const constructionUpdateSheetView: ViewConfig = {
                             permissions: {read: "edifice"},
                             dependent: "edifice",
                             field: {
-                                name: "edifice.name",
+                                name: "edifice",
                                 widget: "#DisplayCard",
                                 label: "edifice",
                                 widgetProps: {
@@ -69,6 +79,9 @@ export const constructionUpdateSheetView: ViewConfig = {
                                     linkedSheetModel: "edifices",
                                     linkedSheetWidget: "#EdificeSheetView",
                                     linkedSheetEntityProp: "edifice",
+                                    parent: "edifice",
+                                    valuePath: ["name", "_id"],
+                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -77,7 +90,7 @@ export const constructionUpdateSheetView: ViewConfig = {
                             permissions: {read: "milestone"},
                             dependent: "milestone",
                             field: {
-                                name: "milestone.title",
+                                name: "milestone",
                                 widget: "#DisplayCard",
                                 label: "milestone",
                                 widgetProps: {
@@ -86,6 +99,9 @@ export const constructionUpdateSheetView: ViewConfig = {
                                     linkedSheetModel: "milestones",
                                     linkedSheetWidget: "#MilestoneSheetView",
                                     linkedSheetEntityProp: "milestone",
+                                    parent: "milestone",
+                                    valuePath: ["title", "name", "_id"],
+                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -94,7 +110,7 @@ export const constructionUpdateSheetView: ViewConfig = {
                             permissions: {read: "scheduleTask"},
                             dependent: "scheduleTask",
                             field: {
-                                name: "scheduleTask.title",
+                                name: "scheduleTask",
                                 widget: "#DisplayCard",
                                 label: "scheduleTask",
                                 widgetProps: {
@@ -103,6 +119,9 @@ export const constructionUpdateSheetView: ViewConfig = {
                                     linkedSheetModel: "scheduletasks",
                                     linkedSheetWidget: "#ScheduleTaskSheetView",
                                     linkedSheetEntityProp: "scheduleTask",
+                                    parent: "scheduleTask",
+                                    valuePath: ["title", "name", "_id"],
+                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -128,23 +147,23 @@ export const constructionUpdateSheetView: ViewConfig = {
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "description"},
-            children: [
                 {
-                    render: "div",
-                    props: {className: "p-2 rounded-lg bg-muted/30 border border-border/50"},
+                    render: "#SheetGrid",
+                    props: {columns: 1},
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: {read: "description"},
+                            dependent: "description",
                             field: {
                                 name: "description",
-                                widget: "#ExpandableText",
-                                widgetProps: {className: "text-sm"},
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -155,10 +174,11 @@ export const constructionUpdateSheetView: ViewConfig = {
             render: "#SheetGroup",
             props: {title: "photos"},
             dependent: "photos",
+            permissions: {read: "photos"},
             children: [
                 {
                     render: "div",
-                    props: {className: "max-w-full"},
+                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full"},
                     children: [
                         {
                             render: "#GalleryCarousel",
@@ -191,7 +211,7 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: {columns: 2},
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
                 children: [
                     {
                         render: "#Field",
@@ -266,6 +286,7 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                             label: "form.titleLabel",
                             placeholder: "form.titlePlaceholder",
                             required: true,
+                            widgetProps: {maxLength: CONSTRUCTION_UPDATE_SHORT_TEXT_MAX},
                         },
                     },
                     {
@@ -290,17 +311,27 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                             widgetProps: {valueFormat: "yyyy-MM-dd"},
                         },
                     },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "description",
+                                    widget: "#Textarea",
+                                    label: "form.descriptionLabel",
+                                    placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: CONSTRUCTION_UPDATE_LONG_TEXT_MAX,
+                                    },
+                                },
+                            },
+                        ],
+                    },
                 ],
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "description",
-                    widget: "#Textarea",
-                    label: "form.descriptionLabel",
-                    placeholder: "form.descriptionPlaceholder",
-                    widgetProps: {className: "resize-none max-h-[250px] overflow-y-auto"},
-                },
             },
         ],
     },

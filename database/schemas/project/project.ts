@@ -3,6 +3,7 @@ import {Decimal128} from 'mongodb';
 import {IMedia} from "@coreModule/database/schemas/media/media";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
+import publicMediaPlugin from "@coreModule/database/plugins/publicMediaPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import {
@@ -258,6 +259,7 @@ const ProjectSchema = new Schema<IProject>(
 );
 
 ownershipPlugin(ProjectSchema);
+publicMediaPlugin(ProjectSchema, {schemaDef: ProjectSchemaDef});
 auditPlugin(ProjectSchema);
 softDeletePlugin(ProjectSchema);
 lifeCyclePlugin(ProjectSchema);

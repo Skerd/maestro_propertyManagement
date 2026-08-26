@@ -14,7 +14,7 @@ import {
     MarketingProjectListItem
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjects/marketingProjects.form.response.type";
 
-const MEDIA_BASE = "/api/auxiliary/media/";
+const MEDIA_BASE = "/api/auxiliary/public/media/";
 
 export type MarketingUnitSingleContext = {
     floor?: IFloor | any;

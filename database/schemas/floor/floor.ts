@@ -3,6 +3,7 @@ import {IEdifice} from "../edifice/edifice";
 import {IMedia} from "@coreModule/database/schemas/media/media";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
+import publicMediaPlugin from "@coreModule/database/plugins/publicMediaPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import {
@@ -224,6 +225,7 @@ const FloorSchema = new Schema<IFloor>(
 );
 
 ownershipPlugin(FloorSchema);
+publicMediaPlugin(FloorSchema, {schemaDef: FloorSchemaDef});
 auditPlugin(FloorSchema);
 softDeletePlugin(FloorSchema);
 lifeCyclePlugin(FloorSchema);

@@ -6,6 +6,7 @@ import {ICurrency} from "@coreModule/database/schemas/currency/currency";
 import {IMedia} from "@coreModule/database/schemas/media/media";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
+import publicMediaPlugin from "@coreModule/database/plugins/publicMediaPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import {
@@ -623,6 +624,7 @@ UnitSchema.pre('save', function(next) {
 });
 
 ownershipPlugin(UnitSchema);
+publicMediaPlugin(UnitSchema, {schemaDef: UnitSchemaDef});
 auditPlugin(UnitSchema);
 softDeletePlugin(UnitSchema);
 lifeCyclePlugin(UnitSchema);

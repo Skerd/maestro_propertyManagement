@@ -8,6 +8,7 @@ import type {IStoryType} from "../storyType/storyType";
 import {IMedia} from "@coreModule/database/schemas/media/media";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
+import publicMediaPlugin from "@coreModule/database/plugins/publicMediaPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
@@ -213,6 +214,7 @@ StorySchema.pre("validate", function (next) {
 });
 
 ownershipPlugin(StorySchema);
+publicMediaPlugin(StorySchema, {schemaDef: StorySchemaDef});
 auditPlugin(StorySchema);
 softDeletePlugin(StorySchema);
 lifeCyclePlugin(StorySchema);

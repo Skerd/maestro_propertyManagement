@@ -1,4 +1,8 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    UNIT_TYPE_LONG_TEXT_MAX,
+    UNIT_TYPE_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unitType/unitType.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const unitTypeSheetView: ViewConfig = {
@@ -20,6 +24,16 @@ export const unitTypeSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props: { columns: 3 },
                     children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "name" },
+                            field: {
+                                name: "name",
+                                widget: "#DisplayCard",
+                                label: "name",
+                                widgetProps: { icon: "#Tag" },
+                            },
+                        },
                         {
                             render: "#DisplayCard",
                             permissions: { read: "slug" },
@@ -78,25 +92,23 @@ export const unitTypeSheetView: ViewConfig = {
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: { title: "description" },
-            dependent: "description",
-            children: [
                 {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: { read: "description" },
+                            dependent: "description",
                             field: {
                                 name: "description",
-                                widget: "#ExpandableText",
+                                widget: "#DisplayCard",
                                 label: "description",
-                                widgetProps: { className: "text-sm" },
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -125,6 +137,7 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: { maxLength: UNIT_TYPE_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -161,6 +174,7 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.groupLabel",
                             placeholder: "form.groupPlaceholder",
+                            widgetProps: { maxLength: UNIT_TYPE_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -175,6 +189,11 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.descriptionLabel",
                                     placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: { maxHeight: 250 },
+                                        maxLength: UNIT_TYPE_LONG_TEXT_MAX,
+                                    },
                                 },
                             },
                         ],

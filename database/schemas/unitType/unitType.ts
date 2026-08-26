@@ -12,7 +12,11 @@ import {
 import {addModelData} from "@coreModule/database/collections";
 import {unitTypeViews} from "./unitType.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {UnitTypeSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unitType/unitType.schema-def";
+import {
+    UnitTypeSchemaDef,
+    UNIT_TYPE_LONG_TEXT_MAX,
+    UNIT_TYPE_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unitType/unitType.schema-def";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
@@ -36,6 +40,8 @@ const UnitTypeSchema = new Schema<IUnitType>(
             required: true,
             unique: true,
             trim: true,
+            minlength: 1,
+            maxlength: UNIT_TYPE_SHORT_TEXT_MAX,
         },
         slug: {
             type: SchemaTypes.String,
@@ -43,6 +49,8 @@ const UnitTypeSchema = new Schema<IUnitType>(
             unique: true,
             lowercase: true,
             trim: true,
+            minlength: 1,
+            maxlength: UNIT_TYPE_SHORT_TEXT_MAX,
             permissions: {
                 self: {
                     write: "no-permission"
@@ -60,14 +68,19 @@ const UnitTypeSchema = new Schema<IUnitType>(
         },
         group: {
             type: SchemaTypes.String,
+            trim: true,
+            maxlength: UNIT_TYPE_SHORT_TEXT_MAX,
         },
         description: {
             type: SchemaTypes.String,
             default: '',
+            maxlength: UNIT_TYPE_LONG_TEXT_MAX,
         },
         icon: {
             type: SchemaTypes.String,
             default: '',
+            trim: true,
+            maxlength: UNIT_TYPE_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.MDIICON
             }

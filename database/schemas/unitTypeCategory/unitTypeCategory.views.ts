@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {UNIT_TYPE_CATEGORY_NAME_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unitTypeCategory/unitTypeCategory.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const unitTypeCategorySheetView: ViewConfig = {
@@ -18,7 +19,7 @@ export const unitTypeCategorySheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGrid",
-                    props: {columns: 1},
+                    props: {columns: 3},
                     children: [
                         {
                             render: "#DisplayCard",
@@ -45,7 +46,7 @@ const unitTypeCategoryFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: {columns: 1, className: "gap-x-4 gap-y-5"},
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
                 children: [
                     {
                         render: "#Field",
@@ -56,6 +57,7 @@ const unitTypeCategoryFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: {maxLength: UNIT_TYPE_CATEGORY_NAME_MAX},
                         },
                     },
                 ],

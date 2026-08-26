@@ -13,7 +13,10 @@ import {addModelData} from "@coreModule/database/collections";
 import {applyUnitTypeCategoryIndexes} from "./unitTypeCategory.indexes";
 import {unitTypeCategoryViews} from "./unitTypeCategory.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {UnitTypeCategorySchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unitTypeCategory/unitTypeCategory.schema-def";
+import {
+    UnitTypeCategorySchemaDef,
+    UNIT_TYPE_CATEGORY_NAME_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unitTypeCategory/unitTypeCategory.schema-def";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
 export interface IUnitTypeCategory extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
@@ -26,6 +29,8 @@ const UnitTypeCategorySchema = new Schema<IUnitTypeCategory>(
             type: SchemaTypes.String,
             required: true,
             trim: true,
+            minlength: 1,
+            maxlength: UNIT_TYPE_CATEGORY_NAME_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,

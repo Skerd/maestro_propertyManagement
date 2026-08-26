@@ -29,6 +29,10 @@ export async function createUnitTypeCategories(parentLogger: serverLogger, compa
                         company,
                         createdBy: company.createdBy,
                     },
+                    $setOnInsert: {
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    },
                 },
                 upsert: true,
             },

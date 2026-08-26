@@ -19,7 +19,11 @@ import {addModelData} from "@coreModule/database/collections";
 import {leaseViews} from "./lease.views";
 import {applyLeaseIndexes} from "./lease.indexes";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {LeaseSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.schema-def";
+import {
+    LeaseSchemaDef,
+    LEASE_LONG_TEXT_MAX,
+    LEASE_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.schema-def";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
@@ -57,6 +61,7 @@ const LeaseSchema = new Schema<ILease>(
             trim: true,
             immutable: true,
             required: false,
+            maxlength: LEASE_SHORT_TEXT_MAX,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
                 order: 1,
@@ -192,6 +197,7 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 order: 13,
                 defaultVisible: false,
@@ -203,6 +209,7 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 order: 14,
                 defaultVisible: false,

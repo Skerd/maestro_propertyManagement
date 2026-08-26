@@ -1,4 +1,7 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    LEASE_LONG_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const leaseSheetView: ViewConfig = {
@@ -20,11 +23,242 @@ export const leaseSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props:  {columns: 3},
                     children: [
-                        {render: "#DisplayCard", permissions: {read: "status"},      field: {name: "status",      widget: "#DisplayCard", label: "status",      widgetProps: {icon: "#IconLabel"}}},
-                        {render: "#DisplayCard", permissions: {read: "startDate"},   field: {name: "startDate",   widget: "#DisplayCard", label: "startDate",   widgetProps: {icon: "#CalendarDays", format: "date", type: "date"}}},
-                        {render: "#DisplayCard", permissions: {read: "endDate"},     field: {name: "endDate",     widget: "#DisplayCard", label: "endDate",     widgetProps: {icon: "#CalendarDays", format: "date", type: "date"}}},
-                        {render: "#DisplayCard", permissions: {read: "monthlyRent"}, field: {name: "monthlyRent", widget: "#DisplayCard", label: "monthlyRent", widgetProps: {icon: "#IconLabel", type: "currency"}}},
-                        {render: "#DisplayCard", permissions: {read: "depositPaid"}, field: {name: "depositPaid", widget: "#DisplayCard", label: "depositPaid", widgetProps: {icon: "#IconLabel", type: "boolean"}}},
+                        {
+                            render: "#DisplayCard",
+                            dependent: "name",
+                            permissions: {read: "name"},
+                            field: {
+                                name: "name",
+                                widget: "#DisplayCard",
+                                label: "name",
+                                widgetProps: {icon: "#Tag"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "status"},
+                            field: {
+                                name: "status",
+                                widget: "#DisplayCard",
+                                label: "status",
+                                widgetProps: {
+                                    icon: "#CircleDot",
+                                    languageKeyCategory: "statusValues",
+                                    type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "unit",
+                            permissions: {read: "unit"},
+                            field: {
+                                name: "unit",
+                                widget: "#DisplayCard",
+                                label: "unit",
+                                widgetProps: {
+                                    icon: "#DoorOpen",
+                                    linkedRefPath: "unit",
+                                    linkedSheetModel: "units",
+                                    linkedSheetWidget: "#UnitSheetView",
+                                    linkedSheetEntityProp: "unit",
+                                    parent: "unit",
+                                    valuePath: ["name", "unitNumber", "_id"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "tenant",
+                            permissions: {read: "tenant"},
+                            field: {
+                                name: "tenant",
+                                widget: "#DisplayCard",
+                                label: "tenant",
+                                widgetProps: {
+                                    icon: "#User",
+                                    parent: "tenant",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "startDate"},
+                            field: {
+                                name: "startDate",
+                                widget: "#DisplayCard",
+                                label: "startDate",
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "endDate"},
+                            field: {
+                                name: "endDate",
+                                widget: "#DisplayCard",
+                                label: "endDate",
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "monthlyRent"},
+                            field: {
+                                name: "monthlyRent",
+                                widget: "#DisplayCard",
+                                label: "monthlyRent",
+                                widgetProps: {
+                                    icon: "#DollarSign",
+                                    format: "locale",
+                                    valuePath: ["rentCurrency.symbol", "monthlyRent"],
+                                    joinSeparator: " ",
+                                    linkedRefPath: "rentCurrency",
+                                    linkedSheetModel: "currencies",
+                                    linkedSheetWidget: "#CurrencySheetView",
+                                    linkedSheetEntityProp: "currency",
+                                    type: "currency",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "depositAmount",
+                            permissions: {read: "depositAmount"},
+                            field: {
+                                name: "depositAmount",
+                                widget: "#DisplayCard",
+                                label: "depositAmount",
+                                widgetProps: {
+                                    icon: "#Banknote",
+                                    format: "locale",
+                                    valuePath: ["rentCurrency.symbol", "depositAmount"],
+                                    joinSeparator: " ",
+                                    linkedRefPath: "rentCurrency",
+                                    linkedSheetModel: "currencies",
+                                    linkedSheetWidget: "#CurrencySheetView",
+                                    linkedSheetEntityProp: "currency",
+                                    type: "currency",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "depositPaid"},
+                            field: {
+                                name: "depositPaid",
+                                widget: "#DisplayCard",
+                                label: "depositPaid",
+                                widgetProps: {icon: "#CircleDot", type: "boolean"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "depositReturnedAt",
+                            permissions: {read: "depositReturnedAt"},
+                            field: {
+                                name: "depositReturnedAt",
+                                widget: "#DisplayCard",
+                                label: "depositReturnedAt",
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "notes"},
+                            dependent: "notes",
+                            field: {
+                                name: "notes",
+                                widget: "#DisplayCard",
+                                label: "notes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            dependent: "terminationDate",
+            props: {title: "termination"},
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 3},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "terminationDate"},
+                            field: {
+                                name: "terminationDate",
+                                widget: "#DisplayCard",
+                                label: "terminationDate",
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "terminationReason"},
+                            dependent: "terminationReason",
+                            field: {
+                                name: "terminationReason",
+                                widget: "#DisplayCard",
+                                label: "terminationReason",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            dependent: "contractMedia",
+            permissions: {read: "contractMedia"},
+            props: {title: "contractMedia"},
+            children: [
+                {
+                    render: "div",
+                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full"},
+                    children: [
+                        {
+                            render: "#SheetMediaFilesStrip",
+                            permissions: {read: "contractMedia"},
+                            field: {
+                                name: "contractMedia",
+                                widget: "#SheetMediaFilesStrip",
+                                widgetProps: {
+                                    canDownload: true,
+                                    canRemove: false,
+                                    isBig: false,
+                                },
+                            },
+                        },
                     ],
                 },
             ],
@@ -40,7 +274,7 @@ const leaseFormNodes: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props:  {columns: 2},
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
                 children: [
                     {
                         render: "div",
@@ -86,7 +320,11 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             widget:      "#DateInput",
                             label:       "form.startDateLabel",
                             required:    true,
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {
+                                valueFormat: "yyyy-MM-dd",
+                                maxDateField: "endDate",
+                                maxDateExclusive: true,
+                            },
                         },
                     },
                     {
@@ -96,7 +334,11 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             widget:      "#DateInput",
                             label:       "form.endDateLabel",
                             required:    true,
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {
+                                valueFormat: "yyyy-MM-dd",
+                                minDateField: "startDate",
+                                minDateExclusive: true,
+                            },
                         },
                     },
                     {
@@ -136,16 +378,26 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             label:  "form.depositPaidLabel",
                         },
                     },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name:        "notes",
+                                    widget:      "#Textarea",
+                                    label:       "form.notesLabel",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: LEASE_LONG_TEXT_MAX,
+                                    },
+                                },
+                            },
+                        ],
+                    },
                 ],
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "notes",
-                    widget:      "#Textarea",
-                    label:       "form.notesLabel",
-                    widgetProps: {className: "resize-none max-h-[250px] overflow-y-auto"},
-                },
             },
         ],
     },

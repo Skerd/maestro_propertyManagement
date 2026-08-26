@@ -2,7 +2,6 @@ import {Decimal128, ObjectId} from "mongodb";
 import {buildCreateDataFromSchemaDef, buildUpdateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
-import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {LeaseSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.schema-def";
 import {createLeaseFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/createLease.form.validator";
 import {editLeaseFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/editLease.form.validator";
@@ -94,12 +93,6 @@ export const {router} = createCrudRouter({
         const {fileIds, session, logger, languageCode, actionUserCtx, company, ...rest} = params;
         const unitId = new ObjectId(String(rest.unit));
         await assertUnitRentable(unitId, {session, logger, languageCode, actionUserCtx, company});
-
-        const startDate = dateTransform(rest.startDate);
-        const endDate = dateTransform(rest.endDate);
-        if (startDate.getTime() > endDate.getTime()) {
-            throw apiValidationException("lease_invalid_date_range", "", null, languageCode);
-        }
 
         const data = buildCreateDataFromSchemaDef(LeaseSchemaDef, {
             monthlyRent:   moneyTransform,

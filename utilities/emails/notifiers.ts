@@ -7,13 +7,33 @@ import {applyPlaceholders, loadEmailStrings} from "@coreModule/utilities/emails/
 import {sendMail} from "@coreModule/utilities/emails/mailDeliveryService";
 import type {ReservationClientEmailEvent} from "../../kafka/types";
 import {tryLoadReservationContractForEmail} from "./reservationContractAttachment";
+import {
+    currentYear,
+    layoutStrings,
+    localized,
+    noteHtml,
+    pushRow,
+    summaryCardHtml,
+    type SummaryRow,
+} from "./emailLayout";
 
-const imagePath = path.join(__dirname, "./static/images/image-1.png");
-const imageCID = "imageCID@example.com";
 const fallbackLanguageCode = "en-US";
 
 const LOCALES_ROOT = path.join(__dirname, "static", "locales");
 const TEMPLATE_DIR = path.join(__dirname, "templates", "reservationClient");
+
+/** Copy suffix per notification kind: `subject{X}`, `heading{X}`, `preheader{X}`. */
+type ReservationVariant = "Created" | "Paid" | "Expired" | "RemainingDays" | "Reminder3" | "Reminder1" | "Reminder0";
+
+const BODY_FILES: Record<ReservationVariant, string> = {
+    Created: "body-created.html",
+    Paid: "body-paid.html",
+    Expired: "body-expired.html",
+    RemainingDays: "body-remaining-days.html",
+    Reminder3: "body-reminder-3.html",
+    Reminder1: "body-reminder-1.html",
+    Reminder0: "body-reminder-0.html",
+};
 
 function canSendEmails(): boolean {
     return EMAIL.ENABLED;
@@ -23,53 +43,52 @@ function readTemplateHtml(templateDir: string, filename: string): string {
     return fs.readFileSync(path.join(templateDir, filename), "utf8");
 }
 
-function escapeHtml(s: string): string {
-    return s
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+function resolveVariant(data: ReservationClientEmailEvent): ReservationVariant {
+    if (data.kind === "created") {
+        return "Created";
+    }
+    if (data.kind === "paid") {
+        return "Paid";
+    }
+    if (data.kind === "expiration_expired") {
+        return "Expired";
+    }
+    if (data.kind === "remaining_days") {
+        return "RemainingDays";
+    }
+    const phase = data.reminderPhase ?? "3";
+    return phase === "1" ? "Reminder1" : phase === "0" ? "Reminder0" : "Reminder3";
 }
 
-function buildReservationDetailsSummaryHtml(
+/**
+ * Full summary for the created/paid mails, and a compact reference block for the
+ * reminder and expiry mails.
+ */
+function buildReservationSummaryHtml(
     loc: Record<string, string>,
+    variant: ReservationVariant,
     rowData: {
         reservationCode: string;
         unitNumber: string;
         unitDisplayName?: string;
         unitPriceDisplay?: string;
         reservationDepositDisplay?: string;
+        expirationDate?: string;
     }
 ): string {
-    const rows: { label: string; value: string }[] = [];
-    rows.push({ label: loc.labelReference ?? "Reference:", value: rowData.reservationCode });
-    rows.push({ label: loc.labelUnit ?? "Unit:", value: rowData.unitNumber });
-    if (rowData.unitDisplayName?.trim()) {
-        rows.push({ label: loc.labelUnitName ?? "", value: rowData.unitDisplayName.trim() });
-    }
-    if (rowData.unitPriceDisplay?.trim()) {
-        rows.push({ label: loc.labelUnitPrice ?? "", value: rowData.unitPriceDisplay.trim() });
-    }
-    if (rowData.reservationDepositDisplay?.trim()) {
-        rows.push({ label: loc.labelDeposit ?? "", value: rowData.reservationDepositDisplay.trim() });
+    const rows: SummaryRow[] = [
+        {label: loc.labelReference ?? "", value: rowData.reservationCode},
+        {label: loc.labelUnit ?? "", value: rowData.unitNumber},
+    ];
+
+    if (variant === "Created" || variant === "Paid") {
+        pushRow(rows, loc.labelUnitName, rowData.unitDisplayName);
+        pushRow(rows, loc.labelUnitPrice, rowData.unitPriceDisplay);
+        pushRow(rows, loc.labelDeposit, rowData.reservationDepositDisplay);
+        pushRow(rows, loc.labelEndDate, rowData.expirationDate);
     }
 
-    const rowHtml = rows
-        .map(
-            (r) => `<tr>
-    <td style="padding:10px 0;border-bottom:1px solid #ededed;color:#666666;font-size:13px;width:40%;vertical-align:top;">${escapeHtml(r.label)}</td>
-    <td style="padding:10px 0;border-bottom:1px solid #ededed;font-size:14px;color:#111111;font-weight:600;vertical-align:top;text-align:right;">${escapeHtml(r.value)}</td>
-  </tr>`
-        )
-        .join("");
-
-    const title = loc.summaryTitle ?? "";
-    return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;background:#ffffff;">
-  <tr><td style="padding:16px 20px;background:linear-gradient(180deg,#f8f9fb 0%,#eef1f4 100%);font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(
-        title
-    )}</td></tr>
-  <tr><td style="padding:8px 20px 16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%">${rowHtml}</table></td></tr>
-  </table>`;
+    return summaryCardHtml(loc.summaryTitle ?? "", rows);
 }
 
 export async function sendReservationClientMail(data: ReservationClientEmailEvent): Promise<void> {
@@ -80,8 +99,10 @@ export async function sendReservationClientMail(data: ReservationClientEmailEven
     const languageCode = data.languageCode || CONSTANTS.DEFAULT_LANGUAGE || fallbackLanguageCode;
     const pageName = CLIENT_SIDE.NAME ?? "";
     const strings = loadEmailStrings(["reservationClient"], languageCode, LOCALES_ROOT);
+    const loc = strings as Record<string, string>;
     let emailTemplate = readTemplateHtml(TEMPLATE_DIR, "reservationClient.html");
 
+    const variant = resolveVariant(data);
     const unitNumber = data.unitNumber ?? "—";
     const reservationCode = data.reservationCode ?? data.reservationId;
     const companyName = data.companyName ?? "";
@@ -91,48 +112,25 @@ export async function sendReservationClientMail(data: ReservationClientEmailEven
         !!(data.expirationDateIso || data.expirationDateFormatted) &&
         expirationDate !== "—";
 
-    const expirationParagraph =
-        data.kind === "created" && hasExpiration
-            ? applyPlaceholders(strings.expirationLinePattern ?? "", {expirationDate})
-            : "";
-
-    const greeting = applyPlaceholders(strings.greeting ?? "", {fullName: data.fullName});
-
-    const loc = strings as Record<string, string>;
+    const greeting = localized(strings, "greeting", {fullName: data.fullName});
 
     const contractAttachment =
         data.kind === "created" && data.reservationContractMediaId
             ? await tryLoadReservationContractForEmail(data.reservationContractMediaId, languageCode)
             : null;
 
-    let detailsSummary = "";
-    if (data.kind === "created" || data.kind === "paid") {
-        detailsSummary = buildReservationDetailsSummaryHtml(loc, {
-            reservationCode,
-            unitNumber,
-            unitDisplayName: data.unitDisplayName,
-            unitPriceDisplay: data.unitPriceDisplay,
-            reservationDepositDisplay: data.reservationDepositDisplay ?? data.depositSummary,
-        });
-    }
-
-    let contractNote = "";
-    if (contractAttachment && data.kind === "created") {
-        const note = loc.contractAttachedNote ?? "";
-        contractNote = `<p style="line-height: 175%; margin: 0 0 16px 0; color: #14532d; font-size: 14px; background: #f0fdf4; border-radius: 10px; padding: 14px 18px; border: 1px solid #86efac;">${escapeHtml(
-            note
-        )}</p>`;
-    }
-
-    const introExpiredHtml = applyPlaceholders(loc.introExpired ?? "", {companyName, expirationDate});
-    const introRemainingDaysHtml = applyPlaceholders(loc.introRemainingDays ?? "", {
-        daysRemaining: String(data.daysRemaining ?? 0),
-        companyName,
-        expirationDate,
+    const detailsSummary = buildReservationSummaryHtml(loc, variant, {
+        reservationCode,
+        unitNumber,
+        unitDisplayName: data.unitDisplayName,
+        unitPriceDisplay: data.unitPriceDisplay,
+        reservationDepositDisplay: data.reservationDepositDisplay ?? data.depositSummary,
+        expirationDate: hasExpiration ? expirationDate : undefined,
     });
 
+    const contractNote = contractAttachment && variant === "Created" ? noteHtml(loc.contractAttachedNote ?? "") : "";
+
     const bodyPlaceholders: Record<string, string> = {
-        greeting,
         companyName,
         reservationCode,
         unitNumber,
@@ -141,14 +139,15 @@ export async function sendReservationClientMail(data: ReservationClientEmailEven
         introPaid: loc.introPaid ?? "",
         closingCreated: loc.closingCreated ?? "",
         closingPaid: loc.closingPaid ?? "",
-        labelReference: loc.labelReference ?? "",
-        labelUnit: loc.labelUnit ?? "",
-        expirationParagraph,
         detailsSummary,
         contractNote,
-        introExpired: introExpiredHtml,
+        introExpired: localized(strings, "introExpired", {companyName, expirationDate}),
         closingExpired: loc.closingExpired ?? "",
-        introRemainingDays: introRemainingDaysHtml,
+        introRemainingDays: localized(strings, "introRemainingDays", {
+            daysRemaining: String(data.daysRemaining ?? 0),
+            companyName,
+            expirationDate,
+        }),
         closingRemainingDays: loc.closingRemainingDays ?? "",
         introReminder3a: loc.introReminder3a ?? "",
         introReminder3b: loc.introReminder3b ?? "",
@@ -164,51 +163,26 @@ export async function sendReservationClientMail(data: ReservationClientEmailEven
         closingReminder0: loc.closingReminder0 ?? "",
     };
 
-    let bodyFile: string;
-    let subjectKey: string;
-    if (data.kind === "created") {
-        bodyFile = "body-created.html";
-        subjectKey = "subjectCreated";
-    } else if (data.kind === "paid") {
-        bodyFile = "body-paid.html";
-        subjectKey = "subjectPaid";
-    } else if (data.kind === "expiration_expired") {
-        bodyFile = "body-expired.html";
-        subjectKey = "subjectExpired";
-    } else if (data.kind === "remaining_days") {
-        bodyFile = "body-remaining-days.html";
-        subjectKey = "subjectRemainingDays";
-    } else {
-        const phase = data.reminderPhase ?? "3";
-        bodyFile = phase === "1" ? "body-reminder-1.html" : phase === "0" ? "body-reminder-0.html" : "body-reminder-3.html";
-        subjectKey = phase === "1" ? "subjectReminder1" : phase === "0" ? "subjectReminder0" : "subjectReminder3";
-    }
-
-    let bodyInner = readTemplateHtml(TEMPLATE_DIR, bodyFile);
+    let bodyInner = readTemplateHtml(TEMPLATE_DIR, BODY_FILES[variant]);
     bodyInner = applyPlaceholders(bodyInner, bodyPlaceholders);
 
-    emailTemplate = applyPlaceholders(emailTemplate, {
-        heading: strings.heading ?? "",
-        imageAlt: strings.imageAlt ?? "",
-        copyright: strings.copyright ?? "",
-    });
+    emailTemplate = applyPlaceholders(
+        emailTemplate,
+        layoutStrings(strings, `heading${variant}`, `preheader${variant}`)
+    );
 
-    emailTemplate = applyPlaceholders(emailTemplate, {
-        username: data.fullName,
+    const values = {
+        greeting,
         bodyInner,
+        companyName,
         pageName,
-    });
+        year: currentYear(),
+    };
+    emailTemplate = applyPlaceholders(emailTemplate, values);
 
-    const subjectRaw = (strings as Record<string, string>)[subjectKey] ?? strings.subjectCreated ?? "";
-    const subject = applyPlaceholders(subjectRaw, {companyName, pageName});
+    const subject = applyPlaceholders(loc[`subject${variant}`] ?? "", {companyName, pageName});
 
-    const attachments: nodemailer.SendMailOptions["attachments"] = [
-        {
-            filename: "companyTick.png",
-            path: imagePath,
-            cid: imageCID,
-        },
-    ];
+    const attachments: nodemailer.SendMailOptions["attachments"] = [];
     if (contractAttachment) {
         attachments.push({
             filename: contractAttachment.filename,

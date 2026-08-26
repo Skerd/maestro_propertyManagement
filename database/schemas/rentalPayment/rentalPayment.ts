@@ -19,7 +19,11 @@ import {addModelData} from "@coreModule/database/collections";
 import {rentalPaymentViews} from "./rentalPayment.views";
 import {applyRentalPaymentIndexes} from "./rentalPayment.indexes";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {RentalPaymentSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
+import {
+    RentalPaymentSchemaDef,
+    RENTAL_PAYMENT_LONG_TEXT_MAX,
+    RENTAL_PAYMENT_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
@@ -54,6 +58,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             trim:        true,
             immutable:   true,
             required:    false,
+            maxlength:   RENTAL_PAYMENT_SHORT_TEXT_MAX,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
                 order: 1,
@@ -158,6 +163,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: RENTAL_PAYMENT_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 order: 10,
                 defaultVisible: false,

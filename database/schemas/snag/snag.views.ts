@@ -1,4 +1,8 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    SNAG_LONG_TEXT_MAX,
+    SNAG_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/snag/snag.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const SNAG_SEVERITY_OPTIONS = [
@@ -7,6 +11,12 @@ const SNAG_SEVERITY_OPTIONS = [
     {value: "high",     label: "form.severityHigh"},
     {value: "critical", label: "form.severityCritical"},
 ] as const;
+
+const snagLongTextareaProps = {
+    className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+    style: {maxHeight: 250},
+    maxLength: SNAG_LONG_TEXT_MAX,
+} as const;
 
 export const snagSheetView: ViewConfig = {
     model: "snags",
@@ -29,12 +39,13 @@ export const snagSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "name",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
                                 widget: "#DisplayCard",
                                 label: "name",
-                                widgetProps: {icon: "#IconLabel"},
+                                widgetProps: {icon: "#Tag"},
                             },
                         },
                         {
@@ -49,9 +60,10 @@ export const snagSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
-                                name: "unit.name",
+                                name: "unit",
                                 widget: "#DisplayCard",
                                 label: "unit",
                                 widgetProps: {
@@ -60,12 +72,16 @@ export const snagSheetView: ViewConfig = {
                                     linkedSheetModel: "units",
                                     linkedSheetWidget: "#UnitSheetView",
                                     linkedSheetEntityProp: "unit",
+                                    parent: "unit",
+                                    valuePath: ["name", "unitNumber", "_id"],
+                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "location"},
+                            dependent: "location",
                             field: {
                                 name: "location",
                                 widget: "#DisplayCard",
@@ -82,7 +98,8 @@ export const snagSheetView: ViewConfig = {
                                 label: "status",
                                 widgetProps: {
                                     icon: "#CircleDot",
-                                    languageKeyCategory: "statuses", type: "enum",
+                                    languageKeyCategory: "statuses",
+                                    type: "enum",
                                     variantLookupField: "status",
                                     variantLookupMap: {
                                         open: "secondary",
@@ -102,7 +119,8 @@ export const snagSheetView: ViewConfig = {
                                 label: "severity",
                                 widgetProps: {
                                     icon: "#AlertTriangle",
-                                    languageKeyCategory: "severities", type: "enum",
+                                    languageKeyCategory: "severities",
+                                    type: "enum",
                                     variantLookupField: "severity",
                                     variantLookupMap: {
                                         low: "secondary",
@@ -116,6 +134,7 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "reportedBy"},
+                            dependent: "reportedBy",
                             field: {
                                 name: "reportedBy",
                                 widget: "#DisplayCard",
@@ -132,6 +151,7 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "assignedTo"},
+                            dependent: "assignedTo",
                             field: {
                                 name: "assignedTo",
                                 widget: "#DisplayCard",
@@ -148,6 +168,7 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "dueDate"},
+                            dependent: "dueDate",
                             field: {
                                 name: "dueDate",
                                 widget: "#DisplayCard",
@@ -187,21 +208,14 @@ export const snagSheetView: ViewConfig = {
                                 label: "workPackage",
                                 widgetProps: {
                                     icon: "#IconFolder",
+                                    linkedRefPath: "workPackage",
+                                    linkedSheetModel: "workpackages",
+                                    linkedSheetWidget: "#WorkPackageSheetView",
+                                    linkedSheetEntityProp: "entity",
                                     parent: "workPackage",
-                                    valuePath: ["title", "name"],
+                                    valuePath: ["title", "name", "_id"],
                                     pickFirstTruthyValuePath: true,
                                 },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "rootCause"},
-                            dependent: "rootCause",
-                            field: {
-                                name: "rootCause",
-                                widget: "#DisplayCard",
-                                label: "rootCause",
-                                widgetProps: {icon: "#AlertCircle"},
                             },
                         },
                         {
@@ -212,7 +226,7 @@ export const snagSheetView: ViewConfig = {
                                 name: "costImpact",
                                 widget: "#DisplayCard",
                                 label: "costImpact",
-                                widgetProps: {icon: "#CurrencyDollar", format: "locale", type: "currency"},
+                                widgetProps: {icon: "#CurrencyDollar", format: "locale"},
                             },
                         },
                         {
@@ -245,53 +259,65 @@ export const snagSheetView: ViewConfig = {
                                 label: "variationOrder",
                                 widgetProps: {
                                     icon: "#IconFolder",
+                                    linkedRefPath: "variationOrder",
+                                    linkedSheetModel: "variationorders",
+                                    linkedSheetWidget: "#VariationOrderSheetView",
+                                    linkedSheetEntityProp: "entity",
                                     parent: "variationOrder",
-                                    valuePath: ["title", "name"],
+                                    valuePath: ["title", "name", "_id"],
                                     pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "description"},
-            children: [
                 {
-                    render: "div",
-                    props: {className: "p-2 rounded-lg bg-muted/30 border border-border/50"},
+                    render: "#SheetGrid",
+                    props: {columns: 1},
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: {read: "description"},
+                            dependent: "description",
                             field: {
                                 name: "description",
-                                widget: "#ExpandableText",
-                                widgetProps: {className: "text-sm"},
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "notes"},
-            dependent: "notes",
-            children: [
-                {
-                    render: "div",
-                    props: {className: "p-2 rounded-lg bg-muted/30 border border-border/50"},
-                    children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: {read: "notes"},
+                            dependent: "notes",
                             field: {
                                 name: "notes",
-                                widget: "#ExpandableText",
-                                widgetProps: {className: "text-sm"},
+                                widget: "#DisplayCard",
+                                label: "notes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "rootCause"},
+                            dependent: "rootCause",
+                            field: {
+                                name: "rootCause",
+                                widget: "#DisplayCard",
+                                label: "rootCause",
+                                widgetProps: {
+                                    icon: "#AlertCircle",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -302,10 +328,11 @@ export const snagSheetView: ViewConfig = {
             render: "#SheetGroup",
             props: {title: "photos"},
             dependent: "photos",
+            permissions: {read: "photos"},
             children: [
                 {
                     render: "div",
-                    props: {className: "max-w-full"},
+                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full"},
                     children: [
                         {
                             render: "#GalleryCarousel",
@@ -338,7 +365,7 @@ const snagFormNodes: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: {columns: 2},
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
                 children: [
                     {
                         render: "#Field",
@@ -364,6 +391,7 @@ const snagFormNodes: ViewConfig["nodes"] = [
                             label: "form.titleLabel",
                             placeholder: "form.titlePlaceholder",
                             required: true,
+                            widgetProps: {maxLength: SNAG_SHORT_TEXT_MAX},
                         },
                     },
                     {
@@ -373,6 +401,7 @@ const snagFormNodes: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.locationLabel",
                             placeholder: "form.locationPlaceholder",
+                            widgetProps: {maxLength: SNAG_SHORT_TEXT_MAX},
                         },
                     },
                     {
@@ -432,6 +461,7 @@ const snagFormNodes: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.tradeLabel",
                             placeholder: "form.tradePlaceholder",
+                            widgetProps: {maxLength: SNAG_SHORT_TEXT_MAX},
                         },
                     },
                     {
@@ -490,37 +520,55 @@ const snagFormNodes: ViewConfig["nodes"] = [
                             label: "form.isDlpLabel",
                         },
                     },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "description",
+                                    widget: "#Textarea",
+                                    label: "form.descriptionLabel",
+                                    placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: snagLongTextareaProps,
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "notes",
+                                    widget: "#Textarea",
+                                    label: "form.notesLabel",
+                                    placeholder: "form.notesPlaceholder",
+                                    widgetProps: snagLongTextareaProps,
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "rootCause",
+                                    widget: "#Textarea",
+                                    label: "form.rootCauseLabel",
+                                    placeholder: "form.rootCausePlaceholder",
+                                    widgetProps: snagLongTextareaProps,
+                                },
+                            },
+                        ],
+                    },
                 ],
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "rootCause",
-                    widget: "#Textarea",
-                    label: "form.rootCauseLabel",
-                    placeholder: "form.rootCausePlaceholder",
-                    widgetProps: {className: "resize-none max-h-[200px] overflow-y-auto"},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "description",
-                    widget: "#Textarea",
-                    label: "form.descriptionLabel",
-                    placeholder: "form.descriptionPlaceholder",
-                    widgetProps: {className: "resize-none max-h-[250px] overflow-y-auto"},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "notes",
-                    widget: "#Textarea",
-                    label: "form.notesLabel",
-                    placeholder: "form.notesPlaceholder",
-                    widgetProps: {className: "resize-none max-h-[200px] overflow-y-auto"},
-                },
             },
         ],
     },

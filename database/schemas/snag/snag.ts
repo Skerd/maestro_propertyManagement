@@ -16,7 +16,13 @@ import {
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {SnagSchemaDef, snagStatusValues, snagSeverityValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/snag/snag.schema-def";
+import {
+    SnagSchemaDef,
+    snagStatusValues,
+    snagSeverityValues,
+    SNAG_LONG_TEXT_MAX,
+    SNAG_SHORT_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/snag/snag.schema-def";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
@@ -55,6 +61,7 @@ const SnagSchema = new Schema<ISnag>(
             type: SchemaTypes.String,
             required: true,
             trim: true,
+            maxlength: SNAG_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
@@ -77,6 +84,8 @@ const SnagSchema = new Schema<ISnag>(
             type: SchemaTypes.String,
             required: true,
             trim: true,
+            minlength: 1,
+            maxlength: SNAG_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
@@ -86,6 +95,8 @@ const SnagSchema = new Schema<ISnag>(
         description: {
             type: SchemaTypes.String,
             required: false,
+            trim: true,
+            maxlength: SNAG_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
             },
@@ -94,6 +105,7 @@ const SnagSchema = new Schema<ISnag>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: SNAG_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
@@ -177,6 +189,8 @@ const SnagSchema = new Schema<ISnag>(
         notes: {
             type: SchemaTypes.String,
             required: false,
+            trim: true,
+            maxlength: SNAG_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 filterable: false,
             },
@@ -184,6 +198,8 @@ const SnagSchema = new Schema<ISnag>(
         trade: {
             type: SchemaTypes.String,
             required: false,
+            trim: true,
+            maxlength: SNAG_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
@@ -205,6 +221,8 @@ const SnagSchema = new Schema<ISnag>(
         rootCause: {
             type: SchemaTypes.String,
             required: false,
+            trim: true,
+            maxlength: SNAG_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 filterable: false,
             },

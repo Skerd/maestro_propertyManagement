@@ -1,4 +1,13 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    CONSTRUCTOR_LONG_TEXT_MAX,
+    CONSTRUCTOR_PHONE_MAX,
+    CONSTRUCTOR_POSTAL_CODE_MAX,
+    CONSTRUCTOR_SHORT_TEXT_MAX,
+    CONSTRUCTOR_STREET_MAX,
+    CONSTRUCTOR_URL_MAX,
+    CONSTRUCTOR_VAT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const constructorSheetView: ViewConfig = {
@@ -98,7 +107,7 @@ export const constructorSheetView: ViewConfig = {
                                 name: "insuranceExpiry",
                                 widget: "#DisplayCard",
                                 label: "insuranceExpiry",
-                                widgetProps: { icon: "#ShieldCheck", type: "date" },
+                                widgetProps: { icon: "#Calendar", format: "date", type: "date" },
                             },
                         },
                         {
@@ -110,6 +119,27 @@ export const constructorSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "performanceScore",
                                 widgetProps: { icon: "#Star", type: "number" },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "description" },
+                            dependent: "description",
+                            field: {
+                                name: "description",
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -165,43 +195,30 @@ export const constructorSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            props: { title: "description" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "description" },
-                            field: {
-                                name: "description",
-                                widget: "#ExpandableText",
-                                label: "description",
-                                widgetProps: { className: "text-sm" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
             props: { title: "logo" },
             permissions: { read: "logo" },
             children: [
                 {
                     render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-[200px]" },
+                    props: {
+                        className: "max-w-[200px] aspect-square overflow-hidden rounded-lg",
+                        style: { width: 200, height: 200, maxWidth: 200 },
+                    },
                     children: [
                         {
-                            render: "#DisplayCard",
+                            render: "#GalleryCarousel",
                             permissions: { read: "logo" },
                             field: {
                                 name: "logo",
-                                widget: "#DisplayCard",
-                                label: "logo",
-                                widgetProps: { icon: "#Photo", type: "avatar" },
+                                widget: "#GalleryCarousel",
+                                widgetProps: {
+                                    showThumbnails: false,
+                                    allowFullScreen: false,
+                                    coverAfterFirst: true,
+                                    showPreviews: false,
+                                    forcedAspectRatio: 1,
+                                    className: "max-w-[200px] aspect-square overflow-hidden rounded-lg",
+                                },
                             },
                         },
                     ],
@@ -257,6 +274,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: { maxLength: CONSTRUCTOR_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -266,7 +284,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.emailLabel",
                             placeholder: "form.emailPlaceholder",
-                            widgetProps: { type: "email" },
+                            widgetProps: { type: "email", maxLength: 254 },
                         },
                     },
                     {
@@ -276,7 +294,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             widget: "#PhoneInput",
                             label: "form.phoneNumberLabel",
                             placeholder: "form.phoneNumberPlaceholder",
-                            widgetProps: { defaultCountry: "AL" },
+                            widgetProps: { defaultCountry: "AL", maxLength: CONSTRUCTOR_PHONE_MAX },
                         },
                     },
                     {
@@ -287,6 +305,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             label: "form.vatLabel",
                             placeholder: "form.vatPlaceholder",
                             required: true,
+                            widgetProps: { maxLength: CONSTRUCTOR_VAT_MAX },
                         },
                     },
                     {
@@ -296,6 +315,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.websiteLabel",
                             placeholder: "form.websitePlaceholder",
+                            widgetProps: { maxLength: CONSTRUCTOR_URL_MAX },
                         },
                     },
                     {
@@ -326,6 +346,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.tradesLabel",
                             placeholder: "form.tradesPlaceholder",
+                            widgetProps: { maxLength: CONSTRUCTOR_SHORT_TEXT_MAX },
                         },
                     },
                     {
@@ -345,7 +366,7 @@ const constructorFormFields: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.performanceScoreLabel",
                             placeholder: "form.performanceScorePlaceholder",
-                            widgetProps: { type: "number", step: "0.01" },
+                            widgetProps: { type: "number", min: 0, max: 100, step: "0.01" },
                         },
                     },
                     {
@@ -359,6 +380,11 @@ const constructorFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.descriptionLabel",
                                     placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: { maxHeight: 250 },
+                                        maxLength: CONSTRUCTOR_LONG_TEXT_MAX,
+                                    },
                                 },
                             },
                         ],
@@ -459,11 +485,11 @@ const constructorFormFields: ViewConfig["nodes"] = [
                                         children: [
                                             {
                                                 render: "#Field",
-                                                field: {name: "street", widget: "#Input", label: "form.streetLabel", placeholder: "form.streetPlaceholder"},
+                                                field: {name: "street", widget: "#Input", label: "form.streetLabel", placeholder: "form.streetPlaceholder", widgetProps: { maxLength: CONSTRUCTOR_STREET_MAX }},
                                             },
                                             {
                                                 render: "#Field",
-                                                field: {name: "postalCode", widget: "#Input", label: "form.postalCodeLabel", placeholder: "form.postalCodePlaceholder"},
+                                                field: {name: "postalCode", widget: "#Input", label: "form.postalCodeLabel", placeholder: "form.postalCodePlaceholder", widgetProps: { maxLength: CONSTRUCTOR_POSTAL_CODE_MAX }},
                                             },
                                         ],
                                     },

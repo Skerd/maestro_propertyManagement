@@ -18,7 +18,17 @@ import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperator
 import {addModelData} from "@coreModule/database/collections";
 import {constructorViews} from "./constructor.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {ConstructorSchemaDef, constructorPartyTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
+import {
+    ConstructorSchemaDef,
+    constructorPartyTypeValues,
+    CONSTRUCTOR_LONG_TEXT_MAX,
+    CONSTRUCTOR_PHONE_MAX,
+    CONSTRUCTOR_POSTAL_CODE_MAX,
+    CONSTRUCTOR_SHORT_TEXT_MAX,
+    CONSTRUCTOR_STREET_MAX,
+    CONSTRUCTOR_URL_MAX,
+    CONSTRUCTOR_VAT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
 import {CitySimpleSnippet} from "@coreModule/database/schemas/city/city.snippets";
 import {StateSimpleSnippet} from "@coreModule/database/schemas/state/state.snippets";
 import {CountrySimpleSnippet} from "@coreModule/database/schemas/country/country.snippets";
@@ -54,25 +64,36 @@ const ConstructorSchema: Schema = new Schema(
         name: {
             type: SchemaTypes.String,
             required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: CONSTRUCTOR_SHORT_TEXT_MAX,
         },
         email: {
             type: SchemaTypes.String,
             lowercase: true,
+            maxlength: 254,
         },
         phoneNumber: {
             type: SchemaTypes.String,
-            default: ""
+            default: "",
+            maxlength: CONSTRUCTOR_PHONE_MAX,
         },
         addresses: {
             type: [{
                 street: {
                     type: SchemaTypes.String,
+                    trim: true,
+                    minlength: 1,
+                    maxlength: CONSTRUCTOR_STREET_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true
                     }
                 },
                 postalCode: {
                     type: SchemaTypes.String,
+                    trim: true,
+                    minlength: 1,
+                    maxlength: CONSTRUCTOR_POSTAL_CODE_MAX,
                     dynamicTableConfiguration: {
                         hideColumn: true
                     }
@@ -103,12 +124,16 @@ const ConstructorSchema: Schema = new Schema(
                 },
                 latitude: {
                     type: SchemaTypes.Number,
+                    min: -90,
+                    max: 90,
                     dynamicTableConfiguration: {
                         hideColumn: true
                     }
                 },
                 longitude: {
                     type: SchemaTypes.Number,
+                    min: -180,
+                    max: 180,
                     dynamicTableConfiguration: {
                         hideColumn: true
                     }
@@ -123,6 +148,7 @@ const ConstructorSchema: Schema = new Schema(
         },
         description: {
             type: SchemaTypes.String,
+            maxlength: CONSTRUCTOR_LONG_TEXT_MAX,
         },
         logo: {
             type: SchemaTypes.ObjectId,
@@ -134,12 +160,17 @@ const ConstructorSchema: Schema = new Schema(
             refAllowlist: MediaSimpleSnippet
         },
         website: {
-            type: SchemaTypes.String
+            type: SchemaTypes.String,
+            trim: true,
+            maxlength: CONSTRUCTOR_URL_MAX,
         },
         vat: {
             type: SchemaTypes.String,
             required: true,
             unique: true,
+            trim: true,
+            minlength: 1,
+            maxlength: CONSTRUCTOR_VAT_MAX,
         },
         partyType: {
             type: SchemaTypes.String,
@@ -149,6 +180,8 @@ const ConstructorSchema: Schema = new Schema(
         trades: {
             type: SchemaTypes.String,
             required: false,
+            trim: true,
+            maxlength: CONSTRUCTOR_SHORT_TEXT_MAX,
         },
         insuranceExpiry: {
             type: SchemaTypes.Date,
@@ -157,6 +190,8 @@ const ConstructorSchema: Schema = new Schema(
         performanceScore: {
             type: SchemaTypes.Number,
             required: false,
+            min: 0,
+            max: 100,
         },
     },
     {

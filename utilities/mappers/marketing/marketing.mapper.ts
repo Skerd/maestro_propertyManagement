@@ -20,6 +20,7 @@ export type MarketingUnitSingleContext = {
     floor?: IFloor | any;
     edifice?: IEdifice | any;
     totalFloorsInEdifice?: number;
+    projectName?: string;
 };
 
 function uniqueMarketingMediaUrls(
@@ -222,7 +223,7 @@ export function mapMarketingUnitSingle(
     context: MarketingUnitSingleContext = {},
 ): MarketingUnitSingleDTO {
     const price = decimal128ToNumber(unit.price);
-    const {floor, edifice, totalFloorsInEdifice} = context;
+    const {floor, edifice, totalFloorsInEdifice, projectName} = context;
     const floorLevel = floor?.levelNumber;
     const grossArea = unit.area ?? undefined;
     const verandaArea = typeof unit.verandaArea === "number" ? unit.verandaArea : 0;
@@ -240,6 +241,8 @@ export function mapMarketingUnitSingle(
         _id: objectIdToString(unit._id),
         name: unit.name,
         projectId,
+        projectName: projectName || undefined,
+        edificeName: edifice?.name || undefined,
         status: mapUnitStatus(unit.status),
         unitNumber: unit.unitNumber || undefined,
         areaSqm: unit.area,

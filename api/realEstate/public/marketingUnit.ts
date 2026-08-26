@@ -143,13 +143,23 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
         );
 
         logger.finish(`Loaded marketing unit [${unitId}]`);
-        return {unit: mapMarketingUnitSingle(fallbackUnit, projectId, floorContext)};
+        return {
+            unit: mapMarketingUnitSingle(fallbackUnit, projectId, {
+                ...floorContext,
+                projectName: project.name,
+            }),
+        };
     }
 
     const floorContext = resolveUnitFloorContext(unitId, hierarchy);
 
     logger.finish(`Loaded marketing unit [${unitId}]`);
-    return {unit: mapMarketingUnitSingle(unit, projectId, floorContext)};
+    return {
+        unit: mapMarketingUnitSingle(unit, projectId, {
+            ...floorContext,
+            projectName: project.name,
+        }),
+    };
 }
 
 async function marketingUnitBrochure(

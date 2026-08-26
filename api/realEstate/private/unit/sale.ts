@@ -43,7 +43,11 @@ import {NotificationEventCodes} from "@propertyManagement/domain/notifications/n
 import {
     dispatchSaleClientEmail,
 } from "@propertyManagement/utilities/database/sale/saleClientEmailDispatch";
-import {formatMoneyAmountForEmail} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
+import {
+    formatMoneyAmountForEmail,
+    UNIT_EMAIL_POPULATE,
+    unitLocationForEmail,
+} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 import {createSaleFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/createSale.form.validator";
 import {editSaleFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/editSale.form.validator";
 import {saleFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.form.validator";
@@ -220,7 +224,7 @@ const {router} = createCrudRouter({
         const foundUnit = await unitService.findOneOrThrow(
             {_id: new ObjectId(unit), company: company._id},
             {session, logger, languageCode},
-            "reservation",
+            [{path: "reservation"}, ...UNIT_EMAIL_POPULATE],
         );
 
         if (foundUnit.status === UnitStatus.SOLD) throw apiValidationException("unit_already_sold", null, null, languageCode);
@@ -246,6 +250,7 @@ const {router} = createCrudRouter({
             unitNumber: foundUnit.unitNumber,
             name: foundUnit.name,
             status: foundUnit.status,
+            ...unitLocationForEmail(foundUnit),
         };
         (params as any).__computedFinalPrice = finalPrice;
         (params as any).__saleCurrencyDoc = saleCurrencyDoc;
@@ -484,6 +489,9 @@ const {router} = createCrudRouter({
             paymentType: paymentTypeStr,
             unitNumber: unitSnapshot.unitNumber != null ? String(unitSnapshot.unitNumber) : undefined,
             unitDisplayName: unitSnapshot.name,
+            projectName: unitSnapshot.projectName,
+            edificeName: unitSnapshot.edificeName,
+            floorName: unitSnapshot.floorName,
             unitPriceDisplay,
             finalPriceDisplay: finalDisp,
             purchaseContractMediaId,

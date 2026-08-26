@@ -19,6 +19,11 @@ import {
     dispatchReservationClientEmail,
     formatReservationExpirationForEmail,
 } from "@propertyManagement/utilities/database/reservation/reservationClientEmailDispatch";
+import {
+    UNIT_EMAIL_POPULATE,
+    UNIT_EMAIL_SELECT,
+    unitLocationForEmail,
+} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 
 const BATCH_SIZE = 200;
 
@@ -128,7 +133,7 @@ export async function runReservationExpirationReminders(parentLogger?: serverLog
                 [
                     {path: "client", select: "username name surname fullName"},
                     {path: "company", select: "name"},
-                    {path: "unit", select: "unitNumber"},
+                    {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
                 ],
                 undefined,
                 {_id: 1},
@@ -149,6 +154,7 @@ export async function runReservationExpirationReminders(parentLogger?: serverLog
                 const companyName = res.company?.name;
                 const unitNumber = res.unit?.unitNumber;
                 const expIso = new Date(res.expirationDate).toISOString();
+                const location = unitLocationForEmail(res.unit);
 
                 try {
                     const emailed = await dispatchReservationClientEmail({
@@ -161,6 +167,8 @@ export async function runReservationExpirationReminders(parentLogger?: serverLog
                         reservationId: res._id.toString(),
                         reservationCode: res.name,
                         unitNumber: unitNumber != null ? String(unitNumber) : undefined,
+                        unitDisplayName: res.unit?.name,
+                        ...location,
                         expirationDateIso: expIso,
                         expirationDateFormatted: formatReservationExpirationForEmail(expIso, lang),
                     });

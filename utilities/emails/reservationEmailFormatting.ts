@@ -1,8 +1,64 @@
 /**
- * Shared formatting for reservation transactional emails (money amounts in recipient locale).
+ * Shared formatting and unit-location snapshot helpers for property-management
+ * transactional emails (money amounts in recipient locale).
  */
 
 import {Decimal128} from "mongodb";
+import type {UnitLocationForEmail} from "../../kafka/types";
+
+/** Unit fields required to build listing + location rows for client emails. */
+export const UNIT_EMAIL_SELECT = "unitNumber name price floor edifice project";
+
+/** Nested populate so `unitLocationForEmail` can read names, not ObjectIds. */
+export const UNIT_EMAIL_POPULATE = [
+    {path: "priceCurrency", select: "symbol"},
+    {path: "floor", select: "name levelNumber"},
+    {path: "edifice", select: "name"},
+    {path: "project", select: "name"},
+];
+
+type NamedRef = {name?: string} | null | undefined;
+type FloorRef = {name?: string; levelNumber?: number} | null | undefined;
+
+function populatedName(ref: unknown): string | undefined {
+    if (ref == null || typeof ref !== "object" || !("name" in ref)) {
+        return undefined;
+    }
+    const name = (ref as {name?: unknown}).name;
+    return typeof name === "string" && name.trim() ? name.trim() : undefined;
+}
+
+function floorNameForEmail(floor: unknown): string | undefined {
+    const named = populatedName(floor);
+    if (named) {
+        return named;
+    }
+    if (floor != null && typeof floor === "object" && "levelNumber" in floor) {
+        const n = (floor as {levelNumber?: unknown}).levelNumber;
+        if (typeof n === "number" && Number.isFinite(n)) {
+            return String(n);
+        }
+    }
+    return undefined;
+}
+
+/** Reads populated unit refs; omits a field when the ref was not populated. */
+export function unitLocationForEmail(
+    unit:
+        | {
+              floor?: FloorRef;
+              edifice?: NamedRef;
+              project?: NamedRef;
+          }
+        | null
+        | undefined
+): UnitLocationForEmail {
+    return {
+        projectName: populatedName(unit?.project),
+        edificeName: populatedName(unit?.edifice),
+        floorName: floorNameForEmail(unit?.floor),
+    };
+}
 
 export function formatMoneyAmountForEmail(rawNumeric: string, languageCode: string): string {
     const n = parseFloat(rawNumeric);

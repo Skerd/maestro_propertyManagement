@@ -104,6 +104,17 @@ export function pushRow(rows: SummaryRow[], label: string | undefined, value: st
     }
 }
 
+/** Project → edifice → floor, omitting any name that was not snapshotted. */
+export function pushUnitLocationRows(
+    rows: SummaryRow[],
+    loc: Record<string, string>,
+    location: {projectName?: string; edificeName?: string; floorName?: string}
+): void {
+    pushRow(rows, loc.labelProject, location.projectName);
+    pushRow(rows, loc.labelEdifice, location.edificeName);
+    pushRow(rows, loc.labelFloor, location.floorName);
+}
+
 /** Resolves `{key}` copy from the locale file, applying the given values. */
 export function localized(strings: EmailStrings, key: string, values: Record<string, string> = {}): string {
     return applyPlaceholders(strings[key] ?? "", values);

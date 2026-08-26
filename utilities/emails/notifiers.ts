@@ -13,6 +13,7 @@ import {
     localized,
     noteHtml,
     pushRow,
+    pushUnitLocationRows,
     summaryCardHtml,
     type SummaryRow,
 } from "./emailLayout";
@@ -71,6 +72,9 @@ function buildReservationSummaryHtml(
         reservationCode: string;
         unitNumber: string;
         unitDisplayName?: string;
+        projectName?: string;
+        edificeName?: string;
+        floorName?: string;
         unitPriceDisplay?: string;
         reservationDepositDisplay?: string;
         expirationDate?: string;
@@ -78,11 +82,12 @@ function buildReservationSummaryHtml(
 ): string {
     const rows: SummaryRow[] = [
         {label: loc.labelReference ?? "", value: rowData.reservationCode},
-        {label: loc.labelUnit ?? "", value: rowData.unitNumber},
     ];
+    pushUnitLocationRows(rows, loc, rowData);
+    rows.push({label: loc.labelUnit ?? "", value: rowData.unitNumber});
+    pushRow(rows, loc.labelUnitName, rowData.unitDisplayName);
 
     if (variant === "Created" || variant === "Paid") {
-        pushRow(rows, loc.labelUnitName, rowData.unitDisplayName);
         pushRow(rows, loc.labelUnitPrice, rowData.unitPriceDisplay);
         pushRow(rows, loc.labelDeposit, rowData.reservationDepositDisplay);
         pushRow(rows, loc.labelEndDate, rowData.expirationDate);
@@ -123,6 +128,9 @@ export async function sendReservationClientMail(data: ReservationClientEmailEven
         reservationCode,
         unitNumber,
         unitDisplayName: data.unitDisplayName,
+        projectName: data.projectName,
+        edificeName: data.edificeName,
+        floorName: data.floorName,
         unitPriceDisplay: data.unitPriceDisplay,
         reservationDepositDisplay: data.reservationDepositDisplay ?? data.depositSummary,
         expirationDate: hasExpiration ? expirationDate : undefined,

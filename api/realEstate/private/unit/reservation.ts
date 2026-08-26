@@ -35,6 +35,8 @@ import {
 import {
     formatMoneyAmountForEmail,
     formatReservationDepositForEmailDisplay,
+    UNIT_EMAIL_POPULATE,
+    unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 import {CommissionSourceType, CommissionStatus} from "../../../../database/schemas/commission/commission";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
@@ -183,6 +185,7 @@ export const {router} = createCrudRouter({
         const foundUnit = await unitService.findOneOrThrow(
             {_id: new ObjectId(unit), company: company._id},
             {session, logger, languageCode},
+            UNIT_EMAIL_POPULATE,
         );
         foundUnit.status = UnitStatus.RESERVED;
         foundUnit.reservation = created._id;
@@ -249,6 +252,7 @@ export const {router} = createCrudRouter({
                     reservationCode: (created as any).name,
                     unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,
                     unitDisplayName: foundUnit.name,
+                    ...unitLocationForEmail(foundUnit),
                     unitPriceDisplay,
                     reservationDepositDisplay,
                     depositSummary: reservationDepositDisplay,

@@ -39,7 +39,12 @@ import {
     isPastExpirationUtcEndOfDay,
     utcCalendarDaysUntilExpirationDay,
 } from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
-import {formatMoneyAmountForEmail} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
+import {
+    formatMoneyAmountForEmail,
+    UNIT_EMAIL_POPULATE,
+    UNIT_EMAIL_SELECT,
+    unitLocationForEmail,
+} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 import type {ManualSaleClientEmailForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/manualSaleClientEmail.form.type";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
@@ -185,7 +190,7 @@ export class SaleActions {
             {logger, languageCode},
             [
                 {path: "buyer", select: "username name surname fullName"},
-                {path: "unit", select: "unitNumber name price", populate: [{path: "priceCurrency", select: "symbol"}]},
+                {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
                 {path: "saleCurrency", select: "symbol"},
                 {path: "company", select: "name"},
                 {path: "paymentPlan", select: "installments status"},
@@ -212,10 +217,19 @@ export class SaleActions {
         const companyName = companyRef?.name ?? company.name ?? "";
 
         const unitRef = sale.unit as
-            | {unitNumber?: string | number; name?: string; price?: Decimal128; priceCurrency?: {symbol?: string}}
+            | {
+                  unitNumber?: string | number;
+                  name?: string;
+                  price?: Decimal128;
+                  priceCurrency?: {symbol?: string};
+                  floor?: {name?: string; levelNumber?: number};
+                  edifice?: {name?: string};
+                  project?: {name?: string};
+              }
             | undefined;
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
         const unitDisplayName = unitRef?.name;
+        const location = unitLocationForEmail(unitRef);
         const saleSym = (sale.saleCurrency as {symbol?: string} | undefined)?.symbol;
 
         let unitPriceDisplay: string | undefined;
@@ -248,6 +262,7 @@ export class SaleActions {
             paymentType,
             unitNumber,
             unitDisplayName,
+            ...location,
             unitPriceDisplay,
             finalPriceDisplay,
         } as const;

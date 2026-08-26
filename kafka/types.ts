@@ -1,4 +1,11 @@
-export interface ReservationClientEmailEvent {
+/** Display names snapshotted at send time — never ObjectIds. */
+export interface UnitLocationForEmail {
+    projectName?: string;
+    edificeName?: string;
+    floorName?: string;
+}
+
+export interface ReservationClientEmailEvent extends UnitLocationForEmail {
     eventType: "reservation_client_email";
     email: string;
     userId: string;
@@ -27,7 +34,7 @@ export interface ReservationClientEmailEvent {
     depositSummary?: string;
 }
 
-export interface SaleClientEmailEvent {
+export interface SaleClientEmailEvent extends UnitLocationForEmail {
     eventType: "sale_client_email";
     email: string;
     userId: string;

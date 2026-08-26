@@ -20,6 +20,9 @@ import {
 import {
     formatMoneyAmountForEmail,
     formatReservationDepositForEmailDisplay,
+    UNIT_EMAIL_POPULATE,
+    UNIT_EMAIL_SELECT,
+    unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 import {
     isPastExpirationUtcEndOfDay,
@@ -47,13 +50,16 @@ function reservationClientEmailListingFieldsFromLoadedReservation(
     languageCode: string,
 ): Pick<
     DispatchReservationClientEmailInput,
-    "unitDisplayName" | "unitPriceDisplay" | "reservationDepositDisplay" | "depositSummary" | "reservationContractMediaId"
+    "unitDisplayName" | "unitPriceDisplay" | "reservationDepositDisplay" | "depositSummary" | "reservationContractMediaId" | "projectName" | "edificeName" | "floorName"
 > {
     const unit = reservation.unit as {
         unitNumber?: string | number;
         name?: string;
         price?: Decimal128;
         priceCurrency?: {symbol?: string};
+        floor?: {name?: string; levelNumber?: number};
+        edifice?: {name?: string};
+        project?: {name?: string};
     };
     const unitDisplayName = unit?.name;
     let unitPriceDisplay: string | undefined;
@@ -73,6 +79,7 @@ function reservationClientEmailListingFieldsFromLoadedReservation(
         reservationDepositDisplay: depositDisp,
         depositSummary: depositDisp,
         reservationContractMediaId: reservationContractMediaIdFromReservation(reservation),
+        ...unitLocationForEmail(unit),
     };
 }
 
@@ -129,8 +136,8 @@ export class ReservationActions {
                 {path: "reservedByCompany", select: "name"},
                 {
                     path: "unit",
-                    select: "unitNumber name price",
-                    populate: [{path: "priceCurrency", select: "symbol"}],
+                    select: UNIT_EMAIL_SELECT,
+                    populate: UNIT_EMAIL_POPULATE,
                 },
                 {path: "depositCurrency", select: "symbol"},
                 {path: "reservationContract", select: "_id"},
@@ -161,7 +168,7 @@ export class ReservationActions {
         const companyRef = reservation.reservedByCompany as {name?: string} | undefined;
         const companyName = companyRef?.name ?? "";
 
-        const unitRef = reservation.unit as {unitNumber?: string | number; _id?: ObjectId} | undefined;
+        const unitRef = reservation.unit as {unitNumber?: string | number; name?: string; _id?: ObjectId} | undefined;
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
         const unitId =
             unitRef && typeof unitRef === "object" && unitRef._id
@@ -172,6 +179,7 @@ export class ReservationActions {
         const expIso = exp ? exp.toISOString() : undefined;
         const lang = languageCode ?? "en-US";
         const expFormatted = formatReservationExpirationForEmail(expIso, lang);
+        const listing = reservationClientEmailListingFieldsFromLoadedReservation(reservation, lang);
 
         const base: Omit<DispatchReservationClientEmailInput, "kind"> = {
             clientUserId,
@@ -181,6 +189,10 @@ export class ReservationActions {
             reservationId: reservation._id.toString(),
             reservationCode: reservation.name,
             unitNumber,
+            unitDisplayName: listing.unitDisplayName,
+            projectName: listing.projectName,
+            edificeName: listing.edificeName,
+            floorName: listing.floorName,
             expirationDateIso: expIso,
             expirationDateFormatted: expFormatted,
         };
@@ -536,8 +548,8 @@ export class ReservationActions {
         const payUnit = await unitService.findById(
             payUnitId,
             {session, logger, languageCode},
-            [{path: "priceCurrency", select: "symbol"}],
-            "unitNumber name price",
+            UNIT_EMAIL_POPULATE,
+            UNIT_EMAIL_SELECT,
         );
         const payExpIso = existingReservation.expirationDate
             ? new Date(existingReservation.expirationDate).toISOString()
@@ -566,6 +578,7 @@ export class ReservationActions {
                 reservationCode: existingReservation.name,
                 unitNumber: payUnit?.unitNumber != null ? String(payUnit.unitNumber) : undefined,
                 unitDisplayName: payUnit?.name,
+                ...unitLocationForEmail(payUnit),
                 unitPriceDisplay: payUnitPriceDisplay,
                 reservationDepositDisplay: payDepositDisplay,
                 depositSummary: payDepositDisplay,

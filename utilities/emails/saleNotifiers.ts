@@ -13,6 +13,7 @@ import {
     localized,
     noteHtml,
     pushRow,
+    pushUnitLocationRows,
     summaryCardHtml,
     type SummaryRow,
 } from "./emailLayout";
@@ -68,6 +69,9 @@ function buildSaleCreatedSummaryHtml(
         saleCode: string;
         unitNumber: string;
         unitDisplayName?: string;
+        projectName?: string;
+        edificeName?: string;
+        floorName?: string;
         unitPriceDisplay?: string;
         finalPriceDisplay?: string;
         paymentTypeLabel: string;
@@ -77,8 +81,9 @@ function buildSaleCreatedSummaryHtml(
 ): string {
     const rows: SummaryRow[] = [
         {label: loc.labelSaleReference ?? "", value: rowData.saleCode},
-        {label: loc.labelUnit ?? "", value: rowData.unitNumber},
     ];
+    pushUnitLocationRows(rows, loc, rowData);
+    rows.push({label: loc.labelUnit ?? "", value: rowData.unitNumber});
 
     pushRow(rows, loc.labelUnitName, rowData.unitDisplayName);
     pushRow(rows, loc.labelUnitPrice, rowData.unitPriceDisplay);
@@ -94,7 +99,7 @@ function buildSaleCreatedSummaryHtml(
 
 function buildInstallmentContextHtml(loc: Record<string, string>, data: SaleClientEmailEvent): string {
     const rows: SummaryRow[] = [{label: loc.labelSaleReference ?? "", value: data.saleCode ?? data.saleId}];
-
+    pushUnitLocationRows(rows, loc, data);
     pushRow(rows, loc.labelUnit, data.unitNumber);
     if (data.installmentNumber != null) {
         rows.push({label: loc.labelInstallmentNumber ?? "", value: `#${data.installmentNumber}`});
@@ -135,6 +140,9 @@ export async function sendSaleClientMail(data: SaleClientEmailEvent): Promise<vo
                   saleCode,
                   unitNumber,
                   unitDisplayName: data.unitDisplayName,
+                  projectName: data.projectName,
+                  edificeName: data.edificeName,
+                  floorName: data.floorName,
                   unitPriceDisplay: data.unitPriceDisplay,
                   finalPriceDisplay: data.finalPriceDisplay,
                   paymentTypeLabel,

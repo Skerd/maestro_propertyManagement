@@ -20,7 +20,12 @@ import {
 import {
     isPastExpirationUtcEndOfDay,
 } from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
-import {formatMoneyAmountForEmail} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
+import {
+    formatMoneyAmountForEmail,
+    UNIT_EMAIL_POPULATE,
+    UNIT_EMAIL_SELECT,
+    unitLocationForEmail,
+} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 
 const BATCH_SIZE = 200;
 
@@ -104,6 +109,7 @@ function buildDispatchPayload(params: {
     const unit = sale.unit;
     const unitNumber = unit?.unitNumber != null ? String(unit.unitNumber) : undefined;
     const unitDisplayName = unit?.name;
+    const location = unitLocationForEmail(unit);
 
     let unitPriceDisplay: string | undefined;
     if (unit?.price != null) {
@@ -133,6 +139,7 @@ function buildDispatchPayload(params: {
         paymentType,
         unitNumber,
         unitDisplayName,
+        ...location,
         unitPriceDisplay,
         finalPriceDisplay,
         kind,
@@ -156,7 +163,7 @@ export async function runPaymentPlanInstallmentReminders(parentLogger?: serverLo
             path: "sale",
             populate: [
                 {path: "buyer", select: "username name surname fullName"},
-                {path: "unit", select: "unitNumber name price", populate: [{path: "priceCurrency", select: "symbol"}]},
+                {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
                 {path: "saleCurrency", select: "symbol"},
                 {path: "company", select: "name"},
             ],

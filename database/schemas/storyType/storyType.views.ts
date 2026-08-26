@@ -1,4 +1,8 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    STORY_TYPE_DESCRIPTION_MAX,
+    STORY_TYPE_NAME_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/storyType/storyType.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const storyTypeSheetView: ViewConfig = {
@@ -22,6 +26,16 @@ export const storyTypeSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            permissions: {read: "name"},
+                            field: {
+                                name: "name",
+                                widget: "#DisplayCard",
+                                label: "name",
+                                widgetProps: {icon: "#Tag"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
                             permissions: {read: "slug"},
                             field: {
                                 name: "slug",
@@ -42,25 +56,23 @@ export const storyTypeSheetView: ViewConfig = {
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "description"},
-            dependent: "description",
-            children: [
                 {
-                    render: "div",
-                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50"},
+                    render: "#SheetGrid",
+                    props: {columns: 1},
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
                             permissions: {read: "description"},
+                            dependent: "description",
                             field: {
                                 name: "description",
-                                widget: "#ExpandableText",
+                                widget: "#DisplayCard",
                                 label: "description",
-                                widgetProps: {className: "text-sm"},
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -89,6 +101,7 @@ const storyTypeFormFields: ViewConfig["nodes"] = [
                             label: "form.nameLabel",
                             placeholder: "form.namePlaceholder",
                             required: true,
+                            widgetProps: {maxLength: STORY_TYPE_NAME_MAX},
                         },
                     },
                     {
@@ -114,6 +127,11 @@ const storyTypeFormFields: ViewConfig["nodes"] = [
                                     widget: "#Textarea",
                                     label: "form.descriptionLabel",
                                     placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: STORY_TYPE_DESCRIPTION_MAX,
+                                    },
                                 },
                             },
                         ],

@@ -12,7 +12,11 @@ import {
 import {addModelData} from "@coreModule/database/collections";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {StoryTypeSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/storyType/storyType.schema-def";
+import {
+    StoryTypeSchemaDef,
+    STORY_TYPE_DESCRIPTION_MAX,
+    STORY_TYPE_NAME_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/storyType/storyType.schema-def";
 import {applyStoryTypeIndexes} from "./storyType.indexes";
 import {storyTypeViews} from "./storyType.views";
 
@@ -30,6 +34,8 @@ const StoryTypeSchema = new Schema<IStoryType>(
             required: true,
             unique: true,
             trim: true,
+            minlength: 1,
+            maxlength: STORY_TYPE_NAME_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
@@ -42,6 +48,8 @@ const StoryTypeSchema = new Schema<IStoryType>(
             unique: true,
             lowercase: true,
             trim: true,
+            minlength: 1,
+            maxlength: STORY_TYPE_NAME_MAX,
             permissions: {
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
@@ -55,6 +63,7 @@ const StoryTypeSchema = new Schema<IStoryType>(
         description: {
             type: SchemaTypes.String,
             default: "",
+            maxlength: STORY_TYPE_DESCRIPTION_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
             },

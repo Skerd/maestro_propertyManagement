@@ -18,7 +18,12 @@ import {
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {StorySchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/story/story.schema-def";
+import {
+    StorySchemaDef,
+    STORY_CONTENT_MAX,
+    STORY_EXCERPT_MAX,
+    STORY_TITLE_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/story/story.schema-def";
 import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
@@ -109,6 +114,8 @@ const StorySchema = new Schema<IStory>(
             type: SchemaTypes.String,
             required: true,
             trim: true,
+            minlength: 1,
+            maxlength: STORY_TITLE_MAX,
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
@@ -118,6 +125,8 @@ const StorySchema = new Schema<IStory>(
         content: {
             type: SchemaTypes.String,
             required: true,
+            minlength: 1,
+            maxlength: STORY_CONTENT_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
             },
@@ -126,6 +135,7 @@ const StorySchema = new Schema<IStory>(
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            maxlength: STORY_EXCERPT_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
             },

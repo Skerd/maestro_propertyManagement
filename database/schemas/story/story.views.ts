@@ -1,4 +1,9 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {
+    STORY_CONTENT_MAX,
+    STORY_EXCERPT_MAX,
+    STORY_TITLE_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/story/story.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 export const storySheetView: ViewConfig = {
@@ -22,57 +27,6 @@ export const storySheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#IconLabel"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "title"},
-                            field: {
-                                name: "title",
-                                widget: "#DisplayCard",
-                                label: "title",
-                                widgetProps: {icon: "#IconLabel"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "published"},
-                            field: {
-                                name: "published",
-                                widget: "#DisplayCard",
-                                label: "published",
-                                widgetProps: {icon: "#IconLabel", format: "boolean", type: "boolean"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "publishedAt"},
-                            dependent: "publishedAt",
-                            field: {
-                                name: "publishedAt",
-                                widget: "#DisplayCard",
-                                label: "publishedAt",
-                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "sortOrder"},
-                            field: {
-                                name: "sortOrder",
-                                widget: "#DisplayCard",
-                                label: "sortOrder",
-                                widgetProps: {icon: "#ListOrdered", type: "number"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: {read: "project"},
                             field: {
                                 name: "project.name",
@@ -83,22 +37,6 @@ export const storySheetView: ViewConfig = {
                                     linkedRefPath: "project",
                                     linkedSheetModel: "projects",
                                     linkedSheetWidget: "#ProjectSheetView",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "storyType"},
-                            field: {
-                                name: "storyType.name",
-                                widget: "#DisplayCard",
-                                label: "storyType",
-                                widgetProps: {
-                                    icon: "#Tag",
-                                    linkedRefPath: "storyType",
-                                    linkedSheetModel: "storytypes",
-                                    linkedSheetWidget: "#StoryTypeSheetView",
-                                    linkedSheetEntityProp: "storyType",
                                 },
                             },
                         },
@@ -138,45 +76,128 @@ export const storySheetView: ViewConfig = {
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "excerpt"},
-            dependent: "excerpt",
-            children: [
                 {
-                    render: "div",
-                    props: {className: "p-2 rounded-lg bg-muted/30 border border-border/50"},
+                    render: "#SheetGrid",
+                    props: {columns: 3},
                     children: [
                         {
-                            render: "#ExpandableText",
-                            permissions: {read: "excerpt"},
+                            render: "#DisplayCard",
+                            permissions: {read: "storyType"},
                             field: {
-                                name: "excerpt",
-                                widget: "#ExpandableText",
-                                widgetProps: {className: "text-sm"},
+                                name: "storyType.name",
+                                widget: "#DisplayCard",
+                                label: "storyType",
+                                widgetProps: {
+                                    icon: "#Tag",
+                                    linkedRefPath: "storyType",
+                                    linkedSheetModel: "storytypes",
+                                    linkedSheetWidget: "#StoryTypeSheetView",
+                                    linkedSheetEntityProp: "storyType",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "publishedAt"},
+                            dependent: "publishedAt",
+                            field: {
+                                name: "publishedAt",
+                                widget: "#DisplayCard",
+                                label: "publishedAt",
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "sortOrder"},
+                            field: {
+                                name: "sortOrder",
+                                widget: "#DisplayCard",
+                                label: "sortOrder",
+                                widgetProps: {icon: "#ListOrdered", type: "number"},
                             },
                         },
                     ],
                 },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "content"},
-            children: [
                 {
-                    render: "div",
-                    props: {className: "p-2 rounded-lg bg-muted/30 border border-border/50"},
+                    render: "#SheetGrid",
+                    props: {columns: 3},
                     children: [
                         {
-                            render: "#ExpandableText",
+                            render: "#DisplayCard",
+                            permissions: {read: "name"},
+                            field: {
+                                name: "name",
+                                widget: "#DisplayCard",
+                                label: "name",
+                                widgetProps: {icon: "#IconLabel"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "published"},
+                            field: {
+                                name: "published",
+                                widget: "#DisplayCard",
+                                label: "published",
+                                widgetProps: {icon: "#IconLabel", format: "boolean", type: "boolean"},
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "title"},
+                            field: {
+                                name: "title",
+                                widget: "#DisplayCard",
+                                label: "title",
+                                widgetProps: {icon: "#IconLabel"},
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "excerpt"},
+                            dependent: "excerpt",
+                            field: {
+                                name: "excerpt",
+                                widget: "#DisplayCard",
+                                label: "excerpt",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#DisplayCard",
                             permissions: {read: "content"},
                             field: {
                                 name: "content",
-                                widget: "#ExpandableText",
-                                widgetProps: {className: "text-sm whitespace-pre-wrap"},
+                                widget: "#DisplayCard",
+                                label: "content",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
                             },
                         },
                     ],
@@ -185,8 +206,7 @@ export const storySheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            props: {title: "mainImage"},
-            dependent: "mainImage",
+            props: {title: "gallery"},
             children: [
                 {
                     render: "div",
@@ -194,70 +214,17 @@ export const storySheetView: ViewConfig = {
                     children: [
                         {
                             render: "#GalleryCarousel",
-                            permissions: {read: "mainImage"},
                             field: {
                                 name: "mainImage",
                                 widget: "#GalleryCarousel",
                                 widgetProps: {
-                                    imageGalleryField: "mainImage",
-                                    showThumbnails: false,
-                                    allowFullScreen: true,
-                                    coverAfterFirst: true,
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "imageGallery"},
-            dependent: "imageGallery",
-            children: [
-                {
-                    render: "div",
-                    props: {className: "max-w-full"},
-                    children: [
-                        {
-                            render: "#GalleryCarousel",
-                            permissions: {read: "imageGallery"},
-                            field: {
-                                name: "imageGallery",
-                                widget: "#GalleryCarousel",
-                                widgetProps: {
                                     imageGalleryField: "imageGallery",
-                                    showThumbnails: true,
-                                    allowFullScreen: true,
-                                    coverAfterFirst: true,
+                                    videoGalleryField: "videoGallery",
+                                    showThumbnails: false,
+                                    allowFullScreen: false,
+                                    coverAfterFirst: false,
                                     showPreviews: true,
                                     previewLocation: "right",
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: {title: "videoGallery"},
-            dependent: "videoGallery",
-            children: [
-                {
-                    render: "div",
-                    props: {className: "max-w-full"},
-                    children: [
-                        {
-                            render: "#GalleryCarousel",
-                            permissions: {read: "videoGallery"},
-                            field: {
-                                name: "videoGallery",
-                                widget: "#GalleryCarousel",
-                                widgetProps: {
-                                    imageGalleryField: "videoGallery",
-                                    showThumbnails: true,
-                                    allowFullScreen: true,
                                 },
                             },
                         },
@@ -276,7 +243,7 @@ const storyFormNodes: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: {columns: 2},
+                props: {columns: 3},
                 children: [
                     {
                         render: "#Field",
@@ -332,6 +299,12 @@ const storyFormNodes: ViewConfig["nodes"] = [
                             },
                         },
                     },
+                ],
+            },
+            {
+                render: "#FormGrid",
+                props: {columns: 3},
+                children: [
                     {
                         render: "#Field",
                         field: {
@@ -350,29 +323,11 @@ const storyFormNodes: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
-                            name: "title",
-                            widget: "#Input",
-                            label: "form.titleLabel",
-                            placeholder: "form.titlePlaceholder",
-                            required: true,
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
                             name: "sortOrder",
                             widget: "#Input",
                             label: "form.sortOrderLabel",
                             placeholder: "form.sortOrderPlaceholder",
                             widgetProps: {type: "number"},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "published",
-                            widget: "#Switch",
-                            label: "form.publishedLabel",
                         },
                     },
                     {
@@ -385,28 +340,67 @@ const storyFormNodes: ViewConfig["nodes"] = [
                             widgetProps: {valueFormat: "yyyy-MM-dd"},
                         },
                     },
-                ],
+                ]
             },
             {
-                render: "#Field",
-                field: {
-                    name: "excerpt",
-                    widget: "#Textarea",
-                    label: "form.excerptLabel",
-                    placeholder: "form.excerptPlaceholder",
-                    widgetProps: {className: "resize-none max-h-[120px] overflow-y-auto"},
-                },
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "title",
+                            widget: "#Input",
+                            label: "form.titleLabel",
+                            placeholder: "form.titlePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: STORY_TITLE_MAX },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "excerpt",
+                            widget: "#Textarea",
+                            label: "form.excerptLabel",
+                            placeholder: "form.excerptPlaceholder",
+                            widgetProps: {
+                                className: "field-sizing-fixed resize-none max-h-[250px] overflow-y-auto",
+                                style: { maxHeight: 250 },
+                                maxLength: STORY_EXCERPT_MAX,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "content",
+                            widget: "#Textarea",
+                            label: "form.contentLabel",
+                            placeholder: "form.contentPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                style: { maxHeight: 250 },
+                                maxLength: STORY_CONTENT_MAX,
+                            },
+                        },
+                    },
+                ]
             },
             {
-                render: "#Field",
-                field: {
-                    name: "content",
-                    widget: "#Textarea",
-                    label: "form.contentLabel",
-                    placeholder: "form.contentPlaceholder",
-                    required: true,
-                    widgetProps: {className: "resize-none min-h-[200px] max-h-[400px] overflow-y-auto"},
-                },
+                render: "#FormGrid",
+                props: {columns: 3},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "published",
+                            widget: "#Switch",
+                            label: "form.publishedLabel",
+                        },
+                    },
+                ]
             },
         ],
     },

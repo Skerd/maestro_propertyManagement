@@ -1,6 +1,6 @@
 import {IConstructor} from "../../../database/schemas/constructor/constructor";
 import {Constructor} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.dto";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
 import {IEdifice} from "../../../database/schemas/edifice/edifice";
 
@@ -29,6 +29,7 @@ export function constructorToDTO(constructor: IConstructor, edifices?: IEdifice[
         performanceScore: constructor.performanceScore,
         ...mapSoftDeleteToDTO(constructor),
         ...mapOwnershipToDTO(constructor),
+        ...mapLifeCycleToDTO(constructor),
         logo: !!constructor.logo ? mapMedia(constructor.logo) : undefined,
         edifices: edifices && edifices.length > 0 ? edifices.map((edifice: any) => ({
             _id: edifice._id.toString(),

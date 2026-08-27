@@ -1,5 +1,5 @@
 import {ObjectId} from "mongodb";
-import {decimal128ToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import {IProject} from "../../../database/schemas/project/project";
 import {IEdifice} from "../../../database/schemas/edifice/edifice";
 import {IFloor} from "../../../database/schemas/floor/floor";
@@ -105,7 +105,7 @@ type ProjectUnitStats = {
 export function computeProjectUnitStats(units: IUnit[] | any[]): ProjectUnitStats {
     let minPrice: number | undefined;
     for (const unit of units) {
-        const price = decimal128ToNumber(unit.price);
+        const price = decimalToNumber(unit.price);
         if (price == null) {
             continue;
         }
@@ -222,7 +222,7 @@ export function mapMarketingUnitSingle(
     projectId: string,
     context: MarketingUnitSingleContext = {},
 ): MarketingUnitSingleDTO {
-    const price = decimal128ToNumber(unit.price);
+    const price = decimalToNumber(unit.price);
     const {floor, edifice, totalFloorsInEdifice, projectName} = context;
     const floorLevel = floor?.levelNumber;
     const grossArea = unit.area ?? undefined;

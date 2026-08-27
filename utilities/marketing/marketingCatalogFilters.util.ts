@@ -1,4 +1,4 @@
-import {decimal128ToNumber} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
 import {UnitStatus, IUnit} from "../../database/schemas/unit/unit";
 import type {
     MarketingProjectCatalogListItem,
@@ -41,7 +41,7 @@ function unitAreaSqm(unit: IUnit | any): number | undefined {
 }
 
 function unitPrice(unit: IUnit | any): number | undefined {
-    return decimal128ToNumber(unit.price);
+    return decimalToNumber(unit.price);
 }
 
 function unitBedrooms(unit: IUnit | any): number | undefined {

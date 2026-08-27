@@ -1,4 +1,4 @@
-import {decimal128ToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import {IProject} from "../../../database/schemas/project/project";
 import {IEdifice} from "../../../database/schemas/edifice/edifice";
 import {IFloor} from "../../../database/schemas/floor/floor";
@@ -138,7 +138,7 @@ export function mapMarketingUnitCatalogListItem(
     floor: IFloor | any,
     edifice: IEdifice | any,
 ): MarketingUnitCatalogListItem {
-    const price = decimal128ToNumber(unit.price);
+    const price = decimalToNumber(unit.price);
     return {
         _id: objectIdToString(unit._id),
         name: unit.name,
@@ -169,7 +169,7 @@ function mapEdificePricePerSqmHistory(units: IUnit[] | any[]): MarketingEdificeP
         }
         const history = Array.isArray(unit.priceHistory) ? unit.priceHistory : [];
         for (const entry of history) {
-            const price = decimal128ToNumber(entry?.price);
+            const price = decimalToNumber(entry?.price);
             if (price == null || !Number.isFinite(price)) {
                 continue;
             }
@@ -282,7 +282,7 @@ export function mapMarketingProjectCatalogSingle(
                 }
                 return currency.name || currency.abbreviation || currency.symbol || undefined;
             };
-            const investedAmount = decimal128ToNumber(edifice.investmentValue);
+            const investedAmount = decimalToNumber(edifice.investmentValue);
             const investedCurrency = formatCurrencyLabel(edifice.investmentCurrency);
             const saleCurrency = formatCurrencyLabel(edifice.saleCurrency);
             const constructors = Array.isArray(edifice.constructors)

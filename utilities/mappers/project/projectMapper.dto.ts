@@ -4,7 +4,7 @@ import {
     ProjectEdificeCoordinate,
     ProjectStatistics
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.dto";
-import {decimal128ToNumber, mapMedia} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber, mapMedia} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
@@ -16,8 +16,8 @@ export function projectToDTO(project: IProject, statistics?: ProjectStatistics, 
         _id: project._id.toString(),
         name: project.name,
         description: project.description,
-        saleCommissionRatePercent: decimal128ToNumber(project.saleCommissionRatePercent),
-        reservationCommissionRatePercent: decimal128ToNumber(project.reservationCommissionRatePercent),
+        saleCommissionRatePercent: decimalToNumber(project.saleCommissionRatePercent),
+        reservationCommissionRatePercent: decimalToNumber(project.reservationCommissionRatePercent),
         mainImage: project.mainImage ? mapMedia(project.mainImage) : undefined,
         imageGallery: !!project.imageGallery ? project.imageGallery?.map(mapMedia) : undefined,
         videoGallery: !!project.videoGallery ? project.videoGallery?.map(mapMedia) : undefined,

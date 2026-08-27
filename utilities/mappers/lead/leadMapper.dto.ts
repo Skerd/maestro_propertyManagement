@@ -6,7 +6,7 @@ import {
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {
-    decimal128ToNumber,
+    decimalToNumber,
     mapPopulatedRef,
     mapPopulatedSimpleCurrency,
     mapPopulatedSimpleUser
@@ -43,7 +43,7 @@ export function leadToDTO(lead: ILead): Lead {
             name:       unitInterest.name,
             unitNumber: unitInterest.unitNumber,
         } : undefined,
-        budget:         decimal128ToNumber(lead.budget),
+        budget:         decimalToNumber(lead.budget),
         budgetCurrency: mapPopulatedSimpleCurrency(lead.budgetCurrency as any),
         notes:          lead.notes,
         chat: chat ? {

@@ -3,7 +3,7 @@ import authMW, {NotAuthenticatedMWType} from "@coreModule/utilities/middlewares/
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import {decimal128ToNumber} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
 import {projectService} from "../../../database/schemas/project/project.service";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {
@@ -27,7 +27,7 @@ router.post(
 );
 
 function toNumber(value: unknown): number {
-    const n = decimal128ToNumber(value);
+    const n = decimalToNumber(value);
     return n == null || Number.isNaN(n) ? 0 : n;
 }
 

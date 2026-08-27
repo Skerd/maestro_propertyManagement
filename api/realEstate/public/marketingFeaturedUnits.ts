@@ -3,7 +3,7 @@ import authMW, {NotAuthenticatedMWType} from "@coreModule/utilities/middlewares/
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import {decimal128ToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {
     marketingFeaturedUnitsFormSchema
@@ -81,7 +81,7 @@ async function marketingFeaturedUnits(
         const floor = unit.floor;
         const edifice = floor?.edifice;
         const project = edifice?.project;
-        const price = decimal128ToNumber(unit.price);
+        const price = decimalToNumber(unit.price);
 
         return {
             _id: objectIdToString(unit._id),

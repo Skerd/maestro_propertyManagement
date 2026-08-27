@@ -8,14 +8,6 @@ import {runMilestoneSlippageReminders} from "../../utilities/cronJobs/milestoneS
 import {runTenderDeadlineReminders} from "../../utilities/cronJobs/tenderDeadlineReminderJob";
 import {runMaintenanceDue} from "../../utilities/cronJobs/maintenanceDueJob";
 
-const GLOBAL_CRON = {
-    type: "cron" as const,
-    timezone: "UTC",
-    singleton: true,
-    executionStrategy: "distributed" as const,
-    scope: "global" as const,
-};
-
 export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
         code: "propertyManagement.reservationExpirationReminder",
@@ -25,7 +17,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Reservation expiration reminder",
-            ...GLOBAL_CRON,
             cronExpression: "0 10 8 * * *",
             priority: 15,
         },
@@ -39,7 +30,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Payment plan installment reminder",
-            ...GLOBAL_CRON,
             cronExpression: "0 12 8 * * *",
             priority: 15,
         },
@@ -53,7 +43,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Modification request SLA escalation",
-            ...GLOBAL_CRON,
             cronExpression: "0 20 8 * * *",
             priority: 15,
         },
@@ -67,7 +56,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Rental payment overdue and lease expiry",
-            ...GLOBAL_CRON,
             cronExpression: "0 15 8 * * *",
             priority: 15,
         },
@@ -81,7 +69,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Permit expiry reminder",
-            ...GLOBAL_CRON,
             cronExpression: "0 25 8 * * *",
             priority: 15,
         },
@@ -95,7 +82,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Milestone slippage reminder",
-            ...GLOBAL_CRON,
             cronExpression: "0 30 8 * * *",
             priority: 15,
         },
@@ -109,7 +95,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Tender deadline reminder",
-            ...GLOBAL_CRON,
             cronExpression: "0 35 8 * * *",
             priority: 15,
         },
@@ -123,7 +108,6 @@ export function registerPropertyManagementCronHandlers(): void {
         version: "1",
         defaultJob: {
             name: "Maintenance due",
-            ...GLOBAL_CRON,
             cronExpression: "0 40 8 * * *",
             priority: 15,
         },

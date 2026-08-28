@@ -112,6 +112,7 @@ export async function capturePublicChatLead(
 
     const lead = await leadService.create(
         {
+            //@ts-ignore
             company: companyId,
             firstName,
             ...(lastName ? {lastName} : {}),

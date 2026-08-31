@@ -20,6 +20,16 @@ export const projectSheetView: ViewConfig = {
         // ── Overview ─────────────────────────────────────────────────
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "saleCommissionRatePercent",
+                    "reservationCommissionRatePercent",
+                    "featuredOnHomepage",
+                    "featuredSortOrder",
+                    "description",
+                ],
+            },
             props: { title: "overview" },
             children: [
                 {
@@ -40,7 +50,7 @@ export const projectSheetView: ViewConfig = {
                 },
                 {
                     render: "#SheetGrid",
-                    props: { columns: 3 },
+                    props: {columns: 4},
                     children: [
                         {
                             render: "#DisplayCard",
@@ -85,6 +95,20 @@ export const projectSheetView: ViewConfig = {
                                 },
                             },
                         },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {
+                                read: "featuredSortOrder",
+                            },
+                            field: {
+                                name: "featuredSortOrder",
+                                widget: "#DisplayCard",
+                                label: "featuredSortOrder",
+                                widgetProps: {
+                                    icon: "#BookMarked",
+                                },
+                            },
+                        },
                     ],
                 },
                 {
@@ -94,7 +118,6 @@ export const projectSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "description" },
-                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",
@@ -114,7 +137,7 @@ export const projectSheetView: ViewConfig = {
         // ── Statistics (conditional on statistics object existing) ───
         {
             render: "#SheetGroup",
-            dependent: "statistics",
+            dependentAny: ["statistics"],
             dependentRuntimeOnly: true,
             props: { title: "statisticsTitle" },
             children: [
@@ -462,12 +485,11 @@ export const projectSheetView: ViewConfig = {
                         titleActions: "#ReferencesViewModeToggle",
                         defaultOpen: false,
                     },
-                    dependent: "socialLinks",
-                    permissions: { read: "socialLinks" },
+                    permissions: { readAny: ["socialLinks"] },
                     children: [
                         {
                             render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50 max-w-full" },
                             children: [
                                 {
                                     render: "#SheetEmbeddedItemsList",
@@ -481,7 +503,7 @@ export const projectSheetView: ViewConfig = {
                                             fields: [
                                                 { name: "logo", type: "mediaStrip", labelKey: "socialLinkLogo" },
                                                 { name: "name", type: "text", className: "text-sm font-medium", labelKey: "socialLinkName" },
-                                                { name: "link", type: "text", className: "text-sm", labelKey: "socialLinkUrl" },
+                                                { name: "link", type: "url", className: "text-sm", labelKey: "socialLinkUrl" },
                                             ],
                                         },
                                     },
@@ -496,6 +518,7 @@ export const projectSheetView: ViewConfig = {
         // ── Gallery ──────────────────────────────────────────────────
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
             props: { title: "gallery" },
             children: [
                 {
@@ -526,9 +549,7 @@ export const projectSheetView: ViewConfig = {
         // ── Media Files ──────────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "mediaFiles",
-            dependentRuntimeOnly: true,
-            permissions: { read: "mediaFiles" },
+            permissions: { readAny: ["mediaFiles"] },
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -556,9 +577,7 @@ export const projectSheetView: ViewConfig = {
         // ── Marketing Booklet ────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "marketingBooklet",
-            dependentRuntimeOnly: true,
-            permissions: { read: "marketingBooklet" },
+            permissions: { readAny: ["marketingBooklet"] },
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -586,9 +605,7 @@ export const projectSheetView: ViewConfig = {
         // ── Magazine ─────────────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "magazineTitle",
-            dependentRuntimeOnly: true,
-            permissions: { read: "magazineTitle" },
+            permissions: { readAny: ["magazineTitle", "magazineDescription", "magazineFile"] },
             props: { title: "magazine" },
             children: [
                 {
@@ -608,7 +625,6 @@ export const projectSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "magazineDescription" },
-                            dependent: "magazineDescription",
                             field: {
                                 name: "magazineDescription",
                                 widget: "#DisplayCard",
@@ -620,23 +636,16 @@ export const projectSheetView: ViewConfig = {
                                 },
                             },
                         },
-                    ],
-                },
-                {
-                    render: "div",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
-                    dependent: "magazineFile",
-                    children: [
                         {
-                            render: "#SheetMediaFilesStrip",
+                            render: "#DisplayCard",
                             permissions: { read: "magazineFile" },
                             field: {
                                 name: "magazineFile",
-                                widget: "#SheetMediaFilesStrip",
+                                widget: "#DisplayCard",
+                                label: "magazineFile",
                                 widgetProps: {
-                                    canDownload: true,
-                                    canRemove: false,
-                                    isBig: false,
+                                    icon: "#Paperclip",
+                                    type: "media",
                                 },
                             },
                         },
@@ -648,7 +657,7 @@ export const projectSheetView: ViewConfig = {
     ],
 };
 
-const projectFormFields: ViewConfig["nodes"] = [
+const projectCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "generalInfo" },
@@ -722,7 +731,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.mainImageLabel" },
-        permissions: { write: "mainImage" },
         children: [
             {
                 render: "#Field",
@@ -740,7 +748,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.imageGalleryLabel" },
-        permissions: { write: "imageGallery" },
         children: [
             {
                 render: "#Field",
@@ -758,7 +765,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.videoGalleryLabel" },
-        permissions: { write: "videoGallery" },
         children: [
             {
                 render: "#Field",
@@ -776,7 +782,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.mediaFilesLabel" },
-        permissions: { write: "mediaFiles" },
         children: [
             {
                 render: "#Field",
@@ -794,7 +799,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.marketingBookletLabel" },
-        permissions: { write: "marketingBooklet" },
         children: [
             {
                 render: "#Field",
@@ -812,7 +816,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.magazineSectionTitle" },
-        permissions: { write: "magazineFile" },
         children: [
             {
                 render: "#FormGrid",
@@ -860,7 +863,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "homepageFeatured" },
-        permissions: { write: "featuredOnHomepage" },
         children: [
             {
                 render: "#FormGrid",
@@ -892,7 +894,6 @@ const projectFormFields: ViewConfig["nodes"] = [
     // ── Social / follow links ───────────────────────────────────
     {
         render: "#Field",
-        permissions: { write: "socialLinks" },
         field: {
             name: "socialLinks",
             widget: "#FormRepeater",
@@ -948,6 +949,321 @@ const projectFormFields: ViewConfig["nodes"] = [
     },
 ];
 
+const projectEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "generalInfo" },
+        permissions: {
+            readAny: ["name", "description"],
+            writeAny: ["name", "description"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "name",
+                            widget: "#Input",
+                            label: "form.nameLabel",
+                            placeholder: "form.namePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: PROJECT_SHORT_TEXT_MAX },
+                        }, permissions: {read: "name", write: "name"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "description",
+                            widget: "#Textarea",
+                            label: "form.descriptionLabel",
+                            placeholder: "form.descriptionPlaceholder",
+                            widgetProps: {
+                                className: "resize-none max-h-[250px] overflow-y-auto",
+                                maxLength: PROJECT_LONG_TEXT_MAX,
+                            },
+                        }, permissions: {read: "description", write: "description"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "commissions" },
+        permissions: {
+            readAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
+            writeAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "saleCommissionRatePercent",
+                            widget: "#Input",
+                            label: "form.saleCommissionRateLabel",
+                            placeholder: "form.saleCommissionRatePlaceholder",
+                            widgetProps: { type: "decimal", min: 0, max: 100, step: "0.0001" },
+                        }, permissions: {read: "saleCommissionRatePercent", write: "saleCommissionRatePercent"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "reservationCommissionRatePercent",
+                            widget: "#Input",
+                            label: "form.reservationCommissionRateLabel",
+                            placeholder: "form.reservationCommissionRatePlaceholder",
+                            widgetProps: { type: "decimal", min: 0, max: 100, step: "0.0001" },
+                        }, permissions: {read: "reservationCommissionRatePercent", write: "reservationCommissionRatePercent"},
+                    },
+                ],
+            },
+        ],
+    },
+
+    // ── Main image (single image picker) ────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.mainImageLabel" },
+        permissions: { readAny: ["mainImage"], writeAny: ["mainImage"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mainImage",
+                    widget: "#MediaField",
+                    label: "form.mainImageLabel",
+                    widgetProps: { mediaType: "image", mode: "single" },
+                }, permissions: {write: "mainImage", read: "mainImage"},
+            },
+        ],
+    },
+
+    // ── Image gallery (multiple image picker) ───────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.imageGalleryLabel" },
+        permissions: { readAny: ["imageGallery"], writeAny: ["imageGallery"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "imageGallery",
+                    widget: "#MediaField",
+                    label: "form.imageGalleryLabel",
+                    widgetProps: { mediaType: "image", mode: "multiple", maxCount: 10 },
+                }, permissions: {write: "imageGallery", read: "imageGallery"},
+            },
+        ],
+    },
+
+    // ── Video gallery (multiple video picker) ───────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.videoGalleryLabel" },
+        permissions: { readAny: ["videoGallery"], writeAny: ["videoGallery"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "videoGallery",
+                    widget: "#MediaField",
+                    label: "form.videoGalleryLabel",
+                    widgetProps: { mediaType: "video", mode: "multiple", maxCount: 3 },
+                }, permissions: {read: "videoGallery", write: "videoGallery"},
+            },
+        ],
+    },
+
+    // ── Media files (generic file attachments) ──────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.mediaFilesLabel" },
+        permissions: { readAny: ["mediaFiles"], writeAny: ["mediaFiles"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mediaFiles",
+                    widget: "#MediaField",
+                    label: "form.mediaFilesLabel",
+                    widgetProps: { mediaType: "file", mode: "multiple", maxCount: 20 },
+                }, permissions: {read: "mediaFiles", write: "mediaFiles"},
+            },
+        ],
+    },
+
+    // ── Marketing Booklet (single PDF) ──────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.marketingBookletLabel" },
+        permissions: { readAny: ["marketingBooklet"], writeAny: ["marketingBooklet"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "marketingBooklet",
+                    widget: "#MediaField",
+                    label: "form.marketingBookletLabel",
+                    widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
+                }, permissions: {read: "marketingBooklet", write: "marketingBooklet"},
+            },
+        ],
+    },
+
+    // ── Magazine (journal PDF + copy) ───────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.magazineSectionTitle" },
+        permissions: {
+            readAny: ["magazineTitle", "magazineDescription", "magazineFile"],
+            writeAny: ["magazineTitle", "magazineDescription", "magazineFile"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "magazineTitle",
+                            widget: "#Input",
+                            label: "form.magazineTitleLabel",
+                            placeholder: "form.magazineTitlePlaceholder",
+                            widgetProps: { maxLength: PROJECT_SHORT_TEXT_MAX },
+                        }, permissions: {read: "magazineTitle", write: "magazineTitle"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "magazineDescription",
+                            widget: "#Textarea",
+                            label: "form.magazineDescriptionLabel",
+                            placeholder: "form.magazineDescriptionPlaceholder",
+                            widgetProps: {
+                                className:
+                                    "min-h-[120px] max-h-[280px] w-full resize-y overflow-y-auto leading-relaxed",
+                                maxLength: PROJECT_LONG_TEXT_MAX,
+                            },
+                        }, permissions: {read: "magazineDescription", write: "magazineDescription"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "magazineFile",
+                            widget: "#MediaField",
+                            label: "form.magazineFileLabel",
+                            widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
+                        }, permissions: {read: "magazineFile", write: "magazineFile"},
+                    },
+                ],
+            },
+        ],
+    },
+
+    // ── Homepage featured carousel ──────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "homepageFeatured" },
+        permissions: {
+            readAny: ["featuredOnHomepage", "featuredSortOrder"],
+            writeAny: ["featuredOnHomepage", "featuredSortOrder"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        }, permissions: {read: "featuredOnHomepage", write: "featuredOnHomepage"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        }, permissions: {write: "featuredSortOrder", read: "featuredSortOrder"},
+                    },
+                ],
+            },
+        ],
+    },
+
+    // ── Social / follow links ───────────────────────────────────
+    {
+        render: "#Field",
+        permissions: { readAny: ["socialLinks"], writeAny: ["socialLinks"] },
+        field: {
+            name: "socialLinks",
+            widget: "#FormRepeater",
+            widgetProps: {
+                title: "form.socialLinksSectionTitle",
+                arrayField: "socialLinks",
+                defaultItem: { name: "", link: "" },
+                addLabel: "form.socialLinkAddRow",
+                removeLabel: "form.socialLinkRemoveRow",
+                rowTitleFields: ["name"],
+                rowTitlePlaceholder: "form.socialLinkRowTitle",
+                rowTemplate: [
+                    {
+                        render: "div",
+                        props: { className: "space-y-4" },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "name",
+                                    widget: "#Input",
+                                    label: "form.socialLinkNameLabel",
+                                    placeholder: "form.socialLinkNamePlaceholder",
+                                    required: true,
+                                    widgetProps: { maxLength: PROJECT_SHORT_TEXT_MAX },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "link",
+                                    widget: "#Input",
+                                    label: "form.socialLinkUrlLabel",
+                                    placeholder: "form.socialLinkUrlPlaceholder",
+                                    required: true,
+                                    widgetProps: { type: "url", maxLength: PROJECT_URL_MAX },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "logo",
+                                    widget: "#MediaField",
+                                    label: "form.socialLinkLogoLabel",
+                                    widgetProps: { mediaType: "image", mode: "single" },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    },
+];
+
+
 export const projectCreateFormView: ViewConfig = {
     model: "projects",
     viewType: "form",
@@ -955,7 +1271,7 @@ export const projectCreateFormView: ViewConfig = {
     accessModel: "projects",
     apiUrl: "/api/realEstate/project",
     method: "PUT",
-    nodes: projectFormFields,
+    nodes: projectCreateFormNode,
 };
 
 export const projectEditFormView: ViewConfig = {
@@ -965,7 +1281,7 @@ export const projectEditFormView: ViewConfig = {
     accessModel: "projects",
     apiUrl: "/api/realEstate/project",
     method: "PATCH",
-    nodes: projectFormFields,
+    nodes: projectEditFormNode,
 };
 
 export const projectViews: ViewConfig[] = [projectSheetView, projectCreateFormView, projectEditFormView];

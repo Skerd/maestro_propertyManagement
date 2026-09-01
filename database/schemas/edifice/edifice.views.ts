@@ -25,6 +25,19 @@ export const edificeSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "project",
+                    "totalArea",
+                    "greenArea",
+                    "distanceFromCityCenter",
+                    "investmentValue",
+                    "pricePerMeterSquared",
+                    "verandaPricePerMeterSquared",
+                    "saleCurrency",
+                ],
+            },
             props: { title: "overview" },
             children: [
                 {
@@ -171,6 +184,15 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "numberOfFloors",
+                    "numberOfFloorsAboveGround",
+                    "numberOfFloorsUnderGround",
+                    "numberOfParkingSpaces",
+                    "numberOfGarages",
+                ],
+            },
             props: { title: "buildingDetails" },
             children: [
                 {
@@ -234,6 +256,15 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "constructionStartDate",
+                    "expectedCompletionDate",
+                    "actualCompletionDate",
+                    "buildingPermitNumber",
+                    "energyClass",
+                ],
+            },
             props: { title: "constructionTimeline" },
             children: [
                 {
@@ -297,9 +328,9 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            props: { title: "statisticsTitle" },
-            dependent: "statistics",
+            dependentAny: ["statistics"],
             dependentRuntimeOnly: true,
+            props: { title: "statisticsTitle" },
             children: [
                 {
                     render: "#SheetGrid",
@@ -570,6 +601,7 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["propertyTypes"] },
             props: { title: "propertyTypes" },
             children: [
                 {
@@ -602,6 +634,7 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["commercialFacilities", "neighborhoodFacilities"] },
             props: { title: "facilities" },
             children: [
                 {
@@ -643,6 +676,7 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["constructors"] },
             props: { title: "constructors" },
             children: [
                 {
@@ -682,6 +716,7 @@ export const edificeSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGroup",
+                    permissions: { readAny: ["address"] },
                     props: {
                         title: "address",
                         titleActions: "#ReferencesViewModeToggle",
@@ -711,6 +746,7 @@ export const edificeSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
             props: { title: "gallery" },
             children: [
                 {
@@ -741,9 +777,7 @@ export const edificeSheetView: ViewConfig = {
         // ── Media Files ──────────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "mediaFiles",
-            dependentRuntimeOnly: true,
-            permissions: { read: "mediaFiles" },
+            permissions: { readAny: ["mediaFiles"] },
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -771,9 +805,7 @@ export const edificeSheetView: ViewConfig = {
         // ── Marketing Booklet ────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "marketingBooklet",
-            dependentRuntimeOnly: true,
-            permissions: { read: "marketingBooklet" },
+            permissions: { readAny: ["marketingBooklet"] },
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -801,7 +833,7 @@ export const edificeSheetView: ViewConfig = {
     ],
 };
 
-const edificeFormFields: ViewConfig["nodes"] = [
+const edificeCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "generalInfo" },
@@ -828,6 +860,7 @@ const edificeFormFields: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.projectLabel",
                             placeholder: "form.projectPlaceholder",
+                            required: true,
                             widgetProps: { apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50 },
                         },
                     },
@@ -1030,7 +1063,6 @@ const edificeFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "edificeLocationOnProject" },
-        permissions: { write: "polygonCoordinates" },
         children: [
             {
                 render: "#Field",
@@ -1302,7 +1334,6 @@ const edificeFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.mainImageLabel" },
-        permissions: { write: "mainImage" },
         children: [
             {
                 render: "#Field",
@@ -1318,7 +1349,6 @@ const edificeFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.imageGalleryLabel" },
-        permissions: { write: "imageGallery" },
         children: [
             {
                 render: "#Field",
@@ -1334,7 +1364,6 @@ const edificeFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.videoGalleryLabel" },
-        permissions: { write: "videoGallery" },
         children: [
             {
                 render: "#Field",
@@ -1352,7 +1381,6 @@ const edificeFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.mediaFilesLabel" },
-        permissions: { write: "mediaFiles" },
         children: [
             {
                 render: "#Field",
@@ -1370,7 +1398,6 @@ const edificeFormFields: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.marketingBookletLabel" },
-        permissions: { write: "marketingBooklet" },
         children: [
             {
                 render: "#Field",
@@ -1392,8 +1419,663 @@ export const edificeCreateFormView: ViewConfig = {
     accessModel: "edifices",
     apiUrl: "/api/realEstate/edifice",
     method: "PUT",
-    nodes: edificeFormFields,
+    nodes: edificeCreateFormNode,
 };
+
+const edificeEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "generalInfo" },
+        permissions: {
+            readAny: ["name", "project"],
+            writeAny: ["name", "project"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "name",
+                            widget: "#Input",
+                            label: "form.nameLabel",
+                            placeholder: "form.namePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: EDIFICE_SHORT_TEXT_MAX },
+                        }, permissions: {read: "name", write: "name"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            widgetProps: { apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50 },
+                        }, permissions: {read: "project", write: "project"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "address" },
+        permissions: {
+            readAny: ["address"],
+            writeAny: ["address"],
+        },
+        children: [
+            {
+                render: "div",
+                props: {className: "grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch"},
+                children: [
+                    {
+                        render: "div",
+                        props: {className: "lg:col-span-2 space-y-6 min-w-0"},
+                        children: [
+                            {
+                                render: "#FormGrid",
+                                props: {columns: 3, className: "gap-6"},
+                                children: [
+                                    {
+                                        render: "#Field",
+                                        field: {
+                                            name: "address.country",
+                                            widget: "#ApiSelect",
+                                            label: "form.countryLabel",
+                                            placeholder: "form.countryPlaceholder",
+                                            widgetProps: {
+                                                apiUrl: "/api/auxiliary/country/select",
+                                                method: "POST",
+                                                pageSize: 50,
+                                                cascadeClearFormFields: ["address.state", "address.city"],
+                                            },
+                                        }, permissions: {read: "address", write: "address"},
+                                    },
+                                    {
+                                        render: "#Field",
+                                        field: {
+                                            name: "address.state",
+                                            widget: "#ApiSelect",
+                                            label: "form.stateLabel",
+                                            placeholder: "form.statePlaceholder",
+                                            widgetProps: {
+                                                apiUrl: "/api/auxiliary/state/select",
+                                                method: "POST",
+                                                pageSize: 50,
+                                                postBodyFromFormFields: [{field: "address.country", paramName: "country"}],
+                                                enableWhenFormFieldsNonEmpty: ["address.country"],
+                                                cascadeClearFormFields: ["address.city"],
+                                            },
+                                        }, permissions: {read: "address", write: "address"},
+                                    },
+                                    {
+                                        render: "#Field",
+                                        field: {
+                                            name: "address.city",
+                                            widget: "#ApiSelect",
+                                            label: "form.cityLabel",
+                                            placeholder: "form.cityPlaceholder",
+                                            widgetProps: {
+                                                apiUrl: "/api/auxiliary/city/select",
+                                                method: "POST",
+                                                pageSize: 50,
+                                                postBodyFromFormFields: [
+                                                    {field: "address.country", paramName: "country"},
+                                                    {field: "address.state", paramName: "state"},
+                                                ],
+                                                enableWhenFormFieldsNonEmpty: ["address.country"],
+                                            },
+                                        }, permissions: {read: "address", write: "address"},
+                                    },
+                                ],
+                            },
+                            {
+                                render: "#FormGrid",
+                                props: {columns: 2, className: "gap-6"},
+                                children: [
+                                    {
+                                        render: "#Field",
+                                        field: {
+                                            name: "address.street",
+                                            widget: "#Input",
+                                            label: "form.streetLabel",
+                                            placeholder: "form.streetPlaceholder",
+                                            widgetProps: { maxLength: EDIFICE_STREET_MAX },
+                                        }, permissions: {read: "address", write: "address"},
+                                    },
+                                    {
+                                        render: "#Field",
+                                        field: {
+                                            name: "address.postalCode",
+                                            widget: "#Input",
+                                            label: "form.postalCodeLabel",
+                                            placeholder: "form.postalCodePlaceholder",
+                                            widgetProps: { maxLength: EDIFICE_POSTAL_CODE_MAX },
+                                        }, permissions: {read: "address", write: "address"},
+                                    },
+                                ],
+                            },
+                            {
+                                render: "#FormGrid",
+                                props: {columns: 2, className: "gap-6"},
+                                children: [
+                                    {
+                                        render: "#Field",
+                                        field: {name: "address.latitude", widget: "#Input", label: "form.latitudeLabel", placeholder: "form.latitudePlaceholder", widgetProps: {type: "number", step: "0.000001"}},
+                                        permissions: {read: "address", write: "address"},
+                                    },
+                                    {
+                                        render: "#Field",
+                                        field: {name: "address.longitude", widget: "#Input", label: "form.longitudeLabel", placeholder: "form.longitudePlaceholder", widgetProps: {type: "number", step: "0.000001"}},
+                                        permissions: {read: "address", write: "address"},
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        render: "div",
+                        props: {className: "flex flex-col lg:col-span-1 w-full min-h-[220px] h-[220px] lg:h-full lg:min-h-[220px]"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "_addressMap",
+                                    widget: "#FormMapPinPicker",
+                                    skipWriteAccessGate: true,
+                                    widgetProps: {fieldPrefix: "address", latField: "latitude", lngField: "longitude", defaultLat: 41.3275, defaultLng: 19.8189},
+                                }, permissions: {read: "address", write: "address"},
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "investment" },
+        permissions: {
+            readAny: [
+                "investmentValue",
+                "investmentCurrency",
+                "pricePerMeterSquared",
+                "verandaPricePerMeterSquared",
+                "saleCurrency",
+            ],
+            writeAny: [
+                "investmentValue",
+                "investmentCurrency",
+                "pricePerMeterSquared",
+                "verandaPricePerMeterSquared",
+                "saleCurrency",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "investmentValue",
+                            widget: "#Input",
+                            label: "form.investmentValueLabel",
+                            placeholder: "form.investmentValuePlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "investmentValue", write: "investmentValue"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "investmentCurrency",
+                            widget: "#ApiSelect",
+                            label: "form.investmentCurrencyLabel",
+                            placeholder: "form.investmentCurrencyPlaceholder",
+                            widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
+                        }, permissions: {read: "investmentCurrency", write: "investmentCurrency"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "pricePerMeterSquared",
+                            widget: "#Input",
+                            label: "form.pricePerMeterSquaredLabel",
+                            placeholder: "form.pricePerMeterSquaredPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "pricePerMeterSquared", write: "pricePerMeterSquared"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "verandaPricePerMeterSquared",
+                            widget: "#Input",
+                            label: "form.verandaPricePerMeterSquareLabel",
+                            placeholder: "form.verandaPricePerMeterSquarePlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "verandaPricePerMeterSquared", write: "verandaPricePerMeterSquared"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "saleCurrency",
+                            widget: "#ApiSelect",
+                            label: "form.saleCurrencyLabel",
+                            placeholder: "form.saleCurrencyPlaceholder",
+                            widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
+                        }, permissions: {read: "saleCurrency", write: "saleCurrency"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "edificeLocationOnProject" },
+        permissions: {
+            readAny: ["polygonCoordinates"],
+            writeAny: ["polygonCoordinates"],
+        },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "__edificeProjectPolygon",
+                    widget: "#FormEdificePolygon",
+                    widgetProps: {
+                        polygonField: "polygonCoordinates",
+                        projectField: "project",
+                        hintKey: "selectEdificeLocationOnProject",
+                        errorTitleKey: "polygonSelectorErrorTitle",
+                        errorLoadingKey: "errorLoadingProject",
+                        noImageKey: "projectNoMainImage",
+                    },
+                }, permissions: {read: "polygonCoordinates", write: "polygonCoordinates"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "constructors" },
+        permissions: { readAny: ["constructors"], writeAny: ["constructors"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "constructors",
+                    widget: "#FormObjectIdChips",
+                    widgetProps: {
+                        apiUrl: "/api/realEstate/constructor/select",
+                        method: "POST",
+                        placeholderKey: "form.selectConstructor",
+                        removeTooltipKey: "removeConstructor",
+                        selectPageSizeCreate: 50,
+                        selectPageSizeEdit: 200,
+                        labelRefFormExtraKey: "constructors",
+                    },
+                }, permissions: {read: "constructors", write: "constructors"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "propertyTypes" },
+        permissions: { readAny: ["propertyTypes"], writeAny: ["propertyTypes"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "propertyTypes",
+                    widget: "#FormObjectIdChips",
+                    widgetProps: {
+                        apiUrl: "/api/realEstate/unitType/select",
+                        method: "POST",
+                        placeholderKey: "form.selectPropertyType",
+                        removeTooltipKey: "removePropertyType",
+                        selectPageSizeCreate: 50,
+                        selectPageSizeEdit: 200,
+                        labelRefFormExtraKey: "propertyTypes",
+                    },
+                }, permissions: {read: "propertyTypes", write: "propertyTypes"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "areaAndDistance" },
+        permissions: {
+            readAny: ["totalArea", "greenArea", "distanceFromCityCenter"],
+            writeAny: ["totalArea", "greenArea", "distanceFromCityCenter"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "totalArea",
+                            widget: "#Input",
+                            label: "form.totalAreaLabel",
+                            placeholder: "form.totalAreaPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "totalArea", write: "totalArea"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "greenArea",
+                            widget: "#Input",
+                            label: "form.greenAreaLabel",
+                            placeholder: "form.greenAreaPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "greenArea", write: "greenArea"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "distanceFromCityCenter",
+                            widget: "#Input",
+                            label: "form.distanceFromCityCenterLabel",
+                            placeholder: "form.distanceFromCityCenterPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "distanceFromCityCenter", write: "distanceFromCityCenter"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "buildingDetails" },
+        permissions: {
+            readAny: [
+                "numberOfFloors",
+                "numberOfFloorsAboveGround",
+                "numberOfFloorsUnderGround",
+                "numberOfParkingSpaces",
+                "numberOfGarages",
+            ],
+            writeAny: [
+                "numberOfFloors",
+                "numberOfFloorsAboveGround",
+                "numberOfFloorsUnderGround",
+                "numberOfParkingSpaces",
+                "numberOfGarages",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "numberOfFloors",
+                            widget: "#Input",
+                            label: "form.numberOfFloorsLabel",
+                            placeholder: "form.numberOfFloorsPlaceholder",
+                            widgetProps: { type: "number", min: 0 },
+                        }, permissions: {read: "numberOfFloors", write: "numberOfFloors"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "numberOfFloorsAboveGround",
+                            widget: "#Input",
+                            label: "form.numberOfFloorsAboveGroundLabel",
+                            placeholder: "form.numberOfFloorsAboveGroundPlaceholder",
+                            widgetProps: { type: "number", min: 0 },
+                        }, permissions: {read: "numberOfFloorsAboveGround", write: "numberOfFloorsAboveGround"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "numberOfFloorsUnderGround",
+                            widget: "#Input",
+                            label: "form.numberOfFloorsUnderGroundLabel",
+                            placeholder: "form.numberOfFloorsUnderGroundPlaceholder",
+                            widgetProps: { type: "number", min: 0 },
+                        }, permissions: {read: "numberOfFloorsUnderGround", write: "numberOfFloorsUnderGround"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "numberOfParkingSpaces",
+                            widget: "#Input",
+                            label: "form.numberOfParkingSpacesLabel",
+                            placeholder: "form.numberOfParkingSpacesPlaceholder",
+                            widgetProps: { type: "number", min: 0 },
+                        }, permissions: {read: "numberOfParkingSpaces", write: "numberOfParkingSpaces"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "numberOfGarages",
+                            widget: "#Input",
+                            label: "form.numberOfGaragesLabel",
+                            placeholder: "form.numberOfGaragesPlaceholder",
+                            widgetProps: { type: "number", min: 0 },
+                        }, permissions: {read: "numberOfGarages", write: "numberOfGarages"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "constructionTimeline" },
+        permissions: {
+            readAny: [
+                "constructionStartDate",
+                "expectedCompletionDate",
+                "actualCompletionDate",
+                "buildingPermitNumber",
+                "energyClass",
+            ],
+            writeAny: [
+                "constructionStartDate",
+                "expectedCompletionDate",
+                "actualCompletionDate",
+                "buildingPermitNumber",
+                "energyClass",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "constructionStartDate",
+                            widget: "#DateInput",
+                            label: "form.constructionStartDateLabel",
+                            placeholder: "form.constructionStartDatePlaceholder",
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        }, permissions: {read: "constructionStartDate", write: "constructionStartDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "expectedCompletionDate",
+                            widget: "#DateInput",
+                            label: "form.expectedCompletionDateLabel",
+                            placeholder: "form.expectedCompletionDatePlaceholder",
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        }, permissions: {read: "expectedCompletionDate", write: "expectedCompletionDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "actualCompletionDate",
+                            widget: "#DateInput",
+                            label: "form.actualCompletionDateLabel",
+                            placeholder: "form.actualCompletionDatePlaceholder",
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        }, permissions: {read: "actualCompletionDate", write: "actualCompletionDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "buildingPermitNumber",
+                            widget: "#Input",
+                            label: "form.buildingPermitNumberLabel",
+                            placeholder: "form.buildingPermitNumberPlaceholder",
+                            widgetProps: { maxLength: EDIFICE_PERMIT_NUMBER_MAX },
+                        }, permissions: {read: "buildingPermitNumber", write: "buildingPermitNumber"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "energyClass",
+                            widget: "#SimpleSelect",
+                            label: "form.energyClassLabel",
+                            placeholder: "form.energyClassPlaceholder",
+                            widgetProps: { options: energyClassOptions, className: "grow w-full" },
+                        }, permissions: {read: "energyClass", write: "energyClass"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "facilities" },
+        permissions: {
+            readAny: ["commercialFacilities", "neighborhoodFacilities"],
+            writeAny: ["commercialFacilities", "neighborhoodFacilities"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "commercialFacilities",
+                            widget: "#StringArrayField",
+                            label: "form.commercialFacilitiesLabel",
+                            placeholder: "form.commercialFacilitiesPlaceholder",
+                            widgetProps: {
+                                removeTooltipKey: "removeCommercialFacility",
+                                maxItems: EDIFICE_FACILITY_MAX_ITEMS,
+                                maxLength: EDIFICE_FACILITY_ITEM_MAX,
+                            },
+                        }, permissions: {read: "commercialFacilities", write: "commercialFacilities"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "neighborhoodFacilities",
+                            widget: "#StringArrayField",
+                            label: "form.neighborhoodFacilitiesLabel",
+                            placeholder: "form.neighborhoodFacilitiesPlaceholder",
+                            widgetProps: {
+                                removeTooltipKey: "removeNeighborhoodFacility",
+                                maxItems: EDIFICE_FACILITY_MAX_ITEMS,
+                                maxLength: EDIFICE_FACILITY_ITEM_MAX,
+                            },
+                        }, permissions: {read: "neighborhoodFacilities", write: "neighborhoodFacilities"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.mainImageLabel" },
+        permissions: { readAny: ["mainImage"], writeAny: ["mainImage"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mainImage",
+                    widget: "#MediaField",
+                    label: "form.mainImageLabel",
+                    widgetProps: { mediaType: "image", mode: "single" },
+                }, permissions: {read: "mainImage", write: "mainImage"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.imageGalleryLabel" },
+        permissions: { readAny: ["imageGallery"], writeAny: ["imageGallery"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "imageGallery",
+                    widget: "#MediaField",
+                    label: "form.imageGalleryLabel",
+                    widgetProps: { mediaType: "image", mode: "multiple", maxCount: 10 },
+                }, permissions: {read: "imageGallery", write: "imageGallery"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.videoGalleryLabel" },
+        permissions: { readAny: ["videoGallery"], writeAny: ["videoGallery"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "videoGallery",
+                    widget: "#MediaField",
+                    label: "form.videoGalleryLabel",
+                    widgetProps: { mediaType: "video", mode: "multiple", maxCount: 3 },
+                }, permissions: {read: "videoGallery", write: "videoGallery"},
+            },
+        ],
+    },
+
+    // ── Media files (generic file attachments) ──────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.mediaFilesLabel" },
+        permissions: { readAny: ["mediaFiles"], writeAny: ["mediaFiles"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mediaFiles",
+                    widget: "#MediaField",
+                    label: "form.mediaFilesLabel",
+                    widgetProps: { mediaType: "file", mode: "multiple", maxCount: 20 },
+                }, permissions: {read: "mediaFiles", write: "mediaFiles"},
+            },
+        ],
+    },
+
+    // ── Marketing Booklet (single PDF) ──────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.marketingBookletLabel" },
+        permissions: { readAny: ["marketingBooklet"], writeAny: ["marketingBooklet"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "marketingBooklet",
+                    widget: "#MediaField",
+                    label: "form.marketingBookletLabel",
+                    widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
+                }, permissions: {read: "marketingBooklet", write: "marketingBooklet"},
+            },
+        ],
+    },
+];
 
 export const edificeEditFormView: ViewConfig = {
     model: "edifices",
@@ -1402,7 +2084,7 @@ export const edificeEditFormView: ViewConfig = {
     accessModel: "edifices",
     apiUrl: "/api/realEstate/edifice",
     method: "PATCH",
-    nodes: edificeFormFields,
+    nodes: edificeEditFormNode,
 };
 
 export const edificeViews: ViewConfig[] = [edificeSheetView, edificeCreateFormView, edificeEditFormView];

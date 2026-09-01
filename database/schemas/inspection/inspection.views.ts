@@ -63,6 +63,7 @@ function inspectionFindingsCategoryNodes(): ViewNode[] {
         children: [
             {
                 render: "#SheetGroup",
+                permissions: { readAny: ["findings"] },
                 props: {
                     title: key,
                     titleIcon: INSPECTION_FINDING_META[key].titleIcon,
@@ -118,6 +119,9 @@ export const inspectionSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: ["unit", "type", "status", "rating", "followUpRequired", "notes"],
+            },
             props: { title: "basicInformation" },
             children: [
                 {
@@ -126,7 +130,6 @@ export const inspectionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
@@ -235,6 +238,9 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: ["scheduledDate", "inspectionDate", "nextInspectionDate", "completedAt", "cancelledAt"],
+            },
             props: { title: "dates" },
             children: [
                 {
@@ -243,7 +249,6 @@ export const inspectionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "scheduledDate",
                             permissions: { read: "scheduledDate" },
                             field: {
                                 name: "scheduledDate",
@@ -274,7 +279,6 @@ export const inspectionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "completedAt",
                             permissions: { read: "completedAt" },
                             field: {
                                 name: "completedAt",
@@ -310,6 +314,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["inspectedBy"] },
             props: { title: "people" },
             children: [
                 {
@@ -318,7 +323,6 @@ export const inspectionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "inspectedBy",
                             permissions: { read: "inspectedBy" },
                             field: {
                                 name: "inspectedBy",
@@ -339,7 +343,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependentAny: ["checklistTemplate", "checklistResponsesJson"],
+            permissions: { readAny: ["checklistTemplate", "checklistResponsesJson"] },
             props: { title: "checklist" },
             children: [
                 {
@@ -384,7 +388,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependentAny: ["followUpInspection", "followedUpByInspection"],
+            permissions: { readAny: ["followUpInspection", "followedUpByInspection"] },
             props: { title: "inspections" },
             children: [
                 {
@@ -393,7 +397,6 @@ export const inspectionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "followUpInspection",
                             permissions: { read: "followUpInspection" },
                             field: {
                                 name: "followUpInspection.name",
@@ -410,7 +413,6 @@ export const inspectionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "followedUpByInspection",
                             permissions: { read: "followedUpByInspection" },
                             field: {
                                 name: "followedUpByInspection.name",
@@ -431,8 +433,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "cancellationReason",
-            permissions: { read: "cancellationReason" },
+            permissions: { readAny: ["cancellationReason"] },
             props: { title: "cancellationReason" },
             children: [
                 {
@@ -460,8 +461,7 @@ export const inspectionSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGroup",
-                    dependent: "findings",
-                    permissions: { read: "findings" },
+                    permissions: { readAny: ["findings"] },
                     props: { title: "findings", titleActions: "#ReferencesViewModeToggle" },
                     children: [
                         {
@@ -475,7 +475,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "media",
+            permissions: { readAny: ["media"] },
             props: { title: "attachments" },
             children: [
                 {
@@ -503,7 +503,7 @@ export const inspectionSheetView: ViewConfig = {
     ],
 };
 
-const inspectionFormFields: ViewConfig["nodes"] = [
+const inspectionCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "generalInfo" },
@@ -604,7 +604,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: { write: "inspectedBy" },
                         field: {
                             name: "inspectedBy",
                             widget: "#ApiSelect",
@@ -620,7 +619,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "inspectionDate" },
                         field: {
                             name: "inspectionDate",
                             widget: "#DateInput",
@@ -632,7 +630,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "type" },
                         field: {
                             name: "type",
                             widget: "#SimpleSelect",
@@ -655,7 +652,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "rating" },
                         field: {
                             name: "rating",
                             widget: "#Input",
@@ -666,7 +662,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "status" },
                         field: {
                             name: "status",
                             widget: "#SimpleSelect",
@@ -687,7 +682,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#FormWhenFieldValueIn",
-                        permissions: { write: "scheduledDate" },
                         props: {
                             watchField: "status",
                             whenValues: ["scheduled", "rescheduled"],
@@ -708,7 +702,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "nextInspectionDate" },
                         field: {
                             name: "nextInspectionDate",
                             widget: "#DateInput",
@@ -719,7 +712,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "followUpInspection" },
                         field: {
                             name: "followUpInspection",
                             widget: "#ApiSelect",
@@ -743,7 +735,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "followUpRequired" },
                         field: {
                             name: "followUpRequired",
                             widget: "#Checkbox",
@@ -758,7 +749,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#FormWhenFieldValueIn",
-                        permissions: { writeAny: ["cancellationReason", "status"] },
                         props: {
                             watchField: "status",
                             whenValues: ["cancelled"],
@@ -769,7 +759,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                                 render: "#Field",
                                 field: {
                                     name: "cancellationReason",
-                                    renderWhenWriteAny: ["cancellationReason", "status"],
                                     widget: "#Textarea",
                                     label: "form.cancellationReasonLabel",
                                     placeholder: "form.cancellationReasonPlaceholder",
@@ -787,7 +776,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        permissions: { write: "notes" },
         props: { title: "notes" },
         children: [
             {
@@ -807,7 +795,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        permissions: { writeAny: ["checklistTemplate", "checklistResponsesJson"] },
         props: { title: "checklist" },
         children: [
             {
@@ -816,7 +803,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: { write: "checklistTemplate" },
                         field: {
                             name: "checklistTemplate",
                             widget: "#ApiSelect",
@@ -834,7 +820,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
             },
             {
                 render: "#Field",
-                permissions: { write: "checklistResponsesJson" },
                 field: {
                     name: "checklistResponsesJson",
                     widget: "#Textarea",
@@ -850,7 +835,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        permissions: { writeAny: ["clientSignatureMediaId", "clientSignedAt"] },
         props: { title: "clientSignature" },
         children: [
             {
@@ -859,7 +843,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: { write: "clientSignatureMediaId" },
                         field: {
                             name: "clientSignatureMediaId",
                             widget: "#FormLocalFileField",
@@ -870,7 +853,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "clientSignedAt" },
                         field: {
                             name: "clientSignedAt",
                             widget: "#DateInput",
@@ -885,7 +867,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        permissions: { write: "findings" },
         props: { title: "findings" },
         children: [
             {
@@ -992,7 +973,6 @@ const inspectionFormFields: ViewConfig["nodes"] = [
     },
     {
         render: "div",
-        permissions: { write: "media" },
         props: {
             className: "col-span-full w-full",
             skipRenderWhenFormExtraTruthy: "enableLocalFileMultipart",
@@ -1020,6 +1000,564 @@ const inspectionFormFields: ViewConfig["nodes"] = [
     },
 ];
 
+const inspectionEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "generalInfo" },
+        permissions: {
+            readAny: [
+                "unit",
+                "inspectedBy",
+                "inspectionDate",
+                "type",
+                "rating",
+                "status",
+                "scheduledDate",
+                "nextInspectionDate",
+                "followUpInspection",
+                "followUpRequired",
+                "cancellationReason",
+            ],
+            writeAny: [
+                "unit",
+                "inspectedBy",
+                "inspectionDate",
+                "type",
+                "rating",
+                "status",
+                "scheduledDate",
+                "nextInspectionDate",
+                "followUpInspection",
+                "followUpRequired",
+                "cancellationReason",
+            ],
+        },
+        children: [
+            {
+                render: "div",
+                props: { className: "md:col-span-2 w-full", skipRenderWhenFormExtraTruthy: "hideProjectToUnitCascade" },
+                children: [
+                    {
+                        render: "#FormGrid",
+                        props: { columns: 4 },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "project",
+                                    widget: "#ApiSelect",
+                                    label: "form.projectLabel",
+                                    placeholder: "form.projectPlaceholder",
+                                    skipWriteAccessGate: true,
+                                    widgetProps: {
+                                        apiUrl: "/api/realEstate/project/select",
+                                        method: "POST",
+                                        pageSize: 50,
+                                        formFieldName: "project",
+                                        cascadeClearFormFields: ["edifice", "floor", "unit"],
+                                    },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "edifice",
+                                    widget: "#ApiSelect",
+                                    label: "form.edificeLabel",
+                                    placeholder: "form.edificePlaceholder",
+                                    skipWriteAccessGate: true,
+                                    widgetProps: {
+                                        apiUrl: "/api/realEstate/edifice/select",
+                                        method: "POST",
+                                        pageSize: 50,
+                                        formFieldName: "edifice",
+                                        postBodyFromFormField: { field: "project", paramName: "project" },
+                                        cascadeClearFormFields: ["floor", "unit"],
+                                        remountKeyFormField: "project",
+                                        enableWhenFormFieldsNonEmpty: ["project"],
+                                    },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "floor",
+                                    widget: "#ApiSelect",
+                                    label: "form.floorLabel",
+                                    placeholder: "form.floorPlaceholder",
+                                    skipWriteAccessGate: true,
+                                    widgetProps: {
+                                        apiUrl: "/api/realEstate/floor/select",
+                                        method: "POST",
+                                        pageSize: 50,
+                                        formFieldName: "floor",
+                                        postBodyFromFormField: { field: "edifice", paramName: "edifice" },
+                                        cascadeClearFormFields: ["unit"],
+                                        remountKeyFormField: "edifice",
+                                        enableWhenFormFieldsNonEmpty: ["edifice"],
+                                    },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "unit",
+                                    widget: "#ApiSelect",
+                                    label: "form.unitLabel",
+                                    placeholder: "form.unitPlaceholder",
+                                    widgetProps: {
+                                        apiUrl: "/api/realEstate/unit/select",
+                                        method: "POST",
+                                        pageSize: 50,
+                                        formFieldName: "unit",
+                                        postBodyFromFormFields: [
+                                            { field: "edifice", paramName: "edifice" },
+                                            { field: "floor", paramName: "floor" },
+                                        ],
+                                        remountKeyFormField: "edifice",
+                                        enableWhenFormFieldsNonEmpty: ["project", "edifice"],
+                                    },
+                                }, permissions: {read: "unit", write: "unit"},
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "inspectedBy",
+                            widget: "#ApiSelect",
+                            label: "form.inspectedByLabel",
+                            placeholder: "form.inspectedByPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                postBody: { administration: true },
+                            },
+                        }, permissions: {read: "inspectedBy", write: "inspectedBy"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "inspectionDate",
+                            widget: "#DateInput",
+                            label: "form.inspectionDateLabel",
+                            placeholder: "form.inspectionDatePlaceholder",
+                            required: true,
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        }, permissions: {read: "inspectionDate", write: "inspectionDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "type",
+                            widget: "#SimpleSelect",
+                            label: "form.typeLabel",
+                            placeholder: "form.typePlaceholder",
+                            required: true,
+                            widgetProps: {
+                                options: [
+                                    { value: "initial", label: "form.typeInitial" },
+                                    { value: "follow_up", label: "form.typeFollowUp" },
+                                    { value: "final", label: "form.typeFinal" },
+                                    { value: "routine", label: "form.typeRoutine" },
+                                    { value: "complaint", label: "form.typeComplaint" },
+                                    { value: "pre_sale", label: "form.typePreSale" },
+                                    { value: "post_sale", label: "form.typePostSale" },
+                                ],
+                                className: "grow w-full",
+                            },
+                        }, permissions: {read: "type", write: "type"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "rating",
+                            widget: "#Input",
+                            label: "form.ratingLabel",
+                            placeholder: "form.ratingPlaceholder",
+                            widgetProps: { type: "number", min: 1, max: 10 },
+                        }, permissions: {read: "rating", write: "rating"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "status",
+                            widget: "#SimpleSelect",
+                            label: "form.statusLabel",
+                            placeholder: "form.statusPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                options: [
+                                    { value: "scheduled", label: "form.statusScheduled" },
+                                    { value: "in_progress", label: "form.statusInProgress" },
+                                    { value: "completed", label: "form.statusCompleted" },
+                                    { value: "rescheduled", label: "form.statusRescheduled" },
+                                    { value: "cancelled", label: "form.statusCancelled" },
+                                ],
+                                className: "grow w-full",
+                            },
+                        }, permissions: {read: "status", write: "status"},
+                    },
+                    {
+                        render: "#FormWhenFieldValueIn",
+                        permissions: {
+                            readAny: ["scheduledDate"],
+                            writeAny: ["scheduledDate"],
+                        },
+                        props: {
+                            watchField: "status",
+                            whenValues: ["scheduled", "rescheduled"],
+                            clearFields: ["scheduledDate"],
+                        },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "scheduledDate",
+                                    widget: "#DateInput",
+                                    label: "form.scheduledDateLabel",
+                                    placeholder: "form.scheduledDatePlaceholder",
+                                    widgetProps: { valueFormat: "yyyy-MM-dd" },
+                                }, permissions: {read: "scheduledDate", write: "scheduledDate"},
+                            },
+                        ],
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "nextInspectionDate",
+                            widget: "#DateInput",
+                            label: "form.nextInspectionDateLabel",
+                            placeholder: "form.nextInspectionDatePlaceholder",
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        }, permissions: {read: "nextInspectionDate", write: "nextInspectionDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "followUpInspection",
+                            widget: "#ApiSelect",
+                            label: "form.followUpInspectionLabel",
+                            placeholder: "form.followUpInspectionPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unit/inspection/select",
+                                postBody: { followUp: true },
+                                postBodyFormExtrasMerge: { notId: "inspectionId" },
+                                postBodyFromFormFields: [{ field: "unit", paramName: "unit" }],
+                                postBodyParamFallbackFromExtras: [
+                                    {
+                                        whenFieldEmpty: "unit",
+                                        paramName: "unit",
+                                        formExtraKey: "defaultUnitId",
+                                    },
+                                ],
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "followUpInspection", write: "followUpInspection"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "followUpRequired",
+                            widget: "#Checkbox",
+                            label: "form.followUpRequiredLabel",
+                        }, permissions: {read: "followUpRequired", write: "followUpRequired"},
+                    },
+                ],
+            },
+            {
+                render: "div",
+                props: { className: "w-full", skipRenderWhenFormExtraTruthy: "hideInspectionEditOnlyBlocks" },
+                children: [
+                    {
+                        render: "#FormWhenFieldValueIn",
+                        permissions: {
+                            readAny: ["cancellationReason", "status"],
+                            writeAny: ["cancellationReason", "status"],
+                        },
+                        props: {
+                            watchField: "status",
+                            whenValues: ["cancelled"],
+                            clearFields: ["cancellationReason"],
+                        },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "cancellationReason",
+                                    renderWhenWriteAny: ["cancellationReason", "status"],
+                                    widget: "#Textarea",
+                                    label: "form.cancellationReasonLabel",
+                                    placeholder: "form.cancellationReasonPlaceholder",
+                                    widgetProps: {
+                                        className: "resize-none max-h-[250px] overflow-y-auto",
+                                        maxLength: INSPECTION_LONG_TEXT_MAX,
+                                    },
+                                }, permissions: {read: "cancellationReason", write: "cancellationReason"},
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "notes" },
+        permissions: {
+            readAny: ["notes"],
+            writeAny: ["notes"],
+        },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "notes",
+                    widget: "#Textarea",
+                    label: "form.notesLabel",
+                    placeholder: "form.notesPlaceholder",
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: INSPECTION_LONG_TEXT_MAX,
+                    },
+                }, permissions: {read: "notes", write: "notes"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "checklist" },
+        permissions: {
+            readAny: ["checklistTemplate", "checklistResponsesJson"],
+            writeAny: ["checklistTemplate", "checklistResponsesJson"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "checklistTemplate",
+                            widget: "#ApiSelect",
+                            label: "form.checklistTemplateLabel",
+                            placeholder: "form.checklistTemplatePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/inspectionChecklistTemplate/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "checklistTemplate", write: "checklistTemplate"},
+                    },
+                ],
+            },
+            {
+                render: "#Field",
+                field: {
+                    name: "checklistResponsesJson",
+                    widget: "#Textarea",
+                    label: "form.checklistResponsesJsonLabel",
+                    placeholder: "form.checklistResponsesJsonPlaceholder",
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto font-mono text-xs",
+                        maxLength: INSPECTION_CHECKLIST_JSON_MAX,
+                    },
+                }, permissions: {read: "checklistResponsesJson", write: "checklistResponsesJson"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "clientSignature" },
+        permissions: {
+            readAny: ["clientSignatureMediaId", "clientSignedAt"],
+            writeAny: ["clientSignatureMediaId", "clientSignedAt"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "clientSignatureMediaId",
+                            widget: "#FormLocalFileField",
+                            label: "form.clientSignatureMediaIdLabel",
+                            skipWriteAccessGate: true,
+                            widgetProps: { maxFiles: 1 },
+                        }, permissions: {read: "clientSignatureMediaId"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "clientSignedAt",
+                            widget: "#DateInput",
+                            label: "form.clientSignedAtLabel",
+                            placeholder: "form.clientSignedAtPlaceholder",
+                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                        }, permissions: {read: "clientSignedAt", write: "clientSignedAt"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "findings" },
+        permissions: {
+            readAny: ["findings"],
+            writeAny: ["findings"],
+        },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "findings",
+                    widget: "#FormTabbedRepeater",
+                    skipWriteAccessGate: true,
+                    widgetProps: {
+                        tabs: [
+                            { key: "structuralIssues",  label: "form.structuralIssuesLabel"  },
+                            { key: "electricalIssues",  label: "form.electricalIssuesLabel"  },
+                            { key: "plumbingIssues",    label: "form.plumbingIssuesLabel"    },
+                            { key: "hvacIssues",        label: "form.hvacIssuesLabel"        },
+                            { key: "safetyConcerns",    label: "form.safetyConcernsLabel"    },
+                            { key: "cosmeticIssues",    label: "form.cosmeticIssuesLabel"    },
+                            { key: "otherObservations", label: "form.otherObservationsLabel" },
+                        ],
+                        defaultItem: { notes: "", media: [], resolvedAt: "", resolvedBy: "" },
+                        rowTitleFields: ["notes"],
+                        rowTitlePlaceholder: "form.findingLabel",
+                        addLabel: "form.addFindingLabel",
+                        removeLabel: "form.removeFindingLabel",
+                        rowTemplate: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "notes",
+                                    widget: "#Textarea",
+                                    label: "form.notesLabel",
+                                    placeholder: "form.addFindingPlaceholder",
+                                    widgetProps: {
+                                        className: "resize-none max-h-[250px] overflow-y-auto",
+                                        maxLength: INSPECTION_FINDING_NOTES_MAX,
+                                    },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "media",
+                                    widget: "#FormMultiLocalFileField",
+                                    widgetProps: {
+                                        maxFiles: 10,
+                                        addFileKey: "form.addFile",
+                                        filesSelectedKey: "form.filesSelected",
+                                    },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "resolvedAt",
+                                    widget: "#DateInput",
+                                    label: "form.resolvedAtLabel",
+                                    placeholder: "form.resolvedAtPlaceholder",
+                                    widgetProps: { valueFormat: "yyyy-MM-dd" },
+                                },
+                            },
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "resolvedBy",
+                                    widget: "#ApiSelect",
+                                    label: "form.resolvedByLabel",
+                                    placeholder: "form.resolvedByPlaceholder",
+                                    widgetProps: {
+                                        apiUrl: "/api/company/users/select",
+                                        method: "POST",
+                                        postBody: { administration: true },
+                                        normalizeEmptyToUndefined: true,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                }, permissions: {read: "findings"},
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: { title: "form.mediaLabel" },
+                permissions: {
+                    readAny: ["media"],
+                    writeAny: ["media"],
+                },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "media",
+                            widget: "#FormMultiLocalFileField",
+                            skipWriteAccessGate: true,
+                            widgetProps: { maxFiles: 10 },
+                        }, permissions: {read: "media"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: { title: "form.mediaLabel" },
+                permissions: {
+                    readAny: ["media"],
+                    writeAny: ["media"],
+                },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "media",
+                            widget: "#FormMultiLocalFileField",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                maxFiles: 10,
+                                existingListExtraKey: "editMediaExistingList",
+                            },
+                        }, permissions: {read: "media"},
+                    },
+                ],
+            },
+        ],
+    },
+];
+
 export const inspectionCreateFormView: ViewConfig = {
     model: "inspections",
     viewType: "form",
@@ -1027,7 +1565,7 @@ export const inspectionCreateFormView: ViewConfig = {
     accessModel: "inspections",
     apiUrl: "/api/realEstate/unit/inspection",
     method: "PUT",
-    nodes: inspectionFormFields,
+    nodes: inspectionCreateFormNode,
 };
 
 export const inspectionEditFormView: ViewConfig = {
@@ -1037,7 +1575,7 @@ export const inspectionEditFormView: ViewConfig = {
     accessModel: "inspections",
     apiUrl: "/api/realEstate/unit/inspection",
     method: "PATCH",
-    nodes: inspectionFormFields,
+    nodes: inspectionEditFormNode,
 };
 
 export const inspectionViews: ViewConfig[] = [inspectionSheetView, inspectionCreateFormView, inspectionEditFormView];

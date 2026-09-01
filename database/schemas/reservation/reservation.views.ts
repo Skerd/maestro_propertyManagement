@@ -18,6 +18,20 @@ export const reservationSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "unit",
+                    "client",
+                    "reservedBy",
+                    "reservedByCompany",
+                    "isActive",
+                    "paid",
+                    "status",
+                    "source",
+                    "referralCode",
+                    "reservationNotes",
+                ],
+            },
             props: { title: "overview" },
             children: [
                 {
@@ -26,7 +40,6 @@ export const reservationSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
@@ -46,7 +59,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "client",
                             permissions: { read: "client" },
                             field: {
                                 name: "client",
@@ -80,7 +92,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "reservedByCompany",
                             permissions: { read: "reservedByCompany" },
                             field: {
                                 name: "reservedByCompany.name",
@@ -91,7 +102,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "isActive",
                             permissions: { read: "isActive" },
                             field: {
                                 name: "isActive",
@@ -128,7 +138,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "status",
                             permissions: { read: "status" },
                             field: {
                                 name: "status",
@@ -142,7 +151,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "source",
                             permissions: { read: "source" },
                             field: {
                                 name: "source",
@@ -156,7 +164,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "referralCode",
                             permissions: { read: "referralCode" },
                             field: {
                                 name: "referralCode",
@@ -192,6 +199,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["reservationDate", "expirationDate", "cancelledAt"] },
             props: { title: "dates" },
             children: [
                 {
@@ -210,7 +218,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "expirationDate",
                             permissions: { read: "expirationDate" },
                             field: {
                                 name: "expirationDate",
@@ -236,15 +243,23 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "confirmationEmailSentAt",
+                    "expirationReminderEmailAt3d",
+                    "expirationReminderEmailAt1d",
+                    "expirationReminderEmailAt0d",
+                    "expiredAt",
+                ],
+            },
             props: { title: "clientEmailTimeline" },
             children: [
                 {
                     render: "#SheetGrid",
-                    props: { columns: 2 },
+                    props: {columns: 3},
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "confirmationEmailSentAt",
                             permissions: { read: "confirmationEmailSentAt" },
                             field: {
                                 name: "confirmationEmailSentAt",
@@ -255,7 +270,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "expirationReminderEmailAt3d",
                             permissions: { read: "expirationReminderEmailAt3d" },
                             field: {
                                 name: "expirationReminderEmailAt3d",
@@ -266,7 +280,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "expirationReminderEmailAt1d",
                             permissions: { read: "expirationReminderEmailAt1d" },
                             field: {
                                 name: "expirationReminderEmailAt1d",
@@ -277,7 +290,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "expirationReminderEmailAt0d",
                             permissions: { read: "expirationReminderEmailAt0d" },
                             field: {
                                 name: "expirationReminderEmailAt0d",
@@ -288,7 +300,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "expiredAt",
                             permissions: { read: "expiredAt" },
                             field: {
                                 name: "expiredAt",
@@ -303,6 +314,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["depositAmount", "depositCurrency", "paymentMethod"] },
             props: { title: "deposit" },
             children: [
                 {
@@ -347,6 +359,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["unit", "depositAmount", "paid", "expirationDate"] },
             props: { title: "financialSummary" },
             children: [
                 {
@@ -362,7 +375,6 @@ export const reservationSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    dependent: "unit",
                                     permissions: { read: "unit" },
                                     field: {
                                         name: "unit.price",
@@ -468,7 +480,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "cancellationReason",
+            permissions: { readAny: ["cancellationReason"] },
             props: { title: "alerts" },
             children: [
                 {
@@ -493,8 +505,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "reservationContract",
-            permissions: { read: "reservationContract" },
+            permissions: { readAny: ["reservationContract"] },
             props: { title: "reservationContract" },
             children: [
                 {
@@ -520,8 +531,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "additionalDocuments",
-            permissions: { read: "additionalDocuments" },
+            permissions: { readAny: ["additionalDocuments"] },
             props: { title: "additionalDocuments" },
             children: [
                 {

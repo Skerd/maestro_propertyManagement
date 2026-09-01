@@ -12,7 +12,6 @@ import {
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-import {Decimal128} from "mongodb";
 
 function mapUnitRef(unit: any): UnitCost["unit"] | undefined {
     if (!unit) return undefined;
@@ -94,7 +93,6 @@ export function unitCostToDTO(doc: IUnitCost): UnitCost {
         expenditureItems,
         documentSubtotal: computeUnitCostSubtotal(doc),
         budgetedAmount: doc.budgetedAmount != null ? decimalToNumber(doc.budgetedAmount) : undefined,
-        budgetCurrency: mapPopulatedSimpleCurrency(doc.budgetCurrency),
         ...mapSoftDeleteToDTO(doc),
         ...mapOwnershipToDTO(doc),
         ...mapLifeCycleToDTO(doc)

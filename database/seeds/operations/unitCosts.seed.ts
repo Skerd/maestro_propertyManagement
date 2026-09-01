@@ -43,10 +43,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "6.20"
             }
         ],
-        "budgetedAmount": "2500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "2500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3dd",
@@ -84,10 +81,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "6.20"
             }
         ],
-        "budgetedAmount": "2900",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "2900"
     },
     {
         "id": "6a5389bc75dbaad1890bb3e0",
@@ -125,10 +119,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "6.20"
             }
         ],
-        "budgetedAmount": "3300",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "3300"
     },
     {
         "id": "6a5389bc75dbaad1890bb3e3",
@@ -166,10 +157,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "6.20"
             }
         ],
-        "budgetedAmount": "3700",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "3700"
     },
     {
         "id": "6a5389bc75dbaad1890bb3e6",
@@ -207,10 +195,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "6.20"
             }
         ],
-        "budgetedAmount": "4100",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "4100"
     },
     {
         "id": "6a5389bc75dbaad1890bb3e9",
@@ -248,10 +233,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "6.20"
             }
         ],
-        "budgetedAmount": "4500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "4500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3ed",
@@ -280,10 +262,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "95.00"
             }
         ],
-        "budgetedAmount": "1500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "1500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3ef",
@@ -312,10 +291,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "95.00"
             }
         ],
-        "budgetedAmount": "1500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "1500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3f1",
@@ -344,10 +320,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "95.00"
             }
         ],
-        "budgetedAmount": "1500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "1500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3f3",
@@ -376,10 +349,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "283.33"
             }
         ],
-        "budgetedAmount": "8500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "8500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3f5",
@@ -408,10 +378,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "283.33"
             }
         ],
-        "budgetedAmount": "8500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "8500"
     },
     {
         "id": "6a5389bc75dbaad1890bb3f7",
@@ -439,9 +406,6 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
                 "pricePerUnit": "12500.00"
             }
         ],
-        "budgetedAmount": "12500",
-        "budgetCurrency": {
-            "$currency": "EUR"
-        }
+        "budgetedAmount": "12500"
     }
 ];

@@ -9,9 +9,8 @@ import {edificeService} from "../../../../database/schemas/edifice/edifice.servi
 import {projectService} from "../../../../database/schemas/project/project.service";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import UnitCost from "../../../../database/schemas/unitCost/unitCost";
-import {generateZodCreateUnitCostFormSchema, unitCostFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/createUnitCost.form.validator";
+import {generateZodCreateUnitCostFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/createUnitCost.form.validator";
 import {editUnitCostFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/editUnitCost.form.validator";
-import {validateUnitCostSelectForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/unitCost.select.form.validator";
 import {unitCostsToDTO, unitCostToDTO} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
 import {unitCostsToSelect} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.select";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
@@ -19,11 +18,7 @@ import {
     MAX_MEDIA_FILES_PER_EXPENDITURE_LINE,
     MAX_TOTAL_EXPENDITURE_LINE_MEDIA_UPLOADS,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/unitCost.constants";
-import {
-    buildUnitCostVisibilityOrClause,
-    objectIdFromRef,
-    resolveHierarchySetsFromUnitIds,
-} from "../../../../database/schemas/unitCost/unitCostHierarchy.util";
+import {objectIdFromRef} from "../../../../database/schemas/unitCost/unitCostHierarchy.util";
 
 export const basePath = "/api/realEstate/unit/cost";
 
@@ -160,17 +155,6 @@ async function resolveCreateUnitCostScope(
     throw apiValidationException("form_not_correct", "unit_cost_scope_required", null, languageCode);
 }
 
-async function buildUnitVisibilityFilter(
-    unitId: string,
-    companyId: ObjectId,
-    opts: {logger: any; languageCode: string},
-): Promise<Record<string, unknown>> {
-    await unitService.findOneOrThrow({_id: new ObjectId(unitId), company: companyId}, opts);
-    const sets = await resolveHierarchySetsFromUnitIds([new ObjectId(unitId)], opts);
-    const orClause = buildUnitCostVisibilityOrClause([new ObjectId(unitId)], sets);
-    return {$and: [{$or: orClause}]};
-}
-
 const mediaUpload = mediaUploadMW({
     fields: {
         expenditureItemMedia: MAX_TOTAL_EXPENDITURE_LINE_MEDIA_UPLOADS,
@@ -185,8 +169,6 @@ export const {router} = createCrudRouter({
     service: unitCostService,
     createSchema: generateZodCreateUnitCostFormSchema,
     editSchema: editUnitCostFormSchema,
-    listSchema: unitCostFormSchema,
-    selectSchema: validateUnitCostSelectForm,
     toDTO: unitCostToDTO,
     toDTOArray: unitCostsToDTO,
     toSelect: unitCostsToSelect,
@@ -195,7 +177,7 @@ export const {router} = createCrudRouter({
     createMiddleware: [mediaUpload],
     editMiddleware: [mediaUpload],
     overrideSelectHandler: async (params) => {
-        const {logger, languageCode, actionUserCtx, company, name, page, limit, notId, dslFilterQuery} = params;
+        const {logger, languageCode, actionUserCtx, company, name, page, limit, dslFilterQuery} = params;
         logger.start(`Fetching unit costs for select...`);
 
         const sanitizedFields = SchemaGuard.sanitizeFields(UnitCost, {name: {}, unit: {keys: {name: {}, unitNumber: {}}}}, "read", actionUserCtx, languageCode);
@@ -205,7 +187,6 @@ export const {router} = createCrudRouter({
         if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
-        if (notId && ObjectId.isValid(notId)) filter._id = {$ne: new ObjectId(notId)};
         if (name?.trim()) filter.name = {$regex: name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i"};
 
         const [costs, total] = await Promise.all([
@@ -215,26 +196,6 @@ export const {router} = createCrudRouter({
 
         logger.finish(`Finished fetching unit costs for select!`);
         return {data: unitCostsToSelect(costs), total};
-    },
-    extraListFilter: async (params) => {
-        const {id, unit, project, edifice, floor, verificationStatus, paymentStatus, tag, company, logger, languageCode} = params;
-
-        if (id && ObjectId.isValid(id)) return {_id: new ObjectId(id)};
-
-        const extra: Record<string, unknown> = {};
-        // Unit uses visibility OR (includes floor/edifice/project-scoped costs without a unit).
-        if (unit && ObjectId.isValid(String(unit))) {
-            Object.assign(extra, await buildUnitVisibilityFilter(String(unit), company._id, {logger, languageCode}));
-        } else {
-            // Denormalized ancestors on the cost doc — equality includes narrower-scoped rows.
-            if (project && ObjectId.isValid(String(project))) extra.project = new ObjectId(String(project));
-            if (edifice && ObjectId.isValid(String(edifice))) extra.edifice = new ObjectId(String(edifice));
-            if (floor && ObjectId.isValid(String(floor))) extra.floor = new ObjectId(String(floor));
-        }
-        if (verificationStatus) extra.verificationStatus = verificationStatus;
-        if (paymentStatus) extra.paymentStatus = paymentStatus;
-        if (tag?.trim()) extra.tag = tag.trim().toLowerCase();
-        return extra;
     },
     buildCreateData: async (params) => {
         const {
@@ -246,7 +207,7 @@ export const {router} = createCrudRouter({
             constructorRef, boqItem, costCommitment,
             expenditureItemMedia, expenditureItemMediaRowIndex, invoiceMedia,
             expenditureItems,
-            budgetedAmount, budgetCurrency,
+            budgetedAmount,
             company, session, logger, languageCode,
         } = params;
 
@@ -277,7 +238,6 @@ export const {router} = createCrudRouter({
             invoiceMedia: toMediaIds(invoiceMedia),
             expenditureItems: buildExpenditureItems(expenditureItems, expenditureItemMedia, expenditureItemMediaRowIndex, languageCode),
             budgetedAmount: budgetedAmount != null ? Decimal128.fromString(String(budgetedAmount)) : undefined,
-            budgetCurrency: budgetCurrency ? new ObjectId(budgetCurrency) : undefined,
         };
     },
     afterCreate: async (created, params) => {
@@ -300,7 +260,7 @@ export const {router} = createCrudRouter({
             constructorRef, boqItem, costCommitment,
             expenditureItemMedia, expenditureItemMediaRowIndex, invoiceMedia,
             expenditureItems,
-            budgetedAmount, budgetCurrency,
+            budgetedAmount,
             languageCode,
         } = params;
 
@@ -339,9 +299,6 @@ export const {router} = createCrudRouter({
         }
         if (budgetedAmount !== undefined && writeFields.budgetedAmount) {
             update.budgetedAmount = budgetedAmount === null ? null : Decimal128.fromString(String(budgetedAmount));
-        }
-        if (budgetCurrency !== undefined && writeFields.budgetCurrency) {
-            update.budgetCurrency = budgetCurrency === null ? null : new ObjectId(budgetCurrency);
         }
 
         return update;

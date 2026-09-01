@@ -1,10 +1,25 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
-const unitCostCascadeFormChildren: ViewConfig["nodes"] = [
+const verificationOptions = [
+    {value: "pending_verification", label: "form.unitCostVerificationPending"},
+    {value: "verified", label: "form.unitCostVerificationVerified"},
+    {value: "rejected", label: "form.unitCostVerificationRejected"},
+    {value: "needs_revision", label: "form.unitCostVerificationNeedsRevision"},
+];
+
+const paymentOptions = [
+    {value: "unpaid", label: "form.unitCostPaymentUnpaid"},
+    {value: "partially_paid", label: "form.unitCostPaymentPartiallyPaid"},
+    {value: "paid", label: "form.unitCostPaymentPaid"},
+    {value: "waived", label: "form.unitCostPaymentWaived"},
+    {value: "disputed", label: "form.unitCostPaymentDisputed"},
+];
+
+const unitCostCreateFormFields: ViewConfig["nodes"] = [
     {
-        render: "div",
-        props: {className: "md:col-span-2 w-full", skipRenderWhenFormExtraTruthy: "hideProjectToUnitCascade"},
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
         children: [
             {
                 render: "#FormGrid",
@@ -17,7 +32,6 @@ const unitCostCascadeFormChildren: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.projectLabel",
                             placeholder: "form.projectPlaceholder",
-                            skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
                                 method: "POST",
@@ -34,7 +48,6 @@ const unitCostCascadeFormChildren: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.edificeLabel",
                             placeholder: "form.edificePlaceholder",
-                            skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/edifice/select",
                                 method: "POST",
@@ -54,7 +67,6 @@ const unitCostCascadeFormChildren: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.floorLabel",
                             placeholder: "form.floorPlaceholder",
-                            skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/floor/select",
                                 method: "POST",
@@ -88,36 +100,7 @@ const unitCostCascadeFormChildren: ViewConfig["nodes"] = [
                             },
                         },
                     },
-                ],
-            },
-        ],
-    },
-];
-
-const verificationOptions = [
-    {value: "pending_verification", label: "form.unitCostVerificationPending"},
-    {value: "verified", label: "form.unitCostVerificationVerified"},
-    {value: "rejected", label: "form.unitCostVerificationRejected"},
-    {value: "needs_revision", label: "form.unitCostVerificationNeedsRevision"},
-];
-
-const paymentOptions = [
-    {value: "unpaid", label: "form.unitCostPaymentUnpaid"},
-    {value: "partially_paid", label: "form.unitCostPaymentPartiallyPaid"},
-    {value: "paid", label: "form.unitCostPaymentPaid"},
-    {value: "waived", label: "form.unitCostPaymentWaived"},
-    {value: "disputed", label: "form.unitCostPaymentDisputed"},
-];
-
-const unitCostFormFields: ViewConfig["nodes"] = [
-    {
-        render: "#TitleWithCollapse",
-        props: {title: "generalInfo"},
-        children: [
-            {
-                render: "#FormGrid",
-                props: {columns: 1},
-                children: unitCostCascadeFormChildren as ViewConfig["nodes"],
+                ]
             },
             {
                 render: "#FormGrid",
@@ -125,7 +108,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: {write: "purchasePerson"},
                         field: {
                             name: "purchasePerson",
                             widget: "#ApiSelect",
@@ -141,7 +123,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "purchaseDate"},
                         field: {
                             name: "purchaseDate",
                             widget: "#DateInput",
@@ -152,7 +133,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "currency"},
                         field: {
                             name: "currency",
                             widget: "#ApiSelect",
@@ -164,7 +144,16 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "verificationStatus"},
+                        field: {
+                            name: "budgetedAmount",
+                            widget: "#Input",
+                            label: "form.budgetedAmountLabel",
+                            placeholder: "form.budgetedAmountPlaceholder",
+                            widgetProps: {type: "decimal", min: 0},
+                        },
+                    },
+                    {
+                        render: "#Field",
                         field: {
                             name: "verificationStatus",
                             widget: "#SimpleSelect",
@@ -175,7 +164,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "paymentStatus"},
                         field: {
                             name: "paymentStatus",
                             widget: "#SimpleSelect",
@@ -186,7 +174,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "paymentDate"},
                         field: {
                             name: "paymentDate",
                             widget: "#DateInput",
@@ -196,7 +183,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "tag"},
                         field: {
                             name: "tag",
                             widget: "#Input",
@@ -205,7 +191,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "invoiceNumber"},
                         field: {
                             name: "invoiceNumber",
                             widget: "#Input",
@@ -214,7 +199,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "vendorName"},
                         field: {
                             name: "vendorName",
                             widget: "#Input",
@@ -223,7 +207,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "relatedModificationRequest"},
                         field: {
                             name: "relatedModificationRequest",
                             widget: "#ApiSelect",
@@ -237,7 +220,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "constructorRef"},
                         field: {
                             name: "constructorRef",
                             widget: "#ApiSelect",
@@ -253,7 +235,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "boqItem"},
                         field: {
                             name: "boqItem",
                             widget: "#ApiSelect",
@@ -269,7 +250,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "costCommitment"},
                         field: {
                             name: "costCommitment",
                             widget: "#ApiSelect",
@@ -293,7 +273,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#Field",
-                permissions: {write: "notes"},
                 field: {
                     name: "notes",
                     widget: "#Textarea",
@@ -308,7 +287,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#Field",
-                permissions: {write: "expenditureItems"},
                 field: {
                     name: "expenditureItems",
                     widget: "#FormExpenditureItemsField",
@@ -354,7 +332,6 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: {write: "invoiceMedia"},
                         field: {
                             name: "invoiceMedia",
                             widget: "#FormMultiLocalFileField",
@@ -366,6 +343,389 @@ const unitCostFormFields: ViewConfig["nodes"] = [
                                 newFilesLabelKey: "form.newFilesLabel",
                             },
                         },
+                    },
+                ],
+            },
+        ],
+    },
+];
+
+const unitCostEditFormFields: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        permissions: {
+            readAny: [
+                "project",
+                "edifice",
+                "floor",
+                "unit",
+                "purchasePerson",
+                "purchaseDate",
+                "currency",
+                "budgetedAmount",
+                "verificationStatus",
+                "paymentStatus",
+                "paymentDate",
+                "tag",
+                "invoiceNumber",
+                "vendorName",
+                "relatedModificationRequest",
+                "constructorRef",
+                "boqItem",
+                "costCommitment",
+            ],
+            writeAny: [
+                "project",
+                "edifice",
+                "floor",
+                "unit",
+                "purchasePerson",
+                "purchaseDate",
+                "currency",
+                "budgetedAmount",
+                "verificationStatus",
+                "paymentStatus",
+                "paymentDate",
+                "tag",
+                "invoiceNumber",
+                "vendorName",
+                "relatedModificationRequest",
+                "constructorRef",
+                "boqItem",
+                "costCommitment",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 4},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/project/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "project",
+                                cascadeClearFormFields: ["edifice", "floor", "unit"],
+                            },
+                        },
+                        permissions: {read: "project", write: "project"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "edifice",
+                            widget: "#ApiSelect",
+                            label: "form.edificeLabel",
+                            placeholder: "form.edificePlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/edifice/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "edifice",
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                cascadeClearFormFields: ["floor", "unit"],
+                                remountKeyFormField: "project",
+                                enableWhenFormFieldsNonEmpty: ["project"],
+                            },
+                        }, permissions: {read: "edifice", write: "edifice"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "floor",
+                            widget: "#ApiSelect",
+                            label: "form.floorLabel",
+                            placeholder: "form.floorPlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/floor/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "floor",
+                                postBodyFromFormField: {field: "edifice", paramName: "edifice"},
+                                cascadeClearFormFields: ["unit"],
+                                remountKeyFormField: "edifice",
+                                enableWhenFormFieldsNonEmpty: ["edifice"],
+                            },
+                        }, permissions: {read: "floor", write: "floor"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "unit",
+                            widget: "#ApiSelect",
+                            label: "form.unitLabel",
+                            placeholder: "form.unitPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unit/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "unit",
+                                postBodyFromFormFields: [
+                                    {field: "edifice", paramName: "edifice"},
+                                    {field: "floor", paramName: "floor"},
+                                ],
+                                remountKeyFormField: "edifice",
+                                enableWhenFormFieldsNonEmpty: ["project", "edifice"],
+                            },
+                        }, permissions: {read: "unit", write: "unit"},
+                    },
+                ]
+            },
+            {
+                render: "#FormGrid",
+                props: {columns: 2},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "purchasePerson",
+                            widget: "#ApiSelect",
+                            label: "form.purchasePersonLabel",
+                            placeholder: "form.purchasePersonPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                postBody: {administration: true},
+                            },
+                        }, permissions: {read: "purchasePerson", write: "purchasePerson"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "purchaseDate",
+                            widget: "#DateInput",
+                            label: "form.purchaseDateLabel",
+                            required: true,
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        }, permissions: {read: "purchaseDate", write: "purchaseDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "currency",
+                            widget: "#ApiSelect",
+                            label: "form.currencyLabel",
+                            placeholder: "form.currencyPlaceholder",
+                            required: true,
+                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                        }, permissions: {read: "currency", write: "currency"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "budgetedAmount",
+                            widget: "#Input",
+                            label: "form.budgetedAmountLabel",
+                            placeholder: "form.budgetedAmountPlaceholder",
+                            widgetProps: {type: "decimal", min: 0},
+                        }, permissions: {read: "budgetedAmount", write: "budgetedAmount"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "verificationStatus",
+                            widget: "#SimpleSelect",
+                            label: "form.verificationStatusLabel",
+                            required: true,
+                            widgetProps: {options: verificationOptions, className: "grow w-full"},
+                        }, permissions: {read: "verificationStatus", write: "verificationStatus"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "paymentStatus",
+                            widget: "#SimpleSelect",
+                            label: "form.paymentStatusLabel",
+                            required: true,
+                            widgetProps: {options: paymentOptions, className: "grow w-full"},
+                        }, permissions: {read: "paymentStatus", write: "paymentStatus"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "paymentDate",
+                            widget: "#DateInput",
+                            label: "form.paymentDateLabel",
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        }, permissions: {read: "paymentDate", write: "paymentDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "tag",
+                            widget: "#Input",
+                            label: "form.tagLabel",
+                        }, permissions: {read: "tag", write: "tag"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "invoiceNumber",
+                            widget: "#Input",
+                            label: "form.invoiceNumberLabel",
+                        }, permissions: {read: "invoiceNumber", write: "invoiceNumber"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "vendorName",
+                            widget: "#Input",
+                            label: "form.vendorNameLabel",
+                        }, permissions: {read: "vendorName", write: "vendorName"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "relatedModificationRequest",
+                            widget: "#ApiSelect",
+                            label: "form.relatedModificationRequestLabel",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unit/modificationRequest/select",
+                                postBodyFromFormFields: [{field: "unit", paramName: "unit"}],
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "relatedModificationRequest", write: "relatedModificationRequest"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "constructorRef",
+                            widget: "#ApiSelect",
+                            label: "form.constructorLabel",
+                            placeholder: "form.constructorPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/constructor/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "constructorRef", write: "constructorRef"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "boqItem",
+                            widget: "#ApiSelect",
+                            label: "form.boqItemLabel",
+                            placeholder: "form.boqItemPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/boqItem/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "boqItem", write: "boqItem"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "costCommitment",
+                            widget: "#ApiSelect",
+                            label: "form.costCommitmentLabel",
+                            placeholder: "form.costCommitmentPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/costCommitment/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "costCommitment", write: "costCommitment"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "notes"},
+        permissions: {readAny: ["notes"], writeAny: ["notes"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "notes",
+                    widget: "#Textarea",
+                    label: "form.notesLabel",
+                }, permissions: {read: "notes", write: "notes"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "expenditureItems"},
+        permissions: {readAny: ["expenditureItems"], writeAny: ["expenditureItems"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "expenditureItems",
+                    widget: "#FormExpenditureItemsField",
+                    label: "form.expenditureItemsLabel",
+                }, permissions: {read: "expenditureItems", write: "expenditureItems"},
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: {title: "form.invoiceMediaLabel"},
+                permissions: {readAny: ["invoiceMedia"], writeAny: ["invoiceMedia"]},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "invoiceMedia",
+                            widget: "#FormMultiLocalFileField",
+                            skipWriteAccessGate: true,
+                            widgetProps: {maxFiles: 20},
+                        }, permissions: {read: "invoiceMedia"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: {title: "form.invoiceMediaLabel"},
+                permissions: {readAny: ["invoiceMedia"], writeAny: ["invoiceMedia"]},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "invoiceMedia",
+                            widget: "#FormMultiLocalFileField",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                maxFiles: 20,
+                                existingListExtraKey: "editUnitCostInvoiceMediaList",
+                                existingFilesLabelKey: "form.existingFilesLabel",
+                                newFilesLabelKey: "form.newFilesLabel",
+                            },
+                        }, permissions: {read: "invoiceMedia"},
                     },
                 ],
             },
@@ -386,6 +746,7 @@ export const unitCostSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["name", "unit", "floor", "edifice", "project", "currency", "budgetedAmount", "purchasePerson", "purchaseDate", "paymentDate", "verificationStatus", "paymentStatus", "tag", "invoiceNumber", "vendorName", "relatedModificationRequest", "constructorRef", "boqItem", "costCommitment"]},
             props: {title: "overview"},
             children: [
                 {
@@ -404,7 +765,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit",
@@ -424,7 +784,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "floor",
                             permissions: {read: "floor"},
                             field: {
                                 name: "floor",
@@ -444,7 +803,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "edifice",
                             permissions: {read: "edifice"},
                             field: {
                                 name: "edifice",
@@ -464,7 +822,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "project",
                             permissions: {read: "project"},
                             field: {
                                 name: "project",
@@ -484,7 +841,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "currency",
                             permissions: {read: "currency"},
                             field: {
                                 name: "currency",
@@ -499,6 +855,26 @@ export const unitCostSheetView: ViewConfig = {
                                     parent: "currency",
                                     valuePath: ["symbol", "abbreviation", "name"],
                                     pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "budgetedAmount",
+                            permissions: {read: "budgetedAmount"},
+                            field: {
+                                name: "budgetedAmount",
+                                widget: "#DisplayCard",
+                                label: "budgetedAmount",
+                                widgetProps: {
+                                    icon: "#Calculator",
+                                    type: "currency",
+                                    valuePath: ["currency.symbol", "budgetedAmount"],
+                                    joinSeparator: " ",
+                                    linkedRefPath: "currency",
+                                    linkedSheetModel: "currencies",
+                                    linkedSheetWidget: "#CurrencySheetView",
+                                    linkedSheetEntityProp: "currency",
                                 },
                             },
                         },
@@ -590,7 +966,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "relatedModificationRequest",
                             permissions: {read: "relatedModificationRequest"},
                             field: {
                                 name: "relatedModificationRequest",
@@ -610,17 +985,26 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "documentSubtotal"},
+                            permissions: {read: "expenditureItems"},
                             field: {
                                 name: "documentSubtotal",
                                 widget: "#DisplayCard",
                                 label: "documentSubtotal",
-                                widgetProps: {icon: "#Receipt", format: "locale", type: "currency"},
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Receipt",
+                                    type: "currency",
+                                    valuePath: ["currency.symbol", "documentSubtotal"],
+                                    joinSeparator: " ",
+                                    linkedRefPath: "currency",
+                                    linkedSheetModel: "currencies",
+                                    linkedSheetWidget: "#CurrencySheetView",
+                                    linkedSheetEntityProp: "currency",
+                                },
                             },
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "constructorRef",
                             permissions: {read: "constructorRef"},
                             field: {
                                 name: "constructorRef.name",
@@ -653,7 +1037,6 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "costCommitment",
                             permissions: {read: "costCommitment"},
                             field: {
                                 name: "costCommitment",
@@ -673,6 +1056,7 @@ export const unitCostSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["notes"]},
             props: {title: "notes"},
             children: [
                 {
@@ -694,6 +1078,7 @@ export const unitCostSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["expenditureItems"]},
             props: {title: "expenditureItems"},
             children: [
                 {
@@ -720,6 +1105,7 @@ export const unitCostSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["invoiceMedia"]},
             props: {title: "invoiceMedia"},
             children: [
                 {
@@ -750,7 +1136,7 @@ export const unitCostCreateFormView: ViewConfig = {
     accessModel: "unitcosts",
     apiUrl: "/api/realEstate/unit/cost",
     method: "PUT",
-    nodes: unitCostFormFields,
+    nodes: unitCostCreateFormFields,
 };
 
 export const unitCostEditFormView: ViewConfig = {
@@ -760,18 +1146,7 @@ export const unitCostEditFormView: ViewConfig = {
     accessModel: "unitcosts",
     apiUrl: "/api/realEstate/unit/cost",
     method: "PATCH",
-    nodes: [
-        {
-            render: "#Field",
-            field: {
-                name: "_id",
-                widget: "#Input",
-                label: "form.idLabel",
-                widgetProps: {type: "hidden"},
-            },
-        },
-        ...unitCostFormFields,
-    ],
+    nodes: unitCostEditFormFields,
 };
 
 export const unitCostViews: ViewConfig[] = [unitCostSheetView, unitCostCreateFormView, unitCostEditFormView];

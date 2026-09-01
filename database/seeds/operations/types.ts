@@ -209,7 +209,6 @@ export type UnitCostSeedRow = {
     vendorName: string;
     expenditureItems: ExpenditureItem[];
     budgetedAmount: string;
-    budgetCurrency: CurrencyRef;
 };
 
 export type InspectionIssue = {

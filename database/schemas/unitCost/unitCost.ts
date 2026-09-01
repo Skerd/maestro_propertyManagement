@@ -78,69 +78,9 @@ export interface IUnitCost extends Document, IOwnershipPluginFields, ISoftDelete
     invoiceMedia: IMedia[];
     expenditureItems: IExpenditureItem[];
     budgetedAmount?: Decimal128;
-    budgetCurrency?: ICurrency;
 }
 
-const expenditureItemHidden = {
-    hideColumn: true,
-    filterable: false,
-    sortable: false,
-} as const;
-
-const expenditureItemSchema = new Schema<IExpenditureItem>(
-    {
-        title: {
-            type: SchemaTypes.String,
-            required: true,
-            trim: true,
-            dynamicTableConfiguration: {...expenditureItemHidden},
-        },
-        category: {
-            type: SchemaTypes.String,
-            enum: [...EXPENDITURE_CATEGORY_VALUES],
-            required: true,
-            dynamicTableConfiguration: {...expenditureItemHidden},
-        },
-        amount: {
-            type: SchemaTypes.Number,
-            required: true,
-            min: 0,
-            dynamicTableConfiguration: {...expenditureItemHidden},
-        },
-        unit: {
-            type: SchemaTypes.String,
-            enum: [...MEASURE_UNIT_VALUES],
-            required: true,
-            dynamicTableConfiguration: {...expenditureItemHidden},
-        },
-        pricePerUnit: {
-            type: SchemaTypes.Decimal128,
-            required: true,
-            set: (v: number | string | Decimal128) => {
-                if (v instanceof Decimal128) return v;
-                return Decimal128.fromString(String(v));
-            },
-            validate: {
-                validator: function (value: Decimal128) {
-                    if (!value) return false;
-                    const numValue = parseFloat(value.toString());
-                    return numValue >= 0;
-                },
-                message: "pricePerUnit must be non-negative",
-            },
-            dynamicTableConfiguration: {...expenditureItemHidden},
-        },
-        media: {
-            type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
-            default: [],
-            refAllowlist: MediaSimpleSnippet,
-            dynamicTableConfiguration: {...expenditureItemHidden},
-        },
-    },
-    {_id: true},
-);
-
-const UnitCostSchema = new Schema<IUnitCost>(
+const UnitCostSchema: Schema = new Schema<IUnitCost>(
     {
         name: {
             type: SchemaTypes.String,
@@ -151,8 +91,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
                 others: {write: "no-permission"},
             },
             dynamicTableConfiguration: {
-                order: 1,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.STRING,
             },
         },
@@ -163,8 +101,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             index: true,
             refAllowlist: ProjectSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 2,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -176,8 +112,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             index: true,
             refAllowlist: EdificeSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 3,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -189,8 +123,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             index: true,
             refAllowlist: FloorSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 4,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -202,8 +134,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             index: true,
             refAllowlist: UnitSnippet,
             dynamicTableConfiguration: {
-                order: 5,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -215,8 +145,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             index: true,
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
-                order: 6,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name", "surname"],
             },
@@ -226,8 +154,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: true,
             index: true,
             dynamicTableConfiguration: {
-                order: 7,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.DATE,
             },
         },
@@ -236,8 +162,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             index: true,
             dynamicTableConfiguration: {
-                order: 8,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.DATE,
             },
         },
@@ -246,8 +170,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             trim: true,
             dynamicTableConfiguration: {
-                order: 20,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.STRING,
             },
         },
@@ -258,8 +180,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             default: "pending_verification",
             index: true,
             dynamicTableConfiguration: {
-                order: 9,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.ENUM,
             },
         },
@@ -270,8 +190,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             default: "unpaid",
             index: true,
             dynamicTableConfiguration: {
-                order: 10,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.ENUM,
             },
         },
@@ -281,8 +199,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             trim: true,
             lowercase: true,
             dynamicTableConfiguration: {
-                order: 11,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.STRING,
             },
         },
@@ -292,8 +208,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
-                order: 12,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -303,8 +217,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             trim: true,
             dynamicTableConfiguration: {
-                order: 13,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.STRING,
             },
         },
@@ -313,8 +225,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             trim: true,
             dynamicTableConfiguration: {
-                order: 14,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.STRING,
             },
         },
@@ -324,8 +234,6 @@ const UnitCostSchema = new Schema<IUnitCost>(
             required: false,
             refAllowlist: ModificationRequestSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 15,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -375,7 +283,79 @@ const UnitCostSchema = new Schema<IUnitCost>(
             dynamicTableConfiguration: {hideColumn: true},
         },
         expenditureItems: {
-            type: [expenditureItemSchema],
+            type: [{
+                title: {
+                    type: SchemaTypes.String,
+                    required: true,
+                    trim: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                    },
+                },
+                category: {
+                    type: SchemaTypes.String,
+                    enum: [...EXPENDITURE_CATEGORY_VALUES],
+                    required: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                    },
+                },
+                amount: {
+                    type: SchemaTypes.Number,
+                    required: true,
+                    min: 0,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                    },
+                },
+                unit: {
+                    type: SchemaTypes.String,
+                    enum: [...MEASURE_UNIT_VALUES],
+                    required: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                    },
+                },
+                pricePerUnit: {
+                    type: SchemaTypes.Decimal128,
+                    required: true,
+                    set: (v: number | string | Decimal128) => {
+                        if (v instanceof Decimal128) return v;
+                        return Decimal128.fromString(String(v));
+                    },
+                    validate: {
+                        validator: function (value: Decimal128) {
+                            if (!value) return false;
+                            const numValue = parseFloat(value.toString());
+                            return numValue >= 0;
+                        },
+                        message: "pricePerUnit must be non-negative",
+                    },
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                    },
+                },
+                media: {
+                    type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
+                    default: [],
+                    refAllowlist: MediaSimpleSnippet,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                    },
+                },
+            }],
             default: [],
             dynamicTableConfiguration: {
                 hideColumn: true,
@@ -399,21 +379,7 @@ const UnitCostSchema = new Schema<IUnitCost>(
                 message: "budgetedAmount must be non-negative",
             },
             dynamicTableConfiguration: {
-                order: 19,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.NUMBER,
-            },
-        },
-        budgetCurrency: {
-            type: SchemaTypes.ObjectId,
-            ref: "Currency",
-            required: false,
-            refAllowlist: CurrencySimpleSnippet,
-            dynamicTableConfiguration: {
-                order: 21,
-                defaultVisible: false,
-                cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
             },
         },
     },
@@ -423,8 +389,7 @@ const UnitCostSchema = new Schema<IUnitCost>(
 );
 
 UnitCostSchema.pre("validate", function (next) {
-    const doc = this as IUnitCost;
-    const hasScope = !!(doc.unit || doc.floor || doc.edifice || doc.project);
+    const hasScope = !!(this.unit || this.floor || this.edifice || this.project);
     if (!hasScope) {
         this.invalidate(
             "unit",
@@ -435,11 +400,10 @@ UnitCostSchema.pre("validate", function (next) {
 });
 
 UnitCostSchema.pre("save", function (next) {
-    const doc = this as IUnitCost;
-    if (doc.isNew && !doc.name) {
-        const datePart = dayjs(doc.purchaseDate || new Date()).format("YYYYMMDD");
+    if (this.isNew && !this.name) {
+        const datePart = dayjs(this.purchaseDate || new Date()).format("YYYYMMDD");
         const randomPart = crypto.randomBytes(4).toString("hex");
-        doc.name = `COST-${datePart}-${randomPart}`.toUpperCase();
+        this.name = `COST-${datePart}-${randomPart}`.toUpperCase();
     }
     next();
 });
@@ -458,6 +422,4 @@ normalizeSchemaPermissions(UnitCost);
 export default UnitCost;
 
 addModelData(UnitCost, unitCostViews);
-// purchaseDate: date type has no schemaDefBuilder equivalent
-// budgetedAmount: stored as Decimal128 but SchemaDef declares it as number
 validateSchemaDefAgainstMongoose(UnitCostSchema, UnitCostSchemaDef, "UnitCost");

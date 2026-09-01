@@ -5,7 +5,6 @@ import {ICompany} from "@coreModule/database/schemas/company/company";
 import {unitCostsSeed} from "@propertyManagement/database/seeds/operations/unitCosts.seed";
 import {
     opt,
-    optDate,
     optDecimal,
     resolveCurrency,
     resolveUser,
@@ -19,6 +18,27 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unitCost/unitCost.constants";
 
 export {unitCostsSeed as defaultUnitCosts};
+
+const PURCHASE_LEAD_DAYS = 20;
+
+function addDays(d: Date, days: number): Date {
+    const next = new Date(d);
+    next.setDate(next.getDate() + days);
+    return next;
+}
+
+/**
+ * Payment calendar lists by `paymentDate` in the visible month (current month on first
+ * open). Exported seed dates sit in Apr–Jun 2026 and several rows omit `paymentDate`,
+ * so those documents would never appear. Spread each row across the current month and
+ * always persist a due date.
+ */
+function demoCalendarDates(index: number, now: Date): {purchaseDate: Date; paymentDate: Date} {
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const day = 1 + ((index * 2) % lastDay);
+    const paymentDate = new Date(now.getFullYear(), now.getMonth(), day, 12, 0, 0, 0);
+    return {purchaseDate: addDays(paymentDate, -PURCHASE_LEAD_DAYS), paymentDate};
+}
 
 /**
  * Seeds construction and fit-out costs across the hierarchy.
@@ -39,8 +59,9 @@ export async function createUnitCosts(
     logger.start(`Creating unit costs (${unitCostsSeed.length})...`);
 
     const created = new Map<string, ObjectId>();
+    const now = new Date();
 
-    for (const row of unitCostsSeed) {
+    for (const [index, row] of unitCostsSeed.entries()) {
         try {
             const unit = row.unit ? unitIds.get(row.unit) : undefined;
             const floor = row.floor ? floorIds.get(row.floor) : undefined;
@@ -66,14 +87,15 @@ export async function createUnitCosts(
             }
 
             const costId = new ObjectId(row.id);
+            const {purchaseDate, paymentDate} = demoCalendarDates(index, now);
             const payload = {
                 ...opt("unit", unit),
                 ...opt("floor", floor),
                 ...opt("edifice", edifice),
                 ...opt("project", project),
                 purchasePerson,
-                purchaseDate: new Date(row.purchaseDate),
-                ...optDate("paymentDate", row.paymentDate),
+                purchaseDate,
+                paymentDate,
                 notes: row.notes,
                 verificationStatus: row.verificationStatus as UnitCostVerificationStatus,
                 paymentStatus: row.paymentStatus as UnitCostPaymentStatus,
@@ -90,7 +112,6 @@ export async function createUnitCosts(
                     media: [],
                 })),
                 ...optDecimal("budgetedAmount", row.budgetedAmount),
-                ...opt("budgetCurrency", resolveCurrency(refs, row.budgetCurrency)),
                 company: company._id,
                 createdBy: company.createdBy,
             };

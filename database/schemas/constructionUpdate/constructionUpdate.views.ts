@@ -18,6 +18,19 @@ export const constructionUpdateSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "title",
+                    "project",
+                    "edifice",
+                    "milestone",
+                    "scheduleTask",
+                    "progressPercent",
+                    "updateDate",
+                    "description",
+                ],
+            },
             props: {title: "overview"},
             children: [
                 {
@@ -26,7 +39,6 @@ export const constructionUpdateSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "name",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
@@ -47,7 +59,6 @@ export const constructionUpdateSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "project",
                             permissions: {read: "project"},
                             field: {
                                 name: "project",
@@ -68,7 +79,6 @@ export const constructionUpdateSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "edifice"},
-                            dependent: "edifice",
                             field: {
                                 name: "edifice",
                                 widget: "#DisplayCard",
@@ -88,7 +98,6 @@ export const constructionUpdateSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "milestone"},
-                            dependent: "milestone",
                             field: {
                                 name: "milestone",
                                 widget: "#DisplayCard",
@@ -108,22 +117,7 @@ export const constructionUpdateSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "scheduleTask"},
-                            dependent: "scheduleTask",
-                            field: {
-                                name: "scheduleTask",
-                                widget: "#DisplayCard",
-                                label: "scheduleTask",
-                                widgetProps: {
-                                    icon: "#ListChecks",
-                                    linkedRefPath: "scheduleTask",
-                                    linkedSheetModel: "scheduletasks",
-                                    linkedSheetWidget: "#ScheduleTaskSheetView",
-                                    linkedSheetEntityProp: "scheduleTask",
-                                    parent: "scheduleTask",
-                                    valuePath: ["title", "name", "_id"],
-                                    pickFirstTruthyValuePath: true,
-                                },
-                            },
+                            field: {name: "scheduleTask", widget: "#DisplayCard", label: "scheduleTask", widgetProps: {icon: "#IconListDetailsFilled", linkedRefPath: "scheduleTask", linkedSheetModel: "scheduletasks", linkedSheetWidget: "#ScheduleTaskSheetView", linkedSheetEntityProp: "scheduleTask", parent: "scheduleTask", valuePath: ["title", "name", "_id"], pickFirstTruthyValuePath: true}},
                         },
                         {
                             render: "#DisplayCard",
@@ -138,12 +132,7 @@ export const constructionUpdateSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "updateDate"},
-                            field: {
-                                name: "updateDate",
-                                widget: "#DisplayCard",
-                                label: "updateDate",
-                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
-                            },
+                            field: {name: "updateDate", widget: "#DisplayCard", label: "updateDate", widgetProps: {icon: "#IconCalendarBolt", format: "date", type: "date"}},
                         },
                     ],
                 },
@@ -154,7 +143,6 @@ export const constructionUpdateSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "description"},
-                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",
@@ -172,9 +160,8 @@ export const constructionUpdateSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["photos"]},
             props: {title: "photos"},
-            dependent: "photos",
-            permissions: {read: "photos"},
             children: [
                 {
                     render: "div",
@@ -204,7 +191,7 @@ export const constructionUpdateSheetView: ViewConfig = {
     ],
 };
 
-const constructionUpdateFormNodes: ViewConfig["nodes"] = [
+const constructionUpdateCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -216,19 +203,7 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         props: {skipRenderWhenFormExtraTruthy: "prefilledProjectId"},
-                        field: {
-                            name: "project",
-                            widget: "#ApiSelect",
-                            label: "form.projectLabel",
-                            placeholder: "form.projectPlaceholder",
-                            required: true,
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/project/select",
-                                pageSize: 50,
-                                cascadeClearFormFields: ["edifice", "milestone", "scheduleTask"],
-                            },
-                        },
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/project/select", pageSize: 50, cascadeClearFormFields: ["edifice", "milestone", "scheduleTask"]}},
                     },
                     {
                         render: "#Field",
@@ -348,6 +323,189 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
+                        field: {name: "photos", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 20, accept: "image/*", existingListExtraKey: "editMediaExistingList", existingFilesLabelKey: "form.existingFiles", newFilesLabelKey: "form.newFiles"}},
+                    },
+                ],
+            },
+        ],
+    },
+];
+
+const constructionUpdateEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        permissions: {
+            readAny: [
+                "project",
+                "edifice",
+                "milestone",
+                "scheduleTask",
+                "title",
+                "progressPercent",
+                "updateDate",
+                "description",
+            ],
+            writeAny: [
+                "project",
+                "edifice",
+                "milestone",
+                "scheduleTask",
+                "title",
+                "progressPercent",
+                "updateDate",
+                "description",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        props: {skipRenderWhenFormExtraTruthy: "prefilledProjectId"},
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            required: true,
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/project/select",
+                                pageSize: 50,
+                                cascadeClearFormFields: ["edifice", "milestone", "scheduleTask"],
+                            },
+                        },
+                        permissions: {read: "project", write: "project"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "edifice",
+                            widget: "#ApiSelect",
+                            label: "form.edificeLabel",
+                            placeholder: "form.edificePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/edifice/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "edifice", write: "edifice"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "milestone",
+                            widget: "#ApiSelect",
+                            label: "form.milestoneLabel",
+                            placeholder: "form.milestonePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/milestone/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "milestone", write: "milestone"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "scheduleTask",
+                            widget: "#ApiSelect",
+                            label: "form.scheduleTaskLabel",
+                            placeholder: "form.scheduleTaskPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/scheduleTask/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "scheduleTask", write: "scheduleTask"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "title",
+                            widget: "#Input",
+                            label: "form.titleLabel",
+                            placeholder: "form.titlePlaceholder",
+                            required: true,
+                            widgetProps: {maxLength: CONSTRUCTION_UPDATE_SHORT_TEXT_MAX},
+                        },
+                        permissions: {read: "title", write: "title"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "progressPercent",
+                            widget: "#Input",
+                            label: "form.progressPercentLabel",
+                            placeholder: "form.progressPercentPlaceholder",
+                            required: true,
+                            widgetProps: {type: "number", min: 0, max: 100},
+                        },
+                        permissions: {read: "progressPercent", write: "progressPercent"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "updateDate",
+                            widget: "#DateInput",
+                            label: "form.updateDateLabel",
+                            placeholder: "form.updateDatePlaceholder",
+                            required: true,
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        },
+                        permissions: {read: "updateDate", write: "updateDate"},
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "description",
+                                    widget: "#Textarea",
+                                    label: "form.descriptionLabel",
+                                    placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: CONSTRUCTION_UPDATE_LONG_TEXT_MAX,
+                                    },
+                                },
+                                permissions: {read: "description", write: "description"},
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: {title: "form.photosLabel"},
+                permissions: {readAny: ["photos"], writeAny: ["photos"]},
+                children: [
+                    {
+                        render: "#Field",
                         field: {
                             name: "photos",
                             widget: "#FormMultiLocalFileField",
@@ -360,6 +518,7 @@ const constructionUpdateFormNodes: ViewConfig["nodes"] = [
                                 newFilesLabelKey: "form.newFiles",
                             },
                         },
+                        permissions: {read: "photos", write: "photos"},
                     },
                 ],
             },
@@ -374,7 +533,7 @@ export const constructionUpdateCreateFormView: ViewConfig = {
     accessModel: "constructionupdates",
     apiUrl: "/api/realEstate/constructionUpdate",
     method: "PUT",
-    nodes: constructionUpdateFormNodes,
+    nodes: constructionUpdateCreateFormNodes,
 };
 
 export const constructionUpdateEditFormView: ViewConfig = {
@@ -384,7 +543,7 @@ export const constructionUpdateEditFormView: ViewConfig = {
     accessModel: "constructionupdates",
     apiUrl: "/api/realEstate/constructionUpdate",
     method: "PATCH",
-    nodes: constructionUpdateFormNodes,
+    nodes: constructionUpdateEditFormNodes,
 };
 
 export const constructionUpdateViews: ViewConfig[] = [

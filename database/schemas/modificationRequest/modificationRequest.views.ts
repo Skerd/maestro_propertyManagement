@@ -18,6 +18,9 @@ export const modificationRequestSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: ["title", "name", "constructionType", "status", "unit", "requestedBy"],
+            },
             props: { title: "overview" },
             children: [
                 {
@@ -89,7 +92,6 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
@@ -125,16 +127,61 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                     ],
                 },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "description" },
+                            dependent: "description",
+                            field: {
+                                name: "description",
+                                widget: "#DisplayCard",
+                                label: "description",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "specifications" },
+                            dependent: "specifications",
+                            field: {
+                                name: "specifications",
+                                widget: "#DisplayCard",
+                                label: "specifications",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
             ],
         },
 
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: ["submittedAt", "stageDueDate", "completedAt", "cancelledAt", "financeDetails"],
+            },
             props: { title: "dates" },
             children: [
                 {
                     render: "#SheetGrid",
-                    props: { columns: 3 },
+                    props: {columns: 3},
                     children: [
                         {
                             render: "#DisplayCard",
@@ -193,63 +240,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            props: { title: "description" },
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: { columns: 1 },
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "description" },
-                            dependent: "description",
-                            field: {
-                                name: "description",
-                                widget: "#DisplayCard",
-                                label: "description",
-                                widgetProps: {
-                                    icon: "#IconAlignLeft",
-                                    expandable: true,
-                                    maxLength: 250,
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#SheetGroup",
-            props: { title: "specifications" },
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: { columns: 1 },
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "specifications" },
-                            dependent: "specifications",
-                            field: {
-                                name: "specifications",
-                                widget: "#DisplayCard",
-                                label: "specifications",
-                                widgetProps: {
-                                    icon: "#IconAlignLeft",
-                                    expandable: true,
-                                    maxLength: 250,
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#SheetGroup",
-            dependent: "architectApproval",
+            permissions: { readAny: ["architectApproval"] },
             props: { title: "architectApproval" },
             children: [
                 {
@@ -262,7 +253,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "architectApproval.decision" },
+                                    permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.decision",
                                         widget: "#DisplayCard",
@@ -272,7 +263,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "architectApproval.user" },
+                                    permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.user",
                                         widget: "#DisplayCard",
@@ -288,7 +279,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "architectApproval.reviewedAt" },
+                                    permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.reviewedAt",
                                         widget: "#DisplayCard",
@@ -304,8 +295,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "architectApproval.notes" },
-                                    dependent: "architectApproval.notes",
+                                    permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.notes",
                                         widget: "#DisplayCard",
@@ -325,8 +315,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "architectApproval.media" },
-                                    dependent: "architectApproval.media",
+                                    permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.media",
                                         widget: "#DisplayCard",
@@ -346,6 +335,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["engineerApproval"] },
             props: { title: "engineerApproval" },
             children: [
                 {
@@ -394,7 +384,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "engineerApproval.materialsPlan" },
+                                    permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.materialsPlan.length",
                                         widget: "#DisplayCard",
@@ -412,7 +402,6 @@ export const modificationRequestSheetView: ViewConfig = {
                                 {
                                     render: "#DisplayCard",
                                     permissions: { read: "engineerApproval" },
-                                    dependent: "engineerApproval.notes",
                                     field: {
                                         name: "engineerApproval.notes",
                                         widget: "#DisplayCard",
@@ -432,8 +421,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "engineerApproval.materialsPlan" },
-                                    dependent: "engineerApproval.materialsPlan",
+                                    permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.materialsPlan",
                                         widget: "#DisplayCard",
@@ -454,8 +442,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "engineerApproval.media" },
-                                    dependent: "engineerApproval.media",
+                                    permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.media",
                                         widget: "#DisplayCard",
@@ -475,6 +462,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["ceoApproval"] },
             props: { title: "ceoApproval" },
             children: [
                 {
@@ -530,7 +518,6 @@ export const modificationRequestSheetView: ViewConfig = {
                                 {
                                     render: "#DisplayCard",
                                     permissions: { read: "ceoApproval" },
-                                    dependent: "ceoApproval.notes",
                                     field: {
                                         name: "ceoApproval.notes",
                                         widget: "#DisplayCard",
@@ -550,7 +537,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "ceoApproval.media" },
+                                    permissions: { read: "ceoApproval" },
                                     dependent: "ceoApproval.media",
                                     field: {
                                         name: "ceoApproval.media",
@@ -571,6 +558,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["financeDetails"] },
             props: { title: "financeDetails" },
             children: [
                 {
@@ -621,7 +609,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "financeDetails.costBreakdown" },
+                                    permissions: { read: "financeDetails" },
                                     field: {
                                         name: "financeDetails.costBreakdown.length",
                                         widget: "#DisplayCard",
@@ -639,7 +627,6 @@ export const modificationRequestSheetView: ViewConfig = {
                                 {
                                     render: "#DisplayCard",
                                     permissions: { read: "financeDetails" },
-                                    dependent: "financeDetails.notes",
                                     field: {
                                         name: "financeDetails.notes",
                                         widget: "#DisplayCard",
@@ -659,8 +646,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "financeDetails.costBreakdown" },
-                                    dependent: "financeDetails.costBreakdown",
+                                    permissions: { read: "financeDetails" },
                                     field: {
                                         name: "financeDetails.costBreakdown",
                                         widget: "#DisplayCard",
@@ -683,7 +669,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "financeDetails.media" },
+                                    permissions: { read: "financeDetails" },
                                     dependent: "financeDetails.media",
                                     field: {
                                         name: "financeDetails.media",
@@ -704,7 +690,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            dependent: "clientCostApproval",
+            permissions: { readAny: ["clientCostApproval"] },
             props: { title: "clientCostApproval" },
             children: [
                 {
@@ -717,7 +703,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "clientCostApproval.decision" },
+                                    permissions: { read: "clientCostApproval" },
                                     field: {
                                         name: "clientCostApproval.decision",
                                         widget: "#DisplayCard",
@@ -727,7 +713,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "clientCostApproval.user" },
+                                    permissions: { read: "clientCostApproval" },
                                     field: {
                                         name: "clientCostApproval.user",
                                         widget: "#DisplayCard",
@@ -743,7 +729,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "clientCostApproval.reviewedAt" },
+                                    permissions: { read: "clientCostApproval" },
                                     field: {
                                         name: "clientCostApproval.reviewedAt",
                                         widget: "#DisplayCard",
@@ -759,7 +745,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "clientCostApproval.notes" },
+                                    permissions: { read: "clientCostApproval" },
                                     dependent: "clientCostApproval.notes",
                                     field: {
                                         name: "clientCostApproval.notes",
@@ -781,6 +767,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["deliveryApproval"] },
             props: { title: "delivery" },
             children: [
                 {
@@ -827,7 +814,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         widgetProps: { icon: "#CalendarCheck", format: "dateTime" , type: "dateTime"},
                                     },
                                 },
-                            ],
+                            ], dependent: "cancellationReason",
                         },
                         {
                             render: "#SheetGrid",
@@ -857,7 +844,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "deliveryApproval.media" },
+                                    permissions: { read: "deliveryApproval" },
                                     dependent: "deliveryApproval.media",
                                     field: {
                                         name: "deliveryApproval.media",
@@ -881,6 +868,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#SheetGroup",
+                                    permissions: { readAny: ["deliveryApproval"] },
                                     props: {
                                         title: "inspections",
                                         titleActions: "#ReferencesViewModeToggle",
@@ -889,7 +877,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         {
                                             render: "#ReferencesRender",
                                             permissions: {
-                                                read: "deliveryApproval.inspections",
+                                                read: "deliveryApproval",
                                             },
                                             field: {
                                                 name: "deliveryApproval.inspections",
@@ -919,11 +907,12 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                     ],
                 },
-            ],
+            ], dependent: "cancellationReason",
         },
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["notificationSent", "clientNotifiedAt"] },
             props: { title: "notifications" },
             children: [
                 {
@@ -957,8 +946,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            dependent: "cancellationReason",
-            permissions: { read: "cancellationReason" },
+            permissions: { readAny: ["cancellationReason"] },
             props: { title: "cancellation" },
             children: [
                 {
@@ -978,17 +966,17 @@ export const modificationRequestSheetView: ViewConfig = {
                                     maxLength: 250,
                                     variant: "destructive",
                                 },
-                            },
+                            }, dependent: "cancellationReason",
                         },
                     ],
                 },
-            ],
+            ], dependent: "cancellationReason",
         },
         lifecycleSheetGroup,
     ],
 };
 
-const modificationRequestFormFields: ViewConfig["nodes"] = [
+const modificationRequestCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "unitSelection", skipRenderWhenFormExtraTruthy: "hideModificationUnitCascade" },
@@ -1176,6 +1164,206 @@ const modificationRequestFormFields: ViewConfig["nodes"] = [
     },
 ];
 
+const modificationRequestEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "unitSelection", skipRenderWhenFormExtraTruthy: "hideModificationUnitCascade" },
+        permissions: {
+            readAny: ["unit"],
+            writeAny: ["unit"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 4 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/project/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "project",
+                                cascadeClearFormFields: ["edifice", "floor", "unit"],
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "edifice",
+                            widget: "#ApiSelect",
+                            label: "form.edificeLabel",
+                            placeholder: "form.edificePlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/edifice/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "edifice",
+                                postBodyFromFormField: { field: "project", paramName: "project" },
+                                cascadeClearFormFields: ["floor", "unit"],
+                                remountKeyFormField: "project",
+                                enableWhenFormFieldsNonEmpty: ["project"],
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "floor",
+                            widget: "#ApiSelect",
+                            label: "form.floorLabel",
+                            placeholder: "form.floorPlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/floor/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "floor",
+                                postBodyFromFormField: { field: "edifice", paramName: "edifice" },
+                                cascadeClearFormFields: ["unit"],
+                                remountKeyFormField: "edifice",
+                                enableWhenFormFieldsNonEmpty: ["edifice"],
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "unit",
+                            widget: "#ApiSelect",
+                            label: "form.unitLabel",
+                            placeholder: "form.unitPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unit/select",
+                                method: "POST",
+                                pageSize: 50,
+                                formFieldName: "unit",
+                                postBodyFromFormFields: [
+                                    {field: "edifice", paramName: "edifice"},
+                                    {field: "floor", paramName: "floor"},
+                                ],
+                                remountKeyFormField: "edifice",
+                                enableWhenFormFieldsNonEmpty: ["project", "edifice"],
+                            },
+                        }, permissions: {read: "unit", write: "unit"},
+                    }
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "generalInfo" },
+        permissions: {
+            readAny: ["requestedBy", "constructionType"],
+            writeAny: ["requestedBy", "constructionType"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "requestedBy",
+                            widget: "#ApiSelect",
+                            label: "form.requestedByLabel",
+                            placeholder: "form.requestedByPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                postBody: { administration: false },
+                            },
+                        }, permissions: {read: "requestedBy", write: "requestedBy"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "constructionType",
+                            widget: "#SimpleSelect",
+                            label: "form.constructionTypeLabel",
+                            placeholder: "form.constructionTypePlaceholder",
+                            required: true,
+                            widgetProps: {
+                                options: [
+                                    { value: "materials", label: "form.constructionTypeOption.materials" },
+                                    { value: "room_division", label: "form.constructionTypeOption.room_division" },
+                                    { value: "flooring", label: "form.constructionTypeOption.flooring" },
+                                    { value: "utilities", label: "form.constructionTypeOption.utilities" },
+                                    { value: "structural", label: "form.constructionTypeOption.structural" },
+                                    { value: "electrical", label: "form.constructionTypeOption.electrical" },
+                                    { value: "plumbing", label: "form.constructionTypeOption.plumbing" },
+                                    { value: "hvac", label: "form.constructionTypeOption.hvac" },
+                                    { value: "cosmetic", label: "form.constructionTypeOption.cosmetic" },
+                                    { value: "other", label: "form.constructionTypeOption.other" },
+                                ],
+                            },
+                        }, permissions: {read: "constructionType", write: "constructionType"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "details" },
+        permissions: {
+            readAny: ["title", "description", "specifications"],
+            writeAny: ["title", "description", "specifications"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "title",
+                            widget: "#Input",
+                            label: "form.titleLabel",
+                            placeholder: "form.titlePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: MODIFICATION_REQUEST_TITLE_MAX },
+                        }, permissions: {read: "title", write: "title"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "description",
+                            widget: "#Textarea",
+                            label: "form.descriptionLabel",
+                            placeholder: "form.descriptionPlaceholder",
+                            required: true,
+                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto", maxLength: MODIFICATION_REQUEST_LONG_TEXT_MAX },
+                        }, permissions: {read: "description", write: "description"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "specifications",
+                            widget: "#Textarea",
+                            label: "form.specificationsLabel",
+                            placeholder: "form.specificationsPlaceholder",
+                            widgetProps: { className: "resize-none max-h-[250px] overflow-y-auto", maxLength: MODIFICATION_REQUEST_LONG_TEXT_MAX },
+                        }, permissions: {read: "specifications", write: "specifications"},
+                    },
+                ],
+            },
+        ],
+    },
+];
+
 export const modificationRequestCreateFormView: ViewConfig = {
     model: "modificationrequests",
     viewType: "form",
@@ -1183,7 +1371,7 @@ export const modificationRequestCreateFormView: ViewConfig = {
     accessModel: "modificationRequests",
     apiUrl: "/api/realEstate/unit/modificationRequest",
     method: "PUT",
-    nodes: modificationRequestFormFields,
+    nodes: modificationRequestCreateFormNode,
 };
 
 export const modificationRequestEditFormView: ViewConfig = {
@@ -1193,7 +1381,7 @@ export const modificationRequestEditFormView: ViewConfig = {
     accessModel: "modificationRequests",
     apiUrl: "/api/realEstate/unit/modificationRequest",
     method: "PATCH",
-    nodes: modificationRequestFormFields,
+    nodes: modificationRequestEditFormNode,
 };
 
 export const modificationRequestViews: ViewConfig[] = [

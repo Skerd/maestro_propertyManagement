@@ -62,6 +62,14 @@ const StorySchema = new Schema<IStory>(
                 sortable: true,
                 cellType: COLUMN_TYPE.STRING,
             },
+            permissions: {
+                self: {
+                    write: "no-permission",
+                },
+                others: {
+                    write: "no-permission",
+                },
+            }
         },
         project: {
             type: SchemaTypes.ObjectId,

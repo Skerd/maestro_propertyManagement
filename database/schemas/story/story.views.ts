@@ -19,6 +19,21 @@ export const storySheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "project",
+                    "edifice",
+                    "unit",
+                    "storyType",
+                    "publishedAt",
+                    "sortOrder",
+                    "name",
+                    "published",
+                    "title",
+                    "excerpt",
+                    "content",
+                ],
+            },
             props: {title: "overview"},
             children: [
                 {
@@ -43,7 +58,6 @@ export const storySheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "edifice"},
-                            dependent: "edifice",
                             field: {
                                 name: "edifice.name",
                                 widget: "#DisplayCard",
@@ -60,7 +74,6 @@ export const storySheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "unit"},
-                            dependent: "unit",
                             field: {
                                 name: "unit.name",
                                 widget: "#DisplayCard",
@@ -99,7 +112,6 @@ export const storySheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "publishedAt"},
-                            dependent: "publishedAt",
                             field: {
                                 name: "publishedAt",
                                 widget: "#DisplayCard",
@@ -168,7 +180,6 @@ export const storySheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "excerpt"},
-                            dependent: "excerpt",
                             field: {
                                 name: "excerpt",
                                 widget: "#DisplayCard",
@@ -206,6 +217,7 @@ export const storySheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["mainImage", "imageGallery", "videoGallery"]},
             props: {title: "gallery"},
             children: [
                 {
@@ -236,7 +248,7 @@ export const storySheetView: ViewConfig = {
     ],
 };
 
-const storyFormNodes: ViewConfig["nodes"] = [
+const storyCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -407,7 +419,6 @@ const storyFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "form.mainImageLabel"},
-        permissions: {write: "mainImage"},
         children: [
             {
                 render: "#Field",
@@ -423,7 +434,6 @@ const storyFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "form.imageGalleryLabel"},
-        permissions: {write: "imageGallery"},
         children: [
             {
                 render: "#Field",
@@ -439,7 +449,6 @@ const storyFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "form.videoGalleryLabel"},
-        permissions: {write: "videoGallery"},
         children: [
             {
                 render: "#Field",
@@ -454,6 +463,250 @@ const storyFormNodes: ViewConfig["nodes"] = [
     },
 ];
 
+const storyEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        permissions: {
+            readAny: [
+                "project",
+                "edifice",
+                "unit",
+                "storyType",
+                "sortOrder",
+                "publishedAt",
+                "title",
+                "excerpt",
+                "content",
+                "published",
+            ],
+            writeAny: [
+                "project",
+                "edifice",
+                "unit",
+                "storyType",
+                "sortOrder",
+                "publishedAt",
+                "title",
+                "excerpt",
+                "content",
+                "published",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 3},
+                children: [
+                    {
+                        render: "#Field",
+                        props: {skipRenderWhenFormExtraTruthy: "prefilledProjectId"},
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            required: true,
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/project/select",
+                                pageSize: 50,
+                                cascadeClearFormFields: ["edifice", "unit"],
+                            },
+                        }, permissions: {read: "project"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "edifice",
+                            widget: "#ApiSelect",
+                            label: "form.edificeLabel",
+                            placeholder: "form.edificePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/edifice/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                cascadeClearFormFields: ["unit"],
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "edifice", write: "edifice"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "unit",
+                            widget: "#ApiSelect",
+                            label: "form.unitLabel",
+                            placeholder: "form.unitPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unit/select",
+                                method: "POST",
+                                pageSize: 50,
+                                postBodyFromFormFields: [
+                                    {field: "project", paramName: "project"},
+                                    {field: "edifice", paramName: "edifice"},
+                                ],
+                                remountKeyFormField: "edifice",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "unit", write: "unit"},
+                    },
+                ],
+            },
+            {
+                render: "#FormGrid",
+                props: {columns: 3},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "storyType",
+                            widget: "#ApiSelect",
+                            label: "form.storyTypeLabel",
+                            placeholder: "form.storyTypePlaceholder",
+                            required: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/storyType/select",
+                                method: "POST",
+                                pageSize: 50,
+                            },
+                        }, permissions: {read: "storyType", write: "storyType"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "sortOrder",
+                            widget: "#Input",
+                            label: "form.sortOrderLabel",
+                            placeholder: "form.sortOrderPlaceholder",
+                            widgetProps: {type: "number"},
+                        }, permissions: {read: "sortOrder", write: "sortOrder"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "publishedAt",
+                            widget: "#DateInput",
+                            label: "form.publishedAtLabel",
+                            placeholder: "form.publishedAtPlaceholder",
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        }, permissions: {read: "publishedAt", write: "publishedAt"},
+                    },
+                ]
+            },
+            {
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "title",
+                            widget: "#Input",
+                            label: "form.titleLabel",
+                            placeholder: "form.titlePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: STORY_TITLE_MAX },
+                        }, permissions: {read: "title", write: "title"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "excerpt",
+                            widget: "#Textarea",
+                            label: "form.excerptLabel",
+                            placeholder: "form.excerptPlaceholder",
+                            widgetProps: {
+                                className: "field-sizing-fixed resize-none max-h-[250px] overflow-y-auto",
+                                style: { maxHeight: 250 },
+                                maxLength: STORY_EXCERPT_MAX,
+                            },
+                        }, permissions: {read: "excerpt", write: "excerpt"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "content",
+                            widget: "#Textarea",
+                            label: "form.contentLabel",
+                            placeholder: "form.contentPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                style: { maxHeight: 250 },
+                                maxLength: STORY_CONTENT_MAX,
+                            },
+                        }, permissions: {read: "content", write: "content"},
+                    },
+                ]
+            },
+            {
+                render: "#FormGrid",
+                props: {columns: 3},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "published",
+                            widget: "#Switch",
+                            label: "form.publishedLabel",
+                        }, permissions: {read: "published", write: "published"},
+                    },
+                ]
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.mainImageLabel"},
+        permissions: {readAny: ["mainImage"], writeAny: ["mainImage"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mainImage",
+                    widget: "#MediaField",
+                    label: "form.mainImageLabel",
+                    widgetProps: {mediaType: "image", mode: "single"},
+                }, permissions: {read: "mainImage", write: "mainImage"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.imageGalleryLabel"},
+        permissions: {readAny: ["imageGallery"], writeAny: ["imageGallery"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "imageGallery",
+                    widget: "#MediaField",
+                    label: "form.imageGalleryLabel",
+                    widgetProps: {mediaType: "image", mode: "multiple", maxCount: 20},
+                }, permissions: {read: "imageGallery", write: "imageGallery"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.videoGalleryLabel"},
+        permissions: {readAny: ["videoGallery"], writeAny: ["videoGallery"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "videoGallery",
+                    widget: "#MediaField",
+                    label: "form.videoGalleryLabel",
+                    widgetProps: {mediaType: "video", mode: "multiple", maxCount: 10},
+                }, permissions: {read: "videoGallery", write: "videoGallery"},
+            },
+        ],
+    },
+];
+
 export const storyCreateFormView: ViewConfig = {
     model: "stories",
     viewType: "form",
@@ -461,7 +714,7 @@ export const storyCreateFormView: ViewConfig = {
     accessModel: "stories",
     apiUrl: "/api/realEstate/story",
     method: "PUT",
-    nodes: storyFormNodes,
+    nodes: storyCreateFormNodes,
 };
 
 export const storyEditFormView: ViewConfig = {
@@ -471,7 +724,7 @@ export const storyEditFormView: ViewConfig = {
     accessModel: "stories",
     apiUrl: "/api/realEstate/story",
     method: "PATCH",
-    nodes: storyFormNodes,
+    nodes: storyEditFormNodes,
 };
 
 export const storyViews: ViewConfig[] = [

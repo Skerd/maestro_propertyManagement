@@ -31,6 +31,29 @@ export const snagSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "title",
+                    "unit",
+                    "location",
+                    "status",
+                    "severity",
+                    "reportedBy",
+                    "assignedTo",
+                    "dueDate",
+                    "resolvedAt",
+                    "trade",
+                    "workPackage",
+                    "costImpact",
+                    "isWarranty",
+                    "isDlp",
+                    "variationOrder",
+                    "description",
+                    "notes",
+                    "rootCause",
+                ],
+            },
             props: {title: "overview"},
             children: [
                 {
@@ -39,7 +62,6 @@ export const snagSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "name",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
@@ -60,7 +82,6 @@ export const snagSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit",
@@ -81,7 +102,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "location"},
-                            dependent: "location",
                             field: {
                                 name: "location",
                                 widget: "#DisplayCard",
@@ -134,7 +154,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "reportedBy"},
-                            dependent: "reportedBy",
                             field: {
                                 name: "reportedBy",
                                 widget: "#DisplayCard",
@@ -151,7 +170,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "assignedTo"},
-                            dependent: "assignedTo",
                             field: {
                                 name: "assignedTo",
                                 widget: "#DisplayCard",
@@ -168,18 +186,20 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "dueDate"},
-                            dependent: "dueDate",
                             field: {
                                 name: "dueDate",
                                 widget: "#DisplayCard",
                                 label: "dueDate",
-                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
+                                widgetProps: {
+                                    icon: "#IconCalendarDue",
+                                    format: "date",
+                                    type: "date"
+                                }
                             },
                         },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "resolvedAt"},
-                            dependent: "resolvedAt",
                             field: {
                                 name: "resolvedAt",
                                 widget: "#DisplayCard",
@@ -190,7 +210,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "trade"},
-                            dependent: "trade",
                             field: {
                                 name: "trade",
                                 widget: "#DisplayCard",
@@ -201,7 +220,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "workPackage"},
-                            dependent: "workPackage",
                             field: {
                                 name: "workPackage",
                                 widget: "#DisplayCard",
@@ -221,7 +239,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "costImpact"},
-                            dependent: "costImpact",
                             field: {
                                 name: "costImpact",
                                 widget: "#DisplayCard",
@@ -252,7 +269,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "variationOrder"},
-                            dependent: "variationOrder",
                             field: {
                                 name: "variationOrder",
                                 widget: "#DisplayCard",
@@ -278,7 +294,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "description"},
-                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",
@@ -293,7 +308,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "notes"},
-                            dependent: "notes",
                             field: {
                                 name: "notes",
                                 widget: "#DisplayCard",
@@ -308,7 +322,6 @@ export const snagSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "rootCause"},
-                            dependent: "rootCause",
                             field: {
                                 name: "rootCause",
                                 widget: "#DisplayCard",
@@ -326,9 +339,8 @@ export const snagSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            permissions: {readAny: ["photos"]},
             props: {title: "photos"},
-            dependent: "photos",
-            permissions: {read: "photos"},
             children: [
                 {
                     render: "div",
@@ -358,7 +370,7 @@ export const snagSheetView: ViewConfig = {
     ],
 };
 
-const snagFormNodes: ViewConfig["nodes"] = [
+const snagCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -376,11 +388,10 @@ const snagFormNodes: ViewConfig["nodes"] = [
                             label: "form.unitLabel",
                             placeholder: "form.unitPlaceholder",
                             required: true,
-                            skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                pageSize: 50,
-                            },
+                                pageSize: 50
+                            }
                         },
                     },
                     {
@@ -588,6 +599,306 @@ const snagFormNodes: ViewConfig["nodes"] = [
                         field: {
                             name: "photos",
                             widget: "#FormMultiLocalFileField",
+                            widgetProps: {
+                                maxFiles: 20,
+                                accept: "image/*",
+                                existingListExtraKey: "editMediaExistingList",
+                                existingFilesLabelKey: "form.existingFiles",
+                                newFilesLabelKey: "form.newFiles"
+                            }
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+];
+
+const snagEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        permissions: {
+            readAny: [
+                "unit",
+                "title",
+                "location",
+                "severity",
+                "reportedBy",
+                "assignedTo",
+                "dueDate",
+                "trade",
+                "workPackage",
+                "variationOrder",
+                "costImpact",
+                "isWarranty",
+                "isDlp",
+                "description",
+                "notes",
+                "rootCause",
+            ],
+            writeAny: [
+                "unit",
+                "title",
+                "location",
+                "severity",
+                "reportedBy",
+                "assignedTo",
+                "dueDate",
+                "trade",
+                "workPackage",
+                "variationOrder",
+                "costImpact",
+                "isWarranty",
+                "isDlp",
+                "description",
+                "notes",
+                "rootCause",
+            ],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        props: {skipRenderWhenFormExtraTruthy: "prefilledUnitId"},
+                        field: {
+                            name: "unit",
+                            widget: "#ApiSelect",
+                            label: "form.unitLabel",
+                            placeholder: "form.unitPlaceholder",
+                            required: true,
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unit/select",
+                                pageSize: 50,
+                            },
+                        },
+                        permissions: {read: "unit", write: "unit"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "title",
+                            widget: "#Input",
+                            label: "form.titleLabel",
+                            placeholder: "form.titlePlaceholder",
+                            required: true,
+                            widgetProps: {maxLength: SNAG_SHORT_TEXT_MAX},
+                        },
+                        permissions: {read: "title", write: "title"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "location",
+                            widget: "#Input",
+                            label: "form.locationLabel",
+                            placeholder: "form.locationPlaceholder",
+                            widgetProps: {maxLength: SNAG_SHORT_TEXT_MAX},
+                        },
+                        permissions: {read: "location", write: "location"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "severity",
+                            widget: "#SimpleSelect",
+                            label: "form.severityLabel",
+                            placeholder: "form.severityPlaceholder",
+                            widgetProps: {options: [...SNAG_SEVERITY_OPTIONS]},
+                        },
+                        permissions: {read: "severity", write: "severity"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "reportedBy",
+                            widget: "#ApiSelect",
+                            label: "form.reportedByLabel",
+                            placeholder: "form.reportedByPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                postBody: {administration: true},
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "reportedBy", write: "reportedBy"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "assignedTo",
+                            widget: "#ApiSelect",
+                            label: "form.assignedToLabel",
+                            placeholder: "form.assignedToPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                postBody: {administration: true},
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "assignedTo", write: "assignedTo"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "dueDate",
+                            widget: "#DateInput",
+                            label: "form.dueDateLabel",
+                            placeholder: "form.dueDatePlaceholder",
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        },
+                        permissions: {read: "dueDate", write: "dueDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "trade",
+                            widget: "#Input",
+                            label: "form.tradeLabel",
+                            placeholder: "form.tradePlaceholder",
+                            widgetProps: {maxLength: SNAG_SHORT_TEXT_MAX},
+                        },
+                        permissions: {read: "trade", write: "trade"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "workPackage",
+                            widget: "#ApiSelect",
+                            label: "form.workPackageLabel",
+                            placeholder: "form.workPackagePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/workPackage/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "workPackage", write: "workPackage"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "variationOrder",
+                            widget: "#ApiSelect",
+                            label: "form.variationOrderLabel",
+                            placeholder: "form.variationOrderPlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/variationOrder/select",
+                                method: "POST",
+                                pageSize: 50,
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "variationOrder", write: "variationOrder"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "costImpact",
+                            widget: "#Input",
+                            label: "form.costImpactLabel",
+                            placeholder: "form.costImpactPlaceholder",
+                            widgetProps: {type: "number", step: "0.01"},
+                        },
+                        permissions: {read: "costImpact", write: "costImpact"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "isWarranty",
+                            widget: "#Checkbox",
+                            label: "form.isWarrantyLabel",
+                        },
+                        permissions: {read: "isWarranty", write: "isWarranty"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "isDlp",
+                            widget: "#Checkbox",
+                            label: "form.isDlpLabel",
+                        },
+                        permissions: {read: "isDlp", write: "isDlp"},
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "description",
+                                    widget: "#Textarea",
+                                    label: "form.descriptionLabel",
+                                    placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: snagLongTextareaProps,
+                                },
+                                permissions: {read: "description", write: "description"},
+                            },
+                        ],
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "notes",
+                                    widget: "#Textarea",
+                                    label: "form.notesLabel",
+                                    placeholder: "form.notesPlaceholder",
+                                    widgetProps: snagLongTextareaProps,
+                                },
+                                permissions: {read: "notes", write: "notes"},
+                            },
+                        ],
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 w-full space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "rootCause",
+                                    widget: "#Textarea",
+                                    label: "form.rootCauseLabel",
+                                    placeholder: "form.rootCausePlaceholder",
+                                    widgetProps: snagLongTextareaProps,
+                                },
+                                permissions: {read: "rootCause", write: "rootCause"},
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: {title: "form.photosLabel"},
+                permissions: {readAny: ["photos"], writeAny: ["photos"]},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "photos",
+                            widget: "#FormMultiLocalFileField",
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 maxFiles: 20,
@@ -597,6 +908,7 @@ const snagFormNodes: ViewConfig["nodes"] = [
                                 newFilesLabelKey: "form.newFiles",
                             },
                         },
+                        permissions: {read: "photos", write: "photos"},
                     },
                 ],
             },
@@ -611,7 +923,7 @@ export const snagCreateFormView: ViewConfig = {
     accessModel: "snags",
     apiUrl: "/api/realEstate/snag",
     method: "PUT",
-    nodes: snagFormNodes,
+    nodes: snagCreateFormNodes,
 };
 
 export const snagEditFormView: ViewConfig = {
@@ -621,7 +933,7 @@ export const snagEditFormView: ViewConfig = {
     accessModel: "snags",
     apiUrl: "/api/realEstate/snag",
     method: "PATCH",
-    nodes: snagFormNodes,
+    nodes: snagEditFormNodes,
 };
 
 export const snagViews: ViewConfig[] = [

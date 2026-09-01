@@ -20,6 +20,18 @@ export const floorSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "edifice",
+                    "levelNumber",
+                    "totalUnits",
+                    "area",
+                    "isAccessible",
+                    "hasEmergencyExit",
+                    "description",
+                ],
+            },
             props: { title: "overview" },
             children: [
                 {
@@ -145,9 +157,9 @@ export const floorSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            props: { title: "statisticsTitle" },
-            dependent: "statistics",
+            dependentAny: ["statistics"],
             dependentRuntimeOnly: true,
+            props: { title: "statisticsTitle" },
             children: [
                 {
                     render: "#SheetGrid",
@@ -409,6 +421,7 @@ export const floorSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["sharedSpaces"] },
             props: { title: "sharedSpaces" },
             children: [
                 {
@@ -436,6 +449,7 @@ export const floorSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
             props: { title: "gallery" },
             children: [
                 {
@@ -468,9 +482,7 @@ export const floorSheetView: ViewConfig = {
         // ── Media Files ──────────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "mediaFiles",
-            dependentRuntimeOnly: true,
-            permissions: { read: "mediaFiles" },
+            permissions: { readAny: ["mediaFiles"] },
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -498,9 +510,7 @@ export const floorSheetView: ViewConfig = {
         // ── Marketing Booklet ────────────────────────────────────────
         {
             render: "#SheetGroup",
-            dependent: "marketingBooklet",
-            dependentRuntimeOnly: true,
-            permissions: { read: "marketingBooklet" },
+            permissions: { readAny: ["marketingBooklet"] },
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -528,7 +538,7 @@ export const floorSheetView: ViewConfig = {
     ],
 };
 
-const floorFormSharedContent: ViewConfig["nodes"] = [
+const floorCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "generalInfo" },
@@ -540,18 +550,7 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         props: { skipRenderWhenFormExtraTruthy: "hasRouteEdificeId" },
-                        field: {
-                            name: "project",
-                            widget: "#ApiSelect",
-                            label: "form.projectLabel",
-                            placeholder: "form.projectPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/project/select",
-                                pageSize: 50,
-                                cascadeClearFormFields: ["edifice"],
-                            },
-                        },
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", pageSize: 50, cascadeClearFormFields: ["edifice"]}},
                     },
                     {
                         render: "#Field",
@@ -600,17 +599,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
-                            name: "totalUnits",
-                            widget: "#Input",
-                            label: "form.totalUnitsLabel",
-                            placeholder: "form.totalUnitsPlaceholder",
-                            required: true,
-                            widgetProps: { type: "number", min: 0 },
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
                             name: "area",
                             widget: "#Input",
                             label: "form.areaLabel",
@@ -639,7 +627,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "floorLocation" },
-        permissions: { write: "polygonCoordinates" },
         children: [
             {
                 render: "#Field",
@@ -661,7 +648,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "sharedSpaces" },
-        permissions: { write: "sharedSpaces" },
         children: [
             {
                 render: "#Field",
@@ -710,7 +696,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.mainImageLabel" },
-        permissions: { write: "mainImage" },
         children: [
             {
                 render: "#Field",
@@ -726,7 +711,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.imageGalleryLabel" },
-        permissions: { write: "imageGallery" },
         children: [
             {
                 render: "#Field",
@@ -742,7 +726,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.videoGalleryLabel" },
-        permissions: { write: "videoGallery" },
         children: [
             {
                 render: "#Field",
@@ -760,7 +743,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.mediaFilesLabel" },
-        permissions: { write: "mediaFiles" },
         children: [
             {
                 render: "#Field",
@@ -778,7 +760,6 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "form.marketingBookletLabel" },
-        permissions: { write: "marketingBooklet" },
         children: [
             {
                 render: "#Field",
@@ -793,6 +774,268 @@ const floorFormSharedContent: ViewConfig["nodes"] = [
     },
 ];
 
+const floorEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "generalInfo" },
+        permissions: {
+            readAny: ["project", "edifice", "name", "levelNumber", "area", "description"],
+            writeAny: ["project", "edifice", "name", "levelNumber", "area", "description"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        props: { skipRenderWhenFormExtraTruthy: "hasRouteEdificeId" },
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/project/select",
+                                pageSize: 50,
+                                cascadeClearFormFields: ["edifice"],
+                            },
+                        }, permissions: {read: "project"},
+                    },
+                    {
+                        render: "#Field",
+                        props: { skipRenderWhenFormExtraTruthy: "hasRouteEdificeId" },
+                        field: {
+                            name: "edifice",
+                            widget: "#ApiSelect",
+                            label: "form.edificeLabel",
+                            placeholder: "form.edificePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/edifice/select",
+                                pageSize: 50,
+                                postBodyFromFormField: { field: "project", paramName: "project" },
+                                remountKeyFormField: "project",
+                            },
+                        }, permissions: {read: "edifice", write: "edifice"},
+                    },
+                ],
+            },
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "name",
+                            widget: "#Input",
+                            label: "form.nameLabel",
+                            placeholder: "form.namePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: FLOOR_SHORT_TEXT_MAX },
+                        }, permissions: {read: "name", write: "name"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "levelNumber",
+                            widget: "#Input",
+                            label: "form.levelNumberLabel",
+                            placeholder: "form.levelNumberPlaceholder",
+                            required: true,
+                            widgetProps: { type: "number" },
+                        }, permissions: {read: "levelNumber", write: "levelNumber"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "area",
+                            widget: "#Input",
+                            label: "form.areaLabel",
+                            placeholder: "form.areaPlaceholder",
+                            required: true,
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "area", write: "area"},
+                    },
+                ],
+            },
+            {
+                render: "#Field",
+                field: {
+                    name: "description",
+                    widget: "#Textarea",
+                    label: "form.descriptionLabel",
+                    placeholder: "form.descriptionPlaceholder",
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: FLOOR_LONG_TEXT_MAX,
+                    },
+                }, permissions: {read: "description", write: "description"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "floorLocation" },
+        permissions: { readAny: ["polygonCoordinates"], writeAny: ["polygonCoordinates"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "__floorPolygon",
+                    widget: "#FormFloorPolygon",
+                    widgetProps: {
+                        polygonField: "polygonCoordinates",
+                        closedField: "polygonClosed",
+                        projectField: "project",
+                        hintKey: "selectFloorLocation",
+                        errorLoadingKey: "errorLoadingEdifice",
+                        noImageKey: "edificeNoMainImage",
+                    },
+                }, permissions: {read: "polygonCoordinates", write: "polygonCoordinates"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "sharedSpaces" },
+        permissions: { readAny: ["sharedSpaces"], writeAny: ["sharedSpaces"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "sharedSpaces",
+                    widget: "#StringArrayField",
+                    label: "form.sharedSpacesLabel",
+                    placeholder: "form.sharedSpacesPlaceholder",
+                    widgetProps: {
+                        removeTooltipKey: "removeSharedSpace",
+                        maxItems: FLOOR_SHARED_SPACE_MAX_ITEMS,
+                        maxLength: FLOOR_SHARED_SPACE_ITEM_MAX,
+                    },
+                }, permissions: {read: "sharedSpaces", write: "sharedSpaces"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "features" },
+        permissions: {
+            readAny: ["isAccessible", "hasEmergencyExit"],
+            writeAny: ["isAccessible", "hasEmergencyExit"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "isAccessible",
+                            widget: "#Switch",
+                            label: "form.isAccessibleLabel",
+                        }, permissions: {read: "isAccessible", write: "isAccessible"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "hasEmergencyExit",
+                            widget: "#Switch",
+                            label: "form.hasEmergencyExitLabel",
+                        }, permissions: {read: "hasEmergencyExit", write: "hasEmergencyExit"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.mainImageLabel" },
+        permissions: { readAny: ["mainImage"], writeAny: ["mainImage"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mainImage",
+                    widget: "#MediaField",
+                    label: "form.mainImageLabel",
+                    widgetProps: { mediaType: "image", mode: "single" },
+                }, permissions: {read: "mainImage", write: "mainImage"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.imageGalleryLabel" },
+        permissions: { readAny: ["imageGallery"], writeAny: ["imageGallery"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "imageGallery",
+                    widget: "#MediaField",
+                    label: "form.imageGalleryLabel",
+                    widgetProps: { mediaType: "image", mode: "multiple", maxCount: 10 },
+                }, permissions: {read: "imageGallery", write: "imageGallery"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.videoGalleryLabel" },
+        permissions: { readAny: ["videoGallery"], writeAny: ["videoGallery"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "videoGallery",
+                    widget: "#MediaField",
+                    label: "form.videoGalleryLabel",
+                    widgetProps: { mediaType: "video", mode: "multiple", maxCount: 3 },
+                }, permissions: {read: "videoGallery", write: "videoGallery"},
+            },
+        ],
+    },
+
+    // ── Media files (generic file attachments) ──────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.mediaFilesLabel" },
+        permissions: { readAny: ["mediaFiles"], writeAny: ["mediaFiles"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "mediaFiles",
+                    widget: "#MediaField",
+                    label: "form.mediaFilesLabel",
+                    widgetProps: { mediaType: "file", mode: "multiple", maxCount: 20 },
+                }, permissions: {read: "mediaFiles", write: "mediaFiles"},
+            },
+        ],
+    },
+
+    // ── Marketing Booklet (single PDF) ──────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.marketingBookletLabel" },
+        permissions: { readAny: ["marketingBooklet"], writeAny: ["marketingBooklet"] },
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "marketingBooklet",
+                    widget: "#MediaField",
+                    label: "form.marketingBookletLabel",
+                    widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
+                }, permissions: {read: "marketingBooklet", write: "marketingBooklet"},
+            },
+        ],
+    },
+];
+
 export const floorCreateFormView: ViewConfig = {
     model: "floors",
     viewType: "form",
@@ -800,7 +1043,7 @@ export const floorCreateFormView: ViewConfig = {
     accessModel: "floors",
     apiUrl: "/api/realEstate/floor",
     method: "PUT",
-    nodes: floorFormSharedContent,
+    nodes: floorCreateFormNode,
 };
 
 export const floorEditFormView: ViewConfig = {
@@ -810,7 +1053,7 @@ export const floorEditFormView: ViewConfig = {
     accessModel: "floors",
     apiUrl: "/api/realEstate/floor",
     method: "PATCH",
-    nodes: floorFormSharedContent,
+    nodes: floorEditFormNode,
 };
 
 export const floorViews: ViewConfig[] = [

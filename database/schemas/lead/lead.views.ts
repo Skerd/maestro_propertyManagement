@@ -228,11 +228,13 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#FormGrid",
         props:  {columns: 2},
-        permissions: {writeAny: ["firstName", "lastName", "email", "phone", "status", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"]},
+        permissions: {
+            readAny: ["firstName", "lastName", "email", "phone", "status", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
+            writeAny: ["firstName", "lastName", "email", "phone", "status", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
+        },
         children: [
             {
                 render: "#Field",
-                permissions: {write: "firstName"},
                 field: {
                     name:        "firstName",
                     widget:      "#Input",
@@ -240,77 +242,70 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     placeholder: "form.firstNamePlaceholder",
                     required:    true,
                     widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
-                },
+                }, permissions: {read: "firstName", write: "firstName"},
             },
             {
                 render: "#Field",
-                permissions: {write: "lastName"},
                 field: {
                     name:        "lastName",
                     widget:      "#Input",
                     label:       "form.lastNameLabel",
                     placeholder: "form.lastNamePlaceholder",
                     widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
-                },
+                }, permissions: {read: "lastName", write: "lastName"},
             },
             {
                 render: "#Field",
-                permissions: {write: "email"},
                 field: {
                     name:        "email",
                     widget:      "#Input",
                     label:       "form.emailLabel",
                     placeholder: "form.emailPlaceholder",
                     widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
-                },
+                }, permissions: {read: "email", write: "email"},
             },
             {
                 render: "#Field",
-                permissions: {write: "phone"},
                 field: {
                     name:        "phone",
                     widget:      "#Input",
                     label:       "form.phoneLabel",
                     placeholder: "form.phonePlaceholder",
                     widgetProps: {maxLength: LEAD_PHONE_MAX},
-                },
+                }, permissions: {read: "phone", write: "phone"},
             },
             {
                 render: "#Field",
-                permissions: {write: "status"},
                 field: {
                     name:        "status",
                     widget:      "#SimpleSelect",
                     label:       "form.statusLabel",
                     placeholder: "form.statusPlaceholder",
                     widgetProps: {options: leadStatusOptions, className: "grow w-full"},
-                },
+                }, permissions: {read: "status", write: "status"},
             },
             {
                 render: "#Field",
-                permissions: {write: "source"},
                 field: {
                     name:        "source",
                     widget:      "#SimpleSelect",
                     label:       "form.sourceLabel",
                     placeholder: "form.sourcePlaceholder",
                     widgetProps: {options: leadSourceOptions, className: "grow w-full"},
-                },
+                }, permissions: {read: "source", write: "source"},
             },
             {
                 render: "#Field",
-                permissions: {write: "interest"},
                 field: {
                     name:        "interest",
                     widget:      "#SimpleSelect",
                     label:       "form.interestLabel",
                     placeholder: "form.interestPlaceholder",
                     widgetProps: {options: leadInterestOptions, className: "grow w-full"},
-                },
+                }, permissions: {read: "interest", write: "interest"},
             },
             {
                 render: "#Field",
-                permissions: {write: "projectInterest"},
                 field: {
                     name:        "projectInterest",
                     widget:      "#ApiSelect",
@@ -322,11 +317,10 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                         normalizeEmptyToUndefined: true,
                         cascadeClearFormFields:  ["unitInterest"],
                     },
-                },
+                }, permissions: {read: "projectInterest", write: "projectInterest"},
             },
             {
                 render: "#Field",
-                permissions: {write: "unitInterest"},
                 field: {
                     name:        "unitInterest",
                     widget:      "#ApiSelect",
@@ -340,22 +334,20 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                         enableWhenFormFieldsNonEmpty: ["projectInterest"],
                         remountKeyFormField:     "projectInterest",
                     },
-                },
+                }, permissions: {read: "unitInterest", write: "unitInterest"},
             },
             {
                 render: "#Field",
-                permissions: {write: "budget"},
                 field: {
                     name:        "budget",
                     widget:      "#Input",
                     label:       "form.budgetLabel",
                     placeholder: "form.budgetPlaceholder",
                     widgetProps: {type: "number", min: 0, step: 0.01},
-                },
+                }, permissions: {read: "budget", write: "budget"},
             },
             {
                 render: "#Field",
-                permissions: {write: "budgetCurrency"},
                 field: {
                     name:        "budgetCurrency",
                     widget:      "#ApiSelect",
@@ -366,11 +358,10 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                         method:                  "GET",
                         normalizeEmptyToUndefined: true,
                     },
-                },
+                }, permissions: {read: "budgetCurrency", write: "budgetCurrency"},
             },
             {
                 render: "#Field",
-                permissions: {write: "assignedTo"},
                 field: {
                     name:        "assignedTo",
                     widget:      "#ApiSelect",
@@ -382,23 +373,21 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                         postBody:                { administration: true },
                         normalizeEmptyToUndefined: true,
                     },
-                },
+                }, permissions: {read: "assignedTo", write: "assignedTo"},
             },
             {
                 render: "#Field",
-                permissions: {write: "followUpDate"},
                 field: {
                     name:        "followUpDate",
                     widget:      "#DateInput",
                     label:       "form.followUpDateLabel",
                     widgetProps: {valueFormat: "yyyy-MM-dd"},
-                },
+                }, permissions: {read: "followUpDate", write: "followUpDate"},
             },
         ],
     },
     {
         render: "#Field",
-        permissions: {write: "notes"},
         field: {
             name:        "notes",
             widget:      "#Textarea",
@@ -408,7 +397,7 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                 className: "resize-none max-h-[250px] overflow-y-auto",
                 maxLength: LEAD_LONG_TEXT_MAX,
             },
-        },
+        }, permissions: {read: "notes", write: "notes"},
     },
 ];
 
@@ -445,6 +434,26 @@ export const leadSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "firstName",
+                    "lastName",
+                    "status",
+                    "source",
+                    "chat",
+                    "interest",
+                    "email",
+                    "phone",
+                    "projectInterest",
+                    "unitInterest",
+                    "budget",
+                    "budgetCurrency",
+                    "assignedTo",
+                    "followUpDate",
+                    "convertedAt",
+                    "notes",
+                ],
+            },
             props:  {title: "overview"},
             children: [
                 {
@@ -709,7 +718,7 @@ export const leadSheetView: ViewConfig = {
             children: [
                 {
                     render:    "#SheetGroup",
-                    dependent: "activityLog",
+                    permissions: {readAny: ["activityLog"]},
                     props:     {
                         title:        "activityLog",
                         titleIcon:    "#History",

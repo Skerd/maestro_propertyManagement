@@ -17,6 +17,21 @@ export const leaseSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "status",
+                    "unit",
+                    "tenant",
+                    "startDate",
+                    "endDate",
+                    "monthlyRent",
+                    "depositAmount",
+                    "depositPaid",
+                    "depositReturnedAt",
+                    "notes",
+                ],
+            },
             props:  {title: "overview"},
             children: [
                 {
@@ -25,7 +40,6 @@ export const leaseSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "name",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
@@ -50,7 +64,6 @@ export const leaseSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit",
@@ -70,7 +83,6 @@ export const leaseSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "tenant",
                             permissions: {read: "tenant"},
                             field: {
                                 name: "tenant",
@@ -127,7 +139,6 @@ export const leaseSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "depositAmount",
                             permissions: {read: "depositAmount"},
                             field: {
                                 name: "depositAmount",
@@ -176,7 +187,6 @@ export const leaseSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "notes"},
-                            dependent: "notes",
                             field: {
                                 name: "notes",
                                 widget: "#DisplayCard",
@@ -194,7 +204,7 @@ export const leaseSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "terminationDate",
+            permissions: {readAny: ["terminationDate", "terminationReason"]},
             props: {title: "termination"},
             children: [
                 {
@@ -238,8 +248,7 @@ export const leaseSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "contractMedia",
-            permissions: {read: "contractMedia"},
+            permissions: {readAny: ["contractMedia"]},
             props: {title: "contractMedia"},
             children: [
                 {
@@ -267,7 +276,7 @@ export const leaseSheetView: ViewConfig = {
     ],
 };
 
-const leaseFormNodes: ViewConfig["nodes"] = [
+const leaseCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props:  {title: "generalInfo"},
@@ -282,19 +291,7 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                field: {
-                                    name:        "unit",
-                                    widget:      "#ApiSelect",
-                                    label:       "form.unitLabel",
-                                    placeholder: "form.unitPlaceholder",
-                                    required:    true,
-                                    skipWriteAccessGate: true,
-                                    widgetProps: {
-                                        apiUrl:   "/api/realEstate/unit/select",
-                                        method:   "POST",
-                                        pageSize: 50,
-                                    },
-                                },
+                                field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50}},
                             },
                         ],
                     },
@@ -319,6 +316,7 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             name:        "startDate",
                             widget:      "#DateInput",
                             label:       "form.startDateLabel",
+                            placeholder: "form.startDatePlaceholder",
                             required:    true,
                             widgetProps: {
                                 valueFormat: "yyyy-MM-dd",
@@ -333,6 +331,7 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             name:        "endDate",
                             widget:      "#DateInput",
                             label:       "form.endDateLabel",
+                            placeholder: "form.endDatePlaceholder",
                             required:    true,
                             widgetProps: {
                                 valueFormat: "yyyy-MM-dd",
@@ -347,6 +346,7 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             name:        "monthlyRent",
                             widget:      "#Input",
                             label:       "form.monthlyRentLabel",
+                            placeholder: "form.monthlyRentPlaceholder",
                             required:    true,
                             widgetProps: {type: "number", min: 0, step: "0.01"},
                         },
@@ -367,15 +367,8 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                             name:        "depositAmount",
                             widget:      "#Input",
                             label:       "form.depositAmountLabel",
+                            placeholder: "form.depositAmountPlaceholder",
                             widgetProps: {type: "number", min: 0, step: "0.01"},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name:   "depositPaid",
-                            widget: "#Switch",
-                            label:  "form.depositPaidLabel",
                         },
                     },
                     {
@@ -388,6 +381,7 @@ const leaseFormNodes: ViewConfig["nodes"] = [
                                     name:        "notes",
                                     widget:      "#Textarea",
                                     label:       "form.notesLabel",
+                                    placeholder: "form.notesPlaceholder",
                                     widgetProps: {
                                         className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
                                         style: {maxHeight: 250},
@@ -402,32 +396,191 @@ const leaseFormNodes: ViewConfig["nodes"] = [
         ],
     },
     {
-        render: "div",
-        props: {
-            className: "col-span-full w-full",
-            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        render: "#TitleWithCollapse",
+        props: {title: "form.contractMediaLabel"},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "contractMedia",
+                    widget: "#MediaField",
+                    label: "form.contractMediaLabel",
+                    required: true,
+                    widgetProps: {mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,image/*,.pdf"},
+                },
+            },
+        ],
+    },
+];
+
+const leaseEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "generalInfo"},
+        permissions: {
+            readAny: [
+                "unit",
+                "tenant",
+                "startDate",
+                "endDate",
+                "monthlyRent",
+                "rentCurrency",
+                "depositAmount",
+                "notes",
+            ],
+            writeAny: [
+                "unit",
+                "tenant",
+                "startDate",
+                "endDate",
+                "monthlyRent",
+                "rentCurrency",
+                "depositAmount",
+                "notes",
+            ],
         },
         children: [
             {
-                render: "#TitleWithCollapse",
-                props:  {title: "form.contractMediaLabel"},
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
                 children: [
+                    {
+                        render: "div",
+                        props:  {skipRenderWhenFormExtraTruthy: "prefilledUnitId"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name:        "unit",
+                                    widget:      "#ApiSelect",
+                                    label:       "form.unitLabel",
+                                    placeholder: "form.unitPlaceholder",
+                                    required:    true,
+                                    skipWriteAccessGate: true,
+                                    widgetProps: {
+                                        apiUrl:   "/api/realEstate/unit/select",
+                                        method:   "POST",
+                                        pageSize: 50,
+                                    },
+                                }, permissions: {read: "unit", write: "unit"},
+                            },
+                        ],
+                    },
                     {
                         render: "#Field",
                         field: {
-                            name:              "contractMedia",
-                            widget:            "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
+                            name:        "tenant",
+                            widget:      "#ApiSelect",
+                            label:       "form.tenantLabel",
+                            placeholder: "form.tenantPlaceholder",
+                            required:    true,
                             widgetProps: {
-                                maxFiles:             1,
-                                accept:               "application/pdf,image/*",
-                                existingListExtraKey: "editMediaExistingList",
-                                existingFilesLabelKey: "form.existingFiles",
-                                newFilesLabelKey:     "form.newFiles",
+                                apiUrl:   "/api/company/users/select",
+                                method:   "POST",
+                                postBody: {administration: false},
                             },
-                        },
+                        }, permissions: {read: "tenant", write: "tenant"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "startDate",
+                            widget:      "#DateInput",
+                            label:       "form.startDateLabel",
+                            placeholder: "form.startDatePlaceholder",
+                            required:    true,
+                            widgetProps: {
+                                valueFormat: "yyyy-MM-dd",
+                                maxDateField: "endDate",
+                                maxDateExclusive: true,
+                            },
+                        }, permissions: {read: "startDate", write: "startDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "endDate",
+                            widget:      "#DateInput",
+                            label:       "form.endDateLabel",
+                            placeholder: "form.endDatePlaceholder",
+                            required:    true,
+                            widgetProps: {
+                                valueFormat: "yyyy-MM-dd",
+                                minDateField: "startDate",
+                                minDateExclusive: true,
+                            },
+                        }, permissions: {read: "endDate", write: "endDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "monthlyRent",
+                            widget:      "#Input",
+                            label:       "form.monthlyRentLabel",
+                            placeholder: "form.monthlyRentPlaceholder",
+                            required:    true,
+                            widgetProps: {type: "number", min: 0, step: "0.01"},
+                        }, permissions: {read: "monthlyRent", write: "monthlyRent"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "rentCurrency",
+                            widget:      "#ApiSelect",
+                            label:       "form.rentCurrencyLabel",
+                            required:    true,
+                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                        }, permissions: {read: "rentCurrency", write: "rentCurrency"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "depositAmount",
+                            widget:      "#Input",
+                            label:       "form.depositAmountLabel",
+                            placeholder: "form.depositAmountPlaceholder",
+                            widgetProps: {type: "number", min: 0, step: "0.01"},
+                        }, permissions: {read: "depositAmount", write: "depositAmount"},
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name:        "notes",
+                                    widget:      "#Textarea",
+                                    label:       "form.notesLabel",
+                                    placeholder: "form.notesPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: LEASE_LONG_TEXT_MAX,
+                                    },
+                                }, permissions: {read: "notes", write: "notes"},
+                            },
+                        ],
                     },
                 ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.contractMediaLabel"},
+        permissions: {readAny: ["contractMedia"], writeAny: ["contractMedia"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name: "contractMedia",
+                    widget: "#MediaField",
+                    label: "form.contractMediaLabel",
+                    required: true,
+                    widgetProps: {mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,image/*,.pdf"},
+                },
+                permissions: {read: "contractMedia", write: "contractMedia"},
             },
         ],
     },
@@ -440,7 +593,7 @@ export const leaseCreateFormView: ViewConfig = {
     accessModel: "leases",
     apiUrl:      "/api/realEstate/lease",
     method:      "PUT",
-    nodes:       leaseFormNodes,
+    nodes:       leaseCreateFormNodes,
 };
 
 export const leaseEditFormView: ViewConfig = {
@@ -450,7 +603,7 @@ export const leaseEditFormView: ViewConfig = {
     accessModel: "leases",
     apiUrl:      "/api/realEstate/lease",
     method:      "PATCH",
-    nodes:       leaseFormNodes,
+    nodes:       leaseEditFormNodes,
 };
 
 export const leaseViews = [leaseSheetView, leaseCreateFormView, leaseEditFormView];

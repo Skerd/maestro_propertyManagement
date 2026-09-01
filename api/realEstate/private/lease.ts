@@ -23,7 +23,10 @@ import {
 } from "../../../utilities/lease/leaseLifecycle";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 
-const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 25 * 1024 * 1024});
+const uploadMW = mediaUploadMW({
+    fields: {contractMedia: 1},
+    maxFileSize: 25 * 1024 * 1024,
+});
 
 const dateTransform  = (v: unknown) => new Date(v as string);
 const moneyTransform = (v: unknown) => Decimal128.fromString(String(v));
@@ -90,7 +93,7 @@ export const {router} = createCrudRouter({
     actions:          LeaseActions,
     extraListFilter:  leaseExtraListFilter,
     buildCreateData: async (params: any) => {
-        const {fileIds, session, logger, languageCode, actionUserCtx, company, ...rest} = params;
+        const {session, logger, languageCode, actionUserCtx, company, ...rest} = params;
         const unitId = new ObjectId(String(rest.unit));
         await assertUnitRentable(unitId, {session, logger, languageCode, actionUserCtx, company});
 
@@ -101,10 +104,9 @@ export const {router} = createCrudRouter({
             endDate:       dateTransform,
         })(rest);
         data.status = LeaseStatus.ACTIVE;
-        if (fileIds?.length > 0) data.contractMedia = new ObjectId(fileIds[0]);
         return data;
     },
-    buildUpdateData: async ({fileIds, ...params}: any, writeFields) => {
+    buildUpdateData: async (params: any, writeFields) => {
         const data = buildUpdateDataFromSchemaDef(LeaseSchemaDef, {
             monthlyRent:   moneyTransform,
             depositAmount: moneyTransform,
@@ -113,9 +115,6 @@ export const {router} = createCrudRouter({
         })(params, writeFields);
         // status is action-only
         delete data.status;
-        if (fileIds?.length > 0 && writeFields.contractMedia) {
-            data.contractMedia = new ObjectId(fileIds[0]);
-        }
         return data;
     },
     afterCreate: async (created, params) => {

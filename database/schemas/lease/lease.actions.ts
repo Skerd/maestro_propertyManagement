@@ -3,6 +3,7 @@ import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
+import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import {terminateLeaseFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/terminateLease.form.validator";
 import {returnDepositFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/returnDeposit.form.validator";
 import type {Lease as LeaseData} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.dto";
@@ -75,6 +76,33 @@ export class LeaseActions {
 
         const returnData = await returnLeaseDto(existing._id, params);
         logger.finish(`Terminated lease ${_id}`);
+        return returnData;
+    }
+
+    @action({
+        auth:        "private",
+        rateLimit:   {windowMs: 60000, max: 30},
+        transaction: true,
+        schema:      validateSingleForm,
+    })
+    async markDepositPaid(params: Record<string, any>): Promise<LeaseData | undefined> {
+        const {logger, languageCode, session, actionUserCtx, _id} = params;
+
+        logger.start(`Marking deposit paid for lease ${_id}...`);
+
+        const existing = await loadLeaseForAction(params);
+        if (existing.depositPaid) {
+            throw apiValidationException("lease_deposit_already_paid", "", null, languageCode);
+        }
+
+        await leaseService.updateByIdOrThrow(
+            existing._id,
+            {$set: {depositPaid: true}},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        );
+
+        const returnData = await returnLeaseDto(existing._id, params);
+        logger.finish(`Marked deposit paid for lease ${_id}`);
         return returnData;
     }
 

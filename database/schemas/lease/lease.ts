@@ -64,8 +64,6 @@ const LeaseSchema = new Schema<ILease>(
             maxlength: LEASE_SHORT_TEXT_MAX,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
-                order: 1,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
             },
@@ -76,8 +74,6 @@ const LeaseSchema = new Schema<ILease>(
             required: true,
             refAllowlist: UnitSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 2,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
                 filterable: true,
@@ -89,8 +85,6 @@ const LeaseSchema = new Schema<ILease>(
             required: true,
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
-                order: 3,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name", "surname"],
                 filterable: true,
@@ -100,8 +94,6 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Date,
             required: true,
             dynamicTableConfiguration: {
-                order: 4,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
             },
@@ -110,8 +102,6 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Date,
             required: true,
             dynamicTableConfiguration: {
-                order: 5,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
             },
@@ -120,8 +110,6 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Decimal128,
             required: true,
             dynamicTableConfiguration: {
-                order: 6,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
             },
@@ -132,8 +120,6 @@ const LeaseSchema = new Schema<ILease>(
             required: true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
-                order: 7,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
                 filterable: true,
@@ -143,8 +129,6 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Decimal128,
             required: false,
             dynamicTableConfiguration: {
-                order: 8,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
             },
@@ -154,8 +138,6 @@ const LeaseSchema = new Schema<ILease>(
             required: true,
             default: false,
             dynamicTableConfiguration: {
-                order: 9,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.BOOLEAN,
                 filterable: true,
             },
@@ -164,8 +146,6 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Date,
             required: false,
             dynamicTableConfiguration: {
-                order: 10,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
             },
@@ -177,8 +157,6 @@ const LeaseSchema = new Schema<ILease>(
             default:  LeaseStatus.ACTIVE,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
-                order: 11,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.ENUM,
                 filterable: true,
             },
@@ -187,8 +165,6 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Date,
             required: false,
             dynamicTableConfiguration: {
-                order: 12,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
             },
@@ -199,8 +175,6 @@ const LeaseSchema = new Schema<ILease>(
             trim: true,
             maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
-                order: 13,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: false,
             },
@@ -211,8 +185,6 @@ const LeaseSchema = new Schema<ILease>(
             trim: true,
             maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
-                order: 14,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: false,
             },
@@ -254,7 +226,7 @@ normalizeSchemaPermissions(Lease);
 export default Lease;
 
 addModelData(Lease, leaseViews);
-// name is server-set; terminationDate/depositReturnedAt are Mongoose-only (not in SchemaDef)
+// name is server-set; status/depositPaid are action-managed; terminationDate/depositReturnedAt are Mongoose-only
 validateSchemaDefAgainstMongoose(LeaseSchema, LeaseSchemaDef, "Lease", [
-    "name", "status", "terminationDate", "depositReturnedAt",
+    "name", "status", "depositPaid", "terminationDate", "depositReturnedAt",
 ]);

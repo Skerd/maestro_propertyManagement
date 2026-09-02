@@ -39,7 +39,7 @@ export const unitTypeCategorySheetView: ViewConfig = {
     ],
 };
 
-const unitTypeCategoryFormFields: ViewConfig["nodes"] = [
+const unitTypeCategoryCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -66,6 +66,34 @@ const unitTypeCategoryFormFields: ViewConfig["nodes"] = [
     },
 ];
 
+const unitTypeCategoryEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        permissions: {write: "name", read: "name"},
+                        field: {
+                            name: "name",
+                            widget: "#Input",
+                            label: "form.nameLabel",
+                            placeholder: "form.namePlaceholder",
+                            required: true,
+                            widgetProps: {maxLength: UNIT_TYPE_CATEGORY_NAME_MAX},
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+];
+
+
 export const unitTypeCategoryCreateFormView: ViewConfig = {
     model: "unittypecategories",
     viewType: "form",
@@ -73,7 +101,7 @@ export const unitTypeCategoryCreateFormView: ViewConfig = {
     accessModel: "unitTypeCategories",
     apiUrl: "/api/realEstate/unitTypeCategory",
     method: "PUT",
-    nodes: unitTypeCategoryFormFields,
+    nodes: unitTypeCategoryCreateFormNode,
 };
 
 export const unitTypeCategoryEditFormView: ViewConfig = {
@@ -83,7 +111,7 @@ export const unitTypeCategoryEditFormView: ViewConfig = {
     accessModel: "unitTypeCategories",
     apiUrl: "/api/realEstate/unitTypeCategory",
     method: "PATCH",
-    nodes: unitTypeCategoryFormFields,
+    nodes: unitTypeCategoryEditFormNode,
 };
 
 export const unitTypeCategoryViews: ViewConfig[] = [

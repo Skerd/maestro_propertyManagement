@@ -63,3 +63,24 @@ export interface SaleClientEmailEvent extends UnitLocationForEmail {
     installmentDueDateFormatted?: string;
     purchaseContractMediaId?: string;
 }
+
+export interface LeaseClientEmailEvent extends UnitLocationForEmail {
+    eventType: "lease_client_email";
+    email: string;
+    userId: string;
+    fullName: string;
+    languageCode: string;
+    timestamp: number;
+    kind: "rent_reminder" | "rent_overdue";
+    reminderPhase?: "3" | "1" | "0";
+    companyId: string;
+    companyName: string;
+    leaseId: string;
+    leaseCode?: string;
+    unitNumber?: string;
+    unitDisplayName?: string;
+    /** Remaining on the month (includes late fee); never the original amount on a partial month. */
+    rentRemainingDisplay?: string;
+    dueDateIso?: string;
+    dueDateFormatted?: string;
+}

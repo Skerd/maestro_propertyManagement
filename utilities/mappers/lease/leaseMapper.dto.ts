@@ -24,6 +24,8 @@ export function leaseToDTO(lease: ILease): Lease {
         monthlyRent:  lease.monthlyRent  != null ? parseFloat(lease.monthlyRent.toString())  : 0,
         rentCurrency: mapPopulatedSimpleCurrency(lease.rentCurrency as any),
         depositAmount: lease.depositAmount != null ? parseFloat(lease.depositAmount.toString()) : undefined,
+        lateFeePercentage: lease.lateFeePercentage ?? 0,
+        gracePeriodDays: lease.gracePeriodDays ?? 0,
         depositPaid: lease.depositPaid,
         depositReturnedAt: lease.depositReturnedAt ? new Date(lease.depositReturnedAt).toISOString().split("T")[0] : undefined,
         status:            lease.status || undefined,

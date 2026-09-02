@@ -15,6 +15,20 @@ export const rentalPaymentSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "name",
+                    "status",
+                    "lease",
+                    "unit",
+                    "dueDate",
+                    "amount",
+                    "paidDate",
+                    "paidAmount",
+                    "lateFeeAmount",
+                    "notes",
+                ],
+            },
             props:  {title: "overview"},
             children: [
                 {
@@ -23,7 +37,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "name",
                             permissions: {read: "name"},
                             field: {
                                 name: "name",
@@ -48,7 +61,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "lease",
                             permissions: {read: "lease"},
                             field: {
                                 name: "lease",
@@ -68,7 +80,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit",
@@ -89,12 +100,7 @@ export const rentalPaymentSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "dueDate"},
-                            field: {
-                                name: "dueDate",
-                                widget: "#DisplayCard",
-                                label: "dueDate",
-                                widgetProps: {icon: "#CalendarDays", format: "date", type: "date"},
-                            },
+                            field: {name: "dueDate", widget: "#DisplayCard", label: "dueDate", widgetProps: {icon: "#IconCalendarDue", format: "date", type: "date"}},
                         },
                         {
                             render: "#DisplayCard",
@@ -118,7 +124,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "paidDate",
                             permissions: {read: "paidDate"},
                             field: {
                                 name: "paidDate",
@@ -129,7 +134,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "paidAmount",
                             permissions: {read: "paidAmount"},
                             field: {
                                 name: "paidAmount",
@@ -148,6 +152,39 @@ export const rentalPaymentSheetView: ViewConfig = {
                                 },
                             },
                         },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "amount"},
+                            field: {
+                                name: "remaining",
+                                widget: "#DisplayCard",
+                                label: "remaining",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Banknote",
+                                    format: "locale",
+                                    valuePath: ["currency.symbol", "remaining"],
+                                    joinSeparator: " ",
+                                    type: "currency",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "lateFeeAmount"},
+                            field: {
+                                name: "lateFeeAmount",
+                                widget: "#DisplayCard",
+                                label: "lateFeeAmount",
+                                widgetProps: {
+                                    icon: "#Banknote",
+                                    format: "locale",
+                                    valuePath: ["currency.symbol", "lateFeeAmount"],
+                                    joinSeparator: " ",
+                                    type: "currency",
+                                },
+                            },
+                        },
                     ],
                 },
                 {
@@ -157,7 +194,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "notes"},
-                            dependent: "notes",
                             field: {
                                 name: "notes",
                                 widget: "#DisplayCard",
@@ -175,8 +211,7 @@ export const rentalPaymentSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "receiptMedia",
-            permissions: {read: "receiptMedia"},
+            permissions: {readAny: ["receiptMedia"]},
             props: {title: "receiptMedia"},
             children: [
                 {
@@ -204,7 +239,7 @@ export const rentalPaymentSheetView: ViewConfig = {
     ],
 };
 
-const rentalPaymentFormNodes: ViewConfig["nodes"] = [
+const rentalPaymentCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props:  {title: "generalInfo"},
@@ -320,6 +355,127 @@ const rentalPaymentFormNodes: ViewConfig["nodes"] = [
     },
 ];
 
+const rentalPaymentEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "generalInfo"},
+        permissions: {
+            readAny: ["lease", "dueDate", "amount", "currency", "notes"],
+            writeAny: ["lease", "dueDate", "amount", "currency", "notes"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2},
+                children: [
+                    {
+                        render: "div",
+                        props:  {skipRenderWhenFormExtraTruthy: "prefilledLeaseId"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name:        "lease",
+                                    widget:      "#ApiSelect",
+                                    label:       "form.leaseLabel",
+                                    placeholder: "form.leasePlaceholder",
+                                    required:    true,
+                                    skipWriteAccessGate: true,
+                                    widgetProps: {
+                                        apiUrl:   "/api/realEstate/lease/select",
+                                        method:   "POST",
+                                        pageSize: 50,
+                                    },
+                                }, permissions: {read: "lease"},
+                            },
+                        ],
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "dueDate",
+                            widget:      "#DateInput",
+                            label:       "form.dueDateLabel",
+                            required:    true,
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        }, permissions: {read: "dueDate", write: "dueDate"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "amount",
+                            widget:      "#Input",
+                            label:       "form.amountLabel",
+                            required:    true,
+                            widgetProps: {type: "number", min: 0, step: "0.01"},
+                        }, permissions: {read: "amount", write: "amount"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "currency",
+                            widget:      "#ApiSelect",
+                            label:       "form.currencyLabel",
+                            required:    true,
+                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                        }, permissions: {read: "currency", write: "currency"},
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name:        "notes",
+                                    widget:      "#Textarea",
+                                    label:       "form.notesLabel",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: RENTAL_PAYMENT_LONG_TEXT_MAX,
+                                    },
+                                }, permissions: {read: "notes", write: "notes"},
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props:  {title: "form.receiptMediaLabel"},
+                permissions: {readAny: ["receiptMedia"], writeAny: ["receiptMedia"]},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:              "receiptMedia",
+                            widget:            "#FormMultiLocalFileField",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                maxFiles:              1,
+                                accept:                "application/pdf,image/*",
+                                existingListExtraKey:  "editMediaExistingList",
+                                existingFilesLabelKey: "form.existingFiles",
+                                newFilesLabelKey:      "form.newFiles",
+                            },
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+];
+
 export const rentalPaymentCreateFormView: ViewConfig = {
     model:       "rentalpayments",
     viewType:    "form",
@@ -327,7 +483,7 @@ export const rentalPaymentCreateFormView: ViewConfig = {
     accessModel: "rentalpayments",
     apiUrl:      "/api/realEstate/rentalPayment",
     method:      "PUT",
-    nodes:       rentalPaymentFormNodes,
+    nodes:       rentalPaymentCreateFormNodes,
 };
 
 export const rentalPaymentEditFormView: ViewConfig = {
@@ -337,7 +493,7 @@ export const rentalPaymentEditFormView: ViewConfig = {
     accessModel: "rentalpayments",
     apiUrl:      "/api/realEstate/rentalPayment",
     method:      "PATCH",
-    nodes:       rentalPaymentFormNodes,
+    nodes:       rentalPaymentEditFormNodes,
 };
 
 export const rentalPaymentViews = [

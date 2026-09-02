@@ -26,6 +26,7 @@ import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/to
 import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
+import {remainingNumber} from "@propertyManagement/utilities/lease/rentRemaining";
 import {InstallmentStatus, PaymentPlanStatus} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan";
 import {rentalPaymentStatusValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {
@@ -255,7 +256,7 @@ const rentalParameters = {
         status: {
             type: "string",
             enum: RENTAL_STATUS_VALUES,
-            description: "Rent payment status: pending, paid, overdue, or waived."
+            description: "Rent payment status: pending, paid, partially_paid, overdue, or waived."
         },
         overdueOnly: {
             type: "boolean",
@@ -282,7 +283,7 @@ async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext
     }
 
     if (args.overdueOnly === true) {
-        query.status = {$in: ["pending", "overdue"]};
+        query.status = {$in: ["pending", "overdue", "partially_paid"]};
         query.dueDate = {$lt: new Date()};
     } else {
         if (args.status) query.status = args.status;
@@ -300,7 +301,7 @@ async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext
             {path: "lease", select: "name tenant"},
             {path: "currency", select: "symbol abbreviation name"}
         ],
-        "name lease unit dueDate amount currency status paidDate paidAmount",
+            "name lease unit dueDate amount currency status paidDate paidAmount lateFeeAmount",
         {dueDate: 1},
         limit
     );
@@ -319,6 +320,7 @@ async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext
             status: p.status ?? null,
             paidDate: p.paidDate ?? null,
             paidAmount: toNumber(p.paidAmount),
+            remaining: remainingNumber(p),
             daysOverdue: !settled && overdueDays != null && overdueDays > 0 ? overdueDays : 0
         };
     });
@@ -330,7 +332,7 @@ export const searchRentalPaymentsTool: AssistantTool = {
     name: "search_rental_payments",
     description:
         "Search rent payments due on leases — the money tenants owe. Filter by " +
-        "status (pending, paid, overdue, waived), a due-date range, a specific unit, " +
+        "status (pending, paid, partially_paid, overdue, waived), a due-date range, a specific unit, " +
         "or `overdueOnly` for rent in arrears. Returns each payment with its unit, " +
         "lease, due date, amount, paid amount and days overdue, plus `total` — the " +
         "true number of matching payments. Use this for questions about rent " +

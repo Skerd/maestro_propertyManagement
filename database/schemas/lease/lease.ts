@@ -45,6 +45,8 @@ export interface ILease extends Document, IOwnershipPluginFields, ISoftDeletePlu
     monthlyRent: Decimal128;
     rentCurrency: ICurrency;
     depositAmount?: Decimal128;
+    lateFeePercentage?: number;
+    gracePeriodDays?: number;
     depositPaid: boolean;
     depositReturnedAt?: Date;
     status: LeaseStatus;
@@ -131,6 +133,27 @@ const LeaseSchema = new Schema<ILease>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
+            },
+        },
+        lateFeePercentage: {
+            type: SchemaTypes.Number,
+            required: false,
+            default: 0,
+            min: 0,
+            max: 100,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: false,
+            },
+        },
+        gracePeriodDays: {
+            type: SchemaTypes.Number,
+            required: false,
+            default: 0,
+            min: 0,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: false,
             },
         },
         depositPaid: {

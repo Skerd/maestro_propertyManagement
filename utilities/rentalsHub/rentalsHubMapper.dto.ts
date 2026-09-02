@@ -9,6 +9,7 @@ import {
     mapPopulatedSimpleCurrency,
     mapPopulatedSimpleUser,
 } from "@coreModule/utilities/mappers/common.mapper";
+import {lateFeeNumber, remainingNumber} from "@propertyManagement/utilities/lease/rentRemaining";
 
 const UNIT_POPULATE = [
     {
@@ -60,7 +61,10 @@ function mapUnit(unit: any): LeaseRegistryRow["unit"] {
     };
 }
 
-export function leaseToRegistryRow(doc: Record<string, any>): LeaseRegistryRow {
+export function leaseToRegistryRow(
+    doc: Record<string, any>,
+    totals?: {collectedAmount?: number; outstandingAmount?: number},
+): LeaseRegistryRow {
     const unit = doc.unit as any;
     const tenant = mapPopulatedSimpleUser(doc.tenant);
     return {
@@ -70,6 +74,8 @@ export function leaseToRegistryRow(doc: Record<string, any>): LeaseRegistryRow {
         startDate: doc.startDate ? new Date(doc.startDate).toISOString() : undefined,
         endDate: doc.endDate ? new Date(doc.endDate).toISOString() : undefined,
         monthlyRent: decimalToNumber(doc.monthlyRent),
+        collectedAmount: totals?.collectedAmount,
+        outstandingAmount: totals?.outstandingAmount,
         currency: mapPopulatedSimpleCurrency(doc.rentCurrency),
         depositAmount: decimalToNumber(doc.depositAmount),
         depositPaid: !!doc.depositPaid,
@@ -93,6 +99,8 @@ export function rentalPaymentToRegistryRow(doc: Record<string, any>): RentalPaym
         dueDate: doc.dueDate ? new Date(doc.dueDate).toISOString() : undefined,
         amount: decimalToNumber(doc.amount),
         paidAmount: decimalToNumber(doc.paidAmount),
+        remaining: remainingNumber(doc),
+        lateFeeAmount: lateFeeNumber(doc),
         paidDate: doc.paidDate ? new Date(doc.paidDate).toISOString() : undefined,
         currency: mapPopulatedSimpleCurrency(doc.currency),
         lease: lease

@@ -3,6 +3,7 @@ import {runReservationExpirationReminders} from "../../utilities/cronJobs/reserv
 import {runPaymentPlanInstallmentReminders} from "../../utilities/cronJobs/paymentPlanInstallmentReminderJob";
 import {runModificationRequestSlaEscalations} from "../../utilities/cronJobs/modificationRequestSlaJob";
 import {runRentalMaintenance} from "../../utilities/cronJobs/rentalMaintenanceJob";
+import {runLeaseRentReminders} from "../../utilities/cronJobs/leaseRentReminderJob";
 import {runPermitExpiryReminders} from "../../utilities/cronJobs/permitExpiryReminderJob";
 import {runMilestoneSlippageReminders} from "../../utilities/cronJobs/milestoneSlippageJob";
 import {runTenderDeadlineReminders} from "../../utilities/cronJobs/tenderDeadlineReminderJob";
@@ -57,6 +58,19 @@ export function registerPropertyManagementCronHandlers(): void {
         defaultJob: {
             name: "Rental payment overdue and lease expiry",
             cronExpression: "0 15 8 * * *",
+            priority: 15,
+        },
+    });
+
+    registerCronHandler({
+        code: "propertyManagement.leaseRentReminder",
+        handler: async ctx => {
+            await runLeaseRentReminders(ctx.logger);
+        },
+        version: "1",
+        defaultJob: {
+            name: "Lease rent reminder",
+            cronExpression: "0 14 8 * * *",
             priority: 15,
         },
     });

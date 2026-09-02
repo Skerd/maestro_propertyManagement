@@ -11,9 +11,7 @@ import {leaseService} from "../../../database/schemas/lease/lease.service";
 import {LeaseActions} from "../../../database/schemas/lease/lease.actions";
 import {leaseToDTO, leasesToDTO} from "../../../utilities/mappers/lease/leaseMapper.dto";
 import {leasesToSelect} from "../../../utilities/mappers/lease/leaseMapper.select";
-import {rentalPaymentService} from "../../../database/schemas/rentalPayment/rentalPayment.service";
-import {RentalPaymentStatus} from "../../../database/schemas/rentalPayment/rentalPayment";
-import {buildMonthlyRentDueDates} from "../../../utilities/lease/rentalPaymentSchedule";
+import {generateLeaseSchedule, resyncLeaseSchedule} from "../../../utilities/lease/leaseScheduleResync";
 import {
     assertUnitRentable,
     markUnitRented,
@@ -115,6 +113,7 @@ export const {router} = createCrudRouter({
         })(params, writeFields);
         // status is action-only
         delete data.status;
+        delete data.unit;
         return data;
     },
     afterCreate: async (created, params) => {
@@ -122,31 +121,16 @@ export const {router} = createCrudRouter({
         const ctx = {session, logger, languageCode, actionUserCtx, company};
         const unitId = unitIdFromLease(created);
         if (unitId) await markUnitRented(unitId, ctx);
-
-        const startDate = created.startDate instanceof Date ? created.startDate : new Date(created.startDate);
-        const endDate = created.endDate instanceof Date ? created.endDate : new Date(created.endDate);
-        const dueDates = buildMonthlyRentDueDates(startDate, endDate);
-        const amount = created.monthlyRent;
-        const currency = (created.rentCurrency as any)?._id ?? created.rentCurrency;
-        const leaseUnit = (created.unit as any)?._id ?? created.unit;
-
-        if (dueDates.length > 0 && amount != null && currency && leaseUnit) {
-            const rows = dueDates.map((dueDate) => ({
-                lease:    created._id,
-                unit:     leaseUnit,
-                dueDate,
-                amount,
-                currency,
-                status:   RentalPaymentStatus.PENDING,
-                company:  company._id,
-            }));
-            await rentalPaymentService.createMany(rows as any, {
-                session,
-                logger,
-                languageCode,
-                auditUserId: actionUserCtx.userId,
-            });
-        }
+        await generateLeaseSchedule(created, ctx);
+    },
+    afterUpdate: async (params, existing) => {
+        const {session, logger, languageCode, actionUserCtx, company} = params;
+        const updated = await leaseService.findById(
+            existing._id,
+            {session, logger, languageCode},
+        );
+        if (!updated) return;
+        await resyncLeaseSchedule(existing, updated, {session, logger, languageCode, actionUserCtx, company});
     },
     afterDelete: async (params, doc) => {
         const {session, logger, languageCode, actionUserCtx, company} = params;

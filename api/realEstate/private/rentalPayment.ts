@@ -15,6 +15,7 @@ import {leaseService} from "../../../database/schemas/lease/lease.service";
 import {LeaseStatus} from "../../../database/schemas/lease/lease";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {unitService} from "../../../database/schemas/unit/unit.service";
+import {hasCollectedCash} from "../../../utilities/lease/rentRemaining";
 
 const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 25 * 1024 * 1024});
 const dateTransform  = (v: unknown) => new Date(v as string);
@@ -97,22 +98,40 @@ export const {router} = createCrudRouter({
 
         const leaseUnitId = (lease.unit as any)?._id ?? lease.unit;
         const data = buildCreateDataFromSchemaDef(RentalPaymentSchemaDef, {
-            amount:     moneyTransform,
-            paidAmount: moneyTransform,
-            dueDate:    dateTransform,
+            amount:  moneyTransform,
+            dueDate: dateTransform,
         })(rest);
+        const clash = await rentalPaymentService.findOne(
+            {
+                lease: leaseId,
+                company: company._id,
+                dueDate: data.dueDate,
+                deletedAt: null,
+            },
+            {session, logger, languageCode},
+        );
+        if (clash) {
+            throw apiValidationException("rental_payment_duplicate_due", "", null, languageCode);
+        }
         data.unit = leaseUnitId;
         data.status = RentalPaymentStatus.PENDING;
         if (fileIds?.length > 0) data.receiptMedia = new ObjectId(fileIds[0]);
         return data;
     },
-    buildUpdateData: async ({fileIds, ...params}: any, writeFields) => {
+    buildUpdateData: async ({fileIds, existing, ...params}: any, writeFields) => {
         const data = buildUpdateDataFromSchemaDef(RentalPaymentSchemaDef, {
-            amount:     moneyTransform,
-            paidAmount: moneyTransform,
-            dueDate:    dateTransform,
+            amount:  moneyTransform,
+            dueDate: dateTransform,
         })(params, writeFields);
         delete data.status;
+        delete data.paidAmount;
+        if (existing && (hasCollectedCash(existing) || existing.status !== RentalPaymentStatus.PENDING)) {
+            if (data.amount != null || data.dueDate != null) {
+                throw apiValidationException("rental_payment_amount_locked", "", null, params.languageCode);
+            }
+            delete data.amount;
+            delete data.dueDate;
+        }
         if (fileIds?.length > 0 && writeFields.receiptMedia) {
             data.receiptMedia = new ObjectId(fileIds[0]);
         }

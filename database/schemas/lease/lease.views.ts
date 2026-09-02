@@ -27,6 +27,8 @@ export const leaseSheetView: ViewConfig = {
                     "endDate",
                     "monthlyRent",
                     "depositAmount",
+                    "lateFeePercentage",
+                    "gracePeriodDays",
                     "depositPaid",
                     "depositReturnedAt",
                     "notes",
@@ -155,6 +157,26 @@ export const leaseSheetView: ViewConfig = {
                                     linkedSheetEntityProp: "currency",
                                     type: "currency",
                                 },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "lateFeePercentage"},
+                            field: {
+                                name: "lateFeePercentage",
+                                widget: "#DisplayCard",
+                                label: "lateFeePercentage",
+                                widgetProps: {icon: "#Percent"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "gracePeriodDays"},
+                            field: {
+                                name: "gracePeriodDays",
+                                widget: "#DisplayCard",
+                                label: "gracePeriodDays",
+                                widgetProps: {icon: "#Calendar"},
                             },
                         },
                         {
@@ -372,6 +394,26 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                         },
                     },
                     {
+                        render: "#Field",
+                        field: {
+                            name:        "lateFeePercentage",
+                            widget:      "#Input",
+                            label:       "form.lateFeePercentageLabel",
+                            placeholder: "form.lateFeePercentagePlaceholder",
+                            widgetProps: {type: "number", min: 0, max: 100, step: "0.01"},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "gracePeriodDays",
+                            widget:      "#Input",
+                            label:       "form.gracePeriodDaysLabel",
+                            placeholder: "form.gracePeriodDaysPlaceholder",
+                            widgetProps: {type: "number", min: 0, step: "1"},
+                        },
+                    },
+                    {
                         render: "div",
                         props: {className: "md:col-span-2 space-y-1.5"},
                         children: [
@@ -426,6 +468,8 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                 "monthlyRent",
                 "rentCurrency",
                 "depositAmount",
+                "lateFeePercentage",
+                "gracePeriodDays",
                 "notes",
             ],
             writeAny: [
@@ -436,6 +480,8 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                 "monthlyRent",
                 "rentCurrency",
                 "depositAmount",
+                "lateFeePercentage",
+                "gracePeriodDays",
                 "notes",
             ],
         },
@@ -541,6 +587,26 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.depositAmountPlaceholder",
                             widgetProps: {type: "number", min: 0, step: "0.01"},
                         }, permissions: {read: "depositAmount", write: "depositAmount"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "lateFeePercentage",
+                            widget:      "#Input",
+                            label:       "form.lateFeePercentageLabel",
+                            placeholder: "form.lateFeePercentagePlaceholder",
+                            widgetProps: {type: "number", min: 0, max: 100, step: "0.01"},
+                        }, permissions: {read: "lateFeePercentage", write: "lateFeePercentage"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "gracePeriodDays",
+                            widget:      "#Input",
+                            label:       "form.gracePeriodDaysLabel",
+                            placeholder: "form.gracePeriodDaysPlaceholder",
+                            widgetProps: {type: "number", min: 0, step: "1"},
+                        }, permissions: {read: "gracePeriodDays", write: "gracePeriodDays"},
                     },
                     {
                         render: "div",

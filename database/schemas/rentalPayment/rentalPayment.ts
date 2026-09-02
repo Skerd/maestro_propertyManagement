@@ -31,10 +31,11 @@ import {LeaseSimpleSnippet} from "../lease/lease.snippets";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export enum RentalPaymentStatus {
-    PENDING = "pending",
-    PAID    = "paid",
-    OVERDUE = "overdue",
-    WAIVED  = "waived",
+    PENDING        = "pending",
+    PAID           = "paid",
+    PARTIALLY_PAID = "partially_paid",
+    OVERDUE        = "overdue",
+    WAIVED         = "waived",
 }
 
 export interface IRentalPayment extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
@@ -47,8 +48,14 @@ export interface IRentalPayment extends Document, IOwnershipPluginFields, ISoftD
     status: RentalPaymentStatus;
     paidDate?: Date;
     paidAmount?: Decimal128;
+    lateFeeAmount?: Decimal128;
+    paymentReceipts?: {amount: Decimal128; paidDate: Date; notes?: string}[];
     notes?: string;
     receiptMedia?: IMedia;
+    rentReminderEmailAt3d?: Date;
+    rentReminderEmailAt1d?: Date;
+    rentReminderEmailAt0d?: Date;
+    rentOverdueNoticeEmailAt?: Date;
 }
 
 const RentalPaymentSchema = new Schema<IRentalPayment>(
@@ -152,12 +159,32 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
         paidAmount: {
             type: SchemaTypes.Decimal128,
             required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
                 order: 9,
                 defaultVisible: false,
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
             },
+        },
+        lateFeeAmount: {
+            type: SchemaTypes.Decimal128,
+            required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                hideColumn: true,
+                filterable: false,
+            },
+        },
+        paymentReceipts: {
+            type: [{
+                amount: {type: SchemaTypes.Decimal128, required: true},
+                paidDate: {type: SchemaTypes.Date, required: true},
+                notes: {type: SchemaTypes.String, required: false, trim: true, maxlength: RENTAL_PAYMENT_LONG_TEXT_MAX},
+            }],
+            required: false,
+            default: [],
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
         },
         notes: {
             type: SchemaTypes.String,
@@ -180,6 +207,26 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
                 hideColumn: true,
                 filterable: false,
             },
+        },
+        rentReminderEmailAt3d: {
+            type: SchemaTypes.Date,
+            required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+        },
+        rentReminderEmailAt1d: {
+            type: SchemaTypes.Date,
+            required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+        },
+        rentReminderEmailAt0d: {
+            type: SchemaTypes.Date,
+            required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+        },
+        rentOverdueNoticeEmailAt: {
+            type: SchemaTypes.Date,
+            required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
         },
     },
     {accessMode: "loose"},
@@ -211,4 +258,6 @@ addModelData(RentalPayment, rentalPaymentViews);
 validateSchemaDefAgainstMongoose(RentalPaymentSchema, RentalPaymentSchemaDef, "RentalPayment", [
     // name: auto-generated; status/unit/paidDate: server or action-managed
     "name", "status", "paidDate", "unit",
+    "paidAmount", "lateFeeAmount", "paymentReceipts",
+    "rentReminderEmailAt3d", "rentReminderEmailAt1d", "rentReminderEmailAt0d", "rentOverdueNoticeEmailAt",
 ]);

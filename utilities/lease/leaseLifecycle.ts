@@ -68,14 +68,14 @@ export async function releaseUnitIfRented(unitId: ObjectId, ctx: Ctx): Promise<v
     }
 }
 
-/** Waive unpaid rent rows (pending/overdue). Paid rows are left alone. */
+/** Waive unpaid rent rows (pending/overdue/partially_paid). Paid rows are left alone. */
 export async function waiveOpenRentalPayments(leaseId: ObjectId, ctx: Ctx): Promise<void> {
     const {logger, languageCode, session, actionUserCtx, company} = ctx;
     await rentalPaymentService.updateMany(
         {
             lease: leaseId,
             company: company._id,
-            status: {$in: [RentalPaymentStatus.PENDING, RentalPaymentStatus.OVERDUE]},
+            status: {$in: [RentalPaymentStatus.PENDING, RentalPaymentStatus.OVERDUE, RentalPaymentStatus.PARTIALLY_PAID]},
             deletedAt: null,
         },
         {$set: {status: RentalPaymentStatus.WAIVED}},

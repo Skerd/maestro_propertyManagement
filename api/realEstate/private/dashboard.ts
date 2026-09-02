@@ -52,6 +52,17 @@ import {COLLECTED_DATA} from "@coreModule/database/collections";
 import DashboardCache from "../../../database/schemas/dashboardCache/dashboardCache";
 import {unitCostService} from "../../../database/schemas/unitCost/unitCost.service";
 import UnitCost from "../../../database/schemas/unitCost/unitCost";
+import {rentalPaymentService} from "../../../database/schemas/rentalPayment/rentalPayment.service";
+import RentalPayment, {RentalPaymentStatus} from "../../../database/schemas/rentalPayment/rentalPayment";
+import {leaseService} from "../../../database/schemas/lease/lease.service";
+import {LeaseStatus} from "../../../database/schemas/lease/lease";
+import {
+    moneyNumber,
+    moneyToScaled,
+    remainingNumber,
+    remainingScaled,
+    scaledToDecimal128,
+} from "../../../utilities/lease/rentRemaining";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {
     resolveHierarchySetsFromUnitIds,
@@ -149,6 +160,72 @@ function mapUnitCostCurrencyAgg(rows: unknown[]): RevenueByCurrency[] {
         currencySymbol: r.currencyInfo?.symbol,
         value: toNumber(r.total),
     }));
+}
+
+function emptyRentalsSummary() {
+    return {
+        collectedAmount: [] as RevenueByCurrency[],
+        outstandingAmount: [] as RevenueByCurrency[],
+        overdueAmount: [] as RevenueByCurrency[],
+        overdueCount: 0,
+        activeLeases: 0,
+    };
+}
+
+function rentalsFromPayments(
+    payments: {amount?: unknown; paidAmount?: unknown; lateFeeAmount?: unknown; status?: string; currency?: unknown}[],
+    activeLeases: number,
+) {
+    const collected = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
+    const outstanding = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
+    const overdue = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
+    let overdueCount = 0;
+
+    const add = (
+        map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>,
+        payment: {currency?: unknown},
+        scaled: bigint,
+    ) => {
+        const currency = payment.currency as {_id?: unknown; name?: string; symbol?: string} | undefined;
+        const currencyId = currency?._id != null ? String(currency._id) : "_none";
+        const prev = map.get(currencyId) ?? {
+            currencyId,
+            currencyName: currency?.name,
+            currencySymbol: currency?.symbol,
+            scaled: 0n,
+        };
+        prev.scaled += scaled;
+        map.set(currencyId, prev);
+    };
+
+    const toList = (map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>): RevenueByCurrency[] =>
+        [...map.values()]
+            .filter((row) => row.scaled !== 0n)
+            .map((row) => ({
+                currencyId: row.currencyId,
+                currencyName: row.currencyName,
+                currencySymbol: row.currencySymbol,
+                value: moneyNumber(scaledToDecimal128(row.scaled)),
+            }));
+
+    for (const payment of payments) {
+        add(collected, payment, moneyToScaled(payment.paidAmount as never));
+        if (payment.status === RentalPaymentStatus.WAIVED) continue;
+        const rem = remainingScaled(payment);
+        add(outstanding, payment, rem);
+        if (payment.status === RentalPaymentStatus.OVERDUE && rem > 0n) {
+            add(overdue, payment, rem);
+            overdueCount += 1;
+        }
+    }
+
+    return {
+        collectedAmount: toList(collected),
+        outstandingAmount: toList(outstanding),
+        overdueAmount: toList(overdue),
+        overdueCount,
+        activeLeases,
+    };
 }
 
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -313,6 +390,8 @@ async function getDashboardStats(
         unitCostsVerifiedOutstandingAgg,
         unitCostsPendingVerificationAgg,
         unitCostsDocumentCount,
+        rentalPaymentsForStats,
+        activeLeasesCount,
     ] = await Promise.all([
         saleService.count(saleFilter, opts),
         saleService.aggregate(
@@ -599,6 +678,19 @@ async function getDashboardStats(
             buildUnitCostRollupMatch(company._id, companyUnitIds, unitCostHierarchySets, {}),
             opts
         ),
+        rentalPaymentService.find(
+            {unit: {$in: companyUnitIds}, deletedAt: null},
+            opts,
+            [
+                {path: "currency", select: "name symbol"},
+                {path: "unit", select: "name unitNumber"},
+            ],
+            "amount paidAmount lateFeeAmount status currency unit dueDate",
+        ),
+        leaseService.count(
+            {unit: {$in: companyUnitIds}, status: LeaseStatus.ACTIVE, deletedAt: null},
+            opts,
+        ),
     ]);
 
     const totalRevenueByCurrency: RevenueByCurrency[] = revenueByCurrencyAgg.map((r: any) => ({
@@ -690,6 +782,7 @@ async function getDashboardStats(
     const verifiedOutstandingUnitCosts = mapUnitCostCurrencyAgg(unitCostsVerifiedOutstandingAgg);
     const pendingVerificationUnitCosts = mapUnitCostCurrencyAgg(unitCostsPendingVerificationAgg);
     const totalUnitCostDocuments = typeof unitCostsDocumentCount === "number" ? unitCostsDocumentCount : 0;
+    const rentals = rentalsFromPayments(rentalPaymentsForStats ?? [], typeof activeLeasesCount === "number" ? activeLeasesCount : 0);
 
     const totalRevenueSum = totalRevenueByCurrency.reduce((acc, r) => acc + r.value, 0);
     const averageSalePrice = totalSalesCount > 0 ? totalRevenueSum / totalSalesCount : 0;
@@ -737,6 +830,7 @@ async function getDashboardStats(
         verifiedOutstandingUnitCosts,
         pendingVerificationUnitCosts,
         totalUnitCostDocuments,
+        rentals,
     };
 
     const recentSales: RecentSaleItem[] = recentSalesList.map((s: any) => ({
@@ -766,10 +860,11 @@ async function getDashboardStats(
 
     const nowMs = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
+    const rentAlertHorizon = nowMs + 30 * oneDayMs;
 
     const mapAlertRow = (
         row: any,
-        kind: "installment" | "reservation"
+        kind: "installment" | "reservation" | "rent"
     ): PaymentAlertItem => {
         const dueDate = row.dueDate ? new Date(row.dueDate) : new Date();
         const daysUntilDue = Math.ceil((dueDate.getTime() - nowMs) / oneDayMs);
@@ -791,9 +886,36 @@ async function getDashboardStats(
         };
     };
 
+    const rentAlerts: PaymentAlertItem[] = (rentalPaymentsForStats ?? [])
+        .filter((p) => {
+            if (p.status === RentalPaymentStatus.WAIVED || p.status === RentalPaymentStatus.PAID) return false;
+            if (remainingNumber(p) <= 0) return false;
+            const due = p.dueDate ? new Date(p.dueDate).getTime() : NaN;
+            if (Number.isNaN(due)) return false;
+            return due <= rentAlertHorizon;
+        })
+        .map((p) => {
+            const unit = p.unit as unknown as {_id?: unknown; unitNumber?: string; name?: string} | undefined;
+            const dueDate = p.dueDate ? new Date(p.dueDate) : new Date();
+            return {
+                kind: "rent" as const,
+                unit: {
+                    _id: unit?._id != null ? String(unit._id) : "",
+                    unitNumber: unit?.unitNumber != null ? String(unit.unitNumber) : undefined,
+                    name: unit?.name,
+                },
+                installment: {
+                    amount: remainingNumber(p),
+                    dueDate: dueDate.toISOString(),
+                },
+                daysUntilDue: Math.ceil((dueDate.getTime() - nowMs) / oneDayMs),
+            };
+        });
+
     const paymentAlerts: PaymentAlertItem[] = [
         ...(paymentAlertsListAgg || []).map((row: any) => mapAlertRow(row, "installment")),
         ...(reservationAlertsListAgg || []).map((row: any) => mapAlertRow(row, "reservation")),
+        ...rentAlerts,
     ]
         .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
         .slice(0, 50);
@@ -849,6 +971,7 @@ function buildEmptySummary(): DashboardSummary {
         verifiedOutstandingUnitCosts: [],
         pendingVerificationUnitCosts: [],
         totalUnitCostDocuments: 0,
+        rentals: emptyRentalsSummary(),
     };
 }
 
@@ -896,6 +1019,12 @@ function sanitizeDashboardSummary(
         out.verifiedOutstandingUnitCosts = [];
         out.pendingVerificationUnitCosts = [];
         out.totalUnitCostDocuments = 0;
+    }
+
+    try {
+        SchemaGuard.sanitizeFields(RentalPayment, COLLECTED_DATA["rentalpayments"].readFields, "read", actionUserCtx, languageCode);
+    } catch {
+        out.rentals = emptyRentalsSummary();
     }
 
     return out;

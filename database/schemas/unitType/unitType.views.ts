@@ -119,7 +119,7 @@ export const unitTypeSheetView: ViewConfig = {
     ],
 };
 
-const unitTypeFormFields: ViewConfig["nodes"] = [
+const unitTypeCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: { title: "generalInfo" },
@@ -130,7 +130,6 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: { write: "name" },
                         field: {
                             name: "name",
                             widget: "#Input",
@@ -142,7 +141,6 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "icon" },
                         field: {
                             name: "icon",
                             widget: "#IconPicker",
@@ -152,7 +150,6 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "category" },
                         field: {
                             name: "category",
                             widget: "#ApiSelect",
@@ -168,7 +165,6 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "group" },
                         field: {
                             name: "group",
                             widget: "#Input",
@@ -183,7 +179,6 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                permissions: { write: "description" },
                                 field: {
                                     name: "description",
                                     widget: "#Textarea",
@@ -204,7 +199,106 @@ const unitTypeFormFields: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                permissions: { write: "isPrivate" },
+                                field: {
+                                    name: "isPrivate",
+                                    widget: "#Checkbox",
+                                    label: "form.isPrivateLabel",
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+];
+
+const unitTypeEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "generalInfo" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2, className: "gap-x-4 gap-y-5" },
+                children: [
+                    {
+                        render: "#Field",
+                        permissions: {write: "name", read: "name"},
+                        field: {
+                            name: "name",
+                            widget: "#Input",
+                            label: "form.nameLabel",
+                            placeholder: "form.namePlaceholder",
+                            required: true,
+                            widgetProps: { maxLength: UNIT_TYPE_SHORT_TEXT_MAX },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        permissions: {write: "icon", read: "icon"},
+                        field: {
+                            name: "icon",
+                            widget: "#IconPicker",
+                            label: "form.iconLabel",
+                            placeholder: "form.iconPlaceholder",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        permissions: {write: "category", read: "category"},
+                        field: {
+                            name: "category",
+                            widget: "#ApiSelect",
+                            label: "form.categoryLabel",
+                            placeholder: "form.categoryPlaceholder",
+                            required: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/unitTypeCategory/select",
+                                method: "POST",
+                                pageSize: 50,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        permissions: {write: "group", read: "group"},
+                        field: {
+                            name: "group",
+                            widget: "#Input",
+                            label: "form.groupLabel",
+                            placeholder: "form.groupPlaceholder",
+                            widgetProps: { maxLength: UNIT_TYPE_SHORT_TEXT_MAX },
+                        },
+                    },
+                    {
+                        render: "div",
+                        props: { className: "md:col-span-2 space-y-1.5" },
+                        children: [
+                            {
+                                render: "#Field",
+                                permissions: {write: "description", read: "description"},
+                                field: {
+                                    name: "description",
+                                    widget: "#Textarea",
+                                    label: "form.descriptionLabel",
+                                    placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: { maxHeight: 250 },
+                                        maxLength: UNIT_TYPE_LONG_TEXT_MAX,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        render: "div",
+                        props: { className: "md:col-span-2 border-t border-border/60 pt-4 mt-1" },
+                        children: [
+                            {
+                                render: "#Field",
+                                permissions: {write: "isPrivate", read: "isPrivate"},
                                 field: {
                                     name: "isPrivate",
                                     widget: "#Checkbox",
@@ -226,7 +320,7 @@ export const unitTypeCreateFormView: ViewConfig = {
     accessModel: "unitTypes",
     apiUrl: "/api/realEstate/unitType",
     method: "PUT",
-    nodes: unitTypeFormFields,
+    nodes: unitTypeCreateFormNode,
 };
 
 export const unitTypeEditFormView: ViewConfig = {
@@ -236,7 +330,7 @@ export const unitTypeEditFormView: ViewConfig = {
     accessModel: "unitTypes",
     apiUrl: "/api/realEstate/unitType",
     method: "PATCH",
-    nodes: unitTypeFormFields
+    nodes: unitTypeEditFormNode
 };
 
 export const unitTypeViews: ViewConfig[] = [unitTypeSheetView, unitTypeCreateFormView, unitTypeEditFormView];

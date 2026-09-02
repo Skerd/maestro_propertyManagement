@@ -83,7 +83,7 @@ export const storyTypeSheetView: ViewConfig = {
     ],
 };
 
-const storyTypeFormFields: ViewConfig["nodes"] = [
+const storyTypeCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -94,7 +94,6 @@ const storyTypeFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: {write: "name"},
                         field: {
                             name: "name",
                             widget: "#Input",
@@ -106,7 +105,6 @@ const storyTypeFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: {write: "sortOrder"},
                         field: {
                             name: "sortOrder",
                             widget: "#Input",
@@ -121,7 +119,65 @@ const storyTypeFormFields: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                permissions: {write: "description"},
+                                field: {
+                                    name: "description",
+                                    widget: "#Textarea",
+                                    label: "form.descriptionLabel",
+                                    placeholder: "form.descriptionPlaceholder",
+                                    widgetProps: {
+                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                                        style: {maxHeight: 250},
+                                        maxLength: STORY_TYPE_DESCRIPTION_MAX,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+];
+
+const storyTypeEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        permissions: {write: "name", read: "name"},
+                        field: {
+                            name: "name",
+                            widget: "#Input",
+                            label: "form.nameLabel",
+                            placeholder: "form.namePlaceholder",
+                            required: true,
+                            widgetProps: {maxLength: STORY_TYPE_NAME_MAX},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        permissions: {write: "sortOrder", read: "sortOrder"},
+                        field: {
+                            name: "sortOrder",
+                            widget: "#Input",
+                            label: "form.sortOrderLabel",
+                            placeholder: "form.sortOrderPlaceholder",
+                            widgetProps: {type: "number"},
+                        },
+                    },
+                    {
+                        render: "div",
+                        props: {className: "md:col-span-2 space-y-1.5"},
+                        children: [
+                            {
+                                render: "#Field",
+                                permissions: {write: "description", read: "description"},
                                 field: {
                                     name: "description",
                                     widget: "#Textarea",
@@ -149,7 +205,7 @@ export const storyTypeCreateFormView: ViewConfig = {
     accessModel: "storyTypes",
     apiUrl: "/api/realEstate/storyType",
     method: "PUT",
-    nodes: storyTypeFormFields,
+    nodes: storyTypeCreateFormNode,
 };
 
 export const storyTypeEditFormView: ViewConfig = {
@@ -159,7 +215,7 @@ export const storyTypeEditFormView: ViewConfig = {
     accessModel: "storyTypes",
     apiUrl: "/api/realEstate/storyType",
     method: "PATCH",
-    nodes: storyTypeFormFields,
+    nodes: storyTypeEditFormNode,
 };
 
 export const storyTypeViews: ViewConfig[] = [storyTypeSheetView, storyTypeCreateFormView, storyTypeEditFormView];

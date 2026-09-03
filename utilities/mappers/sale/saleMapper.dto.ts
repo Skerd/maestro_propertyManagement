@@ -61,7 +61,12 @@ export function saleToDTO(sale: ISale): Sale {
         buyer: mapPopulatedSimpleUser(sale.buyer),
         buyerCompany: mapPopulatedSimpleCompany(sale.buyerCompany),
         purchaseContract: sale.purchaseContract ? mapMedia(sale.purchaseContract) : undefined,
-        additionalDocuments: sale.additionalDocuments?.length ? sale.additionalDocuments.map(mapMedia) : undefined,
+        additionalDocuments: sale.additionalDocuments?.length
+            ? sale.additionalDocuments.flatMap((doc) => {
+                const mapped = mapMedia(doc);
+                return mapped ? [mapped] : [];
+            })
+            : undefined,
         soldBy: mapPopulatedSimpleUser(sale.soldBy),
         saleDate: sale.saleDate ? new Date(sale.saleDate).toISOString() : undefined,
         finalPrice: decimalToNumber(sale.finalPrice),

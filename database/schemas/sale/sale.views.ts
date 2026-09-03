@@ -505,14 +505,34 @@ export const saleSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependentAny: ["handedOverBy", "handoverNotes"],
-            permissions: { readAny: ["handedOverBy", "handoverNotes"] },
+            dependentAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt"],
+            permissions: { readAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt"] },
             props: { title: "handover" },
             children: [
                 {
                     render: "#SheetGrid",
                     props: { columns: 2 },
                     children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "handoverDate" },
+                            field: {
+                                name: "handoverDate",
+                                widget: "#DisplayCard",
+                                label: "handoverDate",
+                                widgetProps: { icon: "#Calendar", format: "date", type: "date" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "handoverCompletedAt" },
+                            field: {
+                                name: "handoverCompletedAt",
+                                widget: "#DisplayCard",
+                                label: "handoverCompletedAt",
+                                widgetProps: { icon: "#CheckCircle", format: "date", type: "date" },
+                            },
+                        },
                         {
                             render: "#DisplayCard",
                             permissions: { read: "handedOverBy" },
@@ -718,12 +738,12 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         props: { skipRenderWhenFormExtraNotTruthy: "showReservationExchangeRate" },
-                        field: {name: "reservationExchangeRate", widget: "#Input", label: "form.reservationExchangeRateLabel", placeholder: "form.reservationExchangeRatePlaceholder", widgetProps: {type: "decimal", step: "0.1", min: 0}},
+                        field: {name: "reservationExchangeRate", widget: "#Input", label: "form.reservationExchangeRateLabel", placeholder: "form.reservationExchangeRatePlaceholder", widgetProps: {type: "decimal", min: 0}},
                     },
                     {
                         render: "#Field",
                         props: { skipRenderWhenFormExtraNotTruthy: "showSaleExchangeRate" },
-                        field: {name: "saleExchangeRate", widget: "#Input", label: "form.saleExchangeRateLabel", placeholder: "form.saleExchangeRatePlaceholder", widgetProps: {type: "decimal", step: "0.1", min: 0}},
+                        field: {name: "saleExchangeRate", widget: "#Input", label: "form.saleExchangeRateLabel", placeholder: "form.saleExchangeRatePlaceholder", widgetProps: {type: "decimal", min: 0}},
                     },
                     {
                         render: "#FormGrid",

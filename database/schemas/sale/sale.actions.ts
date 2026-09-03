@@ -678,4 +678,62 @@ export class SaleActions {
         logger.finish(`Payment plan restructured: ${_id} → ${newInstallments.length} new installments`);
         return paymentPlanToDTO(updated);
     }
+
+    @action({
+        auth: "private",
+        rateLimit: {windowMs: 60000, max: 20},
+        transaction: true,
+        schema: validateSingleForm,
+    })
+    async completeHandover(params: Record<string, any>): Promise<SaleData | undefined> {
+        const {logger, languageCode, session, _id, actionUserCtx, company} = params;
+
+        logger.start(`Completing handover for sale: ${_id}...`);
+
+        try {
+            SchemaGuard.sanitizeFields(Sale, {handoverDate: {}}, "write", actionUserCtx, languageCode);
+        } catch {
+            throw apiValidationException("sale_not_found", "", null, languageCode);
+        }
+
+        const sale = await saleService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {session, logger, languageCode},
+        );
+
+        if (sale.deletedAt) {
+            throw apiValidationException("sale_not_found", "", null, languageCode);
+        }
+        if (!sale.handoverDate) {
+            throw apiValidationException("sale_handover_not_recorded", "", null, languageCode);
+        }
+        if (sale.handoverCompletedAt) {
+            throw apiValidationException("sale_handover_already_completed", "", null, languageCode);
+        }
+
+        await saleService.updateByIdOrThrow(
+            sale._id,
+            {$set: {handoverCompletedAt: new Date()}},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        );
+
+        let returnSale: SaleData | undefined;
+        try {
+            const readFields = SchemaGuard.sanitizeFields(
+                Sale,
+                getModelCollectedData("sales").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Sale.schema);
+            const updated = await saleService.findById(sale._id, {session, logger, languageCode}, populate.populate);
+            returnSale = saleToDTO(updated);
+        } catch {
+            logger.debug("User has no read permission on sale after completing handover!");
+        }
+
+        logger.finish(`Handover completed: ${_id}`);
+        return returnSale;
+    }
 }

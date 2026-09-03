@@ -77,6 +77,7 @@ export function saleToDTO(sale: ISale): Sale {
         handoverCertificate: sale.handoverCertificate ? mapMedia(sale.handoverCertificate) : undefined,
         handedOverBy: mapPopulatedSimpleUser(sale.handedOverBy),
         handoverNotes: sale.handoverNotes,
+        handoverCompletedAt: sale.handoverCompletedAt ? new Date(sale.handoverCompletedAt).toISOString() : undefined,
         titleTransferDate: sale.titleTransferDate ? new Date(sale.titleTransferDate).toISOString() : undefined,
         deedNumber: sale.deedNumber,
         notaryName: sale.notaryName,

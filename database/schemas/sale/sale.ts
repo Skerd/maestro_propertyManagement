@@ -95,6 +95,8 @@ export interface ISale extends Document, IOwnershipPluginFields, ISoftDeletePlug
     handoverCertificate?: IMedia;
     handedOverBy?: IUser;
     handoverNotes?: string;
+    /** Set by `completeHandover`. Absent until that action runs. */
+    handoverCompletedAt?: Date;
 
     // FEAT-014 — title transfer tracking
     titleTransferDate?: Date;
@@ -454,6 +456,14 @@ const SaleSchema = new Schema<ISale>(
             },
         },
         handoverNotes: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_LONG_TEXT_MAX},
+        handoverCompletedAt: {
+            type: SchemaTypes.Date,
+            required: false,
+            permissions: {
+                self: {write: "no-permission"},
+                others: {write: "no-permission"},
+            },
+        },
         // FEAT-014 — title transfer tracking
         titleTransferDate: {type: SchemaTypes.Date, required: false},
         deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
@@ -495,4 +505,4 @@ normalizeSchemaPermissions(Sale);
 export default Sale;
 
 addModelData(Sale, saleViews);
-validateSchemaDefAgainstMongoose(SaleSchema, SaleSchemaDef, "Sale", ["approvalStatus", "saleApproval", "handoverDate", "titleTransferDate"]);
+validateSchemaDefAgainstMongoose(SaleSchema, SaleSchemaDef, "Sale", ["approvalStatus", "saleApproval", "handoverDate", "titleTransferDate", "handoverCompletedAt"]);

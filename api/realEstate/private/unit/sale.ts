@@ -391,21 +391,6 @@ const {router} = createCrudRouter({
         }
 
         const settingHandoverDate = typeof handoverDate === "string" && handoverDate.trim() !== "";
-        if (settingHandoverDate) {
-            const settings = await propertyManagementConfigService.getSettingsForCompany(
-                company._id,
-                {session, logger, languageCode},
-            );
-            if (settings.requiresHandoverPackageForHandover) {
-                const completedPackage = await handoverPackageService.findOne(
-                    {unit: foundUnit._id, company: company._id, status: "completed", deletedAt: null},
-                    {session, logger, languageCode},
-                );
-                if (!completedPackage) {
-                    throw apiValidationException("sale_handover_requires_completed_handover_package", "", null, languageCode);
-                }
-            }
-        }
 
         const handedOverById = typeof handedOverBy === "string" && handedOverBy.trim() !== "" ? handedOverBy : undefined;
         if (handedOverById) {

@@ -15,6 +15,9 @@ export const saleSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: ["name", "unit", "paymentType", "notes"],
+            },
             props: { title: "overview" },
             children: [
                 {
@@ -23,7 +26,6 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "name",
                             permissions: { read: "name" },
                             field: {
                                 name: "name",
@@ -34,7 +36,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "unit",
                             permissions: { read: "unit" },
                             field: {
                                 name: "unit",
@@ -127,7 +128,6 @@ export const saleSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "notes" },
-                            dependent: "notes",
                             field: {
                                 name: "notes",
                                 widget: "#DisplayCard",
@@ -146,6 +146,17 @@ export const saleSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "listedUnitPrice",
+                    "saleCurrency",
+                    "localDiscount",
+                    "finalPrice",
+                    "saleExchangeRate",
+                    "reservationConvertedAmount",
+                    "reservationExchangeRate",
+                ],
+            },
             props: { title: "pricing" },
             children: [
                 {
@@ -154,7 +165,6 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "listedUnitPrice",
                             permissions: { read: "listedUnitPrice" },
                             field: {
                                 name: "listedUnitPrice",
@@ -175,7 +185,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "saleCurrency",
                             permissions: { read: "saleCurrency" },
                             field: {
                                 name: "saleCurrency.name",
@@ -194,7 +203,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "localDiscount",
                             permissions: { read: "localDiscount" },
                             field: {
                                 name: "localDiscount",
@@ -225,7 +233,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "saleExchangeRate",
                             permissions: { read: "saleExchangeRate" },
                             field: {
                                 name: "saleExchangeRate",
@@ -236,7 +243,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "reservationConvertedAmount",
                             permissions: { read: "reservationConvertedAmount" },
                             field: {
                                 name: "reservationConvertedAmount",
@@ -257,7 +263,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "reservationExchangeRate",
                             permissions: { read: "reservationExchangeRate" },
                             field: {
                                 name: "reservationExchangeRate",
@@ -273,6 +278,9 @@ export const saleSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: {
+                readAny: ["buyer", "buyerCompany", "soldBy", "saleDate", "transactionReference"],
+            },
             props: { title: "parties" },
             children: [
                 {
@@ -281,18 +289,22 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "buyer",
                             permissions: { read: "buyer" },
                             field: {
-                                name: "buyer.name",
+                                name: "buyer",
                                 widget: "#DisplayCard",
                                 label: "buyer",
-                                widgetProps: { icon: "#User" },
+                                widgetProps: {
+                                    icon: "#User",
+                                    parent: "buyer",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
                             },
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "buyerCompany",
                             permissions: { read: "buyerCompany" },
                             field: {
                                 name: "buyerCompany.name",
@@ -303,13 +315,18 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "soldBy",
                             permissions: { read: "soldBy" },
                             field: {
-                                name: "soldBy.name",
+                                name: "soldBy",
                                 widget: "#DisplayCard",
                                 label: "soldBy",
-                                widgetProps: { icon: "#UserCheck" },
+                                widgetProps: {
+                                    icon: "#UserCheck",
+                                    parent: "soldBy",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
                             },
                         },
                         {
@@ -324,7 +341,6 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "transactionReference",
                             permissions: { read: "transactionReference" },
                             field: {
                                 name: "transactionReference",
@@ -347,12 +363,12 @@ export const saleSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGroup",
+                    permissions: { readAny: ["reservation"] },
                     props: {
                         title: "reservation",
                         titleActions: "#ReferencesViewModeToggle",
                     },
                     /** Populated object or raw ObjectId string — avoid `reservation._id` (undefined when ref is a string). */
-                    dependent: "reservation",
                     children: [
                         {
                             render: "div",
@@ -396,11 +412,11 @@ export const saleSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGroup",
+                    permissions: { readAny: ["paymentPlan"] },
                     props: {
                         title: "paymentPlan",
                         titleActions: "#ReferencesViewModeToggle",
                     },
-                    dependent: "paymentPlan",
                     children: [
                         {
                             render: "div",
@@ -437,8 +453,7 @@ export const saleSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            dependent: "purchaseContract",
-            permissions: { read: "purchaseContract" },
+            permissions: { readAny: ["purchaseContract"] },
             props: { title: "purchaseContract" },
             children: [
                 {
@@ -464,8 +479,7 @@ export const saleSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependent: "additionalDocuments",
-            permissions: { read: "additionalDocuments" },
+            permissions: { readAny: ["additionalDocuments"] },
             props: { title: "additionalDocuments" },
             children: [
                 {
@@ -483,6 +497,94 @@ export const saleSheetView: ViewConfig = {
                                     canRemove: false,
                                     isBig: false,
                                 },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            dependentAny: ["handedOverBy", "handoverNotes"],
+            permissions: { readAny: ["handedOverBy", "handoverNotes"] },
+            props: { title: "handover" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 2 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "handedOverBy" },
+                            field: {
+                                name: "handedOverBy",
+                                widget: "#DisplayCard",
+                                label: "handedOverBy",
+                                widgetProps: {
+                                    icon: "#UserCheck",
+                                    parent: "handedOverBy",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "handoverNotes" },
+                            field: {
+                                name: "handoverNotes",
+                                widget: "#DisplayCard",
+                                label: "handoverNotes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            dependentAny: ["titleTransferDate", "deedNumber", "notaryName"],
+            permissions: { readAny: ["titleTransferDate", "deedNumber", "notaryName"] },
+            props: { title: "titleTransfer" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "titleTransferDate" },
+                            field: {
+                                name: "titleTransferDate",
+                                widget: "#DisplayCard",
+                                label: "titleTransferDate",
+                                widgetProps: { icon: "#Calendar", format: "date", type: "date" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "deedNumber" },
+                            field: {
+                                name: "deedNumber",
+                                widget: "#DisplayCard",
+                                label: "deedNumber",
+                                widgetProps: { icon: "#IconFileText" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "notaryName" },
+                            field: {
+                                name: "notaryName",
+                                widget: "#DisplayCard",
+                                label: "notaryName",
+                                widgetProps: { icon: "#IconWriting" },
                             },
                         },
                     ],
@@ -510,78 +612,19 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {
-                            name: "project",
-                            widget: "#ApiSelect",
-                            label: "form.projectLabel",
-                            placeholder: "form.projectPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
-                                pageSize: 50,
-                                cascadeClearFormFields: ["edifice", "floor", "unit"],
-                            },
-                        },
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50, cascadeClearFormFields: ["edifice", "floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "edifice",
-                            widget: "#ApiSelect",
-                            label: "form.edificeLabel",
-                            placeholder: "form.edificePlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/edifice/select",
-                                method: "POST",
-                                pageSize: 50,
-                                postBodyFromFormField: { field: "project", paramName: "project" },
-                                remountKeyFormField: "project",
-                                cascadeClearFormFields: ["floor", "unit"],
-                            },
-                        },
+                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", method: "POST", pageSize: 50, postBodyFromFormField: {field: "project", paramName: "project"}, remountKeyFormField: "project", cascadeClearFormFields: ["floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "floor",
-                            widget: "#ApiSelect",
-                            label: "form.floorLabel",
-                            placeholder: "form.floorPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/floor/select",
-                                method: "POST",
-                                pageSize: 50,
-                                postBodyFromFormField: { field: "edifice", paramName: "edifice" },
-                                remountKeyFormField: "edifice",
-                                cascadeClearFormFields: ["unit"],
-                            },
-                        },
+                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", method: "POST", pageSize: 50, postBodyFromFormField: {field: "edifice", paramName: "edifice"}, remountKeyFormField: "edifice", cascadeClearFormFields: ["unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "unit",
-                            widget: "#ApiSelect",
-                            label: "form.unitLabel",
-                            placeholder: "form.unitPlaceholder",
-                            required: true,
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
-                                pageSize: 50,
-                                postBodyFromFormFields: [
-                                    { field: "project", paramName: "project" },
-                                    { field: "edifice", paramName: "edifice" },
-                                    { field: "floor", paramName: "floor" },
-                                ],
-                                enableWhenFormFieldsNonEmpty: ["project", "edifice"],
-                                remountKeyFormField: "project",
-                            },
-                        },
+                        field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50, postBodyFromFormFields: [{field: "project", paramName: "project"}, {field: "edifice", paramName: "edifice"}, {field: "floor", paramName: "floor"}], enableWhenFormFieldsNonEmpty: ["project", "edifice"], remountKeyFormField: "project"}},
                     },
                 ],
             },
@@ -597,7 +640,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: { write: "soldBy" },
                         field: {
                             name: "soldBy",
                             widget: "#ApiSelect",
@@ -613,7 +655,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "buyer" },
                         field: {
                             name: "buyer",
                             widget: "#ApiSelect",
@@ -629,7 +670,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "saleDate" },
                         field: {
                             name: "saleDate",
                             widget: "#DateInput",
@@ -640,7 +680,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "saleCurrency" },
                         field: {
                             name: "saleCurrency",
                             widget: "#ApiSelect",
@@ -651,19 +690,23 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                         },
                     },
                     {
-                        render: "#Field",
-                        permissions: { write: "localDiscount" },
-                        field: {
-                            name: "localDiscount",
-                            widget: "#Input",
-                            label: "form.localDiscountLabel",
-                            placeholder: "form.localDiscountPlaceholder",
-                            widgetProps: { type: "decimal", step: "0.01", min: 0, max: 100 },
-                        },
+                        render: "#FormGrid",
+                        props: { columns: 1, className: "sm:col-span-2 items-start gap-4" },
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "localDiscount",
+                                    widget: "#LocalDiscountField",
+                                    label: "form.localDiscountLabel",
+                                    placeholder: "form.localDiscountPlaceholder",
+                                    widgetProps: { type: "decimal", step: "0.01", min: 0, max: 100 },
+                                },
+                            },
+                        ],
                     },
                     {
                         render: "#Field",
-                        permissions: { write: "transactionReference" },
                         field: {
                             name: "transactionReference",
                             widget: "#Input",
@@ -675,34 +718,12 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         props: { skipRenderWhenFormExtraNotTruthy: "showReservationExchangeRate" },
-                        field: {
-                            name: "reservationExchangeRate",
-                            widget: "#Input",
-                            label: "form.reservationExchangeRateLabel",
-                            placeholder: "form.reservationExchangeRatePlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                type: "decimal",
-                                step: "0.1",
-                                min: 0,
-                            },
-                        },
+                        field: {name: "reservationExchangeRate", widget: "#Input", label: "form.reservationExchangeRateLabel", placeholder: "form.reservationExchangeRatePlaceholder", widgetProps: {type: "decimal", step: "0.1", min: 0}},
                     },
                     {
                         render: "#Field",
                         props: { skipRenderWhenFormExtraNotTruthy: "showSaleExchangeRate" },
-                        field: {
-                            name: "saleExchangeRate",
-                            widget: "#Input",
-                            label: "form.saleExchangeRateLabel",
-                            placeholder: "form.saleExchangeRatePlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                type: "decimal",
-                                step: "0.1",
-                                min: 0,
-                            },
-                        },
+                        field: {name: "saleExchangeRate", widget: "#Input", label: "form.saleExchangeRateLabel", placeholder: "form.saleExchangeRatePlaceholder", widgetProps: {type: "decimal", step: "0.1", min: 0}},
                     },
                     {
                         render: "#FormGrid",
@@ -710,7 +731,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                permissions: { write: "notes" },
                                 field: {
                                     name: "notes",
                                     widget: "#Textarea",
@@ -739,30 +759,131 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
+                        field: {name: "purchaseContract", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 1, showLabel: true, labelKey: "form.purchaseContractLabel", addFileKey: "form.uploadPurchaseContract", filesSelectedKey: "form.filesSelected"}},
+                    },
+                    {
+                        render: "#Field",
+                        field: {name: "additionalDocuments", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 10, showLabel: true, labelKey: "form.additionalDocumentsLabel", addFileKey: "form.uploadAdditionalDocuments", filesSelectedKey: "form.filesSelected"}},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "handoverSectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "items-start gap-4"},
+                children: [
+                    {
+                        render: "#Field",
                         field: {
-                            name: "purchaseContract",
-                            widget: "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                maxFiles: 1,
-                                showLabel: true,
-                                labelKey: "form.purchaseContractLabel",
-                                addFileKey: "form.uploadPurchaseContract",
-                                filesSelectedKey: "form.filesSelected",
-                            },
+                            name: "handoverDate",
+                            widget: "#DateInput",
+                            label: "form.handoverDateLabel",
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
                         },
                     },
                     {
                         render: "#Field",
                         field: {
-                            name: "additionalDocuments",
-                            widget: "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
+                            name: "handedOverBy",
+                            widget: "#ApiSelect",
+                            label: "form.handedOverByLabel",
+                            placeholder: "form.handedOverByPlaceholder",
                             widgetProps: {
-                                maxFiles: 10,
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                postBody: {administration: true},
+                            },
+                        },
+                    },
+                    {
+                        render: "#FormGrid",
+                        props: {columns: 1, className: "md:col-span-2 items-start gap-4"},
+                        children: [
+                            {
+                                render: "#Field",
+                                field: {
+                                    name: "handoverNotes",
+                                    widget: "#Textarea",
+                                    label: "form.handoverNotesLabel",
+                                    placeholder: "form.handoverNotesPlaceholder",
+                                    widgetProps: {
+                                        className: "resize-none max-h-[250px] overflow-y-auto",
+                                        maxLength: SALE_LONG_TEXT_MAX,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "handoverCertificate",
+                            widget: "#FormMultiLocalFileField",
+                            widgetProps: {
+                                maxFiles: 1,
                                 showLabel: true,
-                                labelKey: "form.additionalDocumentsLabel",
-                                addFileKey: "form.uploadAdditionalDocuments",
+                                labelKey: "form.handoverCertificateLabel",
+                                addFileKey: "form.uploadHandoverCertificate",
+                                filesSelectedKey: "form.filesSelected",
+                            },
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "titleTransferSectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 3, className: "items-start gap-4"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "titleTransferDate",
+                            widget: "#DateInput",
+                            label: "form.titleTransferDateLabel",
+                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "deedNumber",
+                            widget: "#Input",
+                            label: "form.deedNumberLabel",
+                            placeholder: "form.deedNumberPlaceholder",
+                            widgetProps: {maxLength: SALE_SHORT_TEXT_MAX},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "notaryName",
+                            widget: "#Input",
+                            label: "form.notaryNameLabel",
+                            placeholder: "form.notaryNamePlaceholder",
+                            widgetProps: {maxLength: SALE_SHORT_TEXT_MAX},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "titleTransferCertificate",
+                            widget: "#FormMultiLocalFileField",
+                            widgetProps: {
+                                maxFiles: 1,
+                                showLabel: true,
+                                labelKey: "form.titleTransferCertificateLabel",
+                                addFileKey: "form.uploadTitleTransferCertificate",
                                 filesSelectedKey: "form.filesSelected",
                             },
                         },
@@ -787,21 +908,35 @@ const saleEditFormFields: ViewConfig["nodes"] = [
     {
         render: "#FormGrid",
         props: { columns: 1 },
+        permissions: {
+            readAny: ["transactionReference", "notes", "localDiscount"],
+            writeAny: ["transactionReference", "notes", "localDiscount"],
+        },
         children: [
             {
                 render: "#Field",
-                permissions: { write: "transactionReference" },
+                props: { skipRenderWhenFormExtraNotTruthy: "allowLocalDiscountEdit" },
+                field: {
+                    name: "localDiscount",
+                    widget: "#LocalDiscountField",
+                    label: "form.localDiscountLabel",
+                    placeholder: "form.localDiscountPlaceholder",
+                    widgetProps: { type: "decimal", step: "0.01", min: 0, max: 100 },
+                },
+                permissions: { read: "localDiscount", write: "localDiscount" },
+            },
+            {
+                render: "#Field",
                 field: {
                     name: "transactionReference",
                     widget: "#Input",
                     label: "form.transactionReferenceLabel",
                     placeholder: "form.transactionReferencePlaceholder",
                     widgetProps: { maxLength: SALE_SHORT_TEXT_MAX },
-                },
+                }, permissions: {read: "transactionReference", write: "transactionReference"},
             },
             {
                 render: "#Field",
-                permissions: { write: "notes" },
                 field: {
                     name: "notes",
                     widget: "#Textarea",
@@ -811,7 +946,7 @@ const saleEditFormFields: ViewConfig["nodes"] = [
                         className: "resize-none max-h-[250px] overflow-y-auto",
                         maxLength: SALE_LONG_TEXT_MAX,
                     },
-                },
+                }, permissions: {read: "notes", write: "notes"},
             },
         ],
     },

@@ -112,6 +112,33 @@ function computeSalePricing(foundUnit: any, localDiscount: any, saleExchangeRate
     return {finalPrice, reservationConvertedAmount, finalPriceExchangeRate};
 }
 
+function decimalFieldToNumber(value: unknown): number | undefined {
+    if (value == null) return undefined;
+    const raw = typeof value === "object" && value !== null && "toString" in value ? value.toString() : String(value);
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : undefined;
+}
+
+/** Recompute `finalPrice` from frozen sale snapshots when `localDiscount` changes on edit. */
+function computeSaleFinalPriceFromSnapshot(existing: {
+    listedUnitPrice?: unknown;
+    saleExchangeRate?: unknown;
+    reservationConvertedAmount?: unknown;
+}, localDiscount: unknown, languageCode: string): number {
+    const listed = decimalFieldToNumber(existing.listedUnitPrice);
+    if (listed == null) throw apiValidationException("final_price_cannot_be_negative", null, null, languageCode);
+    const priceD = new Decimal(String(listed));
+    const discountD = new Decimal(String(localDiscount ?? 0));
+    const discountedPrice = priceD.minus(priceD.mul(discountD).div(100));
+    const rate = decimalFieldToNumber(existing.saleExchangeRate) ?? 1;
+    const reservationConverted = decimalFieldToNumber(existing.reservationConvertedAmount) ?? 0;
+    const finalPrice = new Decimal(String(rate))
+        .mul(discountedPrice.minus(new Decimal(String(reservationConverted))))
+        .toNumber();
+    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", null, null, languageCode);
+    return finalPrice;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // createCrudRouter
 // ─────────────────────────────────────────────────────────────────────────────
@@ -169,7 +196,15 @@ const {router} = createCrudRouter({
     defaultSort: {saleDate: -1},
 
     createMiddleware: [
-        mediaUploadMW({fields: {purchaseContract: 1, additionalDocuments: 10}, maxFileSize: 100 * 1024 * 1024}),
+        mediaUploadMW({
+            fields: {
+                purchaseContract: 1,
+                additionalDocuments: 10,
+                handoverCertificate: 1,
+                titleTransferCertificate: 1,
+            },
+            maxFileSize: 100 * 1024 * 1024,
+        }),
     ],
     editMiddleware: [
         mediaUploadMW({fields: {handoverCertificate: 1, titleTransferCertificate: 1}, maxFileSize: 100 * 1024 * 1024}),
@@ -214,6 +249,8 @@ const {router} = createCrudRouter({
             paymentType, unit, soldBy, buyer, saleDate, saleCurrency,
             localDiscount, purchaseContract, additionalDocuments, notes,
             transactionReference, reservationExchangeRate, saleExchangeRate, buyerCompany,
+            handoverDate, handedOverBy, handoverNotes, handoverCertificate,
+            titleTransferDate, deedNumber, notaryName, titleTransferCertificate,
             // payment plan fields (all optional at schema level)
             downPayment, installments: installmentsParam, numberOfInstallments: numberOfInstallmentsField,
             startDate: startDateField, endDate: endDateField,
@@ -353,6 +390,37 @@ const {router} = createCrudRouter({
             paymentPlanId = paymentPlan._id;
         }
 
+        const settingHandoverDate = typeof handoverDate === "string" && handoverDate.trim() !== "";
+        if (settingHandoverDate) {
+            const settings = await propertyManagementConfigService.getSettingsForCompany(
+                company._id,
+                {session, logger, languageCode},
+            );
+            if (settings.requiresHandoverPackageForHandover) {
+                const completedPackage = await handoverPackageService.findOne(
+                    {unit: foundUnit._id, company: company._id, status: "completed", deletedAt: null},
+                    {session, logger, languageCode},
+                );
+                if (!completedPackage) {
+                    throw apiValidationException("sale_handover_requires_completed_handover_package", "", null, languageCode);
+                }
+            }
+        }
+
+        const handedOverById = typeof handedOverBy === "string" && handedOverBy.trim() !== "" ? handedOverBy : undefined;
+        if (handedOverById) {
+            await userService.findOneOrThrow(
+                {_id: new ObjectId(handedOverById), "roles.company": company._id},
+                {session, logger, languageCode},
+            );
+        }
+
+        const firstMediaId = (value: unknown) => {
+            const raw = Array.isArray(value) ? value[0] : value;
+            if (raw == null || raw === "") return undefined;
+            return new ObjectId(raw.toString());
+        };
+
         return {
             unit:                       foundUnit._id,
             paymentType:                paymentType === "payment_plan" ? SalePaymentType.PAYMENT_PLAN : SalePaymentType.CASH,
@@ -377,6 +445,14 @@ const {router} = createCrudRouter({
             reservationConvertedAmount,
             company:                    company._id,
             paymentPlan:                paymentPlanId,
+            handoverDate:               settingHandoverDate ? new Date(handoverDate) : undefined,
+            handedOverBy:               handedOverById ? new ObjectId(handedOverById) : undefined,
+            handoverNotes:              typeof handoverNotes === "string" && handoverNotes.trim() !== "" ? handoverNotes : undefined,
+            handoverCertificate:        firstMediaId(handoverCertificate),
+            titleTransferDate:          typeof titleTransferDate === "string" && titleTransferDate.trim() !== "" ? new Date(titleTransferDate) : undefined,
+            deedNumber:                 typeof deedNumber === "string" && deedNumber.trim() !== "" ? deedNumber.trim() : undefined,
+            notaryName:                 typeof notaryName === "string" && notaryName.trim() !== "" ? notaryName.trim() : undefined,
+            titleTransferCertificate:   firstMediaId(titleTransferCertificate),
         };
     },
 
@@ -530,7 +606,7 @@ const {router} = createCrudRouter({
     // ── Update ─────────────────────────────────────────────────────────────
     buildUpdateData: async (params, writeFields) => {
         const {
-            notes, transactionReference,
+            notes, transactionReference, localDiscount,
             handoverDate, handedOverBy, handoverNotes, handoverCertificate: handoverCertificateFile,
             titleTransferDate, deedNumber, notaryName, titleTransferCertificate: titleTransferCertificateFile,
             existing, company, session, logger, languageCode,
@@ -566,6 +642,16 @@ const {router} = createCrudRouter({
         if (notes !== undefined && writeFields.notes) update.notes = notes;
         if (transactionReference !== undefined && writeFields.transactionReference) {
             update.transactionReference = transactionReference == null || String(transactionReference).trim() === "" ? undefined : String(transactionReference).trim();
+        }
+        const canEditDiscount =
+            existing?.paymentType !== SalePaymentType.PAYMENT_PLAN && !existing?.paymentPlan;
+        if (localDiscount !== undefined && writeFields.localDiscount && canEditDiscount) {
+            const listed = decimalFieldToNumber(existing?.listedUnitPrice);
+            if (listed != null) {
+                const finalPrice = computeSaleFinalPriceFromSnapshot(existing, localDiscount, languageCode);
+                update.localDiscount = Decimal128.fromString(String(localDiscount ?? 0));
+                update.finalPrice = Decimal128.fromString(String(finalPrice));
+            }
         }
         if (handoverDate !== undefined) {
             update.handoverDate = handoverDate === null ? null : new Date(handoverDate);

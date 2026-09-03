@@ -93,11 +93,11 @@ function computeSalePricing(foundUnit: any, localDiscount: any, saleExchangeRate
     let finalPriceExchangeRate = 1;
 
     if (saleCurrency !== foundUnit.priceCurrency?._id?.toString()) {
-        if (!saleExchangeRate) throw apiValidationException("sale_exchange_rate_required", null, null, languageCode);
+        if (!saleExchangeRate) throw apiValidationException("sale_exchange_rate_required", "", null, languageCode);
         finalPriceExchangeRate = parseFloat((saleExchangeRate ?? "1") + "");
     }
     if (foundUnit.reservation && foundUnit.reservation?.depositCurrency?._id.toString() !== saleCurrency) {
-        if (!reservationExchangeRate) throw apiValidationException("reservation_exchange_rate_required", null, null, languageCode);
+        if (!reservationExchangeRate) throw apiValidationException("reservation_exchange_rate_required", "", null, languageCode);
         reservationConvertedAmount = reservationExchangeRate * parseFloat(foundUnit.reservation?.depositAmount?.toString() || "1");
     }
 
@@ -108,7 +108,7 @@ function computeSalePricing(foundUnit: any, localDiscount: any, saleExchangeRate
         .mul(discountedPrice.minus(new Decimal(String(reservationConvertedAmount ?? 0))))
         .toNumber();
 
-    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", null, null, languageCode);
+    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
     return {finalPrice, reservationConvertedAmount, finalPriceExchangeRate};
 }
 
@@ -126,7 +126,7 @@ function computeSaleFinalPriceFromSnapshot(existing: {
     reservationConvertedAmount?: unknown;
 }, localDiscount: unknown, languageCode: string): number {
     const listed = decimalFieldToNumber(existing.listedUnitPrice);
-    if (listed == null) throw apiValidationException("final_price_cannot_be_negative", null, null, languageCode);
+    if (listed == null) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
     const priceD = new Decimal(String(listed));
     const discountD = new Decimal(String(localDiscount ?? 0));
     const discountedPrice = priceD.minus(priceD.mul(discountD).div(100));
@@ -135,7 +135,7 @@ function computeSaleFinalPriceFromSnapshot(existing: {
     const finalPrice = new Decimal(String(rate))
         .mul(discountedPrice.minus(new Decimal(String(reservationConverted))))
         .toNumber();
-    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", null, null, languageCode);
+    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
     return finalPrice;
 }
 
@@ -264,9 +264,9 @@ const {router} = createCrudRouter({
             [{path: "reservation"}, ...UNIT_EMAIL_POPULATE],
         );
 
-        if (foundUnit.status === UnitStatus.SOLD) throw apiValidationException("unit_already_sold", null, null, languageCode);
-        if (foundUnit.status === UnitStatus.RENTED) throw apiValidationException("unit_already_rented", null, null, languageCode);
-        if (foundUnit.status === UnitStatus.UNAVAILABLE) throw apiValidationException("unit_not_available", null, null, languageCode);
+        if (foundUnit.status === UnitStatus.SOLD) throw apiValidationException("unit_already_sold", "", null, languageCode);
+        if (foundUnit.status === UnitStatus.RENTED) throw apiValidationException("unit_already_rented", "", null, languageCode);
+        if (foundUnit.status === UnitStatus.UNAVAILABLE) throw apiValidationException("unit_not_available", "", null, languageCode);
 
         const {finalPrice, reservationConvertedAmount} = computeSalePricing(
             foundUnit, localDiscount, saleExchangeRate, saleCurrency, reservationExchangeRate, languageCode,
@@ -298,13 +298,13 @@ const {router} = createCrudRouter({
             let installmentsArray: any[] = [];
             if (typeof installmentsParam === "string") {
                 try { installmentsArray = JSON.parse(installmentsParam); }
-                catch { throw apiValidationException("invalid_installments_format", null, null, languageCode); }
+                catch { throw apiValidationException("invalid_installments_format", "", null, languageCode); }
             } else if (Array.isArray(installmentsParam)) {
                 installmentsArray = installmentsParam;
             } else {
-                throw apiValidationException("installments_required", null, null, languageCode);
+                throw apiValidationException("installments_required", "", null, languageCode);
             }
-            if (!installmentsArray?.length) throw apiValidationException("at_least_one_installment_required", null, null, languageCode);
+            if (!installmentsArray?.length) throw apiValidationException("at_least_one_installment_required", "", null, languageCode);
 
             if (downPayment > finalPrice + 0.005) throw apiValidationException("down_payment_exceeds_final_price", "", null, languageCode);
 

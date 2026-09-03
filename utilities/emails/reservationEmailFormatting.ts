@@ -17,9 +17,6 @@ export const UNIT_EMAIL_POPULATE = [
     {path: "project", select: "name"},
 ];
 
-type NamedRef = {name?: string} | null | undefined;
-type FloorRef = {name?: string; levelNumber?: number} | null | undefined;
-
 function populatedName(ref: unknown): string | undefined {
     if (ref == null || typeof ref !== "object" || !("name" in ref)) {
         return undefined;
@@ -42,13 +39,13 @@ function floorNameForEmail(floor: unknown): string | undefined {
     return undefined;
 }
 
-/** Reads populated unit refs; omits a field when the ref was not populated. */
+/** Reads populated unit refs; omits a field when the ref was not populated (ObjectId or missing name). */
 export function unitLocationForEmail(
     unit:
         | {
-              floor?: FloorRef;
-              edifice?: NamedRef;
-              project?: NamedRef;
+              floor?: unknown;
+              edifice?: unknown;
+              project?: unknown;
           }
         | null
         | undefined

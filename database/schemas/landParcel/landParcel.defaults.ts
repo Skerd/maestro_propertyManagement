@@ -46,12 +46,18 @@ export async function createLandParcels(
         const doc = await upsertByName(LandParcel, company, name, {
             title: "Garda Tower plot — Presidency block",
             project,
+            edifice,
             cadastralReference: "TR-1021-GARDA-01",
             areaSqm: 4200,
             zoning: "mixed-use high-rise",
             currency,
             acquisitionCost: Decimal128.fromString("8500000"),
             dueDiligenceStatus: "complete",
+            dueDiligenceSteps: [{
+                title: "complete",
+                performedBy: user,
+                performedAt: new Date(),
+            }],
             description: "Primary plot for Garda Tower next to the Presidency.",
             status: "acquired"
         }, logger, "land parcel");
@@ -67,11 +73,18 @@ export async function createLandParcels(
         const doc = await upsertByName(LandParcel, company, name, {
             title: "Aria Residence hillside parcel",
             project: ariaProject,
+            edifice: ariaEd,
             cadastralReference: "VL-DHERMI-ARIA-01",
             areaSqm: 6800,
             zoning: "coastal residential",
             currency,
             acquisitionCost: Decimal128.fromString("2100000"),
+            dueDiligenceStatus: "complete",
+            dueDiligenceSteps: [{
+                title: "complete",
+                performedBy: user2,
+                performedAt: new Date(),
+            }],
             status: "acquired"
         }, logger, "land parcel");
         if (doc?._id) created.set(seedKey, doc._id as ObjectId);

@@ -420,7 +420,7 @@ const {router} = createCrudRouter({
             localDiscount:              Decimal128.fromString(String(localDiscount ?? 0)),
             finalPrice,
             notes,
-            purchaseContract:           Array.isArray(purchaseContract) ? purchaseContract[0] : purchaseContract,
+            purchaseContract:           firstMediaId(purchaseContract),
             additionalDocuments:        Array.isArray(additionalDocuments) ? additionalDocuments : (additionalDocuments ? [additionalDocuments] : []),
             transactionReference,
             reservation:                foundUnit.reservation,

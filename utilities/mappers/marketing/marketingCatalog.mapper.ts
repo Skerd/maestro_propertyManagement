@@ -296,10 +296,15 @@ export function mapMarketingProjectCatalogSingle(
                       .filter(Boolean)
                 : undefined;
 
+            const imageGallery = marketingMediaUrls(edifice.imageGallery);
+            const videoGallery = marketingMediaUrls(edifice.videoGallery);
+
             return {
                 _id: edificeId,
                 name: edifice.name,
                 mainImage: marketingMediaUrl(edifice.mainImage),
+                imageGallery: imageGallery.length > 0 ? imageGallery : undefined,
+                videoGallery: videoGallery.length > 0 ? videoGallery : undefined,
                 location: formatEdificeLocation(edifice),
                 street: edifice.address?.street || undefined,
                 city: cityName,

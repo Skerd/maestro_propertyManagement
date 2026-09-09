@@ -111,7 +111,13 @@ export const projectDocumentSheetView: ViewConfig = {
                                 name: "floor.name",
                                 widget: "#DisplayCard",
                                 label: "floor",
-                                widgetProps: {icon: "#Layers"},
+                                widgetProps: {
+                                    icon: "#Layers",
+                                    linkedRefPath: "floor",
+                                    linkedSheetModel: "floors",
+                                    linkedSheetWidget: "#FloorSheetView",
+                                    linkedSheetEntityProp: "floor",
+                                },
                             },
                         },
                         {
@@ -229,7 +235,13 @@ export const projectDocumentSheetView: ViewConfig = {
                                 name: "designStage.title",
                                 widget: "#DisplayCard",
                                 label: "designStage",
-                                widgetProps: {icon: "#IconFolder"},
+                                widgetProps: {
+                                    icon: "#IconFolder",
+                                    linkedRefPath: "designStage",
+                                    linkedSheetModel: "designstages",
+                                    linkedSheetWidget: "#DesignStageSheetView",
+                                    linkedSheetEntityProp: "entity",
+                                },
                             },
                         },
                         {
@@ -327,6 +339,10 @@ const projectDocumentFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
+        permissions: {
+            readAny: ["project", "edifice", "floor", "unit", "title", "documentNumber", "discipline", "documentType", "revision", "revisionDate", "supersedes", "designStage", "isRequiredDeliverable", "description", "notes"],
+            writeAny: ["project", "edifice", "floor", "unit", "title", "documentNumber", "discipline", "documentType", "revision", "revisionDate", "supersedes", "designStage", "isRequiredDeliverable", "description", "notes"],
+        },
         children: [
             {
                 render: "#FormGrid",
@@ -347,9 +363,10 @@ const projectDocumentFormNodes: ViewConfig["nodes"] = [
                                 method: "POST",
                                 pageSize: 50,
                                 formFieldName: "project",
-                                cascadeClearFormFields: ["edifice", "floor", "unit"],
+                                cascadeClearFormFields: ["edifice", "floor", "unit", "designStage"],
                             },
                         },
+                        permissions: {read: "project"},
                     },
                     {
                         render: "#Field",
@@ -499,6 +516,8 @@ const projectDocumentFormNodes: ViewConfig["nodes"] = [
                                 apiUrl: "/api/realEstate/designStage/select",
                                 method: "POST",
                                 pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "projectId"},
+                                remountKeyFormField: "project",
                                 normalizeEmptyToUndefined: true,
                             },
                         },

@@ -252,6 +252,10 @@ export function mapMarketingUnitSingle(
         sharePrice: price,
         projectedYield: undefined,
         mainImage: marketingMediaUrl(unit.mainImage),
+        marketingBooklet:
+            marketingMediaUrl(unit.marketingBooklet)
+            ?? marketingMediaUrl(floor?.marketingBooklet)
+            ?? marketingMediaUrl(edifice?.marketingBooklet),
         // Unit media first, then floor, then edifice — deduped for the public gallery mosaic.
         imageGallery: uniqueMarketingMediaUrls(
             [unit.mainImage, ...(unit.imageGallery ?? [])],

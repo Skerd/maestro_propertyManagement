@@ -6,3 +6,9 @@ export const EdificeSimpleSnippet = {
         project: ProjectSimpleSnippet
     }
 }
+
+export const EdificeSnippet = {
+    keys: {
+        name: {}
+    }
+}

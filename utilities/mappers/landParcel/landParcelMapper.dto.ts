@@ -1,39 +1,51 @@
-import type {LandParcel} from "armonia/src/modules/propertyManagement/api/realEstate/private/landParcel/landParcel.dto";
-import type {ILandParcel} from "../../../database/schemas/landParcel/landParcel";
-import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
-import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import type {DueDiligenceStep, LandParcel} from "armonia/src/modules/propertyManagement/api/realEstate/private/landParcel/landParcel.dto";
+import type {ILandParcel, ILandParcelDueDiligenceStep} from "../../../database/schemas/landParcel/landParcel";
+import {decimalToNumber, mapMedia, mapPopulatedRef, mapPopulatedSimpleCurrency, mapPopulatedSimpleUser} from "@coreModule/utilities/mappers/common.mapper";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-function dec(v: any): number | undefined {
-    if (v == null) return undefined;
-    if (typeof v === "number") return v;
-    if (typeof v?.toString === "function") return Number(v.toString());
-    return undefined;
-}
-
-export function landParcelToDTO(doc: ILandParcel | any): LandParcel {
-    const raw = doc.toObject?.({virtuals: false}) ?? doc;
-    const out: any = {
-        _id: doc._id.toString(),
-        name: doc.name,
-        title: doc.title,
-        description: doc.description ?? undefined,
-        notes: doc.notes ?? undefined,
-        status: doc.status,
-        ...mapOwnershipToDTO(doc),
+function mapDueDiligenceStep(entry: ILandParcelDueDiligenceStep): DueDiligenceStep {
+    return {
+        _id: entry._id?.toString() ?? "",
+        title: entry.title,
+        notes: entry.notes || undefined,
+        performedBy: entry.performedBy ? mapPopulatedSimpleUser(entry.performedBy) : undefined,
+        performedAt: entry.performedAt ? new Date(entry.performedAt).toISOString() : new Date().toISOString(),
+        media: Array.isArray(entry.media) && entry.media.length > 0
+            ? entry.media.map(mapMedia).filter((item) => item != null)
+            : undefined,
     };
-    if (doc.project) out.project = mapPopulatedRef(doc.project);
-    if (doc.edifice) out.edifice = mapPopulatedRef(doc.edifice);
-    if (doc.media?.length) out.media = doc.media.map(mapMedia);
-    for (const [k, v] of Object.entries(raw)) {
-        if (["_id","name","title","description","notes","status","project","edifice","media","company","createdAt","updatedAt","deletedAt","__v","createdBy","updatedBy","deletedBy"].includes(k)) continue;
-        if (v && typeof v === "object" && (v as any)._bsontype === "Decimal128") out[k] = dec(v);
-        else if (v instanceof Date) out[k] = v.toISOString();
-        else if (v && typeof v === "object" && (v as any)._id) out[k] = mapPopulatedRef(v);
-        else out[k] = v;
-    }
-    return out as LandParcel;
 }
 
-export function landParcelsToDTO(docs: ILandParcel[]): LandParcel[] {
-    return docs.map(landParcelToDTO);
+export function landParcelToDTO(landParcel: ILandParcel): LandParcel {
+    return {
+        _id: landParcel._id?.toString(),
+        name: landParcel.name,
+        title: landParcel.title,
+        cadastralReference: landParcel.cadastralReference,
+        description: landParcel.description,
+        notes: landParcel.notes,
+        status: landParcel.status,
+        areaSqm: landParcel.areaSqm,
+        zoning: landParcel.zoning,
+        currency: mapPopulatedSimpleCurrency(landParcel.currency),
+        acquisitionCost: decimalToNumber(landParcel.acquisitionCost),
+        dueDiligenceStatus: landParcel.dueDiligenceStatus,
+        dueDiligenceNotes: landParcel.dueDiligenceNotes,
+        dueDiligenceSteps: Array.isArray(landParcel.dueDiligenceSteps) && landParcel.dueDiligenceSteps.length > 0
+            ? landParcel.dueDiligenceSteps.map(mapDueDiligenceStep)
+            : undefined,
+        acquisitionNotes: landParcel.acquisitionNotes,
+        disposeNotes: landParcel.disposeNotes,
+        project: mapPopulatedRef(landParcel.project),
+        edifice: mapPopulatedRef(landParcel.edifice),
+        media: landParcel.media?.map(mapMedia).filter((item) => item != null),
+        ...mapOwnershipToDTO(landParcel),
+        ...mapLifeCycleToDTO(landParcel),
+        ...mapSoftDeleteToDTO(landParcel)
+
+    }
+}
+
+export function landParcelsToDTO(landParcels: ILandParcel[]): LandParcel[] {
+    return landParcels.map(landParcelToDTO);
 }

@@ -250,7 +250,7 @@ export const permitSheetView: ViewConfig = {
     ],
 };
 
-const permitFormNodes: ViewConfig["nodes"] = [
+const permitCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -387,6 +387,155 @@ const permitFormNodes: ViewConfig["nodes"] = [
     },
 ];
 
+const permitEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        permissions: {
+            readAny: ["project", "edifice", "title", "permitType", "authority", "referenceNumber", "description", "notes"],
+            writeAny: ["project", "edifice", "title", "permitType", "authority", "referenceNumber", "description", "notes"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2},
+                children: [
+                    {
+                        render: "#Field",
+                        props: {skipRenderWhenFormExtraTruthy: "prefilledProjectId"},
+                        field: {
+                            name: "project",
+                            widget: "#ApiSelect",
+                            label: "form.projectLabel",
+                            placeholder: "form.projectPlaceholder",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/project/select",
+                                pageSize: 50,
+                                cascadeClearFormFields: ["edifice"],
+                            },
+                        },
+                        permissions: {read: "project"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "edifice",
+                            widget: "#ApiSelect",
+                            label: "form.edificeLabel",
+                            placeholder: "form.edificePlaceholder",
+                            widgetProps: {
+                                apiUrl: "/api/realEstate/edifice/select",
+                                pageSize: 50,
+                                postBodyFromFormField: {field: "project", paramName: "project"},
+                                remountKeyFormField: "project",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                        permissions: {read: "edifice", write: "edifice"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "title",
+                            widget: "#Input",
+                            label: "form.titleLabel",
+                            placeholder: "form.titlePlaceholder",
+                            required: true,
+                        },
+                        permissions: {read: "title", write: "title"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "permitType",
+                            widget: "#SimpleSelect",
+                            label: "form.permitTypeLabel",
+                            placeholder: "form.permitTypePlaceholder",
+                            required: true,
+                            widgetProps: {options: [...PERMIT_TYPE_OPTIONS]},
+                        },
+                        permissions: {read: "permitType", write: "permitType"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "authority",
+                            widget: "#Input",
+                            label: "form.authorityLabel",
+                            placeholder: "form.authorityPlaceholder",
+                        },
+                        permissions: {read: "authority", write: "authority"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "referenceNumber",
+                            widget: "#Input",
+                            label: "form.referenceNumberLabel",
+                            placeholder: "form.referenceNumberPlaceholder",
+                        },
+                        permissions: {read: "referenceNumber", write: "referenceNumber"},
+                    },
+                ],
+            },
+            {
+                render: "#Field",
+                field: {
+                    name: "description",
+                    widget: "#Textarea",
+                    label: "form.descriptionLabel",
+                    placeholder: "form.descriptionPlaceholder",
+                    widgetProps: {className: "resize-none max-h-[250px] overflow-y-auto"},
+                },
+                permissions: {read: "description", write: "description"},
+            },
+            {
+                render: "#Field",
+                field: {
+                    name: "notes",
+                    widget: "#Textarea",
+                    label: "form.notesLabel",
+                    placeholder: "form.notesPlaceholder",
+                    widgetProps: {className: "resize-none max-h-[200px] overflow-y-auto"},
+                },
+                permissions: {read: "notes", write: "notes"},
+            },
+        ],
+    },
+    {
+        render: "div",
+        props: {
+            className: "col-span-full w-full",
+            skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",
+        },
+        children: [
+            {
+                render: "#TitleWithCollapse",
+                props: {title: "form.mediaLabel"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "media",
+                            widget: "#FormMultiLocalFileField",
+                            skipWriteAccessGate: true,
+                            widgetProps: {
+                                maxFiles: 20,
+                                accept: "image/*,application/pdf",
+                                existingListExtraKey: "editMediaExistingList",
+                                existingFilesLabelKey: "form.existingFiles",
+                                newFilesLabelKey: "form.newFiles",
+                            },
+                        },
+                        permissions: {read: "media", write: "media"},
+                    },
+                ],
+            },
+        ],
+    },
+];
+
 export const permitCreateFormView: ViewConfig = {
     model: "permits",
     viewType: "form",
@@ -394,7 +543,7 @@ export const permitCreateFormView: ViewConfig = {
     accessModel: "permits",
     apiUrl: "/api/realEstate/permit",
     method: "PUT",
-    nodes: permitFormNodes,
+    nodes: permitCreateFormNodes,
 };
 
 export const permitEditFormView: ViewConfig = {
@@ -404,7 +553,7 @@ export const permitEditFormView: ViewConfig = {
     accessModel: "permits",
     apiUrl: "/api/realEstate/permit",
     method: "PATCH",
-    nodes: permitFormNodes,
+    nodes: permitEditFormNodes,
 };
 
 export const permitViews: ViewConfig[] = [

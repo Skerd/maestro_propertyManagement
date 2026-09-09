@@ -22,7 +22,7 @@ function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
 export async function loadMarketingCatalogHierarchy(
     projectIds: ObjectId[],
     companyId: ObjectId,
-    options?: {includePriceHistory?: boolean},
+    options?: {includePriceHistory?: boolean; includeEdificeGalleries?: boolean},
 ): Promise<MarketingProjectHierarchy> {
     if (projectIds.length === 0) {
         return {
@@ -36,18 +36,20 @@ export async function loadMarketingCatalogHierarchy(
         };
     }
 
-    const edifices = await edificeService.find({
-        project: {$in: projectIds},
-        company: companyId,
-        deletedAt: null,
-    }, {}, [
+    const edificePopulate = [
         "mainImage",
         "address.city",
         "address.country",
         "constructors",
         "investmentCurrency",
         "saleCurrency",
-    ]);
+        ...(options?.includeEdificeGalleries ? ["imageGallery", "videoGallery"] : []),
+    ];
+    const edifices = await edificeService.find({
+        project: {$in: projectIds},
+        company: companyId,
+        deletedAt: null,
+    }, {}, edificePopulate);
 
     const edificeIds = edifices.map((edifice) => edifice._id);
     const floors = edificeIds.length > 0
@@ -113,7 +115,10 @@ export async function loadMarketingCatalogHierarchyForProject(
     projectId: ObjectId,
     companyId: ObjectId,
 ): Promise<MarketingProjectHierarchy> {
-    return loadMarketingCatalogHierarchy([projectId], companyId, {includePriceHistory: true});
+    return loadMarketingCatalogHierarchy([projectId], companyId, {
+        includePriceHistory: true,
+        includeEdificeGalleries: true,
+    });
 }
 
 export function collectProjectCities(edifices: IEdifice[]): string[] {

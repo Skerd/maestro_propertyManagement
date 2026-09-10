@@ -440,7 +440,11 @@ async function bulkUpdateUnitStatus(params: BulkUpdateStatusParams): Promise<{up
             company: company._id,
             status:  {$in: [UnitStatus.AVAILABLE, UnitStatus.UNAVAILABLE]},
         },
-        {$set: {status}},
+        {
+            ...(status === UnitStatus.AVAILABLE
+                ? {$set: {status}, $unset: {unavailableNotes: ""}}
+                : {$set: {status}}),
+        },
         {session},
     );
 

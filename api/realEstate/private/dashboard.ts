@@ -26,11 +26,13 @@ import {reservationService} from "../../../database/schemas/reservation/reservat
 import {saleService} from "../../../database/schemas/sale/sale.service";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {projectService} from "../../../database/schemas/project/project.service";
-import SchemaGuard from "@coreModule/database/security/schemaGuard";
-import Sale, {SalePaymentType} from "../../../database/schemas/sale/sale";
-import Unit, {UnitStatus} from "../../../database/schemas/unit/unit";
-import Edifice from "../../../database/schemas/edifice/edifice";
-import Floor from "../../../database/schemas/floor/floor";
+import {SalePaymentType} from "../../../database/schemas/sale/sale";
+import {UnitStatus} from "../../../database/schemas/unit/unit";
+import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
+import type {UserContext} from "@coreModule/utilities/types/types";
 import {InstallmentStatus, PaymentPlanStatus,} from "../../../database/schemas/paymentPlan/paymentPlan";
 import type {
     PaymentAlertItem
@@ -48,12 +50,10 @@ import {DashboardFormType} from "armonia/src/modules/propertyManagement/api/real
 import {
     dashboardFormSchema
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/dashboard.form.validator";
-import {COLLECTED_DATA} from "@coreModule/database/collections";
 import DashboardCache from "../../../database/schemas/dashboardCache/dashboardCache";
 import {unitCostService} from "../../../database/schemas/unitCost/unitCost.service";
-import UnitCost from "../../../database/schemas/unitCost/unitCost";
 import {rentalPaymentService} from "../../../database/schemas/rentalPayment/rentalPayment.service";
-import RentalPayment, {RentalPaymentStatus} from "../../../database/schemas/rentalPayment/rentalPayment";
+import {RentalPaymentStatus} from "../../../database/schemas/rentalPayment/rentalPayment";
 import {leaseService} from "../../../database/schemas/lease/lease.service";
 import {LeaseStatus} from "../../../database/schemas/lease/lease";
 import {
@@ -63,7 +63,6 @@ import {
     remainingScaled,
     scaledToDecimal128,
 } from "../../../utilities/lease/rentRemaining";
-import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {
     resolveHierarchySetsFromUnitIds,
     buildUnitCostRollupMatch,
@@ -85,14 +84,6 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/deliveryReadiness.form.response.type";
 
 const router = Router();
-
-/** SchemaGuard read shape for unit-cost money on the dashboard (aligns with unit statistics). */
-const UNIT_COST_STATS_READ_SHAPE_DASH = {
-    verificationStatus: {},
-    paymentStatus: {},
-    currency: CurrencySimpleSnippet,
-    expenditureItems: {},
-} as const;
 
 function unitCostDocSubtotalStage() {
     return {
@@ -169,6 +160,61 @@ function emptyRentalsSummary() {
         overdueAmount: [] as RevenueByCurrency[],
         overdueCount: 0,
         activeLeases: 0,
+    };
+}
+
+function dashboardReadAccess(actionUserCtx: UserContext, languageCode: string) {
+    const sales = canReadCollectedFields("sales", actionUserCtx, languageCode);
+    const units = canReadCollectedFields("units", actionUserCtx, languageCode);
+    const projects = canReadCollectedFields("projects", actionUserCtx, languageCode);
+    const edifices = canReadCollectedFields("edifices", actionUserCtx, languageCode);
+    const floors = canReadCollectedFields("floors", actionUserCtx, languageCode);
+    const reservations = canReadCollectedFields("reservations", actionUserCtx, languageCode);
+    const paymentPlans = canReadCollectedFields("paymentplans", actionUserCtx, languageCode);
+    const inspections = canReadCollectedFields("inspections", actionUserCtx, languageCode);
+    const modificationRequests = canReadCollectedFields("modificationrequests", actionUserCtx, languageCode);
+    const unitCosts = canReadCollectedFields("unitcosts", actionUserCtx, languageCode);
+    const rentalPayments = canReadCollectedFields("rentalpayments", actionUserCtx, languageCode);
+    const leases = canReadCollectedFields("leases", actionUserCtx, languageCode);
+    return {
+        sales,
+        units,
+        projects,
+        edifices,
+        floors,
+        reservations,
+        paymentPlans,
+        inspections,
+        modificationRequests,
+        unitCosts,
+        rentalPayments,
+        leases,
+        any: sales || units || projects || edifices || floors || reservations
+            || paymentPlans || inspections || modificationRequests || unitCosts
+            || rentalPayments || leases,
+        all: sales && units && projects && edifices && floors && reservations
+            && paymentPlans && inspections && modificationRequests && unitCosts
+            && rentalPayments && leases,
+        needsUnitScope: sales || units || reservations || paymentPlans || inspections
+            || modificationRequests || unitCosts || rentalPayments || leases,
+    };
+}
+
+function deliveryReadinessAccess(actionUserCtx: UserContext, languageCode: string) {
+    const permits = canReadCollectedFields("permits", actionUserCtx, languageCode);
+    const projectDocuments = canReadCollectedFields("projectdocuments", actionUserCtx, languageCode);
+    const designStages = canReadCollectedFields("designstages", actionUserCtx, languageCode);
+    const milestones = canReadCollectedFields("milestones", actionUserCtx, languageCode);
+    const snags = canReadCollectedFields("snags", actionUserCtx, languageCode);
+    const handoverPackages = canReadCollectedFields("handoverpackages", actionUserCtx, languageCode);
+    return {
+        permits,
+        projectDocuments,
+        designStages,
+        milestones,
+        snags,
+        handoverPackages,
+        any: permits || projectDocuments || designStages || milestones || snags || handoverPackages,
     };
 }
 
@@ -270,6 +316,8 @@ async function getDashboardStats(
 
     logger.start("Fetching dashboard stats...");
     const opts = { logger, languageCode };
+    const access = dashboardReadAccess(actionUserCtx, languageCode);
+    assertAnyCollectedRead(access.any, languageCode);
 
     // Cache check — return pre-computed result if still fresh (< 5 min old)
     const cacheKey = buildDashboardCacheKey(company._id.toString(), {projectId, edificeId, period, from, to, recentSalesLimit});
@@ -277,11 +325,14 @@ async function getDashboardStats(
         const cached = await DashboardCache.findOne({cacheKey}).lean();
         if (cached && cached.computedAt && Date.now() - new Date(cached.computedAt).getTime() < DASHBOARD_CACHE_TTL_MS) {
             logger.finish("Dashboard stats served from cache.");
-            const cachedResult = cached.result as any;
-            return {
-                ...cachedResult,
-                summary: sanitizeDashboardSummary(cachedResult.rawSummary, actionUserCtx, languageCode),
+            const cachedResult = cached.result as {
+                rawSummary: DashboardSummary;
+                revenueByPeriod: PeriodDatum[];
+                salesByPeriod: PeriodDatum[];
+                recentSales: RecentSaleItem[];
+                paymentAlerts?: PaymentAlertItem[];
             };
+            return sanitizeDashboardResponse(cachedResult, actionUserCtx, languageCode);
         }
     } catch {
         // Cache read failure is non-fatal — fall through to compute
@@ -292,49 +343,57 @@ async function getDashboardStats(
     if (projectId && ObjectId.isValid(projectId)) unitFilter.project = new ObjectId(projectId);
     else if (edificeId && ObjectId.isValid(edificeId)) unitFilter.edifice = new ObjectId(edificeId);
 
-    const companyUnits = await unitService.find(
-        unitFilter,
-        opts,
-        null,
-        "_id",
-        {},
-        undefined,
-        undefined
-    );
+    const companyUnits = access.needsUnitScope
+        ? await unitService.find(
+            unitFilter,
+            opts,
+            null,
+            "_id",
+            {},
+            undefined,
+            undefined
+        )
+        : [];
     const companyUnitIds = companyUnits
         .map((u) => u._id)
         .filter((id): id is ObjectId => id != null);
 
     if (companyUnitIds.length === 0) {
         const [projectsCount0, edificesCount0, floorsCount0] = await Promise.all([
-            projectService.count({ company: company._id }, opts),
-            edificeService.count(
-                projectId && ObjectId.isValid(projectId)
-                    ? { project: new ObjectId(projectId), company: company._id }
-                    : { company: company._id },
-                opts
-            ),
-            floorService.count(
-                edificeId && ObjectId.isValid(edificeId)
-                    ? { edifice: new ObjectId(edificeId), company: company._id }
-                    : { company: company._id },
-                opts
-            ),
+            access.projects ? projectService.count({ company: company._id }, opts) : Promise.resolve(0),
+            access.edifices
+                ? edificeService.count(
+                    projectId && ObjectId.isValid(projectId)
+                        ? { project: new ObjectId(projectId), company: company._id }
+                        : { company: company._id },
+                    opts
+                )
+                : Promise.resolve(0),
+            access.floors
+                ? floorService.count(
+                    edificeId && ObjectId.isValid(edificeId)
+                        ? { edifice: new ObjectId(edificeId), company: company._id }
+                        : { company: company._id },
+                    opts
+                )
+                : Promise.resolve(0),
         ]);
         const emptySummary = buildEmptySummary();
         emptySummary.totalProjects = projectsCount0;
         emptySummary.totalEdifices = edificesCount0;
         emptySummary.totalFloors = floorsCount0;
         logger.finish("Dashboard stats (no units).");
-        return {
-            summary: sanitizeDashboardSummary(emptySummary, actionUserCtx, languageCode),
+        return sanitizeDashboardResponse({
+            rawSummary: emptySummary,
             revenueByPeriod: [],
             salesByPeriod: [],
             recentSales: [],
-        };
+        }, actionUserCtx, languageCode);
     }
 
-    const unitCostHierarchySets = await resolveHierarchySetsFromUnitIds(companyUnitIds, opts);
+    const unitCostHierarchySets = access.unitCosts
+        ? await resolveHierarchySetsFromUnitIds(companyUnitIds, opts)
+        : {projectIds: [], edificeIds: [], floorIds: []} as UnitCostHierarchyIdSets;
 
     const saleFilter: any = { unit: { $in: companyUnitIds } };
     const dateFilter: any = {};
@@ -348,16 +407,21 @@ async function getDashboardStats(
     const periodStart = from ? new Date(from) : startPeriod;
     const periodEnd = to ? new Date(to) : new Date();
 
-    const saleIdsForPaymentPlans = await saleService.find(
-        { unit: { $in: companyUnitIds } },
-        opts,
-        null,
-        "_id",
-        {},
-        undefined,
-        undefined
-    );
+    const saleIdsForPaymentPlans = access.paymentPlans
+        ? await saleService.find(
+            { unit: { $in: companyUnitIds } },
+            opts,
+            null,
+            "_id",
+            {},
+            undefined,
+            undefined
+        )
+        : [];
     const saleIds = saleIdsForPaymentPlans.map((s) => s._id).filter((id): id is ObjectId => id != null);
+
+    const none: never[] = [];
+    const zero = 0;
 
     const now = new Date();
     const expiringEnd = new Date(now);
@@ -393,8 +457,8 @@ async function getDashboardStats(
         rentalPaymentsForStats,
         activeLeasesCount,
     ] = await Promise.all([
-        saleService.count(saleFilter, opts),
-        saleService.aggregate(
+        access.sales ? saleService.count(saleFilter, opts) : Promise.resolve(zero),
+        access.sales ? saleService.aggregate(
             [
                 { $match: { unit: { $in: companyUnitIds }, ...(Object.keys(dateFilter).length ? { saleDate: dateFilter } : {}) } },
                 {
@@ -414,8 +478,8 @@ async function getDashboardStats(
                 { $unwind: { path: "$currencyInfo", preserveNullAndEmptyArrays: true } },
             ],
             opts
-        ),
-        saleService.aggregate(
+        ) : Promise.resolve(none),
+        access.sales ? saleService.aggregate(
             [
                 {
                     $match: {
@@ -435,8 +499,8 @@ async function getDashboardStats(
                 { $sort: { "_id.year": 1, "_id.month": 1 } },
             ],
             opts
-        ),
-        saleService.aggregate(
+        ) : Promise.resolve(none),
+        access.sales ? saleService.aggregate(
             [
                 {
                     $match: {
@@ -456,8 +520,8 @@ async function getDashboardStats(
                 { $sort: { "_id.year": 1, "_id.month": 1 } },
             ],
             opts
-        ),
-        saleService.find(
+        ) : Promise.resolve(none),
+        access.sales ? saleService.find(
             { unit: { $in: companyUnitIds } },
             opts,
             [
@@ -469,29 +533,29 @@ async function getDashboardStats(
             { saleDate: -1 },
             Math.min(Math.max(1, recentSalesLimit), 50),
             0
-        ),
-        unitService.aggregate(
+        ) : Promise.resolve(none),
+        access.units ? unitService.aggregate(
             [{ $match: { _id: { $in: companyUnitIds } } }, { $group: { _id: "$status", count: { $sum: 1 } } }],
             opts
-        ),
-        projectService.count({ company: company._id }, opts),
-        edificeService.count(
+        ) : Promise.resolve(none),
+        access.projects ? projectService.count({ company: company._id }, opts) : Promise.resolve(zero),
+        access.edifices ? edificeService.count(
             projectId && ObjectId.isValid(projectId)
                 ? { project: new ObjectId(projectId), company: company._id }
                 : { company: company._id },
             opts
-        ),
-        floorService.count(
+        ) : Promise.resolve(zero),
+        access.floors ? floorService.count(
             edificeId && ObjectId.isValid(edificeId)
                 ? { edifice: new ObjectId(edificeId), company: company._id }
                 : { company: company._id },
             opts
-        ),
-        reservationService.count(
+        ) : Promise.resolve(zero),
+        access.reservations ? reservationService.count(
             { unit: { $in: companyUnitIds }, isActive: true },
             opts
-        ),
-        saleIds.length > 0
+        ) : Promise.resolve(zero),
+        access.paymentPlans && saleIds.length > 0
             ? paymentPlanService.aggregate(
                   [
                       { $match: { sale: { $in: saleIds } } },
@@ -499,8 +563,8 @@ async function getDashboardStats(
                   ],
                   opts
               )
-            : Promise.resolve([]),
-        saleIds.length > 0
+            : Promise.resolve(none),
+        access.paymentPlans && saleIds.length > 0
             ? paymentPlanService.aggregate(
                   [
                       { $match: { sale: { $in: saleIds }, status: PaymentPlanStatus.ACTIVE } },
@@ -508,8 +572,8 @@ async function getDashboardStats(
                   ],
                   opts
               )
-            : Promise.resolve([]),
-        saleIds.length > 0
+            : Promise.resolve(none),
+        access.paymentPlans && saleIds.length > 0
             ? paymentPlanService.aggregate(
                   [
                       { $match: { sale: { $in: saleIds } } },
@@ -529,33 +593,33 @@ async function getDashboardStats(
                   ],
                   opts
               )
-            : Promise.resolve([]),
-        inspectionService.aggregate(
+            : Promise.resolve(none),
+        access.inspections ? inspectionService.aggregate(
             [
                 { $match: { unit: { $in: companyUnitIds } } },
                 { $group: { _id: "$status", count: { $sum: 1 } } },
             ],
             opts
-        ),
-        inspectionService.count(
+        ) : Promise.resolve(none),
+        access.inspections ? inspectionService.count(
             { unit: { $in: companyUnitIds }, followUpRequired: true },
             opts
-        ),
-        modificationRequestService.aggregate(
+        ) : Promise.resolve(zero),
+        access.modificationRequests ? modificationRequestService.aggregate(
             [
                 { $match: { unit: { $in: companyUnitIds } } },
                 { $group: { _id: "$status", count: { $sum: 1 } } },
             ],
             opts
-        ),
-        saleService.aggregate(
+        ) : Promise.resolve(none),
+        access.sales ? saleService.aggregate(
             [
                 { $match: saleFilter },
                 { $group: { _id: "$paymentType", count: { $sum: 1 } } },
             ],
             opts
-        ),
-        unitService.aggregate(
+        ) : Promise.resolve(none),
+        access.units ? unitService.aggregate(
             [
                 {
                     $match: {
@@ -566,16 +630,16 @@ async function getDashboardStats(
                 { $group: { _id: null, total: { $sum: "$price" } } },
             ],
             opts
-        ),
-        reservationService.count(
+        ) : Promise.resolve(none),
+        access.reservations ? reservationService.count(
             {
                 unit: { $in: companyUnitIds },
                 isActive: true,
                 expirationDate: { $exists: true, $gte: now, $lte: expiringEnd },
             },
             opts
-        ),
-        reservationService.aggregate(
+        ) : Promise.resolve(zero),
+        access.reservations ? reservationService.aggregate(
             [
                 {
                     $match: {
@@ -587,8 +651,8 @@ async function getDashboardStats(
                 { $group: { _id: null, total: { $sum: "$depositAmount" } } },
             ],
             opts
-        ),
-        saleIds.length > 0
+        ) : Promise.resolve(none),
+        access.paymentPlans && saleIds.length > 0
             ? paymentPlanService.aggregate(
                   [
                       { $match: { sale: { $in: saleIds } } },
@@ -616,8 +680,8 @@ async function getDashboardStats(
                   ],
                   opts
               )
-            : Promise.resolve([]),
-        reservationService.aggregate(
+            : Promise.resolve(none),
+        access.reservations ? reservationService.aggregate(
             [
                 {
                     $match: {
@@ -653,32 +717,32 @@ async function getDashboardStats(
                 { $limit: 50 },
             ],
             opts
-        ),
-        unitCostService.aggregate(
+        ) : Promise.resolve(none),
+        access.unitCosts ? unitCostService.aggregate(
             unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
                 verificationStatus: "verified",
                 paymentStatus: "paid",
             }),
             opts
-        ),
-        unitCostService.aggregate(
+        ) : Promise.resolve(none),
+        access.unitCosts ? unitCostService.aggregate(
             unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
                 verificationStatus: "verified",
                 paymentStatus: {$in: ["unpaid", "partially_paid", "disputed"]},
             }),
             opts
-        ),
-        unitCostService.aggregate(
+        ) : Promise.resolve(none),
+        access.unitCosts ? unitCostService.aggregate(
             unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
                 verificationStatus: {$in: ["pending_verification", "needs_revision"]},
             }),
             opts
-        ),
-        unitCostService.count(
+        ) : Promise.resolve(none),
+        access.unitCosts ? unitCostService.count(
             buildUnitCostRollupMatch(company._id, companyUnitIds, unitCostHierarchySets, {}),
             opts
-        ),
-        rentalPaymentService.find(
+        ) : Promise.resolve(zero),
+        access.rentalPayments ? rentalPaymentService.find(
             {unit: {$in: companyUnitIds}, deletedAt: null},
             opts,
             [
@@ -686,11 +750,11 @@ async function getDashboardStats(
                 {path: "unit", select: "name unitNumber"},
             ],
             "amount paidAmount lateFeeAmount status currency unit dueDate",
-        ),
-        leaseService.count(
+        ) : Promise.resolve(none),
+        access.leases ? leaseService.count(
             {unit: {$in: companyUnitIds}, status: LeaseStatus.ACTIVE, deletedAt: null},
             opts,
-        ),
+        ) : Promise.resolve(zero),
     ]);
 
     const totalRevenueByCurrency: RevenueByCurrency[] = revenueByCurrencyAgg.map((r: any) => ({
@@ -920,24 +984,23 @@ async function getDashboardStats(
         .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
         .slice(0, 50);
 
-    const sanitizedSummary = sanitizeDashboardSummary(summary, actionUserCtx, languageCode);
-
-    // Write to cache (fire-and-forget — don't block the response)
-    DashboardCache.findOneAndUpdate(
-        {cacheKey},
-        {$set: {company: company._id, result: {rawSummary: summary, revenueByPeriod, salesByPeriod, recentSales, paymentAlerts}, computedAt: new Date()}},
-        {upsert: true, new: true},
-    ).catch(() => { /* cache write failure is non-fatal */ });
+    if (access.all) {
+        DashboardCache.findOneAndUpdate(
+            {cacheKey},
+            {$set: {company: company._id, result: {rawSummary: summary, revenueByPeriod, salesByPeriod, recentSales, paymentAlerts}, computedAt: new Date()}},
+            {upsert: true, new: true},
+        ).catch(() => { /* cache write failure is non-fatal */ });
+    }
 
     logger.finish("Dashboard stats done.");
 
-    return {
-        summary: sanitizedSummary,
+    return sanitizeDashboardResponse({
+        rawSummary: summary,
         revenueByPeriod,
         salesByPeriod,
         recentSales,
         paymentAlerts,
-    };
+    }, actionUserCtx, languageCode);
 }
 
 function buildEmptySummary(): DashboardSummary {
@@ -977,57 +1040,102 @@ function buildEmptySummary(): DashboardSummary {
 
 function sanitizeDashboardSummary(
     summary: DashboardSummary,
-    actionUserCtx: any,
+    actionUserCtx: UserContext,
     languageCode: string
 ): DashboardSummary {
+    const access = dashboardReadAccess(actionUserCtx, languageCode);
     const out = { ...summary };
 
-    try {
-        SchemaGuard.sanitizeFields(Sale, COLLECTED_DATA["sales"].readFields, "read", actionUserCtx, languageCode);
-    } catch {
+    if (!access.sales) {
         out.totalRevenue = [];
         out.totalSales = 0;
         out.averageSalePrice = 0;
         out.salesByPaymentType = { cash: 0, payment_plan: 0 };
     }
-
-    try {
-        SchemaGuard.sanitizeFields(Unit, COLLECTED_DATA["units"].readFields, "read", actionUserCtx, languageCode);
-    } catch {
+    if (!access.units) {
         out.unitsByStatus = { available: 0, unavailable: 0, reserved: 0, sold: 0, leased: 0 };
         out.totalUnits = 0;
         out.inventoryValue = 0;
         out.occupancyRatePercent = 0;
     }
-
-    try {
-        SchemaGuard.sanitizeFields(Edifice, { name: {} }, "read", actionUserCtx, languageCode);
-    } catch {
+    if (!access.projects) {
+        out.totalProjects = 0;
+    }
+    if (!access.edifices) {
         out.totalEdifices = 0;
     }
-
-    try {
-        SchemaGuard.sanitizeFields(Floor, COLLECTED_DATA["floors"].readFields, "read", actionUserCtx, languageCode);
-    } catch {
+    if (!access.floors) {
         out.totalFloors = 0;
     }
-
-    try {
-        SchemaGuard.sanitizeFields(UnitCost, UNIT_COST_STATS_READ_SHAPE_DASH as any, "read", actionUserCtx, languageCode);
-    } catch {
+    if (!access.reservations) {
+        out.activeReservations = 0;
+        out.expiringReservationsCount = 0;
+        out.totalReservationDeposits = 0;
+    }
+    if (!access.paymentPlans) {
+        out.paymentPlans = {
+            byStatus: { active: 0, completed: 0, defaulted: 0, cancelled: 0 },
+            totalOutstanding: 0,
+            overdueInstallmentsCount: 0,
+        };
+        out.paymentPlansCompleted = 0;
+        out.paymentPlansDefaulted = 0;
+    }
+    if (!access.inspections) {
+        out.inspections = { byStatus: {}, followUpRequiredCount: 0 };
+        out.totalInspections = 0;
+    }
+    if (!access.modificationRequests) {
+        out.modificationRequests = { byStatus: {} };
+        out.openModificationRequests = 0;
+    }
+    if (!access.unitCosts) {
         out.verifiedPaidUnitCosts = [];
         out.verifiedOutstandingUnitCosts = [];
         out.pendingVerificationUnitCosts = [];
         out.totalUnitCostDocuments = 0;
     }
-
-    try {
-        SchemaGuard.sanitizeFields(RentalPayment, COLLECTED_DATA["rentalpayments"].readFields, "read", actionUserCtx, languageCode);
-    } catch {
-        out.rentals = emptyRentalsSummary();
+    if (!access.rentalPayments || !access.leases) {
+        const rentals = emptyRentalsSummary();
+        if (access.rentalPayments) {
+            rentals.collectedAmount = out.rentals.collectedAmount;
+            rentals.outstandingAmount = out.rentals.outstandingAmount;
+            rentals.overdueAmount = out.rentals.overdueAmount;
+            rentals.overdueCount = out.rentals.overdueCount;
+        }
+        if (access.leases) {
+            rentals.activeLeases = out.rentals.activeLeases;
+        }
+        out.rentals = rentals;
     }
 
     return out;
+}
+
+function sanitizeDashboardResponse(
+    result: {
+        rawSummary?: DashboardSummary;
+        summary?: DashboardSummary;
+        revenueByPeriod: PeriodDatum[];
+        salesByPeriod: PeriodDatum[];
+        recentSales: RecentSaleItem[];
+        paymentAlerts?: PaymentAlertItem[];
+    },
+    actionUserCtx: UserContext,
+    languageCode: string,
+): DashboardFormResponseType {
+    const access = dashboardReadAccess(actionUserCtx, languageCode);
+    const summary = sanitizeDashboardSummary(result.rawSummary ?? result.summary ?? buildEmptySummary(), actionUserCtx, languageCode);
+    const revenueByPeriod = access.sales ? result.revenueByPeriod : [];
+    const salesByPeriod = access.sales ? result.salesByPeriod : [];
+    const recentSales = access.sales ? result.recentSales : [];
+    const paymentAlerts = (result.paymentAlerts ?? []).filter((alert) => {
+        if (alert.kind === "installment") return access.paymentPlans;
+        if (alert.kind === "reservation") return access.reservations;
+        if (alert.kind === "rent") return access.rentalPayments;
+        return false;
+    });
+    return {summary, revenueByPeriod, salesByPeriod, recentSales, paymentAlerts};
 }
 
 /**
@@ -1052,13 +1160,19 @@ router.post(
 async function getDeliveryReadiness(
     params: AuthenticatedMWType & {projectId?: string; edificeId?: string},
 ): Promise<DeliveryReadinessFormResponseType> {
-    const {logger, languageCode, company, projectId, edificeId} = params;
+    const {logger, languageCode, actionUserCtx, company, projectId, edificeId} = params;
     logger.start("Computing delivery readiness...");
     const opts = {logger, languageCode};
+    const access = deliveryReadinessAccess(actionUserCtx, languageCode);
+    assertAnyCollectedRead(access.any, languageCode);
 
     const scope: Record<string, unknown> = {company: company._id, deletedAt: null};
     if (projectId && ObjectId.isValid(projectId)) scope.project = new ObjectId(projectId);
     else if (edificeId && ObjectId.isValid(edificeId)) scope.edifice = new ObjectId(edificeId);
+
+    function emptyDomain(key: string): DeliveryReadinessDomain {
+        return {key, done: 0, total: 0, percent: null};
+    }
 
     async function domain(
         key: string,
@@ -1074,17 +1188,23 @@ async function getDeliveryReadiness(
     }
 
     const domains = await Promise.all([
-        domain("permits", permitService, {status: "approved"}),
-        domain(
-            "requiredDeliverables",
-            projectDocumentService,
-            {status: {$in: ["approved", "superseded"]}},
-            {isRequiredDeliverable: true},
-        ),
-        domain("designStages", designStageService, {status: "completed"}),
-        domain("milestones", milestoneService, {status: "completed"}, {status: {$ne: "cancelled"}}),
-        snagDomain(),
-        domain("handoverPackages", handoverPackageService, {status: "completed"}),
+        access.permits ? domain("permits", permitService, {status: "approved"}) : emptyDomain("permits"),
+        access.projectDocuments
+            ? domain(
+                "requiredDeliverables",
+                projectDocumentService,
+                {status: {$in: ["approved", "superseded"]}},
+                {isRequiredDeliverable: true},
+            )
+            : emptyDomain("requiredDeliverables"),
+        access.designStages ? domain("designStages", designStageService, {status: "completed"}) : emptyDomain("designStages"),
+        access.milestones
+            ? domain("milestones", milestoneService, {status: "completed"}, {status: {$ne: "cancelled"}})
+            : emptyDomain("milestones"),
+        access.snags ? snagDomain() : emptyDomain("snags"),
+        access.handoverPackages
+            ? domain("handoverPackages", handoverPackageService, {status: "completed"})
+            : emptyDomain("handoverPackages"),
     ]);
 
     // Snag is unit-scoped (no project/edifice fields) — resolve unit ids when scoped.

@@ -34,8 +34,15 @@ export class SpecificationItemActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("specificationitems").readFields!, SpecificationItem.schema);
-            const updated = await specificationItemService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                SpecificationItem,
+                getModelCollectedData("specificationitems").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, SpecificationItem.schema);
+            const updated = await specificationItemService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return specificationItemToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`SpecificationItem.cancel done`);

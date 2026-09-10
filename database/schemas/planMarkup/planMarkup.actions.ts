@@ -26,8 +26,15 @@ async function transition(params: Record<string, any>, label: string, from: stri
     }
     await planMarkupService.updateByIdOrThrow(existing._id, {$set}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("planmarkups").readFields!, PlanMarkup.schema);
-        const updated = await planMarkupService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            PlanMarkup,
+            getModelCollectedData("planmarkups").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, PlanMarkup.schema);
+        const updated = await planMarkupService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return planMarkupToDTO(updated);
     } catch { /* no read */ }
     logger.finish(`PlanMarkup.${label} done`);

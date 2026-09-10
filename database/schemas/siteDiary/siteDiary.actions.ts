@@ -34,8 +34,15 @@ export class SiteDiaryActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("sitediaries").readFields!, SiteDiary.schema);
-            const updated = await siteDiaryService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                SiteDiary,
+                getModelCollectedData("sitediaries").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, SiteDiary.schema);
+            const updated = await siteDiaryService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return siteDiaryToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`SiteDiary.publish done`);

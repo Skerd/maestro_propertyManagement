@@ -26,6 +26,10 @@ import type {
     RoiProjectSummary,
     RoiScopeType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/roi/roi.response.type";
+import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 export const basePath = "/api/realEstate/roi";
 export const router   = Router();
@@ -106,7 +110,12 @@ router.post(
     authMW("private"),
     rateLimiter({windowMs: 60_000, max: 30}),
     asyncHandler(async (params: AuthenticatedMWType & RoiRequest) => {
-        const {company} = params;
+        const {company, actionUserCtx, languageCode} = params;
+        const canReadUnits = canReadCollectedFields("units", actionUserCtx, languageCode);
+        const canReadUnitCosts = canReadCollectedFields("unitcosts", actionUserCtx, languageCode);
+        const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
+        const canReadLeases = canReadCollectedFields("leases", actionUserCtx, languageCode);
+        assertAnyCollectedRead(canReadUnits || canReadUnitCosts || canReadSales || canReadLeases, languageCode);
         const companyId = company._id as ObjectId;
 
         const projectId  = typeof params.projectId === "string" && ObjectId.isValid(params.projectId)
@@ -129,15 +138,17 @@ router.post(
         if (floorIds.length > 0)   unitFilter.floor   = {$in: toObjectIds(floorIds)};
         if (unitIds.length > 0)    unitFilter._id     = {$in: toObjectIds(unitIds)};
 
-        const units = await Unit.find(unitFilter)
-            .select("_id name unitNumber status price priceCurrency project")
-            .populate("priceCurrency", "symbol abbreviation")
-            .lean();
+        const units = canReadUnits
+            ? await Unit.find(unitFilter)
+                .select("_id name unitNumber status price priceCurrency project")
+                .populate("priceCurrency", "symbol abbreviation")
+                .lean()
+            : [];
 
         const matchedUnitIds = units.map((u: any) => u._id);
 
         // ── Aggregate costs per unit ──────────────────────────────────────────────
-        const costAgg = await UnitCost.aggregate([
+        const costAgg = canReadUnitCosts && matchedUnitIds.length > 0 ? await UnitCost.aggregate([
             {$match: {unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null}},
             {$unwind: {path: "$expenditureItems", preserveNullAndEmptyArrays: true}},
             {
@@ -155,17 +166,19 @@ router.post(
                     currencySymbol: {$first: "$currency"},
                 },
             },
-        ]);
+        ]) : [];
         const costByUnit: Record<string, number> = {};
         for (const row of costAgg) {
             costByUnit[row._id.toString()] = row.totalCost ?? 0;
         }
 
         // ── Fetch sales for sold units ─────────────────────────────────────────────
-        const sales = await Sale.find({unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null})
-            .select("unit finalPrice saleCurrency")
-            .populate("saleCurrency", "symbol")
-            .lean();
+        const sales = canReadSales && matchedUnitIds.length > 0
+            ? await Sale.find({unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null})
+                .select("unit finalPrice saleCurrency")
+                .populate("saleCurrency", "symbol")
+                .lean()
+            : [];
         const saleByUnit: Record<string, {price: number; symbol?: string}> = {};
         for (const sale of sales as any[]) {
             const uid = (sale.unit as any)?.toString() ?? sale.unit.toString();
@@ -176,10 +189,12 @@ router.post(
         }
 
         // ── Fetch active leases for rented units ──────────────────────────────────
-        const leases = await Lease.find({unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null, status: "active"})
-            .select("unit monthlyRent rentCurrency")
-            .populate("rentCurrency", "symbol")
-            .lean();
+        const leases = canReadLeases && matchedUnitIds.length > 0
+            ? await Lease.find({unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null, status: "active"})
+                .select("unit monthlyRent rentCurrency")
+                .populate("rentCurrency", "symbol")
+                .lean()
+            : [];
         const rentByUnit: Record<string, {monthly: number; symbol?: string}> = {};
         for (const lease of leases as any[]) {
             const uid = (lease.unit as any)?.toString() ?? lease.unit.toString();

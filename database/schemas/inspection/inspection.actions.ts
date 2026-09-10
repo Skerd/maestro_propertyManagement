@@ -46,8 +46,15 @@ export class InspectionActions {
 
         let returnData: InspectionData | undefined;
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("inspections").readFields!, Inspection.schema);
-            const updated = await inspectionService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Inspection,
+                getModelCollectedData("inspections").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Inspection.schema);
+            const updated = await inspectionService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             returnData = inspectionToDTO(updated);
         } catch {
             logger.debug("User has no read permission on inspection!");

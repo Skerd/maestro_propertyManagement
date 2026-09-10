@@ -110,9 +110,15 @@ export class ModificationRequestActions {
 
         let returnData: ModificationRequestData | undefined;
         try {
-            const readFields = getModelCollectedData("modificationrequests").readFields!;
+            const readFields = SchemaGuard.sanitizeFields(
+                ModificationRequest,
+                getModelCollectedData("modificationrequests").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
             const populate = SchemaGuard.generatePopulate(readFields, ModificationRequest.schema);
-            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate);
+            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate, populate.select);
             returnData = modificationRequestToDTO(updated);
         } catch {
             logger.debug("User has no read permission on modification request!");
@@ -183,9 +189,15 @@ export class ModificationRequestActions {
 
         let returnData: ModificationRequestData | undefined;
         try {
-            const readFields = getModelCollectedData("modificationrequests").readFields!;
+            const readFields = SchemaGuard.sanitizeFields(
+                ModificationRequest,
+                getModelCollectedData("modificationrequests").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
             const populate = SchemaGuard.generatePopulate(readFields, ModificationRequest.schema);
-            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate);
+            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate, populate.select);
             returnData = modificationRequestToDTO(updated);
         } catch {
             logger.debug("User has no read permission on modification request!");
@@ -260,9 +272,15 @@ export class ModificationRequestActions {
 
         let returnData: ModificationRequestData | undefined;
         try {
-            const readFields = getModelCollectedData("modificationrequests").readFields!;
+            const readFields = SchemaGuard.sanitizeFields(
+                ModificationRequest,
+                getModelCollectedData("modificationrequests").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
             const populate = SchemaGuard.generatePopulate(readFields, ModificationRequest.schema);
-            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate);
+            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate, populate.select);
             returnData = modificationRequestToDTO(updated);
         } catch {
             logger.debug("User has no read permission on modification request!");
@@ -345,9 +363,15 @@ export class ModificationRequestActions {
 
         let returnData: ModificationRequestData | undefined;
         try {
-            const readFields = getModelCollectedData("modificationrequests").readFields!;
+            const readFields = SchemaGuard.sanitizeFields(
+                ModificationRequest,
+                getModelCollectedData("modificationrequests").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
             const populate = SchemaGuard.generatePopulate(readFields, ModificationRequest.schema);
-            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate);
+            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate, populate.select);
             returnData = modificationRequestToDTO(updated);
         } catch {
             logger.debug("User has no read permission on modification request!");
@@ -411,9 +435,15 @@ export class ModificationRequestActions {
 
         let returnData: ModificationRequestData | undefined;
         try {
-            const readFields = getModelCollectedData("modificationrequests").readFields!;
+            const readFields = SchemaGuard.sanitizeFields(
+                ModificationRequest,
+                getModelCollectedData("modificationrequests").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
             const populate = SchemaGuard.generatePopulate(readFields, ModificationRequest.schema);
-            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate);
+            const updated = await modificationRequestService.findById(existingRequest._id, {session, logger, languageCode}, populate.populate, populate.select);
             returnData = modificationRequestToDTO(updated);
         } catch {
             logger.debug("User has no read permission on modification request!");

@@ -33,8 +33,15 @@ function dueDiligenceStep(title: string, notes: string | undefined, userId: stri
 
 async function landParcelAfterUpdate(existingId: ObjectId, session: ClientSession, logger: serverLogger, languageCode: string) {
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("landparcels").readFields!, LandParcel.schema);
-        const updated = await landParcelService.findById(existingId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            LandParcel,
+            getModelCollectedData("landparcels").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, LandParcel.schema);
+        const updated = await landParcelService.findById(existingId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return landParcelToDTO(updated);
     } catch { /* no read */ }
     return undefined;

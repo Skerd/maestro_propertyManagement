@@ -27,8 +27,15 @@ async function move(params: Record<string, any>, label: string, allowedFrom: str
     }
     await bidService.updateByIdOrThrow(existing._id, {$set}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("bids").readFields!, Bid.schema);
-        const updated = await bidService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Bid,
+            getModelCollectedData("bids").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Bid.schema);
+        const updated = await bidService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return bidToDTO(updated);
     } catch { /* no read */ }
     logger.finish(`Bid.${label} done`);

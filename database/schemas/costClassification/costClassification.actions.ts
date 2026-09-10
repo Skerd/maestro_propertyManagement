@@ -28,8 +28,15 @@ export class CostClassificationActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("costclassifications").readFields!, CostClassification.schema);
-            const updated = await costClassificationService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CostClassification,
+                getModelCollectedData("costclassifications").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CostClassification.schema);
+            const updated = await costClassificationService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return costClassificationToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CostClassification.deactivate done`);
@@ -53,8 +60,15 @@ export class CostClassificationActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("costclassifications").readFields!, CostClassification.schema);
-            const updated = await costClassificationService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CostClassification,
+                getModelCollectedData("costclassifications").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CostClassification.schema);
+            const updated = await costClassificationService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return costClassificationToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CostClassification.activate done`);

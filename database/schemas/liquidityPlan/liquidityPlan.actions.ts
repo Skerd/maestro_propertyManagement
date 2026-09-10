@@ -62,8 +62,15 @@ export class LiquidityPlanActions {
         }
 
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("liquidityplans").readFields!, LiquidityPlan.schema);
-            const updated = await liquidityPlanService.findById(plan._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                LiquidityPlan,
+                getModelCollectedData("liquidityplans").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, LiquidityPlan.schema);
+            const updated = await liquidityPlanService.findById(plan._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return liquidityPlanToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`LiquidityPlan.rebuildFromSources done — ${toInsert.length} outflow lines`);

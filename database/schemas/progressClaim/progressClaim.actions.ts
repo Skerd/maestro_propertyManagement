@@ -44,8 +44,15 @@ export class ProgressClaimActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("progressclaims").readFields!, ProgressClaim.schema);
-            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ProgressClaim,
+                getModelCollectedData("progressclaims").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ProgressClaim.schema);
+            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return progressClaimToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ProgressClaim.submit done`);
@@ -93,8 +100,15 @@ export class ProgressClaimActions {
         );
         await recomputeContractCostTruth(contractId, costCtx);
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("progressclaims").readFields!, ProgressClaim.schema);
-            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ProgressClaim,
+                getModelCollectedData("progressclaims").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ProgressClaim.schema);
+            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return progressClaimToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ProgressClaim.certify done`);
@@ -124,8 +138,15 @@ export class ProgressClaimActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("progressclaims").readFields!, ProgressClaim.schema);
-            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ProgressClaim,
+                getModelCollectedData("progressclaims").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ProgressClaim.schema);
+            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return progressClaimToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ProgressClaim.markPaid done`);
@@ -155,8 +176,15 @@ export class ProgressClaimActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("progressclaims").readFields!, ProgressClaim.schema);
-            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ProgressClaim,
+                getModelCollectedData("progressclaims").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ProgressClaim.schema);
+            const updated = await progressClaimService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return progressClaimToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ProgressClaim.reject done`);

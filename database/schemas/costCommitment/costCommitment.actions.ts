@@ -36,8 +36,15 @@ export class CostCommitmentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("costcommitments").readFields!, CostCommitment.schema);
-            const updated = await costCommitmentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CostCommitment,
+                getModelCollectedData("costcommitments").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CostCommitment.schema);
+            const updated = await costCommitmentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return costCommitmentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CostCommitment.issue done`);
@@ -67,8 +74,15 @@ export class CostCommitmentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("costcommitments").readFields!, CostCommitment.schema);
-            const updated = await costCommitmentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CostCommitment,
+                getModelCollectedData("costcommitments").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CostCommitment.schema);
+            const updated = await costCommitmentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return costCommitmentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CostCommitment.close done`);
@@ -98,8 +112,15 @@ export class CostCommitmentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("costcommitments").readFields!, CostCommitment.schema);
-            const updated = await costCommitmentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CostCommitment,
+                getModelCollectedData("costcommitments").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CostCommitment.schema);
+            const updated = await costCommitmentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return costCommitmentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CostCommitment.cancel done`);

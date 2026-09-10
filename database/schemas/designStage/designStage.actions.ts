@@ -37,8 +37,15 @@ export class DesignStageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("designstages").readFields!, DesignStage.schema);
-            const updated = await designStageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                DesignStage,
+                getModelCollectedData("designstages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, DesignStage.schema);
+            const updated = await designStageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return designStageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`DesignStage.start done`);
@@ -85,8 +92,15 @@ export class DesignStageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("designstages").readFields!, DesignStage.schema);
-            const updated = await designStageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                DesignStage,
+                getModelCollectedData("designstages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, DesignStage.schema);
+            const updated = await designStageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return designStageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`DesignStage.complete done`);
@@ -116,8 +130,15 @@ export class DesignStageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("designstages").readFields!, DesignStage.schema);
-            const updated = await designStageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                DesignStage,
+                getModelCollectedData("designstages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, DesignStage.schema);
+            const updated = await designStageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return designStageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`DesignStage.block done`);

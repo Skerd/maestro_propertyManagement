@@ -27,8 +27,15 @@ async function transition(params: Record<string, any>, label: string, from: stri
     }
     await maintenanceWorkOrderService.updateByIdOrThrow(existing._id, {$set}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("maintenanceworkorders").readFields!, MaintenanceWorkOrder.schema);
-        const updated = await maintenanceWorkOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            MaintenanceWorkOrder,
+            getModelCollectedData("maintenanceworkorders").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, MaintenanceWorkOrder.schema);
+        const updated = await maintenanceWorkOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return maintenanceWorkOrderToDTO(updated);
     } catch { /* no read */ }
     return undefined;

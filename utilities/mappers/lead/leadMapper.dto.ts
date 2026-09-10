@@ -53,6 +53,7 @@ export function leadToDTO(lead: ILead): Lead {
         assignedTo:     mapPopulatedSimpleUser(lead.assignedTo),
         followUpDate:   lead.followUpDate ? new Date(lead.followUpDate).toISOString().split("T")[0] : undefined,
         convertedAt:    lead.convertedAt  ? new Date(lead.convertedAt).toISOString()  : undefined,
+        lostReason:     lead.lostReason,
         activityLog:    Array.isArray(lead.activityLog) && lead.activityLog.length > 0 ? lead.activityLog.map(mapActivityEntry) : undefined,
         ...mapSoftDeleteToDTO(lead),
         ...mapOwnershipToDTO(lead),

@@ -83,6 +83,7 @@ export interface IUnit extends Document, IOwnershipPluginFields, ISoftDeletePlug
     polygonCoordinates?: {x: number, y: number}[]; // Relative coordinates (0-1) for unit location on floor main image
 
     status: UnitStatus,
+    unavailableNotes?: string,
     connectedUnits: IUnit[],
     inspections: IInspection[],
     modificationRequests: IModificationRequest[],
@@ -254,7 +255,6 @@ const UnitSchema = new Schema<IUnit>(
             type: SchemaTypes.ObjectId,
             ref: "Media",
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR
             },
@@ -269,7 +269,7 @@ const UnitSchema = new Schema<IUnit>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
             }
         },
         videoGallery: {
@@ -281,7 +281,7 @@ const UnitSchema = new Schema<IUnit>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
             }
         },
         mediaFiles: {
@@ -352,6 +352,15 @@ const UnitSchema = new Schema<IUnit>(
             required: true,
             default: UnitStatus.AVAILABLE,
             index: true
+        },
+        unavailableNotes: {
+            type: Schema.Types.String,
+            required: false,
+            trim: true,
+            maxlength: UNIT_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {
+                hideColumn: true,
+            },
         },
         connectedUnits: {
             type: [{
@@ -611,6 +620,10 @@ UnitSchema.pre('save', function(next) {
             }
         }
 
+        if (unit.status !== UnitStatus.UNAVAILABLE) {
+            unit.unavailableNotes = undefined;
+        }
+
         // Clear sale reference when status changes to RESERVED
         if (unit.status === UnitStatus.RESERVED) {
             if (unit.sale) {
@@ -641,4 +654,4 @@ export {UnitStatus, UnitConstructionStatus, UnitOrientation, UNIT_CONSTRUCTION_S
 
 addModelData(Unit, unitViews);
 // status is required in Mongoose but system-managed (set via pre-save hook) — not a form field
-validateSchemaDefAgainstMongoose(UnitSchema, UnitSchemaDef, "Unit", ["status", "priceHistory", "priceManuallyEdited", "edifice", "project"]);
+validateSchemaDefAgainstMongoose(UnitSchema, UnitSchemaDef, "Unit", ["status", "unavailableNotes", "priceHistory", "priceManuallyEdited", "edifice", "project"]);

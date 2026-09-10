@@ -394,7 +394,6 @@ const constructorCreateFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#Field",
-        permissions: {write: "addresses"},
         field: {
             name: "addresses",
             widget: "#FormRepeater",

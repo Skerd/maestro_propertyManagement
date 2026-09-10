@@ -41,8 +41,15 @@ async function transition(
         {session, logger, languageCode, auditUserId: actionUserCtx.userId},
     );
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("specifications").readFields!, Specification.schema);
-        const updated = await specificationService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Specification,
+            getModelCollectedData("specifications").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Specification.schema);
+        const updated = await specificationService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return specificationToDTO(updated);
     } catch { /* no read */ }
     logger.finish(`Specification.${label} done`);
@@ -92,8 +99,15 @@ export class SpecificationActions {
             auditUserId: actionUserCtx.userId,
         });
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("specifications").readFields!, Specification.schema);
-            const updated = await specificationService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Specification,
+                getModelCollectedData("specifications").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Specification.schema);
+            const updated = await specificationService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return specificationToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Specification.importNpkPositions done`);

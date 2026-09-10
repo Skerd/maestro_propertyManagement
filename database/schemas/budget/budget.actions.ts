@@ -43,8 +43,15 @@ export class BudgetActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("budgets").readFields!, Budget.schema);
-            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Budget,
+                getModelCollectedData("budgets").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Budget.schema);
+            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return budgetToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Budget.submitForApproval done`);
@@ -74,8 +81,15 @@ export class BudgetActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("budgets").readFields!, Budget.schema);
-            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Budget,
+                getModelCollectedData("budgets").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Budget.schema);
+            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return budgetToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Budget.approve done`);
@@ -105,8 +119,15 @@ export class BudgetActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("budgets").readFields!, Budget.schema);
-            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Budget,
+                getModelCollectedData("budgets").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Budget.schema);
+            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return budgetToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Budget.lock done`);
@@ -136,8 +157,15 @@ export class BudgetActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("budgets").readFields!, Budget.schema);
-            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Budget,
+                getModelCollectedData("budgets").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Budget.schema);
+            const updated = await budgetService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return budgetToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Budget.supersede done`);
@@ -185,8 +213,15 @@ export class BudgetActions {
 
         logger.finish(`Budget.generateProgrammeFromBudget done — created ${toInsert.length} tasks`);
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("budgets").readFields!, Budget.schema);
-            const updated = await budgetService.findById(budget._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Budget,
+                getModelCollectedData("budgets").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Budget.schema);
+            const updated = await budgetService.findById(budget._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return budgetToDTO(updated);
         } catch { /* no read */ }
         return {createdTasks: toInsert.length};

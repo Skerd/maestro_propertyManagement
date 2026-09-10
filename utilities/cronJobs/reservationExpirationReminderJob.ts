@@ -98,7 +98,7 @@ export async function runReservationExpiredStamp(parentLogger?: serverLogger): P
                 );
                 await Unit.updateOne(
                     {_id: res.unit, status: UnitStatus.RESERVED, reservation: res._id},
-                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: ""}}
+                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: "", unavailableNotes: ""}}
                 );
             } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : String(e);

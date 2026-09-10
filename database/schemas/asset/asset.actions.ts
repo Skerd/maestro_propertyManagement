@@ -18,8 +18,15 @@ async function transition(params: Record<string, any>, label: string, next: stri
     }
     await assetService.updateByIdOrThrow(existing._id, {$set: {lifecycleStatus: next}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("assets").readFields!, Asset.schema);
-        const updated = await assetService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Asset,
+            getModelCollectedData("assets").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Asset.schema);
+        const updated = await assetService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return assetToDTO(updated);
     } catch { /* no read */ }
     return undefined;

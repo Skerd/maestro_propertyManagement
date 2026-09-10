@@ -42,6 +42,10 @@ import {
     matchesSearch,
     paginateRows,
 } from "../../../utilities/contractsHub/contractsHubMapper.dto";
+import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 export const basePath = "/api/realEstate/rentalsHub";
 export const router = Router();
@@ -156,6 +160,10 @@ async function listLeases(
     } = params;
 
     logger.start("Listing rentals hub leases...");
+    assertAnyCollectedRead(
+        canReadCollectedFields("leases", params.actionUserCtx, params.languageCode),
+        params.languageCode,
+    );
 
     const companyId = company._id;
     const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
@@ -196,7 +204,10 @@ async function listLeases(
 
     const paginated = paginateRows(matched, page, limit);
     const pageIds = paginated.data.map((row) => new ObjectId(row._id));
-    if (pageIds.length > 0) {
+    if (
+        pageIds.length > 0
+        && canReadCollectedFields("rentalpayments", params.actionUserCtx, params.languageCode)
+    ) {
         const payments = await rentalPaymentService.find(
             {lease: {$in: pageIds}, company: companyId, deletedAt: null},
             {logger, languageCode: params.languageCode, withDeleted: false},
@@ -235,6 +246,10 @@ async function listRentalPayments(
     } = params;
 
     logger.start("Listing rentals hub payments...");
+    assertAnyCollectedRead(
+        canReadCollectedFields("rentalpayments", params.actionUserCtx, params.languageCode),
+        params.languageCode,
+    );
 
     const companyId = company._id;
     const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
@@ -350,8 +365,9 @@ function revenueMapToList(
 async function listRentalPaymentsCalendar(
     params: AuthenticatedMWType & RentalsCalendarFormType,
 ): Promise<RentalsCalendarResponseType> {
-    const {logger, company, project, edifice, floor, unit, month} = params;
+    const {logger, company, project, edifice, floor, unit, month, actionUserCtx, languageCode} = params;
     logger.start("Listing rentals hub calendar...");
+    assertAnyCollectedRead(canReadCollectedFields("rentalpayments", actionUserCtx, languageCode), languageCode);
 
     const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
     const [yearStr, monthStr] = month.split("-");

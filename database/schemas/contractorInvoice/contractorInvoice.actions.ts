@@ -27,8 +27,15 @@ async function transition(params: Record<string, any>, label: string, allowedFro
     }
     await contractorInvoiceService.updateByIdOrThrow(existing._id, {$set}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("contractorinvoices").readFields!, ContractorInvoice.schema);
-        const updated = await contractorInvoiceService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            ContractorInvoice,
+            getModelCollectedData("contractorinvoices").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, ContractorInvoice.schema);
+        const updated = await contractorInvoiceService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return contractorInvoiceToDTO(updated);
     } catch { /* no read */ }
     logger.finish(`ContractorInvoice.${label} done`);

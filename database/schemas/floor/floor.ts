@@ -16,6 +16,7 @@ import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperator
 import {addModelData} from "@coreModule/database/collections";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
+import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {applyFloorIndexes} from "./floor.indexes";
 import {floorViews} from "./floor.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
@@ -51,7 +52,6 @@ const FloorSchema = new Schema<IFloor>(
             required: true,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR
             }
@@ -64,7 +64,6 @@ const FloorSchema = new Schema<IFloor>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR
                 // visible: false,
@@ -78,7 +77,6 @@ const FloorSchema = new Schema<IFloor>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 // visible: false,
             }
@@ -156,7 +154,6 @@ const FloorSchema = new Schema<IFloor>(
                 message: `Cannot have more than ${FLOOR_SHARED_SPACE_MAX_ITEMS} shared spaces`,
             },
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
             }
         },
@@ -205,7 +202,10 @@ const FloorSchema = new Schema<IFloor>(
             type: SchemaTypes.ObjectId,
             ref: "Edifice",
             required: true,
-            refAllowlist: EdificeSimpleSnippet
+            refAllowlist: EdificeSimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+            },
         },
         project: {
             // for faster dashboard queries
@@ -213,9 +213,13 @@ const FloorSchema = new Schema<IFloor>(
             ref: "Project",
             required: false,
             index: true,
+            refAllowlist: ProjectSimpleSnippet,
             permissions: {
                 self: { write: "no-permission" },
                 others: { write: "no-permission" },
+            },
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
             },
         },
     },

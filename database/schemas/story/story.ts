@@ -155,7 +155,6 @@ const StorySchema = new Schema<IStory>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR,
             },
@@ -165,7 +164,7 @@ const StorySchema = new Schema<IStory>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
             },
         },
         videoGallery: {
@@ -173,7 +172,7 @@ const StorySchema = new Schema<IStory>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
             },
         },
         published: {

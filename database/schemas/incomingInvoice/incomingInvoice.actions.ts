@@ -18,8 +18,15 @@ import {extractIncomingInvoice} from "@propertyManagement/utilities/ap/ocrExtrac
 
 async function reload(id: any, ctx: any) {
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("incominginvoices").readFields!, IncomingInvoice.schema);
-        const updated = await incomingInvoiceService.findById(id, ctx, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            IncomingInvoice,
+            getModelCollectedData("incominginvoices").readFields!,
+            "read",
+            ctx.actionUserCtx,
+            ctx.languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, IncomingInvoice.schema);
+        const updated = await incomingInvoiceService.findById(id, ctx, populate.populate, populate.select);
         if (updated) return incomingInvoiceToDTO(updated);
     } catch { /* no read */ }
     return undefined;
@@ -43,7 +50,7 @@ export class IncomingInvoiceActions {
             if ((d as any).invoiceNumber) $set.extractedInvoiceNumber = (d as any).invoiceNumber;
         }
         await incomingInvoiceService.updateByIdOrThrow(existing._id, {$set}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: classifyIncomingInvoiceFormSchema})
@@ -57,7 +64,7 @@ export class IncomingInvoiceActions {
             throw apiValidationException("classify_requires_matched_constructor", "", null, languageCode);
         }
         await incomingInvoiceService.updateByIdOrThrow(existing._id, {$set: {status: "classified"}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: routeIncomingInvoiceFormSchema})
@@ -68,7 +75,7 @@ export class IncomingInvoiceActions {
             throw apiValidationException("invalid_status_for_route", "", null, languageCode);
         }
         await incomingInvoiceService.updateByIdOrThrow(existing._id, {$set: {status: "routed"}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: rejectIncomingInvoiceFormSchema})
@@ -79,7 +86,7 @@ export class IncomingInvoiceActions {
             throw apiValidationException("invalid_status_for_reject", "", null, languageCode);
         }
         await incomingInvoiceService.updateByIdOrThrow(existing._id, {$set: {status: "rejected"}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 20}, transaction: true, schema: postIncomingInvoiceFormSchema})
@@ -113,6 +120,6 @@ export class IncomingInvoiceActions {
         }], {session});
 
         await incomingInvoiceService.updateByIdOrThrow(existing._id, {$set: {status: "posted", createdContractorInvoice: created._id}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 }

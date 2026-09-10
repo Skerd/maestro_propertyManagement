@@ -107,7 +107,6 @@ const ProjectSchema = new Schema<IProject>(
             required: true,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR
             }
@@ -120,7 +119,6 @@ const ProjectSchema = new Schema<IProject>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 // visible: false,
                 cellType: COLUMN_TYPE.AVATAR
@@ -134,7 +132,7 @@ const ProjectSchema = new Schema<IProject>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
                 // cellType: COLUMN_TYPE.AVATAR
             }
         },

@@ -63,7 +63,6 @@ export const storyTypeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "description"},
-                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",

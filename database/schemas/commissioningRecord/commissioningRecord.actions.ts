@@ -35,8 +35,15 @@ export class CommissioningRecordActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("commissioningrecords").readFields!, CommissioningRecord.schema);
-            const updated = await commissioningRecordService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CommissioningRecord,
+                getModelCollectedData("commissioningrecords").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CommissioningRecord.schema);
+            const updated = await commissioningRecordService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return commissioningRecordToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CommissioningRecord.pass done`);
@@ -66,8 +73,15 @@ export class CommissioningRecordActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("commissioningrecords").readFields!, CommissioningRecord.schema);
-            const updated = await commissioningRecordService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                CommissioningRecord,
+                getModelCollectedData("commissioningrecords").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, CommissioningRecord.schema);
+            const updated = await commissioningRecordService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return commissioningRecordToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`CommissioningRecord.fail done`);

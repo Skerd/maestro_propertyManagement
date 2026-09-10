@@ -24,10 +24,17 @@ async function loadProjectDocumentForAction(params: Record<string, any>) {
 }
 
 async function returnProjectDocumentDto(projectDocumentId: any, params: Record<string, any>): Promise<ProjectDocumentData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("projectdocuments").readFields!, ProjectDocument.schema);
-        const updated = await projectDocumentService.findById(projectDocumentId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            ProjectDocument,
+            getModelCollectedData("projectdocuments").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, ProjectDocument.schema);
+        const updated = await projectDocumentService.findById(projectDocumentId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return projectDocumentToDTO(updated);
     } catch {
         logger.debug("User has no read permission on projectDocument after action");

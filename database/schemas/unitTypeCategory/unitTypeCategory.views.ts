@@ -50,7 +50,6 @@ const unitTypeCategoryCreateFormNode: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        permissions: {write: "name"},
                         field: {
                             name: "name",
                             widget: "#Input",

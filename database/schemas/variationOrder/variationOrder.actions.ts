@@ -40,8 +40,15 @@ export class VariationOrderActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("variationorders").readFields!, VariationOrder.schema);
-            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                VariationOrder,
+                getModelCollectedData("variationorders").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, VariationOrder.schema);
+            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return variationOrderToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`VariationOrder.approveArchitect done`);
@@ -71,8 +78,15 @@ export class VariationOrderActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("variationorders").readFields!, VariationOrder.schema);
-            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                VariationOrder,
+                getModelCollectedData("variationorders").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, VariationOrder.schema);
+            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return variationOrderToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`VariationOrder.approveQs done`);
@@ -106,8 +120,15 @@ export class VariationOrderActions {
             await recomputeContractCostTruth(contractId, {session, logger, languageCode, actionUserCtx, company});
         }
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("variationorders").readFields!, VariationOrder.schema);
-            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                VariationOrder,
+                getModelCollectedData("variationorders").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, VariationOrder.schema);
+            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return variationOrderToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`VariationOrder.approveClient done`);
@@ -137,8 +158,15 @@ export class VariationOrderActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("variationorders").readFields!, VariationOrder.schema);
-            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                VariationOrder,
+                getModelCollectedData("variationorders").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, VariationOrder.schema);
+            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return variationOrderToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`VariationOrder.reject done`);
@@ -168,8 +196,15 @@ export class VariationOrderActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("variationorders").readFields!, VariationOrder.schema);
-            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                VariationOrder,
+                getModelCollectedData("variationorders").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, VariationOrder.schema);
+            const updated = await variationOrderService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return variationOrderToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`VariationOrder.cancel done`);

@@ -114,7 +114,12 @@ export async function voidPendingCommission({sourceId, sourceType, companyId, se
     if (!sourceId) {
         return;
     }
-    const doc = await Commission.findOne({company: companyId, sourceType: sourceType, sourceId: sourceId, status: CommissionStatus.PENDING}).session(session);
+    const doc = await Commission.findOne({
+        company: companyId,
+        sourceType: sourceType,
+        sourceId: sourceId,
+        status: {$in: [CommissionStatus.PENDING, CommissionStatus.PENDING_APPROVAL, CommissionStatus.APPROVED]},
+    }).session(session);
     if (!!doc) {
         doc.status = CommissionStatus.VOIDED;
         doc.voidedAt = new Date();

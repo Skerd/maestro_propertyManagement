@@ -37,6 +37,7 @@ export const unitSheetView: ViewConfig = {
                     "name",
                     "unitNumber",
                     "status",
+                    "unavailableNotes",
                     "featuredOnHomepage",
                     "floor",
                     "unitType",
@@ -152,10 +153,32 @@ export const unitSheetView: ViewConfig = {
                                 label: "unitType",
                                 widgetProps: {
                                     icon: "#LayoutGrid",
+                                    mdiIconPath: "unitType.icon",
                                     linkedRefPath: "unitType",
                                     linkedSheetModel: "unitTypes",
                                     linkedSheetWidget: "#UnitTypeSheetView",
                                     linkedSheetEntityProp: "unitType",
+                                },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "unavailableNotes" },
+                            dependent: "unavailableNotes",
+                            field: {
+                                name: "unavailableNotes",
+                                widget: "#DisplayCard",
+                                label: "unavailableNotes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
                                 },
                             },
                         },

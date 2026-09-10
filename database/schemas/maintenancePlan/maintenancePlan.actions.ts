@@ -36,8 +36,15 @@ export class MaintenancePlanActions {
         }
         logger.finish(`MaintenancePlan.generateWorkOrder done — ${String(wo._id)}`);
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("maintenanceplans").readFields!, MaintenancePlan.schema);
-            const updated = await maintenancePlanService.findById(plan._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                MaintenancePlan,
+                getModelCollectedData("maintenanceplans").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, MaintenancePlan.schema);
+            const updated = await maintenancePlanService.findById(plan._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return maintenancePlanToDTO(updated);
         } catch { /* no read */ }
         return {workOrderId: String(wo._id)};

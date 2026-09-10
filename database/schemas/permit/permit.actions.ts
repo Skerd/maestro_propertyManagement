@@ -24,10 +24,17 @@ async function loadPermitForAction(params: Record<string, any>) {
 }
 
 async function returnPermitDto(permitId: any, params: Record<string, any>): Promise<PermitData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("permits").readFields!, Permit.schema);
-        const updated = await permitService.findById(permitId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Permit,
+            getModelCollectedData("permits").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Permit.schema);
+        const updated = await permitService.findById(permitId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return permitToDTO(updated);
     } catch {
         logger.debug("User has no read permission on permit after action");

@@ -36,8 +36,15 @@ export class WorkPackageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("workpackages").readFields!, WorkPackage.schema);
-            const updated = await workPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                WorkPackage,
+                getModelCollectedData("workpackages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, WorkPackage.schema);
+            const updated = await workPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return workPackageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`WorkPackage.activate done`);
@@ -67,8 +74,15 @@ export class WorkPackageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("workpackages").readFields!, WorkPackage.schema);
-            const updated = await workPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                WorkPackage,
+                getModelCollectedData("workpackages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, WorkPackage.schema);
+            const updated = await workPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return workPackageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`WorkPackage.complete done`);
@@ -98,8 +112,15 @@ export class WorkPackageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("workpackages").readFields!, WorkPackage.schema);
-            const updated = await workPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                WorkPackage,
+                getModelCollectedData("workpackages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, WorkPackage.schema);
+            const updated = await workPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return workPackageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`WorkPackage.cancel done`);

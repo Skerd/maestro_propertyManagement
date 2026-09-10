@@ -14,7 +14,7 @@ export const commissionSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
-            permissions: {readAny: ["agent", "sourceType", "status", "basis"]},
+            permissions: {readAny: ["agent", "recordedByActionUser", "sourceType", "status", "basis", "notes"]},
             props: {title: "overview"},
             children: [
                 {
@@ -23,7 +23,6 @@ export const commissionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "agent",
                             permissions: {read: "agent"},
                             field: {
                                 name: "agent",
@@ -76,13 +75,49 @@ export const commissionSheetView: ViewConfig = {
                                 widgetProps: {
                                     icon: "#FileText",
                                     tooltip: "basisTooltip",
-                                    languageKeyCategory: "basisEnum",
+                                    languageKeyCategory: "fields.!enums.basis",
                                     type: "enum",
                                 },
                             },
                         },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "recordedByActionUser"},
+                            field: {
+                                name: "recordedByActionUser",
+                                widget: "#DisplayCard",
+                                label: "recordedByActionUser",
+                                widgetProps: {
+                                    icon: "#User",
+                                    parent: "recordedByActionUser",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
+                            },
+                        },
                     ]
-                }
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "notes"},
+                            field: {
+                                name: "notes",
+                                widget: "#DisplayCard",
+                                label: "notes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
             ]
         },
 
@@ -198,12 +233,12 @@ export const commissionSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            permissions: {readAny: ["paidAt", "voidedAt"]},
+            permissions: {readAny: ["paidAt", "voidedAt", "paymentReference"]},
             props: {title: "dates"},
             children: [
                 {
                     render: "#SheetGrid",
-                    props: {columns: 2},
+                    props: {columns: 3},
                     children: [
                         {
                             render: "#DisplayCard",
@@ -225,7 +260,18 @@ export const commissionSheetView: ViewConfig = {
                                 label: "voidedAt",
                                 widgetProps: {icon: "#XCircle", format: "date", type: "date"}
                             }
-                        }
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "paymentReference",
+                            permissions: {read: "paymentReference"},
+                            field: {
+                                name: "paymentReference",
+                                widget: "#DisplayCard",
+                                label: "paymentReference",
+                                widgetProps: {icon: "#Hash"},
+                            },
+                        },
                     ]
                 }
             ]
@@ -233,26 +279,99 @@ export const commissionSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
-            permissions: {readAny: ["notes"]},
-            props: {title: "notes"},
+            dependent: "paymentReceiptMediaId",
+            permissions: {readAny: ["paymentReceiptMediaId"]},
+            props: {title: "paymentReceiptMediaId"},
             children: [
                 {
                     render: "div",
-                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50"},
+                    props: {className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full"},
                     children: [
                         {
-                            render: "#ExpandableText",
-                            permissions: {read: "notes"},
+                            render: "#SheetMediaFilesStrip",
+                            permissions: {read: "paymentReceiptMediaId"},
                             field: {
-                                name: "notes",
-                                widget: "#ExpandableText",
-                                widgetProps: {className: "text-sm"}
-                            }
-                        }
-                    ]
-                }
-            ]
+                                name: "paymentReceiptMediaId",
+                                widget: "#SheetMediaFilesStrip",
+                                widgetProps: {
+                                    canDownload: true,
+                                    canRemove: false,
+                                    isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
         },
+
+        {
+            render: "#ReferencesViewModeScope",
+            props: {
+                storageKey: "commission.sheet.splits.listDisplay",
+                defaultMode: "compact",
+            },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "splits",
+                    permissions: {readAny: ["splits"]},
+                    props: {
+                        title: "splits",
+                        titleActions: "#ReferencesViewModeToggle",
+                    },
+                    children: [
+                        {
+                            render: "div",
+                            props: {className: "rounded-lg bg-muted/30 border border-border/50"},
+                            children: [
+                                {
+                                    render: "#SheetEmbeddedItemsList",
+                                    permissions: {read: "splits"},
+                                    field: {
+                                        name: "splits",
+                                        widget: "#SheetEmbeddedItemsList",
+                                        widgetProps: {
+                                            pageSize: 5,
+                                            compactSummaryFields: ["agent", "label", "ratePercent", "amount"],
+                                            fields: [
+                                                {
+                                                    name: "agent",
+                                                    type: "text",
+                                                    valuePath: ["name", "surname"],
+                                                    joinSeparator: " ",
+                                                    className: "text-sm font-medium",
+                                                    labelKey: "splitAgent",
+                                                },
+                                                {
+                                                    name: "label",
+                                                    type: "text",
+                                                    className: "text-sm text-muted-foreground",
+                                                    labelKey: "splitLabel",
+                                                },
+                                                {
+                                                    name: "ratePercent",
+                                                    type: "text",
+                                                    className: "text-sm",
+                                                    labelKey: "ratePercent",
+                                                },
+                                                {
+                                                    name: "amount",
+                                                    type: "text",
+                                                    className: "text-sm",
+                                                    labelKey: "amount",
+                                                },
+                                            ],
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+
         lifecycleSheetGroup,
     ]
 };

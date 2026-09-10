@@ -21,10 +21,17 @@ async function loadSnagForAction(params: Record<string, any>) {
 }
 
 async function returnSnagDto(snagId: any, params: Record<string, any>): Promise<SnagData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("snags").readFields!, Snag.schema);
-        const updated = await snagService.findById(snagId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Snag,
+            getModelCollectedData("snags").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Snag.schema);
+        const updated = await snagService.findById(snagId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return snagToDTO(updated);
     } catch {
         logger.debug("User has no read permission on snag after action");

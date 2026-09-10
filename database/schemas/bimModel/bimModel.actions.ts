@@ -33,8 +33,15 @@ export class BimModelActions {
         // Real IFC parse would populate BimQuantity here; not bundled.
         await bimModelService.updateByIdOrThrow(model._id, {$set: {importStatus: "imported"}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("bimmodels").readFields!, BimModel.schema);
-            const updated = await bimModelService.findById(model._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                BimModel,
+                getModelCollectedData("bimmodels").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, BimModel.schema);
+            const updated = await bimModelService.findById(model._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return bimModelToDTO(updated);
         } catch { /* no read */ }
         return undefined;

@@ -23,10 +23,17 @@ async function loadMilestoneForAction(params: Record<string, any>) {
 }
 
 async function returnMilestoneDto(milestoneId: any, params: Record<string, any>): Promise<MilestoneData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("milestones").readFields!, Milestone.schema);
-        const updated = await milestoneService.findById(milestoneId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Milestone,
+            getModelCollectedData("milestones").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Milestone.schema);
+        const updated = await milestoneService.findById(milestoneId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return milestoneToDTO(updated);
     } catch {
         logger.debug("User has no read permission on milestone after action");

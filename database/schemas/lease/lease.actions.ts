@@ -47,10 +47,17 @@ async function loadLeaseForAction(params: Record<string, any>) {
 }
 
 async function returnLeaseDto(leaseId: any, params: Record<string, any>): Promise<LeaseData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("leases").readFields!, Lease.schema);
-        const updated = await leaseService.findById(leaseId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            Lease,
+            getModelCollectedData("leases").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Lease.schema);
+        const updated = await leaseService.findById(leaseId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return leaseToDTO(updated);
     } catch {
         logger.debug("User has no read permission on lease after action");

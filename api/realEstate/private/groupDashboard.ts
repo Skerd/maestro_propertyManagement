@@ -19,6 +19,10 @@ import Commission, {CommissionStatus} from "../../../database/schemas/commission
 import Lease, {LeaseStatus} from "../../../database/schemas/lease/lease";
 import Snag from "../../../database/schemas/snag/snag";
 import type {GroupDashboardResponse, BranchKpi} from "armonia/src/modules/propertyManagement/api/realEstate/private/groupDashboard/groupDashboard.response.type";
+import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 export const basePath = "/api/realEstate/groupDashboard";
 export const router = Router();
@@ -41,7 +45,16 @@ router.post(
     authMW("private"),
     rateLimiter({windowMs: 60_000, max: 20}),
     asyncHandler(async (params: AuthenticatedMWType): Promise<GroupDashboardResponse> => {
-        const {company} = params;
+        const {company, actionUserCtx, languageCode} = params;
+        const canReadUnits = canReadCollectedFields("units", actionUserCtx, languageCode);
+        const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
+        const canReadCommissions = canReadCollectedFields("commissions", actionUserCtx, languageCode);
+        const canReadLeases = canReadCollectedFields("leases", actionUserCtx, languageCode);
+        const canReadSnags = canReadCollectedFields("snags", actionUserCtx, languageCode);
+        assertAnyCollectedRead(
+            canReadUnits || canReadSales || canReadCommissions || canReadLeases || canReadSnags,
+            languageCode,
+        );
         const companyId = company._id as ObjectId;
 
         let branches = await Company.find({parentCompany: companyId, deletedAt: null})
@@ -74,8 +87,9 @@ router.post(
             companyNames[b._id.toString()] = b.name;
         }
 
+        const emptyAgg: never[] = [];
         const [unitAgg, saleAgg, commAgg, leaseAgg, snagAgg] = await Promise.all([
-            Unit.aggregate([
+            canReadUnits ? Unit.aggregate([
                 {$match: {company: {$in: branchIds}, deletedAt: null}},
                 {$group: {
                     _id: "$company",
@@ -84,15 +98,15 @@ router.post(
                     sold: {$sum: {$cond: [{$eq: ["$status", UnitStatus.SOLD]}, 1, 0]}},
                     rented: {$sum: {$cond: [{$eq: ["$status", UnitStatus.RENTED]}, 1, 0]}},
                 }},
-            ]),
-            Sale.aggregate([
+            ]) : Promise.resolve(emptyAgg),
+            canReadSales ? Sale.aggregate([
                 {$match: {company: {$in: branchIds}, deletedAt: null}},
                 {$group: {
                     _id: "$company",
                     revenue: {$sum: {$toDouble: {$ifNull: ["$finalPrice", 0]}}},
                 }},
-            ]),
-            Commission.aggregate([
+            ]) : Promise.resolve(emptyAgg),
+            canReadCommissions ? Commission.aggregate([
                 {$match: {
                     company: {$in: branchIds},
                     deletedAt: null,
@@ -102,23 +116,23 @@ router.post(
                     _id: "$company",
                     amount: {$sum: {$toDouble: {$ifNull: ["$amount", 0]}}},
                 }},
-            ]),
-            Lease.aggregate([
+            ]) : Promise.resolve(emptyAgg),
+            canReadLeases ? Lease.aggregate([
                 {$match: {
                     company: {$in: branchIds},
                     deletedAt: null,
                     status: LeaseStatus.ACTIVE,
                 }},
                 {$group: {_id: "$company", count: {$sum: 1}}},
-            ]),
-            Snag.aggregate([
+            ]) : Promise.resolve(emptyAgg),
+            canReadSnags ? Snag.aggregate([
                 {$match: {
                     company: {$in: branchIds},
                     deletedAt: null,
                     status: {$in: ["open", "in_progress"]},
                 }},
                 {$group: {_id: "$company", count: {$sum: 1}}},
-            ]),
+            ]) : Promise.resolve(emptyAgg),
         ]);
 
         const unitMap = byCompany(unitAgg as Array<{_id: ObjectId; total?: number; available?: number; sold?: number; rented?: number}>);

@@ -35,8 +35,15 @@ export class SafetyIncidentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("safetyincidents").readFields!, SafetyIncident.schema);
-            const updated = await safetyIncidentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                SafetyIncident,
+                getModelCollectedData("safetyincidents").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, SafetyIncident.schema);
+            const updated = await safetyIncidentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return safetyIncidentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`SafetyIncident.startInvestigation done`);
@@ -66,8 +73,15 @@ export class SafetyIncidentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("safetyincidents").readFields!, SafetyIncident.schema);
-            const updated = await safetyIncidentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                SafetyIncident,
+                getModelCollectedData("safetyincidents").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, SafetyIncident.schema);
+            const updated = await safetyIncidentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return safetyIncidentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`SafetyIncident.close done`);

@@ -7,16 +7,6 @@ import {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
-const leadStatusOptions = [
-    {value: "new",         label: "form.statusNew"},
-    {value: "contacted",   label: "form.statusContacted"},
-    {value: "qualified",   label: "form.statusQualified"},
-    {value: "proposal",    label: "form.statusProposal"},
-    {value: "negotiation", label: "form.statusNegotiation"},
-    {value: "won",         label: "form.statusWon"},
-    {value: "lost",        label: "form.statusLost"},
-];
-
 const leadSourceOptions = [
     {value: "website",   label: "form.sourceWebsite"},
     {value: "referral",  label: "form.sourceReferral"},
@@ -80,16 +70,6 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                     label:       "form.phoneLabel",
                     placeholder: "form.phonePlaceholder",
                     widgetProps: {maxLength: LEAD_PHONE_MAX},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "status",
-                    widget:      "#SimpleSelect",
-                    label:       "form.statusLabel",
-                    placeholder: "form.statusPlaceholder",
-                    widgetProps: {options: leadStatusOptions, className: "grow w-full"},
                 },
             },
             {
@@ -229,8 +209,8 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
         render: "#FormGrid",
         props:  {columns: 2},
         permissions: {
-            readAny: ["firstName", "lastName", "email", "phone", "status", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
-            writeAny: ["firstName", "lastName", "email", "phone", "status", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
+            readAny: ["firstName", "lastName", "email", "phone", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
+            writeAny: ["firstName", "lastName", "email", "phone", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
         },
         children: [
             {
@@ -273,16 +253,6 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                     placeholder: "form.phonePlaceholder",
                     widgetProps: {maxLength: LEAD_PHONE_MAX},
                 }, permissions: {read: "phone", write: "phone"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "status",
-                    widget:      "#SimpleSelect",
-                    label:       "form.statusLabel",
-                    placeholder: "form.statusPlaceholder",
-                    widgetProps: {options: leadStatusOptions, className: "grow w-full"},
-                }, permissions: {read: "status", write: "status"},
             },
             {
                 render: "#Field",
@@ -451,6 +421,7 @@ export const leadSheetView: ViewConfig = {
                     "assignedTo",
                     "followUpDate",
                     "convertedAt",
+                    "lostReason",
                     "notes",
                 ],
             },
@@ -519,7 +490,6 @@ export const leadSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "chat"},
-                            dependent: "chat",
                             field: {
                                 name:        "chat",
                                 widget:      "#DisplayCard",
@@ -670,7 +640,6 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "convertedAt",
                             permissions: {read: "convertedAt"},
                             field: {
                                 name:        "convertedAt",
@@ -693,7 +662,6 @@ export const leadSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "notes"},
-                            dependent: "notes",
                             field: {
                                 name:        "notes",
                                 widget:      "#DisplayCard",
@@ -702,6 +670,31 @@ export const leadSheetView: ViewConfig = {
                                     icon:       "#IconAlignLeft",
                                     expandable: true,
                                     maxLength:  250,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            permissions: {readAny: ["lostReason"]},
+            dependent: "lostReason",
+            props: {title: "lostReason"},
+            children: [
+                {
+                    render: "div",
+                    props: {className: "p-2 rounded-lg space-y-2 bg-red-500/10 border border-red-500/20"},
+                    children: [
+                        {
+                            render: "#ExpandableText",
+                            permissions: {read: "lostReason"},
+                            field: {
+                                name:   "lostReason",
+                                widget: "#ExpandableText",
+                                widgetProps: {
+                                    className: "text-sm text-red-600 dark:text-red-400",
                                 },
                             },
                         },
@@ -739,7 +732,7 @@ export const leadSheetView: ViewConfig = {
                                             pageSize: 3,
                                             sortField: "performedAt",
                                             sortDescending: true,
-                                            compactSummaryFields: ["performedBy", "action", "performedAt"],
+                                            compactSummaryFields: ["performedBy", "action", "performedAt", "notes"],
                                             fields: [
                                                 {
                                                     name:                "action",

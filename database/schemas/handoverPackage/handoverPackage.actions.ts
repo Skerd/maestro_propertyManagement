@@ -36,8 +36,15 @@ export class HandoverPackageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("handoverpackages").readFields!, HandoverPackage.schema);
-            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                HandoverPackage,
+                getModelCollectedData("handoverpackages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, HandoverPackage.schema);
+            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return handoverPackageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`HandoverPackage.start done`);
@@ -67,8 +74,15 @@ export class HandoverPackageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("handoverpackages").readFields!, HandoverPackage.schema);
-            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                HandoverPackage,
+                getModelCollectedData("handoverpackages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, HandoverPackage.schema);
+            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return handoverPackageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`HandoverPackage.markReady done`);
@@ -98,8 +112,15 @@ export class HandoverPackageActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("handoverpackages").readFields!, HandoverPackage.schema);
-            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                HandoverPackage,
+                getModelCollectedData("handoverpackages").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, HandoverPackage.schema);
+            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return handoverPackageToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`HandoverPackage.complete done`);

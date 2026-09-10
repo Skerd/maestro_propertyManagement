@@ -38,8 +38,15 @@ export class ConstructionContractActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("constructioncontracts").readFields!, ConstructionContract.schema);
-            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConstructionContract,
+                getModelCollectedData("constructioncontracts").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConstructionContract.schema);
+            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return constructionContractToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConstructionContract.activate done`);
@@ -69,8 +76,15 @@ export class ConstructionContractActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("constructioncontracts").readFields!, ConstructionContract.schema);
-            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConstructionContract,
+                getModelCollectedData("constructioncontracts").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConstructionContract.schema);
+            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return constructionContractToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConstructionContract.suspend done`);
@@ -100,8 +114,15 @@ export class ConstructionContractActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("constructioncontracts").readFields!, ConstructionContract.schema);
-            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConstructionContract,
+                getModelCollectedData("constructioncontracts").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConstructionContract.schema);
+            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return constructionContractToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConstructionContract.resume done`);
@@ -131,8 +152,15 @@ export class ConstructionContractActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("constructioncontracts").readFields!, ConstructionContract.schema);
-            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConstructionContract,
+                getModelCollectedData("constructioncontracts").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConstructionContract.schema);
+            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return constructionContractToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConstructionContract.complete done`);
@@ -162,8 +190,15 @@ export class ConstructionContractActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("constructioncontracts").readFields!, ConstructionContract.schema);
-            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConstructionContract,
+                getModelCollectedData("constructioncontracts").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConstructionContract.schema);
+            const updated = await constructionContractService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return constructionContractToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConstructionContract.terminate done`);

@@ -34,8 +34,15 @@ export class InspectionChecklistTemplateActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("inspectionchecklisttemplates").readFields!, InspectionChecklistTemplate.schema);
-            const updated = await inspectionChecklistTemplateService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                InspectionChecklistTemplate,
+                getModelCollectedData("inspectionchecklisttemplates").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, InspectionChecklistTemplate.schema);
+            const updated = await inspectionChecklistTemplateService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return inspectionChecklistTemplateToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`InspectionChecklistTemplate.archive done`);

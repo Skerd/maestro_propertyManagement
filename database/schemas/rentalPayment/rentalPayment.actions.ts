@@ -26,13 +26,17 @@ async function loadPaymentForAction(params: Record<string, any>) {
 }
 
 async function returnPaymentDto(paymentId: any, params: Record<string, any>): Promise<RentalPaymentData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(
+        const readFields = SchemaGuard.sanitizeFields(
+            RentalPayment,
             getModelCollectedData("rentalpayments").readFields!,
-            RentalPayment.schema,
+            "read",
+            actionUserCtx,
+            languageCode,
         );
-        const updated = await rentalPaymentService.findById(paymentId, {session, logger, languageCode}, populate.populate);
+        const populate = SchemaGuard.generatePopulate(readFields, RentalPayment.schema);
+        const updated = await rentalPaymentService.findById(paymentId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return rentalPaymentToDTO(updated);
     } catch {
         logger.debug("User has no read permission on rental payment after action");

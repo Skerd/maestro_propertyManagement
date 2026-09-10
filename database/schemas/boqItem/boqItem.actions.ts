@@ -34,8 +34,15 @@ export class BoqItemActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("boqitems").readFields!, BoqItem.schema);
-            const updated = await boqItemService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                BoqItem,
+                getModelCollectedData("boqitems").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, BoqItem.schema);
+            const updated = await boqItemService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return boqItemToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`BoqItem.cancel done`);

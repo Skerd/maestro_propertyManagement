@@ -31,6 +31,10 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.response.type";
 import type {ErpExportFormType} from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.form.type";
 import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
+import {
     getErpExportColumnLabel,
     getErpExportDatasetSectionLabel,
     getErpExportExportedAtLabel,
@@ -132,9 +136,24 @@ async function erpExportHandler(
     _req: unknown,
     res: Response,
 ): Promise<ErpExportResponse | void> {
-    const {logger, languageCode, company, datasets, format = "json", dateFrom, dateTo, projectId} = params;
+    const {logger, languageCode, actionUserCtx, company, datasets, format = "json", dateFrom, dateTo, projectId} = params;
 
     logger.start("Generating ERP export...");
+    const datasetCollections = {
+        sales: "sales",
+        commissions: "commissions",
+        paymentPlans: "paymentplans",
+        rentalPayments: "rentalpayments",
+        unitCosts: "unitcosts",
+        boqItems: "boqitems",
+        costCommitments: "costcommitments",
+        progressClaims: "progressclaims",
+        permits: "permits",
+    } as const;
+    const allowedDatasets = datasets.filter((dataset) =>
+        canReadCollectedFields(datasetCollections[dataset], actionUserCtx, languageCode),
+    );
+    assertAnyCollectedRead(allowedDatasets.length > 0, languageCode);
 
     const companyId = company._id as ObjectId;
     const {from, to} = parseDateRange(dateFrom, dateTo);
@@ -150,7 +169,7 @@ async function erpExportHandler(
     if (dateTo) result.dateTo = dateTo;
 
     // ── Sales ─────────────────────────────────────────────────────────────────
-    if (datasets.includes("sales")) {
+    if (allowedDatasets.includes("sales")) {
         const saleFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("saleDate", from, to),
@@ -187,7 +206,7 @@ async function erpExportHandler(
     }
 
     // ── Commissions ───────────────────────────────────────────────────────────
-    if (datasets.includes("commissions")) {
+    if (allowedDatasets.includes("commissions")) {
         const commFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("createdAt", from, to),
@@ -221,7 +240,7 @@ async function erpExportHandler(
     }
 
     // ── Payment Plan Installments ──────────────────────────────────────────────
-    if (datasets.includes("paymentPlans")) {
+    if (allowedDatasets.includes("paymentPlans")) {
         const ppFilter: Record<string, unknown> = {...baseMatch};
 
         if (projectUnitIds) {
@@ -274,7 +293,7 @@ async function erpExportHandler(
     }
 
     // ── Rental Payments ───────────────────────────────────────────────────────
-    if (datasets.includes("rentalPayments")) {
+    if (allowedDatasets.includes("rentalPayments")) {
         const rpFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("dueDate", from, to),
@@ -306,7 +325,7 @@ async function erpExportHandler(
     }
 
     // ── Unit Costs ────────────────────────────────────────────────────────────
-    if (datasets.includes("unitCosts")) {
+    if (allowedDatasets.includes("unitCosts")) {
         const ucFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("purchaseDate", from, to),
@@ -341,7 +360,7 @@ async function erpExportHandler(
     }
 
     // ── BOQ Items ─────────────────────────────────────────────────────────────
-    if (datasets.includes("boqItems")) {
+    if (allowedDatasets.includes("boqItems")) {
         const boqFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("createdAt", from, to),
@@ -383,7 +402,7 @@ async function erpExportHandler(
     }
 
     // ── Cost Commitments ──────────────────────────────────────────────────────
-    if (datasets.includes("costCommitments")) {
+    if (allowedDatasets.includes("costCommitments")) {
         const ccFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("createdAt", from, to),
@@ -419,7 +438,7 @@ async function erpExportHandler(
     }
 
     // ── Progress Claims ───────────────────────────────────────────────────────
-    if (datasets.includes("progressClaims")) {
+    if (allowedDatasets.includes("progressClaims")) {
         const pcFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("createdAt", from, to),
@@ -456,7 +475,7 @@ async function erpExportHandler(
     }
 
     // ── Permits ───────────────────────────────────────────────────────────────
-    if (datasets.includes("permits")) {
+    if (allowedDatasets.includes("permits")) {
         const permitFilter: Record<string, unknown> = {
             ...baseMatch,
             ...dateFilter("createdAt", from, to),

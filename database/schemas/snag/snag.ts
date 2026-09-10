@@ -192,7 +192,7 @@ const SnagSchema = new Schema<ISnag>(
             trim: true,
             maxlength: SNAG_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
             },
         },
         trade: {
@@ -224,7 +224,7 @@ const SnagSchema = new Schema<ISnag>(
             trim: true,
             maxlength: SNAG_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
-                filterable: false,
+                sortable: false,
             },
         },
         costImpact: {

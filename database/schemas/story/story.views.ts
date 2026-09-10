@@ -260,19 +260,7 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         props: {skipRenderWhenFormExtraTruthy: "prefilledProjectId"},
-                        field: {
-                            name: "project",
-                            widget: "#ApiSelect",
-                            label: "form.projectLabel",
-                            placeholder: "form.projectPlaceholder",
-                            required: true,
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/project/select",
-                                pageSize: 50,
-                                cascadeClearFormFields: ["edifice", "unit"],
-                            },
-                        },
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/project/select", pageSize: 50, cascadeClearFormFields: ["edifice", "unit"]}},
                     },
                     {
                         render: "#Field",

@@ -11,6 +11,10 @@ import {unitService} from "../../../database/schemas/unit/unit.service";
 import {agentReportFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/agentReport/agentReport.form.validator";
 import type {AgentReportResponseType, AgentReportEntry} from "armonia/src/modules/propertyManagement/api/realEstate/private/agentReport/agentReport.response.type";
 import type {AgentReportFormType} from "armonia/src/modules/propertyManagement/api/realEstate/private/agentReport/agentReport.form.type";
+import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 export const basePath = "/api/realEstate/agentReport";
 
@@ -31,6 +35,10 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     const {logger, languageCode, company, dateFrom, dateTo, projectId, agentIds} = params;
 
     logger.start("Generating agent performance report...");
+    const canReadSales = canReadCollectedFields("sales", params.actionUserCtx, languageCode);
+    const canReadReservations = canReadCollectedFields("reservations", params.actionUserCtx, languageCode);
+    const canReadCommissions = canReadCollectedFields("commissions", params.actionUserCtx, languageCode);
+    assertAnyCollectedRead(canReadSales || canReadReservations || canReadCommissions, languageCode);
 
     const from = new Date(dateFrom);
     const to   = new Date(dateTo);
@@ -65,44 +73,50 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     }
 
     // 1. Aggregate sales by soldBy
-    const salesAgg: {_id: ObjectId; total: number; cash: number; pp: number}[] = await Sale.aggregate([
-        {$match: baseMatch},
-        {$group: {
-            _id:   "$soldBy",
-            total: {$sum: 1},
-            cash:  {$sum: {$cond: [{$eq: ["$paymentType", SalePaymentType.CASH]}, 1, 0]}},
-            pp:    {$sum: {$cond: [{$eq: ["$paymentType", SalePaymentType.PAYMENT_PLAN]}, 1, 0]}},
-        }},
-    ]);
+    const salesAgg: {_id: ObjectId; total: number; cash: number; pp: number}[] = canReadSales
+        ? await Sale.aggregate([
+            {$match: baseMatch},
+            {$group: {
+                _id:   "$soldBy",
+                total: {$sum: 1},
+                cash:  {$sum: {$cond: [{$eq: ["$paymentType", SalePaymentType.CASH]}, 1, 0]}},
+                pp:    {$sum: {$cond: [{$eq: ["$paymentType", SalePaymentType.PAYMENT_PLAN]}, 1, 0]}},
+            }},
+        ])
+        : [];
 
     // 2. Aggregate reservations by reservedBy (remove unit filter — reservations may not have unit)
     const resMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: {$exists: false}};
     if (agentObjectIds.length > 0) {
         resMatch.reservedBy = {$in: agentObjectIds};
     }
-    const resAgg: {_id: ObjectId; total: number; converted: number}[] = await Reservation.aggregate([
-        {$match: resMatch},
-        {$group: {
-            _id:       "$reservedBy",
-            total:     {$sum: 1},
-            converted: {$sum: {$cond: [{$eq: ["$status", ReservationStatus.CONVERTED]}, 1, 0]}},
-        }},
-    ]);
+    const resAgg: {_id: ObjectId; total: number; converted: number}[] = canReadReservations
+        ? await Reservation.aggregate([
+            {$match: resMatch},
+            {$group: {
+                _id:       "$reservedBy",
+                total:     {$sum: 1},
+                converted: {$sum: {$cond: [{$eq: ["$status", ReservationStatus.CONVERTED]}, 1, 0]}},
+            }},
+        ])
+        : [];
 
     // 3. Aggregate commissions by agent
     const commMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: {$exists: false}};
     if (agentObjectIds.length > 0) {
         commMatch.agent = {$in: agentObjectIds};
     }
-    const commAgg: {_id: ObjectId; paidTotal: number; pendingTotal: number; avgRate: number}[] = await Commission.aggregate([
-        {$match: commMatch},
-        {$group: {
-            _id:          "$agent",
-            paidTotal:    {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PAID]},    {$toDouble: "$amount"}, 0]}},
-            pendingTotal: {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PENDING]}, {$toDouble: "$amount"}, 0]}},
-            avgRate:      {$avg: "$ratePercent"},
-        }},
-    ]);
+    const commAgg: {_id: ObjectId; paidTotal: number; pendingTotal: number; avgRate: number}[] = canReadCommissions
+        ? await Commission.aggregate([
+            {$match: commMatch},
+            {$group: {
+                _id:          "$agent",
+                paidTotal:    {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PAID]},    {$toDouble: "$amount"}, 0]}},
+                pendingTotal: {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PENDING]}, {$toDouble: "$amount"}, 0]}},
+                avgRate:      {$avg: "$ratePercent"},
+            }},
+        ])
+        : [];
 
     // Collect all unique agent IDs and look up names via $lookup on User
     const agentIdSet = new Set<string>();

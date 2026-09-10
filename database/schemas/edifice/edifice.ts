@@ -32,7 +32,7 @@ import {CitySimpleSnippet} from "@coreModule/database/schemas/city/city.snippets
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {ConstructorSimpleSnippet} from "../constructor/constructor.snippets";
 import {UnitTypeSimpleSnippet} from "../unitType/unitType.snippets";
-import {ProjectSimpleSnippet, ProjectWithImageSnippet} from "../project/project.snippets";
+import {ProjectWithImageSnippet} from "../project/project.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
 export interface IEdifice extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
@@ -85,7 +85,6 @@ const EdificeSchema = new Schema<IEdifice>(
             required: true,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR
         }
@@ -98,7 +97,6 @@ const EdificeSchema = new Schema<IEdifice>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR,
             }
@@ -111,7 +109,6 @@ const EdificeSchema = new Schema<IEdifice>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                filterable: false,
                 sortable: false,
             }
         },
@@ -292,7 +289,10 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.ObjectId,
             ref: 'Currency',
             required: true,
-            refAllowlist: CurrencySimpleSnippet
+            refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["symbol", "name"],
+            },
         },
         pricePerMeterSquared: {
             type: SchemaTypes.Number,
@@ -308,17 +308,28 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.ObjectId,
             ref: 'Currency',
             required: false,
-            refAllowlist: CurrencySimpleSnippet
+            refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["symbol", "name"],
+            },
         },
-        constructors: [{
-            type: SchemaTypes.ObjectId,
-            ref: 'Constructor',
-            refAllowlist: ConstructorSimpleSnippet
-        }],
+        constructors: {
+            type: [{
+                type: SchemaTypes.ObjectId,
+                ref: 'Constructor',
+                refAllowlist: ConstructorSimpleSnippet,
+            }],
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+            },
+        },
         propertyTypes: {
             type: [SchemaTypes.ObjectId],
             ref: 'UnitType',
-            refAllowlist: UnitTypeSimpleSnippet
+            refAllowlist: UnitTypeSimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+            },
         },
         polygonCoordinates: {
             type: [{
@@ -365,7 +376,11 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.ObjectId,
             ref: 'Project',
             required: true,
-            refAllowlist: ProjectWithImageSnippet
+            refAllowlist: ProjectWithImageSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+                avatarPath: "mainImage",
+            },
         },
         constructionStartDate: {
             type: SchemaTypes.Date,

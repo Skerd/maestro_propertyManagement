@@ -37,8 +37,15 @@ export class FeasibilityStudyActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("feasibilitystudies").readFields!, FeasibilityStudy.schema);
-            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                FeasibilityStudy,
+                getModelCollectedData("feasibilitystudies").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, FeasibilityStudy.schema);
+            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return feasibilityStudyToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`FeasibilityStudy.submitForReview done`);
@@ -68,8 +75,15 @@ export class FeasibilityStudyActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("feasibilitystudies").readFields!, FeasibilityStudy.schema);
-            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                FeasibilityStudy,
+                getModelCollectedData("feasibilitystudies").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, FeasibilityStudy.schema);
+            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return feasibilityStudyToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`FeasibilityStudy.approve done`);
@@ -99,8 +113,15 @@ export class FeasibilityStudyActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("feasibilitystudies").readFields!, FeasibilityStudy.schema);
-            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                FeasibilityStudy,
+                getModelCollectedData("feasibilitystudies").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, FeasibilityStudy.schema);
+            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return feasibilityStudyToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`FeasibilityStudy.reject done`);
@@ -130,8 +151,15 @@ export class FeasibilityStudyActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("feasibilitystudies").readFields!, FeasibilityStudy.schema);
-            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                FeasibilityStudy,
+                getModelCollectedData("feasibilitystudies").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, FeasibilityStudy.schema);
+            const updated = await feasibilityStudyService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return feasibilityStudyToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`FeasibilityStudy.archive done`);

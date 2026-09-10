@@ -35,8 +35,15 @@ export class WarrantyActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("warranties").readFields!, Warranty.schema);
-            const updated = await warrantyService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Warranty,
+                getModelCollectedData("warranties").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Warranty.schema);
+            const updated = await warrantyService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return warrantyToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Warranty.expire done`);
@@ -66,8 +73,15 @@ export class WarrantyActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("warranties").readFields!, Warranty.schema);
-            const updated = await warrantyService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Warranty,
+                getModelCollectedData("warranties").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Warranty.schema);
+            const updated = await warrantyService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return warrantyToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Warranty.void done`);

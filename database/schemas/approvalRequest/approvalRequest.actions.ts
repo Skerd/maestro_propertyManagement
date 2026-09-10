@@ -38,8 +38,15 @@ async function escalationRequired(request: any, companyId: ObjectId): Promise<bo
 
 async function reload(id: any, ctx: any) {
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("approvalrequests").readFields!, ApprovalRequest.schema);
-        const updated = await approvalRequestService.findById(id, ctx, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            ApprovalRequest,
+            getModelCollectedData("approvalrequests").readFields!,
+            "read",
+            ctx.actionUserCtx,
+            ctx.languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, ApprovalRequest.schema);
+        const updated = await approvalRequestService.findById(id, ctx, populate.populate, populate.select);
         if (updated) return approvalRequestToDTO(updated);
     } catch { /* no read */ }
     return undefined;
@@ -68,7 +75,7 @@ export class ApprovalRequestActions {
             ? {primaryDecision: "visaed", currentStage: "escalation"}
             : {primaryDecision: "approved", escalationDecision: "approved", currentStage: "done", status: "approved"};
         await approvalRequestService.updateByIdOrThrow(existing._id, {$set: withNote(existing, notes, $set)}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: approveApprovalRequestFormSchema})
@@ -83,7 +90,7 @@ export class ApprovalRequestActions {
             ? {escalationDecision: "approved", currentStage: "done", status: "approved"}
             : {primaryDecision: "approved", escalationDecision: "approved", currentStage: "done", status: "approved"};
         await approvalRequestService.updateByIdOrThrow(existing._id, {$set: withNote(existing, notes, $set)}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: rejectApprovalRequestFormSchema})
@@ -96,7 +103,7 @@ export class ApprovalRequestActions {
         const stageField = existing.currentStage === "escalation" ? "escalationDecision" : "primaryDecision";
         const $set: Record<string, any> = {[stageField]: "rejected", currentStage: "done", status: "rejected"};
         await approvalRequestService.updateByIdOrThrow(existing._id, {$set: withNote(existing, notes, $set)}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: escalateApprovalRequestFormSchema})
@@ -107,7 +114,7 @@ export class ApprovalRequestActions {
             throw apiValidationException("invalid_state_for_escalate", "", null, languageCode);
         }
         await approvalRequestService.updateByIdOrThrow(existing._id, {$set: withNote(existing, notes, {currentStage: "escalation"})}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: recallApprovalRequestFormSchema})
@@ -118,6 +125,6 @@ export class ApprovalRequestActions {
             throw apiValidationException("invalid_state_for_recall", "", null, languageCode);
         }
         await approvalRequestService.updateByIdOrThrow(existing._id, {$set: withNote(existing, notes, {status: "cancelled", currentStage: "done"})}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 }

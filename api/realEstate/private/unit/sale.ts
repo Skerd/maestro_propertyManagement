@@ -455,7 +455,7 @@ const {router} = createCrudRouter({
         // Mark unit as sold
         await unitService.updateByIdOrThrow(
             unitSnapshot._id,
-            {$set: {status: UnitStatus.SOLD, sale: created._id}},
+            {$set: {status: UnitStatus.SOLD, sale: created._id}, $unset: {unavailableNotes: ""}},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 

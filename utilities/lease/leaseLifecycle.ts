@@ -48,7 +48,7 @@ export async function markUnitRented(unitId: ObjectId, ctx: Ctx): Promise<void> 
     const {logger, languageCode, session, actionUserCtx} = ctx;
     await unitService.updateByIdOrThrow(
         unitId,
-        {$set: {status: UnitStatus.RENTED}},
+        {$set: {status: UnitStatus.RENTED}, $unset: {unavailableNotes: ""}},
         {session, logger, languageCode, auditUserId: actionUserCtx?.userId},
     );
 }
@@ -62,7 +62,7 @@ export async function releaseUnitIfRented(unitId: ObjectId, ctx: Ctx): Promise<v
     if (unit && unit.status === UnitStatus.RENTED) {
         await unitService.updateByIdOrThrow(
             unit._id,
-            {$set: {status: UnitStatus.AVAILABLE}},
+            {$set: {status: UnitStatus.AVAILABLE}, $unset: {unavailableNotes: ""}},
             {session, logger, languageCode, auditUserId: actionUserCtx?.userId},
         );
     }

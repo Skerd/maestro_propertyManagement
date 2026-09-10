@@ -13,8 +13,15 @@ import {tenderInvitationToDTO} from "@propertyManagement/utilities/mappers/tende
 
 async function reload(existingId: any, ctx: any) {
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("tenderinvitations").readFields!, TenderInvitation.schema);
-        const updated = await tenderInvitationService.findById(existingId, ctx, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            TenderInvitation,
+            getModelCollectedData("tenderinvitations").readFields!,
+            "read",
+            ctx.actionUserCtx,
+            ctx.languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, TenderInvitation.schema);
+        const updated = await tenderInvitationService.findById(existingId, ctx, populate.populate, populate.select);
         if (updated) return tenderInvitationToDTO(updated);
     } catch { /* no read */ }
     return undefined;
@@ -30,7 +37,7 @@ export class TenderInvitationActions {
             throw apiValidationException("invalid_status_for_decline", "", null, languageCode);
         }
         await tenderInvitationService.updateByIdOrThrow(existing._id, {$set: {status: "declined", respondedAt: new Date()}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: withdrawTenderInvitationFormSchema})
@@ -41,7 +48,7 @@ export class TenderInvitationActions {
             throw apiValidationException("invalid_status_for_withdraw", "", null, languageCode);
         }
         await tenderInvitationService.updateByIdOrThrow(existing._id, {$set: {status: "withdrawn"}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: resendTenderInvitationFormSchema})
@@ -53,6 +60,6 @@ export class TenderInvitationActions {
         }
         // Rotate the portal token and reset to invited so the contractor gets a fresh link.
         await tenderInvitationService.updateByIdOrThrow(existing._id, {$set: {status: "invited", invitedAt: new Date(), portalAccessToken: crypto.randomBytes(24).toString("hex")}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 }

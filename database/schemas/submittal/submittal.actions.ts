@@ -37,8 +37,15 @@ export class SubmittalActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("submittals").readFields!, Submittal.schema);
-            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Submittal,
+                getModelCollectedData("submittals").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Submittal.schema);
+            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return submittalToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Submittal.submit done`);
@@ -68,8 +75,15 @@ export class SubmittalActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("submittals").readFields!, Submittal.schema);
-            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Submittal,
+                getModelCollectedData("submittals").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Submittal.schema);
+            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return submittalToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Submittal.requestRevision done`);
@@ -99,8 +113,15 @@ export class SubmittalActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("submittals").readFields!, Submittal.schema);
-            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Submittal,
+                getModelCollectedData("submittals").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Submittal.schema);
+            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return submittalToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Submittal.approve done`);
@@ -130,8 +151,15 @@ export class SubmittalActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("submittals").readFields!, Submittal.schema);
-            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Submittal,
+                getModelCollectedData("submittals").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Submittal.schema);
+            const updated = await submittalService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return submittalToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Submittal.reject done`);

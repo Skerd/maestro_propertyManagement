@@ -21,8 +21,15 @@ function dec(v: any): number | undefined {
 
 async function reload(id: any, ctx: any) {
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("feecalculations").readFields!, FeeCalculation.schema);
-        const updated = await feeCalculationService.findById(id, ctx, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            FeeCalculation,
+            getModelCollectedData("feecalculations").readFields!,
+            "read",
+            ctx.actionUserCtx,
+            ctx.languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, FeeCalculation.schema);
+        const updated = await feeCalculationService.findById(id, ctx, populate.populate, populate.select);
         if (updated) return feeCalculationToDTO(updated);
     } catch { /* no read */ }
     return undefined;
@@ -35,7 +42,7 @@ async function move(params: Record<string, any>, label: string, from: string[], 
         throw apiValidationException(`invalid_status_for_${label}`, "", null, languageCode);
     }
     await feeCalculationService.updateByIdOrThrow(existing._id, {$set: {status: next}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-    return reload(existing._id, {session, logger, languageCode});
+    return reload(existing._id, {session, logger, languageCode, actionUserCtx});
 }
 
 export class FeeCalculationActions {
@@ -60,7 +67,7 @@ export class FeeCalculationActions {
 
         await feeCalculationService.updateByIdOrThrow(existing._id, {$set: {totalFee: total}}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
         logger.finish(`FeeCalculation.recompute done — ${total}`);
-        return reload(existing._id, {session, logger, languageCode});
+        return reload(existing._id, {session, logger, languageCode, actionUserCtx});
     }
 
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: markEarnedFeeCalculationFormSchema})

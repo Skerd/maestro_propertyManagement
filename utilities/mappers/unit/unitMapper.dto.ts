@@ -22,9 +22,15 @@ export type UnitsToDtoOptions = {
 };
 
 export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
+    const unitTypeRef = mapPopulatedRef(unit.unitType);
     return {
         _id: unit._id.toString(),
-        unitType: mapPopulatedRef(unit.unitType),
+        unitType: unitTypeRef
+            ? {
+                ...unitTypeRef,
+                icon: unit.unitType.icon,
+            }
+            : undefined,
         unitNumber: unit.unitNumber,
         name: unit.name,
         area: unit.area,
@@ -52,6 +58,7 @@ export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
         marketingBooklet: unit.marketingBooklet ? mapMedia(unit.marketingBooklet) : undefined,
         polygonCoordinates: unit.polygonCoordinates,
         status: unit.status,
+        unavailableNotes: unit.unavailableNotes,
         connectedUnits: !!unit.connectedUnits ? unit.connectedUnits?.map((unit) => {
             return {
                 _id: unit._id.toString(),

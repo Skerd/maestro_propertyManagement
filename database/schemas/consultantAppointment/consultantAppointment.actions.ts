@@ -36,8 +36,15 @@ export class ConsultantAppointmentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("consultantappointments").readFields!, ConsultantAppointment.schema);
-            const updated = await consultantAppointmentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConsultantAppointment,
+                getModelCollectedData("consultantappointments").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConsultantAppointment.schema);
+            const updated = await consultantAppointmentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return consultantAppointmentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConsultantAppointment.activate done`);
@@ -67,8 +74,15 @@ export class ConsultantAppointmentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("consultantappointments").readFields!, ConsultantAppointment.schema);
-            const updated = await consultantAppointmentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConsultantAppointment,
+                getModelCollectedData("consultantappointments").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConsultantAppointment.schema);
+            const updated = await consultantAppointmentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return consultantAppointmentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConsultantAppointment.complete done`);
@@ -98,8 +112,15 @@ export class ConsultantAppointmentActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("consultantappointments").readFields!, ConsultantAppointment.schema);
-            const updated = await consultantAppointmentService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                ConsultantAppointment,
+                getModelCollectedData("consultantappointments").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, ConsultantAppointment.schema);
+            const updated = await consultantAppointmentService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return consultantAppointmentToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`ConsultantAppointment.terminate done`);

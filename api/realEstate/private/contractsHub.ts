@@ -23,6 +23,10 @@ import {
     reservationToContractRow,
     saleToContractRow,
 } from "../../../utilities/contractsHub/contractsHubMapper.dto";
+import {
+    assertAnyCollectedRead,
+    canReadCollectedFields,
+} from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 export const basePath = "/api/realEstate/contractsHub";
 
@@ -122,6 +126,8 @@ async function listContracts(
 ): Promise<ContractsListResponseType> {
     const {
         logger,
+        languageCode,
+        actionUserCtx,
         company,
         search,
         project,
@@ -137,6 +143,9 @@ async function listContracts(
     } = params;
 
     logger.start("Listing contracts hub registry...");
+    const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
+    const canReadReservations = canReadCollectedFields("reservations", actionUserCtx, languageCode);
+    assertAnyCollectedRead(canReadSales || canReadReservations, languageCode);
 
     const companyId = company._id;
     const unitIds = await resolveUnitIds({...params, project, edifice, floor, unit});
@@ -147,7 +156,7 @@ async function listContracts(
     const includeSales =
         !contractType || contractType === "cash_sale" || contractType === "payment_plan_sale";
 
-    if (includeReservations && status !== "sold") {
+    if (canReadReservations && includeReservations && status !== "sold") {
         const reservationMatch: Record<string, unknown> = {
             company: companyId,
             status: {$ne: ReservationStatus.CONVERTED},
@@ -175,7 +184,7 @@ async function listContracts(
         }
     }
 
-    if (includeSales && (!status || status === "sold")) {
+    if (canReadSales && includeSales && (!status || status === "sold")) {
         const saleMatch: Record<string, unknown> = {
             company: companyId,
         };
@@ -219,6 +228,8 @@ async function listClients(
 ): Promise<ClientsListResponseType> {
     const {
         logger,
+        languageCode,
+        actionUserCtx,
         company,
         search,
         project,
@@ -234,6 +245,9 @@ async function listClients(
     } = params;
 
     logger.start("Listing contracts hub clients...");
+    const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
+    const canReadReservations = canReadCollectedFields("reservations", actionUserCtx, languageCode);
+    assertAnyCollectedRead(canReadSales || canReadReservations, languageCode);
 
     const companyId = company._id;
     const unitIds = await resolveUnitIds({...params, project, edifice, floor, unit});
@@ -244,13 +258,17 @@ async function listClients(
     if (unitIds) baseMatch.unit = {$in: unitIds};
 
     const [sales, reservations] = await Promise.all([
-        Sale.find(baseMatch).populate(CONTRACTS_HUB_SALE_POPULATE).lean(),
-        Reservation.find({
-            ...baseMatch,
-            status: {$in: [ReservationStatus.ACTIVE, ReservationStatus.EXPIRED]},
-        })
-            .populate(CONTRACTS_HUB_RESERVATION_POPULATE)
-            .lean(),
+        canReadSales
+            ? Sale.find(baseMatch).populate(CONTRACTS_HUB_SALE_POPULATE).lean()
+            : Promise.resolve([]),
+        canReadReservations
+            ? Reservation.find({
+                ...baseMatch,
+                status: {$in: [ReservationStatus.ACTIVE, ReservationStatus.EXPIRED]},
+            })
+                .populate(CONTRACTS_HUB_RESERVATION_POPULATE)
+                .lean()
+            : Promise.resolve([]),
     ]);
 
     let rows = buildClientRegistryRows(

@@ -25,6 +25,7 @@ import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/curre
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {IMedia} from "@coreModule/database/schemas/media/media";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export enum CommissionSourceType {
     SALE = "sale",
@@ -34,8 +35,14 @@ export enum CommissionSourceType {
 export enum CommissionStatus {
     PENDING = "pending",
     PENDING_APPROVAL = "pending_approval",
+    APPROVED = "approved",
     PAID = "paid",
     VOIDED = "voided"
+}
+
+export enum CommissionBasis {
+    DEPOSIT_AMOUNT = "depositAmount",
+    FINAL_PRICE = "finalPrice",
 }
 
 export interface ICommissionSplit {
@@ -76,6 +83,9 @@ const CommissionSchema = new Schema<ICommission>(
             index: true,
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name", "surname"],
             },
             permissions: {
@@ -93,6 +103,9 @@ const CommissionSchema = new Schema<ICommission>(
             required: false,
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name", "surname"],
             },
             permissions: {
@@ -109,6 +122,11 @@ const CommissionSchema = new Schema<ICommission>(
             enum: Object.values(CommissionSourceType),
             required: true,
             index: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -122,6 +140,10 @@ const CommissionSchema = new Schema<ICommission>(
             type: SchemaTypes.ObjectId,
             required: true,
             index: true,
+            dynamicTableConfiguration: {
+                hideColumn: true,
+                filterable: false,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -133,8 +155,14 @@ const CommissionSchema = new Schema<ICommission>(
         },
         basis: {
             type: SchemaTypes.String,
+            enum: Object.values(CommissionBasis),
             required: true,
             trim: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -151,6 +179,11 @@ const CommissionSchema = new Schema<ICommission>(
                 if (v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
             },
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.NUMBER,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -164,6 +197,11 @@ const CommissionSchema = new Schema<ICommission>(
             type: SchemaTypes.Number,
             required: true,
             default: 0,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.PERCENTAGE,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -179,6 +217,11 @@ const CommissionSchema = new Schema<ICommission>(
             set: (v: number | string | Decimal128) => {
                 if (v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
+            },
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.NUMBER,
             },
             permissions: {
                 self: {
@@ -196,7 +239,10 @@ const CommissionSchema = new Schema<ICommission>(
             index: true,
             refAllowlist: SaleSimpleSnippet,
             dynamicTableConfiguration: {
-                refDisplayKey: ["name"]
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
             },
             permissions: {
                 self: {
@@ -214,7 +260,10 @@ const CommissionSchema = new Schema<ICommission>(
             index: true,
             refAllowlist: ReservationSimpleSnippet,
             dynamicTableConfiguration: {
-                refDisplayKey: ["name"]
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["name"],
             },
             permissions: {
                 self: {
@@ -230,6 +279,12 @@ const CommissionSchema = new Schema<ICommission>(
             ref: "Currency",
             required: true,
             refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["symbol", "name"],
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -244,17 +299,30 @@ const CommissionSchema = new Schema<ICommission>(
             enum: Object.values(CommissionStatus),
             required: true,
             default: CommissionStatus.PENDING,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
+            },
         },
         notes: {
             type: SchemaTypes.String,
             required: false,
-            trim: true
+            trim: true,
+            dynamicTableConfiguration: {
+                sortable: false,
+            },
         },
         paymentReference: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
             permissions: {
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
@@ -265,6 +333,10 @@ const CommissionSchema = new Schema<ICommission>(
             ref: "Media",
             required: false,
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {
+                sortable: false,
+                cellType: COLUMN_TYPE.FILE,
+            },
             permissions: {
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
@@ -273,6 +345,11 @@ const CommissionSchema = new Schema<ICommission>(
         paidAt: {
             type: SchemaTypes.Date,
             required: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.DATE,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -285,6 +362,11 @@ const CommissionSchema = new Schema<ICommission>(
         voidedAt: {
             type: SchemaTypes.Date,
             required: false,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.DATE,
+            },
             permissions: {
                 self: {
                     write: "no-permission"
@@ -302,17 +384,44 @@ const CommissionSchema = new Schema<ICommission>(
                     required: true,
                     refAllowlist: SimpleBlankUserSnippet,
                     dynamicTableConfiguration: {
+                        filterable: true,
+                        sortable: true,
+                        cellType: COLUMN_TYPE.OBJECT_ID,
                         refDisplayKey: ["name", "surname"],
                     },
                 },
-                label: {type: SchemaTypes.String, required: false, trim: true},
-                ratePercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100},
+                label: {
+                    type: SchemaTypes.String,
+                    required: false,
+                    trim: true,
+                    dynamicTableConfiguration: {
+                        filterable: true,
+                        sortable: true,
+                        cellType: COLUMN_TYPE.STRING,
+                    },
+                },
+                ratePercent: {
+                    type: SchemaTypes.Number,
+                    required: true,
+                    min: 0,
+                    max: 100,
+                    dynamicTableConfiguration: {
+                        filterable: true,
+                        sortable: true,
+                        cellType: COLUMN_TYPE.PERCENTAGE,
+                    },
+                },
                 amount: {
                     type: SchemaTypes.Decimal128,
                     required: true,
                     set: (v: number | string | Decimal128) => {
                         if (v instanceof Decimal128) return v;
                         return Decimal128.fromString(v.toString());
+                    },
+                    dynamicTableConfiguration: {
+                        filterable: true,
+                        sortable: true,
+                        cellType: COLUMN_TYPE.NUMBER,
                     },
                 },
             }],

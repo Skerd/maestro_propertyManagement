@@ -82,6 +82,7 @@ export interface ILead extends Document, IOwnershipPluginFields, ISoftDeletePlug
     assignedTo?: IUser;
     followUpDate?: Date;
     convertedAt?: Date;
+    lostReason?: string;
     activityLog: ILeadActivityEntry[];
 }
 
@@ -125,6 +126,10 @@ const LeadSchema = new Schema<ILead>(
             required: true,
             enum:     Object.values(LeadStatus),
             default:  LeadStatus.NEW,
+            permissions: {
+                self:   {write: "no-permission"},
+                others: {write: "no-permission"},
+            },
         },
         source: {
             type:     SchemaTypes.String,
@@ -141,12 +146,18 @@ const LeadSchema = new Schema<ILead>(
             ref:          "Project",
             required:     false,
             refAllowlist: ProjectSimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+            },
         },
         unitInterest: {
             type:         SchemaTypes.ObjectId,
             ref:          "Unit",
             required:     false,
             refAllowlist: UnitSimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name", "unitNumber"],
+            },
         },
         budget: {
             type:     SchemaTypes.Decimal128,
@@ -157,6 +168,9 @@ const LeadSchema = new Schema<ILead>(
             ref:          "Currency",
             required:     false,
             refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["symbol", "name"],
+            },
         },
         notes: {
             type: SchemaTypes.String,
@@ -191,6 +205,16 @@ const LeadSchema = new Schema<ILead>(
             type:        SchemaTypes.Date,
             required:    false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+        },
+        lostReason: {
+            type:     SchemaTypes.String,
+            required: false,
+            trim:     true,
+            maxlength: LEAD_LONG_TEXT_MAX,
+            permissions: {
+                self:   {write: "no-permission"},
+                others: {write: "no-permission"},
+            },
         },
         activityLog: {
             type: [{
@@ -268,5 +292,5 @@ export default Lead;
 
 normalizeSchemaPermissions(Lead);
 addModelData(Lead, leadViews);
-// budget stored as Decimal128; status has default so required check is waived; activityLog/convertedAt are server-managed
-validateSchemaDefAgainstMongoose(LeadSchema, LeadSchemaDef, "Lead", ["activityLog", "convertedAt", "name", "chat"]);
+// budget stored as Decimal128; status/lostReason/convertedAt/activityLog/name/chat are server-managed
+validateSchemaDefAgainstMongoose(LeadSchema, LeadSchemaDef, "Lead", ["activityLog", "convertedAt", "lostReason", "name", "chat", "status"]);

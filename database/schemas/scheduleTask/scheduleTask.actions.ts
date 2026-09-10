@@ -24,10 +24,17 @@ async function loadScheduleTaskForAction(params: Record<string, any>) {
 }
 
 async function returnScheduleTaskDto(scheduleTaskId: any, params: Record<string, any>): Promise<ScheduleTaskData | undefined> {
-    const {logger, languageCode, session} = params;
+    const {logger, languageCode, session, actionUserCtx} = params;
     try {
-        const populate = SchemaGuard.generatePopulate(getModelCollectedData("scheduletasks").readFields!, ScheduleTask.schema);
-        const updated = await scheduleTaskService.findById(scheduleTaskId, {session, logger, languageCode}, populate.populate);
+        const readFields = SchemaGuard.sanitizeFields(
+            ScheduleTask,
+            getModelCollectedData("scheduletasks").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, ScheduleTask.schema);
+        const updated = await scheduleTaskService.findById(scheduleTaskId, {session, logger, languageCode}, populate.populate, populate.select);
         if (updated) return scheduleTaskToDTO(updated);
     } catch {
         logger.debug("User has no read permission on scheduleTask after action");

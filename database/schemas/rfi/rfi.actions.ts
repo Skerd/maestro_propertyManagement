@@ -36,8 +36,15 @@ export class RfiActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("rfis").readFields!, Rfi.schema);
-            const updated = await rfiService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Rfi,
+                getModelCollectedData("rfis").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Rfi.schema);
+            const updated = await rfiService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return rfiToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Rfi.answer done`);
@@ -67,8 +74,15 @@ export class RfiActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("rfis").readFields!, Rfi.schema);
-            const updated = await rfiService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Rfi,
+                getModelCollectedData("rfis").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Rfi.schema);
+            const updated = await rfiService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return rfiToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Rfi.close done`);
@@ -98,8 +112,15 @@ export class RfiActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
         try {
-            const populate = SchemaGuard.generatePopulate(getModelCollectedData("rfis").readFields!, Rfi.schema);
-            const updated = await rfiService.findById(existing._id, {session, logger, languageCode}, populate.populate);
+            const readFields = SchemaGuard.sanitizeFields(
+                Rfi,
+                getModelCollectedData("rfis").readFields!,
+                "read",
+                actionUserCtx,
+                languageCode,
+            );
+            const populate = SchemaGuard.generatePopulate(readFields, Rfi.schema);
+            const updated = await rfiService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
             if (updated) return rfiToDTO(updated);
         } catch { /* no read */ }
         logger.finish(`Rfi.void done`);

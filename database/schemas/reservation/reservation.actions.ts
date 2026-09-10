@@ -293,7 +293,7 @@ export class ReservationActions {
             if (stampField === "expiredAt" && unitId) {
                 await unitService.updateOne(
                     {_id: unitId, status: UnitStatus.RESERVED, reservation: reservation._id},
-                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: ""}},
+                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: "", unavailableNotes: ""}},
                     {logger, languageCode},
                 );
             }

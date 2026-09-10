@@ -26,12 +26,8 @@ import {saleService} from "@propertyManagement/database/schemas/sale/sale.servic
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
-import {snagService} from "@propertyManagement/database/schemas/snag/snag.service";
 import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
 import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
-import {milestoneService} from "@propertyManagement/database/schemas/milestone/milestone.service";
-import {contractorInvoiceService} from "@propertyManagement/database/schemas/contractorInvoice/contractorInvoice.service";
-import {permitService} from "@propertyManagement/database/schemas/permit/permit.service";
 import {InstallmentStatus} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan";
 import {companyObjectId, companyScope, roundMoney, toAmount} from "./assistantToolHelpers";
 
@@ -140,7 +136,6 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const windowDays = args.windowDays ?? DEFAULT_WINDOW_DAYS;
     const now = new Date();
     const since = new Date(now.getTime() - windowDays * MS_PER_DAY);
-    const soon = new Date(now.getTime() + 30 * MS_PER_DAY);
 
     const scope = companyScope(ctx);
     const countOptions = {logger: ctx.logger, withDeleted: false};
@@ -155,11 +150,6 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         activeReservations,
         activeLeases,
         overdueRent,
-        openSnags,
-        overdueSnags,
-        lateMilestones,
-        unpaidInvoices,
-        permitsExpiringSoon
     ] = await Promise.all([
         unitBreakdown(ctx),
         salesInWindow(since, ctx),
@@ -172,26 +162,6 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
             {...scope, status: {$in: ["pending", "overdue"]}, dueDate: {$lt: now}},
             countOptions
         ),
-        snagService.count({...scope, status: {$in: ["open", "in_progress"]}}, countOptions),
-        snagService.count(
-            {...scope, status: {$in: ["open", "in_progress"]}, dueDate: {$lt: now}},
-            countOptions
-        ),
-        milestoneService.count(
-            {
-                ...scope,
-                $or: [
-                    {status: "delayed"},
-                    {status: {$in: ["planned", "in_progress"]}, plannedEnd: {$lt: now}}
-                ]
-            },
-            countOptions
-        ),
-        contractorInvoiceService.count(
-            {...scope, status: {$in: ["received", "under_review", "approved"]}},
-            countOptions
-        ),
-        permitService.count({...scope, expiresAt: {$gte: now, $lte: soon}}, countOptions)
     ]);
 
     return {
@@ -217,13 +187,6 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
             overdueInstallments: arrears.count,
             overdueInstallmentsOutstanding: arrears.outstanding,
             overdueRentPayments: overdueRent,
-            unpaidContractorInvoices: unpaidInvoices
-        },
-        delivery: {
-            openSnags,
-            overdueSnags,
-            lateMilestones,
-            permitsExpiringWithin30Days: permitsExpiringSoon
         },
         notes: [
             "All figures are real counts/aggregates over the whole company — not samples.",
@@ -238,8 +201,7 @@ export const portfolioOverviewTool: AssistantTool = {
     description:
         "Get a single company-wide snapshot: unit counts by status, active " +
         "reservations and leases, sales and revenue in a recent window, new and open " +
-        "leads, overdue buyer instalments and rent, unpaid contractor invoices, open " +
-        "and overdue defects, late milestones, and permits expiring soon. Use this " +
+        "leads, and overdue buyer instalments and rent. Use this " +
         "FIRST for broad questions like \"how are we doing?\", \"give me a summary\", " +
         "\"what needs attention?\" — it replaces firing several search tools. Then " +
         "use the specific search_* tools to drill into any figure.",

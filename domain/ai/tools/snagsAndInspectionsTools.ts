@@ -16,46 +16,30 @@
  * @module snagsAndInspectionsTools
  */
 
-import {ObjectId} from "mongodb";
 import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
-import {snagService} from "@propertyManagement/database/schemas/snag/snag.service";
 import {inspectionService} from "@propertyManagement/database/schemas/inspection/inspection.service";
-import {snagSeverityValues, snagStatusValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/snag/snag.schema-def";
 import {InspectionStatus, InspectionType} from "@propertyManagement/database/schemas/inspection/inspection";
 import {
     DEFAULT_RESULTS,
     companyScope,
     dateRange,
-    daysOverdue,
     emptyResult,
     findOptions,
     limitArg,
     limitParameter,
     listResult,
-    regexClause,
     resolveUnitId,
     resolveUnitIdsForEdifice,
     resolveUnitIdsForProject,
     shortText,
-    toNumber,
     userDisplayName
 } from "./assistantToolHelpers";
 
-const SNAG_STATUS_VALUES = [...snagStatusValues];
-const SNAG_SEVERITY_VALUES = [...snagSeverityValues];
 const INSPECTION_STATUS_VALUES = Object.values(InspectionStatus) as string[];
 const INSPECTION_TYPE_VALUES = Object.values(InspectionType) as string[];
 
-/** Snag statuses that still need work — used by the `openOnly`/overdue filters. */
-const UNRESOLVED_SNAG_STATUSES = ["open", "in_progress"];
-
-/**
- * Turn an optional project/building/unit filter into a `unit` query clause.
- * Returns `null` when the name matched nothing, so the caller can return an
- * empty result rather than silently dropping the filter.
- */
 async function unitClause(
     args: {projectName?: string; buildingName?: string; unitNumber?: string},
     ctx: AssistantToolContext
@@ -78,7 +62,6 @@ async function unitClause(
     return {clause: undefined};
 }
 
-/** The location arguments both tools share, as JSON Schema. */
 const locationParameters = {
     projectName: {type: "string", description: "Only records for units in the project whose name matches this."},
     buildingName: {type: "string", description: "Only records for units in the building (edifice/block) whose name matches this."},
@@ -89,136 +72,6 @@ const locationArgs = {
     projectName: z.string().trim().min(1).optional(),
     buildingName: z.string().trim().min(1).optional(),
     unitNumber: z.string().trim().min(1).optional()
-};
-
-// ── search_snags ─────────────────────────────────────────────────────────────
-
-const SearchSnagsArgs = z
-    .object({
-        ...locationArgs,
-        search: z.string().trim().min(1).optional(),
-        status: z.enum(SNAG_STATUS_VALUES as unknown as [string, ...string[]]).optional(),
-        severity: z.enum(SNAG_SEVERITY_VALUES as unknown as [string, ...string[]]).optional(),
-        trade: z.string().trim().min(1).optional(),
-        openOnly: z.coerce.boolean().optional(),
-        overdueOnly: z.coerce.boolean().optional(),
-        assignedToMe: z.coerce.boolean().optional(),
-        warrantyOnly: z.coerce.boolean().optional(),
-        limit: limitArg
-    })
-    .strip();
-
-const snagParameters = {
-    type: "object" as const,
-    properties: {
-        ...locationParameters,
-        search: {type: "string", description: "Free text matched against the defect's title, description or location."},
-        status: {
-            type: "string",
-            enum: SNAG_STATUS_VALUES,
-            description: "Defect status: open, in_progress, resolved, or rejected."
-        },
-        severity: {
-            type: "string",
-            enum: SNAG_SEVERITY_VALUES,
-            description: "Defect severity: low, medium, high, or critical."
-        },
-        trade: {type: "string", description: "Responsible trade, e.g. \"electrical\", \"plumbing\"."},
-        openOnly: {type: "boolean", description: "true = only unresolved defects (open or in_progress)."},
-        overdueOnly: {type: "boolean", description: "true = only unresolved defects whose due date has passed."},
-        assignedToMe: {type: "boolean", description: "true when the user asks about defects assigned to THEM."},
-        warrantyOnly: {type: "boolean", description: "true = only defects flagged as warranty or defects-liability-period items."},
-        limit: limitParameter
-    },
-    required: [] as string[]
-};
-
-async function executeSnags(rawArgs: unknown, ctx: AssistantToolContext): Promise<unknown> {
-    const args = SearchSnagsArgs.parse(rawArgs ?? {});
-
-    // Hard company scope — the only scope the tool is allowed to read.
-    const query: Record<string, unknown> = companyScope(ctx);
-
-    const units = await unitClause(args, ctx);
-    if (units === null) {
-        return emptyResult(`No units matched that project/building/unit in this company.`);
-    }
-    if (units.clause !== undefined) query.unit = units.clause;
-
-    if (args.search != null) {
-        const rx = regexClause(args.search);
-        query.$or = [{title: rx}, {description: rx}, {location: rx}, {name: rx}];
-    }
-    if (args.severity) query.severity = args.severity;
-    if (args.trade != null) query.trade = regexClause(args.trade);
-    // "Assigned to me" is scoped from the trusted context, never a model-supplied id.
-    if (args.assignedToMe === true) query.assignedTo = new ObjectId(ctx.userId);
-    if (args.warrantyOnly === true) query.$and = [{$or: [{isWarranty: true}, {isDlp: true}]}];
-
-    if (args.overdueOnly === true) {
-        query.status = {$in: UNRESOLVED_SNAG_STATUSES};
-        query.dueDate = {$lt: new Date()};
-    } else if (args.openOnly === true) {
-        query.status = {$in: UNRESOLVED_SNAG_STATUSES};
-    } else if (args.status) {
-        query.status = args.status;
-    }
-
-    const limit = args.limit ?? DEFAULT_RESULTS;
-
-    const snags = await snagService.find(
-        query,
-        findOptions(ctx),
-        [
-            {path: "unit", select: "unitNumber name"},
-            {path: "assignedTo", select: "name surname username"},
-            {path: "reportedBy", select: "name surname username"}
-        ],
-        "name title description location status severity trade unit assignedTo reportedBy " +
-            "dueDate resolvedAt costImpact isWarranty isDlp rootCause",
-        {dueDate: 1},
-        limit
-    );
-
-    const results = snags.map((s: any) => {
-        const overdue = daysOverdue(s.dueDate);
-        const unresolved = UNRESOLVED_SNAG_STATUSES.includes(s.status);
-        return {
-            id: s._id?.toString(),
-            code: s.name ?? null,
-            title: s.title ?? null,
-            description: shortText(s.description, 200),
-            unitNumber: s.unit?.unitNumber ?? s.unit?.name ?? null,
-            location: s.location ?? null,
-            status: s.status ?? null,
-            severity: s.severity ?? null,
-            trade: s.trade ?? null,
-            assignedTo: userDisplayName(s.assignedTo),
-            reportedBy: userDisplayName(s.reportedBy),
-            dueDate: s.dueDate ?? null,
-            daysOverdue: unresolved && overdue != null && overdue > 0 ? overdue : 0,
-            resolvedAt: s.resolvedAt ?? null,
-            costImpact: toNumber(s.costImpact),
-            isWarranty: s.isWarranty ?? false,
-            isDlp: s.isDlp ?? false
-        };
-    });
-
-    return listResult(snagService, query, results, ctx);
-}
-
-export const searchSnagsTool: AssistantTool = {
-    name: "search_snags",
-    description:
-        "Search construction defects/snags raised against units. Filter by project, " +
-        "building or unit, free text, status (open, in_progress, resolved, rejected), " +
-        "severity (low…critical), responsible trade, `openOnly`, `overdueOnly`, " +
-        "defects assigned to the asking user, or warranty/DLP items only. Returns " +
-        "each defect with its unit, severity, assignee, due date and days overdue, " +
-        "plus `total` — the true number of matching defects. Use this for questions " +
-        "about snags, defects, punch lists, quality issues or warranty claims.",
-    parameters: snagParameters,
-    execute: executeSnags
 };
 
 // ── search_inspections ───────────────────────────────────────────────────────
@@ -342,7 +195,6 @@ export const searchInspectionsTool: AssistantTool = {
 };
 
 /** Registered by the core tool bootstrap (registerAllAssistantTools). */
-export function registerSnagsAndInspectionsAssistantTools(): void {
-    registerAssistantTool(searchSnagsTool);
+export function registerInspectionsAssistantTools(): void {
     registerAssistantTool(searchInspectionsTool);
 }

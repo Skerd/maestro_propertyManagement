@@ -14,8 +14,7 @@ const inventoryOwn = [
 ];
 const unitCostOwn = ["Unitcosts"];
 const marketingOwn = ["Stories", "Storytypes"];
-const constructionUpdateOwn = ["Constructionupdates"];
-const portfolioOwn = unique([...inventoryOwn, ...unitCostOwn, ...marketingOwn, ...constructionUpdateOwn]);
+const portfolioOwn = unique([...inventoryOwn, ...unitCostOwn, ...marketingOwn]);
 
 const leadOwn = ["Leads"];
 const salesAgentOwn = ["Reservations", "Sales", "Signaturerequests"];
@@ -36,8 +35,7 @@ const leasingManagerOwn = unique([...leasingOwn, ...rentOwn, "Inspections"]);
 
 const changeOrderOwn = ["Modificationrequests"];
 const inspectorOwn = ["Inspections"];
-const snagOwn = ["Snags"];
-const aftercareOwn = unique([...inspectorOwn, ...snagOwn]);
+const aftercareOwn = unique([...inspectorOwn, "Handoverpackages", "Inspectionchecklisttemplates"]);
 
 const allOwn = unique([
     ...portfolioOwn,
@@ -96,16 +94,9 @@ export const realEstateDefaultRoles: DefaultRoleDefinition[] = [
         [...INV, ...DASH],
     ),
     reRole(
-        "Construction Update Editor",
-        "re_construction_update_editor",
-        "Posts construction progress updates for buyers. Can look up inventory but cannot change it.",
-        constructionUpdateOwn,
-        [...INV, ...DASH],
-    ),
-    reRole(
         "Portfolio Manager",
         "re_portfolio_manager",
-        "Runs the full portfolio workflow: inventory, unit costs, stories, and construction updates.",
+        "Runs the full portfolio workflow: inventory, unit costs, and stories.",
         portfolioOwn,
         [...DASH],
     ),
@@ -186,23 +177,16 @@ export const realEstateDefaultRoles: DefaultRoleDefinition[] = [
     reRole(
         "Quality Inspector",
         "re_quality_inspector",
-        "Performs unit inspections. Cannot manage the snagging list.",
+        "Performs unit inspections.",
         inspectorOwn,
-        [...INV, "Sales", "Leases", "Constructionupdates"],
-    ),
-    reRole(
-        "Snagging Officer",
-        "re_snagging_officer",
-        "Logs and closes snags. Can look up inspections but cannot create them.",
-        snagOwn,
-        [...INV, "Inspections", "Constructionupdates"],
+        [...INV, "Sales", "Leases"],
     ),
     reRole(
         "Aftercare Manager",
         "re_aftercare_manager",
-        "Runs aftercare and quality: inspections and snags through to close-out.",
+        "Runs aftercare and quality: inspections, handover packages, and checklist templates.",
         aftercareOwn,
-        [...INV, "Sales", "Leases", "Constructionupdates"],
+        [...INV, "Sales", "Leases"],
     ),
 
     reRole(

@@ -4,10 +4,6 @@ import {runPaymentPlanInstallmentReminders} from "../../utilities/cronJobs/payme
 import {runModificationRequestSlaEscalations} from "../../utilities/cronJobs/modificationRequestSlaJob";
 import {runRentalMaintenance} from "../../utilities/cronJobs/rentalMaintenanceJob";
 import {runLeaseRentReminders} from "../../utilities/cronJobs/leaseRentReminderJob";
-import {runPermitExpiryReminders} from "../../utilities/cronJobs/permitExpiryReminderJob";
-import {runMilestoneSlippageReminders} from "../../utilities/cronJobs/milestoneSlippageJob";
-import {runTenderDeadlineReminders} from "../../utilities/cronJobs/tenderDeadlineReminderJob";
-import {runMaintenanceDue} from "../../utilities/cronJobs/maintenanceDueJob";
 
 export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
@@ -75,55 +71,5 @@ export function registerPropertyManagementCronHandlers(): void {
         },
     });
 
-    registerCronHandler({
-        code: "propertyManagement.permitExpiryReminder",
-        handler: async ctx => {
-            await runPermitExpiryReminders(ctx.logger);
-        },
-        version: "1",
-        defaultJob: {
-            name: "Permit expiry reminder",
-            cronExpression: "0 25 8 * * *",
-            priority: 15,
-        },
-    });
-
-    registerCronHandler({
-        code: "propertyManagement.milestoneSlippage",
-        handler: async ctx => {
-            await runMilestoneSlippageReminders(ctx.logger);
-        },
-        version: "1",
-        defaultJob: {
-            name: "Milestone slippage reminder",
-            cronExpression: "0 30 8 * * *",
-            priority: 15,
-        },
-    });
-
-    registerCronHandler({
-        code: "propertyManagement.tenderDeadline",
-        handler: async ctx => {
-            await runTenderDeadlineReminders(ctx.logger);
-        },
-        version: "1",
-        defaultJob: {
-            name: "Tender deadline reminder",
-            cronExpression: "0 35 8 * * *",
-            priority: 15,
-        },
-    });
-
-    registerCronHandler({
-        code: "propertyManagement.maintenanceDue",
-        handler: async ctx => {
-            await runMaintenanceDue(ctx.logger);
-        },
-        version: "1",
-        defaultJob: {
-            name: "Maintenance due",
-            cronExpression: "0 40 8 * * *",
-            priority: 15,
-        },
-    });
 }
+

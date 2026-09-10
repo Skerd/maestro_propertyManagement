@@ -17,7 +17,6 @@ import Unit, {UnitStatus} from "../../../database/schemas/unit/unit";
 import Sale from "../../../database/schemas/sale/sale";
 import Commission, {CommissionStatus} from "../../../database/schemas/commission/commission";
 import Lease, {LeaseStatus} from "../../../database/schemas/lease/lease";
-import Snag from "../../../database/schemas/snag/snag";
 import type {GroupDashboardResponse, BranchKpi} from "armonia/src/modules/propertyManagement/api/realEstate/private/groupDashboard/groupDashboard.response.type";
 import {
     assertAnyCollectedRead,
@@ -50,9 +49,8 @@ router.post(
         const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
         const canReadCommissions = canReadCollectedFields("commissions", actionUserCtx, languageCode);
         const canReadLeases = canReadCollectedFields("leases", actionUserCtx, languageCode);
-        const canReadSnags = canReadCollectedFields("snags", actionUserCtx, languageCode);
         assertAnyCollectedRead(
-            canReadUnits || canReadSales || canReadCommissions || canReadLeases || canReadSnags,
+            canReadUnits || canReadSales || canReadCommissions || canReadLeases,
             languageCode,
         );
         const companyId = company._id as ObjectId;
@@ -88,7 +86,7 @@ router.post(
         }
 
         const emptyAgg: never[] = [];
-        const [unitAgg, saleAgg, commAgg, leaseAgg, snagAgg] = await Promise.all([
+        const [unitAgg, saleAgg, commAgg, leaseAgg] = await Promise.all([
             canReadUnits ? Unit.aggregate([
                 {$match: {company: {$in: branchIds}, deletedAt: null}},
                 {$group: {
@@ -125,21 +123,12 @@ router.post(
                 }},
                 {$group: {_id: "$company", count: {$sum: 1}}},
             ]) : Promise.resolve(emptyAgg),
-            canReadSnags ? Snag.aggregate([
-                {$match: {
-                    company: {$in: branchIds},
-                    deletedAt: null,
-                    status: {$in: ["open", "in_progress"]},
-                }},
-                {$group: {_id: "$company", count: {$sum: 1}}},
-            ]) : Promise.resolve(emptyAgg),
         ]);
 
         const unitMap = byCompany(unitAgg as Array<{_id: ObjectId; total?: number; available?: number; sold?: number; rented?: number}>);
         const saleMap = byCompany(saleAgg as Array<{_id: ObjectId; revenue?: number}>);
         const commMap = byCompany(commAgg as Array<{_id: ObjectId; amount?: number}>);
         const leaseMap = byCompany(leaseAgg as Array<{_id: ObjectId; count?: number}>);
-        const snagMap = byCompany(snagAgg as Array<{_id: ObjectId; count?: number}>);
 
         const branchKpis: BranchKpi[] = branchIds.map(cid => {
             const sid = cid.toString();
@@ -147,7 +136,6 @@ router.post(
             const s = saleMap.get(sid);
             const c = commMap.get(sid);
             const l = leaseMap.get(sid);
-            const sn = snagMap.get(sid);
             return {
                 companyId: sid,
                 companyName: companyNames[sid] ?? sid,
@@ -158,7 +146,7 @@ router.post(
                 totalRevenue: toNumber(s?.revenue),
                 totalCommissions: toNumber(c?.amount),
                 activeLeases: l?.count ?? 0,
-                openSnags: sn?.count ?? 0,
+                openSnags: 0,
             };
         });
 

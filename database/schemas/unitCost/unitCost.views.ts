@@ -233,36 +233,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             },
                         },
                     },
-                    // {
-                    //     render: "#Field",
-                    //     field: {
-                    //         name: "boqItem",
-                    //         widget: "#ApiSelect",
-                    //         label: "form.boqItemLabel",
-                    //         placeholder: "form.boqItemPlaceholder",
-                    //         widgetProps: {
-                    //             apiUrl: "/api/realEstate/boqItem/select",
-                    //             method: "POST",
-                    //             pageSize: 50,
-                    //             normalizeEmptyToUndefined: true,
-                    //         },
-                    //     },
-                    // },
-                    // {
-                    //     render: "#Field",
-                    //     field: {
-                    //         name: "costCommitment",
-                    //         widget: "#ApiSelect",
-                    //         label: "form.costCommitmentLabel",
-                    //         placeholder: "form.costCommitmentPlaceholder",
-                    //         widgetProps: {
-                    //             apiUrl: "/api/realEstate/costCommitment/select",
-                    //             method: "POST",
-                    //             pageSize: 50,
-                    //             normalizeEmptyToUndefined: true,
-                    //         },
-                    //     },
-                    // },
                 ],
             },
         ],
@@ -372,8 +342,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                 "vendorName",
                 "relatedModificationRequest",
                 "constructorRef",
-                "boqItem",
-                "costCommitment",
             ],
             writeAny: [
                 "project",
@@ -392,8 +360,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                 "vendorName",
                 "relatedModificationRequest",
                 "constructorRef",
-                "boqItem",
-                "costCommitment",
             ],
         },
         children: [
@@ -612,36 +578,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             },
                         }, permissions: {read: "constructorRef", write: "constructorRef"},
                     },
-                    // {
-                    //     render: "#Field",
-                    //     field: {
-                    //         name: "boqItem",
-                    //         widget: "#ApiSelect",
-                    //         label: "form.boqItemLabel",
-                    //         placeholder: "form.boqItemPlaceholder",
-                    //         widgetProps: {
-                    //             apiUrl: "/api/realEstate/boqItem/select",
-                    //             method: "POST",
-                    //             pageSize: 50,
-                    //             normalizeEmptyToUndefined: true,
-                    //         },
-                    //     }, permissions: {read: "boqItem", write: "boqItem"},
-                    // },
-                    // {
-                    //     render: "#Field",
-                    //     field: {
-                    //         name: "costCommitment",
-                    //         widget: "#ApiSelect",
-                    //         label: "form.costCommitmentLabel",
-                    //         placeholder: "form.costCommitmentPlaceholder",
-                    //         widgetProps: {
-                    //             apiUrl: "/api/realEstate/costCommitment/select",
-                    //             method: "POST",
-                    //             pageSize: 50,
-                    //             normalizeEmptyToUndefined: true,
-                    //         },
-                    //     }, permissions: {read: "costCommitment", write: "costCommitment"},
-                    // },
                 ],
             },
         ],
@@ -746,7 +682,7 @@ export const unitCostSheetView: ViewConfig = {
     nodes: [
         {
             render: "#SheetGroup",
-            permissions: {readAny: ["name", "unit", "floor", "edifice", "project", "currency", "budgetedAmount", "purchasePerson", "purchaseDate", "paymentDate", "verificationStatus", "paymentStatus", "tag", "invoiceNumber", "vendorName", "relatedModificationRequest", "constructorRef", "boqItem", "costCommitment"]},
+            permissions: {readAny: ["name", "unit", "floor", "edifice", "project", "currency", "budgetedAmount", "purchasePerson", "purchaseDate", "paymentDate", "verificationStatus", "paymentStatus", "tag", "invoiceNumber", "vendorName", "relatedModificationRequest", "constructorRef"]},
             props: {title: "overview"},
             children: [
                 {
@@ -1019,37 +955,6 @@ export const unitCostSheetView: ViewConfig = {
                                 },
                             },
                         },
-                        // {
-                        //     render: "#DisplayCard",
-                        //     dependent: "boqItem",
-                        //     permissions: {read: "boqItem"},
-                        //     field: {
-                        //         name: "boqItem",
-                        //         widget: "#DisplayCard",
-                        //         label: "boqItem",
-                        //         widgetProps: {
-                        //             icon: "#ListDetails",
-                        //             parent: "boqItem",
-                        //             valuePath: ["title", "name"],
-                        //             pickFirstTruthyValuePath: true,
-                        //         },
-                        //     },
-                        // },
-                        // {
-                        //     render: "#DisplayCard",
-                        //     permissions: {read: "costCommitment"},
-                        //     field: {
-                        //         name: "costCommitment",
-                        //         widget: "#DisplayCard",
-                        //         label: "costCommitment",
-                        //         widgetProps: {
-                        //             icon: "#FileText",
-                        //             parent: "costCommitment",
-                        //             valuePath: ["title", "name"],
-                        //             pickFirstTruthyValuePath: true,
-                        //         },
-                        //     },
-                        // },
                     ],
                 },
             ],

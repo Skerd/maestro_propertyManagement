@@ -33,8 +33,6 @@ import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/curre
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {ModificationRequestSimpleSnippet} from "../modificationRequest/modificationRequest.snippets";
 import {ConstructorSimpleSnippet} from "../constructor/constructor.snippets";
-import {BoqItemSimpleSnippet} from "../boqItem/boqItem.snippets";
-import {CostCommitmentSimpleSnippet} from "../costCommitment/costCommitment.snippets";
 import {
     EXPENDITURE_CATEGORY_VALUES,
     MEASURE_UNIT_VALUES,
@@ -73,8 +71,6 @@ export interface IUnitCost extends Document, IOwnershipPluginFields, ISoftDelete
     relatedModificationRequest?: IModificationRequest;
     /** Named "constructorRef", not "constructor" — see schema comment below. */
     constructorRef?: any;
-    boqItem?: any;
-    costCommitment?: any;
     invoiceMedia: IMedia[];
     expenditureItems: IExpenditureItem[];
     budgetedAmount?: Decimal128;
@@ -247,30 +243,6 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             refAllowlist: ConstructorSimpleSnippet,
             dynamicTableConfiguration: {
                 order: 16,
-                defaultVisible: false,
-                cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
-            },
-        },
-        boqItem: {
-            type: SchemaTypes.ObjectId,
-            ref: "BoqItem",
-            required: false,
-            refAllowlist: BoqItemSimpleSnippet,
-            dynamicTableConfiguration: {
-                order: 17,
-                defaultVisible: false,
-                cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
-            },
-        },
-        costCommitment: {
-            type: SchemaTypes.ObjectId,
-            ref: "CostCommitment",
-            required: false,
-            refAllowlist: CostCommitmentSimpleSnippet,
-            dynamicTableConfiguration: {
-                order: 18,
                 defaultVisible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],

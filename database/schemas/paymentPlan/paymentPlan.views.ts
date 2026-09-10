@@ -294,7 +294,7 @@ export const paymentPlanSheetView: ViewConfig = {
     ],
 };
 
-const paymentPlanFormFields: ViewConfig["nodes"] = [
+const paymentPlanCreateFormNode: ViewConfig["nodes"] = [
     saleCreateCashFormFields[0],
     saleCreateCashFormFields[1],
     {
@@ -454,17 +454,8 @@ export const paymentPlanCreateFormView: ViewConfig = {
     accessModel: "paymentPlans",
     apiUrl: "/api/realEstate/unit/paymentPlan",
     method: "PUT",
-    nodes: paymentPlanFormFields,
+    nodes: paymentPlanCreateFormNode,
 };
 
-export const paymentPlanEditFormView: ViewConfig = {
-    model: "paymentplans",
-    viewType: "form",
-    viewMode: "edit",
-    accessModel: "paymentPlans",
-    apiUrl: "/api/realEstate/unit/paymentPlan",
-    method: "PATCH",
-    nodes: paymentPlanFormFields,
-};
-
-export const paymentPlanViews: ViewConfig[] = [paymentPlanSheetView, paymentPlanCreateFormView, paymentPlanEditFormView];
+// Payment plans are immutable after create — installments change via payInstallment / restructurePaymentPlan.
+export const paymentPlanViews: ViewConfig[] = [paymentPlanSheetView, paymentPlanCreateFormView];

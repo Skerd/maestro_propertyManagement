@@ -149,10 +149,11 @@ export const saleSheetView: ViewConfig = {
             permissions: {
                 readAny: [
                     "listedUnitPrice",
-                    "saleCurrency",
                     "localDiscount",
                     "finalPrice",
                     "saleExchangeRate",
+                    "reservationDepositAmount",
+                    "reservationDepositCurrency",
                     "reservationConvertedAmount",
                     "reservationExchangeRate",
                 ],
@@ -180,24 +181,6 @@ export const saleSheetView: ViewConfig = {
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
                                     type: "currency",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "saleCurrency" },
-                            field: {
-                                name: "saleCurrency.name",
-                                widget: "#DisplayCard",
-                                label: "saleCurrency",
-                                widgetProps: {
-                                    icon: "#DollarSign",
-                                    valuePath: ["saleCurrency.symbol", "saleCurrency.name"],
-                                    joinSeparator: " ",
-                                    linkedRefPath: "saleCurrency",
-                                    linkedSheetModel: "currencies",
-                                    linkedSheetWidget: "#CurrencySheetView",
-                                    linkedSheetEntityProp: "currency",
                                 },
                             },
                         },
@@ -239,6 +222,46 @@ export const saleSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "saleExchangeRate",
                                 widgetProps: { icon: "#ArrowUpDown" , type: "number"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "reservationDepositAmount",
+                            permissions: { read: "reservationDepositAmount" },
+                            field: {
+                                name: "reservationDepositAmount",
+                                widget: "#DisplayCard",
+                                label: "reservationDepositAmount",
+                                widgetProps: {
+                                    icon: "#Banknote",
+                                    format: "locale",
+                                    valuePath: ["reservationDepositCurrency.symbol", "reservationDepositAmount"],
+                                    joinSeparator: " ",
+                                    linkedRefPath: "reservationDepositCurrency",
+                                    linkedSheetModel: "currencies",
+                                    linkedSheetWidget: "#CurrencySheetView",
+                                    linkedSheetEntityProp: "currency",
+                                    type: "currency",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "reservationDepositCurrency",
+                            permissions: { read: "reservationDepositCurrency" },
+                            field: {
+                                name: "reservationDepositCurrency",
+                                widget: "#DisplayCard",
+                                label: "reservationDepositCurrency",
+                                widgetProps: {
+                                    icon: "#DollarSign",
+                                    valuePath: ["reservationDepositCurrency.symbol", "reservationDepositCurrency.abbreviation", "reservationDepositCurrency.name"],
+                                    joinSeparator: " ",
+                                    linkedRefPath: "reservationDepositCurrency",
+                                    linkedSheetModel: "currencies",
+                                    linkedSheetWidget: "#CurrencySheetView",
+                                    linkedSheetEntityProp: "currency",
+                                },
                             },
                         },
                         {
@@ -311,6 +334,17 @@ export const saleSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "buyerCompany",
                                 widgetProps: { icon: "#Building2" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "buyerCompany",
+                            permissions: { read: "buyerCompany" },
+                            field: {
+                                name: "buyerCompany.vat",
+                                widget: "#DisplayCard",
+                                label: "vat",
+                                widgetProps: { icon: "#Hash" },
                             },
                         },
                         {
@@ -505,8 +539,8 @@ export const saleSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            dependentAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt"],
-            permissions: { readAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt"] },
+            dependentAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt", "handoverCertificate"],
+            permissions: { readAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt", "handoverCertificate"] },
             props: { title: "handover" },
             children: [
                 {
@@ -565,12 +599,32 @@ export const saleSheetView: ViewConfig = {
                         },
                     ],
                 },
+                {
+                    render: "div",
+                    dependent: "handoverCertificate",
+                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                    children: [
+                        {
+                            render: "#SheetMediaFilesStrip",
+                            permissions: { read: "handoverCertificate" },
+                            field: {
+                                name: "handoverCertificate",
+                                widget: "#SheetMediaFilesStrip",
+                                widgetProps: {
+                                    canDownload: true,
+                                    canRemove: false,
+                                    isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
             ],
         },
         {
             render: "#SheetGroup",
-            dependentAny: ["titleTransferDate", "deedNumber", "notaryName"],
-            permissions: { readAny: ["titleTransferDate", "deedNumber", "notaryName"] },
+            dependentAny: ["titleTransferDate", "deedNumber", "notaryName", "titleTransferCertificate"],
+            permissions: { readAny: ["titleTransferDate", "deedNumber", "notaryName", "titleTransferCertificate"] },
             props: { title: "titleTransfer" },
             children: [
                 {
@@ -605,6 +659,26 @@ export const saleSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "notaryName",
                                 widgetProps: { icon: "#IconWriting" },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "div",
+                    dependent: "titleTransferCertificate",
+                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                    children: [
+                        {
+                            render: "#SheetMediaFilesStrip",
+                            permissions: { read: "titleTransferCertificate" },
+                            field: {
+                                name: "titleTransferCertificate",
+                                widget: "#SheetMediaFilesStrip",
+                                widgetProps: {
+                                    canDownload: true,
+                                    canRemove: false,
+                                    isBig: false,
+                                },
                             },
                         },
                     ],
@@ -929,22 +1003,10 @@ const saleEditFormFields: ViewConfig["nodes"] = [
         render: "#FormGrid",
         props: { columns: 1 },
         permissions: {
-            readAny: ["transactionReference", "notes", "localDiscount"],
-            writeAny: ["transactionReference", "notes", "localDiscount"],
+            readAny: ["transactionReference", "notes"],
+            writeAny: ["transactionReference", "notes"],
         },
         children: [
-            {
-                render: "#Field",
-                props: { skipRenderWhenFormExtraNotTruthy: "allowLocalDiscountEdit" },
-                field: {
-                    name: "localDiscount",
-                    widget: "#LocalDiscountField",
-                    label: "form.localDiscountLabel",
-                    placeholder: "form.localDiscountPlaceholder",
-                    widgetProps: { type: "decimal", step: "0.01", min: 0, max: 100 },
-                },
-                permissions: { read: "localDiscount", write: "localDiscount" },
-            },
             {
                 render: "#Field",
                 field: {

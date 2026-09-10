@@ -112,33 +112,6 @@ function computeSalePricing(foundUnit: any, localDiscount: any, saleExchangeRate
     return {finalPrice, reservationConvertedAmount, finalPriceExchangeRate};
 }
 
-function decimalFieldToNumber(value: unknown): number | undefined {
-    if (value == null) return undefined;
-    const raw = typeof value === "object" && value !== null && "toString" in value ? value.toString() : String(value);
-    const n = parseFloat(raw);
-    return Number.isFinite(n) ? n : undefined;
-}
-
-/** Recompute `finalPrice` from frozen sale snapshots when `localDiscount` changes on edit. */
-function computeSaleFinalPriceFromSnapshot(existing: {
-    listedUnitPrice?: unknown;
-    saleExchangeRate?: unknown;
-    reservationConvertedAmount?: unknown;
-}, localDiscount: unknown, languageCode: string): number {
-    const listed = decimalFieldToNumber(existing.listedUnitPrice);
-    if (listed == null) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
-    const priceD = new Decimal(String(listed));
-    const discountD = new Decimal(String(localDiscount ?? 0));
-    const discountedPrice = priceD.minus(priceD.mul(discountD).div(100));
-    const rate = decimalFieldToNumber(existing.saleExchangeRate) ?? 1;
-    const reservationConverted = decimalFieldToNumber(existing.reservationConvertedAmount) ?? 0;
-    const finalPrice = new Decimal(String(rate))
-        .mul(discountedPrice.minus(new Decimal(String(reservationConverted))))
-        .toNumber();
-    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
-    return finalPrice;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // createCrudRouter
 // ─────────────────────────────────────────────────────────────────────────────
@@ -591,7 +564,7 @@ const {router} = createCrudRouter({
     // ── Update ─────────────────────────────────────────────────────────────
     buildUpdateData: async (params, writeFields) => {
         const {
-            notes, transactionReference, localDiscount,
+            notes, transactionReference,
             handoverDate, handedOverBy, handoverNotes, handoverCertificate: handoverCertificateFile,
             titleTransferDate, deedNumber, notaryName, titleTransferCertificate: titleTransferCertificateFile,
             existing, company, session, logger, languageCode,
@@ -627,16 +600,6 @@ const {router} = createCrudRouter({
         if (notes !== undefined && writeFields.notes) update.notes = notes;
         if (transactionReference !== undefined && writeFields.transactionReference) {
             update.transactionReference = transactionReference == null || String(transactionReference).trim() === "" ? undefined : String(transactionReference).trim();
-        }
-        const canEditDiscount =
-            existing?.paymentType !== SalePaymentType.PAYMENT_PLAN && !existing?.paymentPlan;
-        if (localDiscount !== undefined && writeFields.localDiscount && canEditDiscount) {
-            const listed = decimalFieldToNumber(existing?.listedUnitPrice);
-            if (listed != null) {
-                const finalPrice = computeSaleFinalPriceFromSnapshot(existing, localDiscount, languageCode);
-                update.localDiscount = Decimal128.fromString(String(localDiscount ?? 0));
-                update.finalPrice = Decimal128.fromString(String(finalPrice));
-            }
         }
         if (handoverDate !== undefined) {
             update.handoverDate = handoverDate === null ? null : new Date(handoverDate);

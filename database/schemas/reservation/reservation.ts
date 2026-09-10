@@ -299,7 +299,7 @@ const ReservationSchema = new Schema<IReservation>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                hideColumn: true,
+                sortable: false,
             }
         },
         additionalDocuments: {
@@ -311,7 +311,7 @@ const ReservationSchema = new Schema<IReservation>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                hideColumn: true,
+                sortable: false,
             }
         },
     },

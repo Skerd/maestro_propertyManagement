@@ -75,7 +75,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "reservedBy",
                             permissions: { read: "reservedBy" },
                             field: {
                                 name: "reservedBy",
@@ -181,7 +180,6 @@ export const reservationSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "reservationNotes" },
-                            dependent: "reservationNotes",
                             field: {
                                 name: "reservationNotes",
                                 widget: "#DisplayCard",
@@ -574,78 +572,19 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {
-                            name: "project",
-                            widget: "#ApiSelect",
-                            label: "form.projectLabel",
-                            placeholder: "form.projectPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
-                                pageSize: 50,
-                                cascadeClearFormFields: ["edifice", "floor", "unit"],
-                            },
-                        },
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50, cascadeClearFormFields: ["edifice", "floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "edifice",
-                            widget: "#ApiSelect",
-                            label: "form.edificeLabel",
-                            placeholder: "form.edificePlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/edifice/select",
-                                method: "POST",
-                                pageSize: 50,
-                                postBodyFromFormField: { field: "project", paramName: "project" },
-                                remountKeyFormField: "project",
-                                cascadeClearFormFields: ["floor", "unit"],
-                            },
-                        },
+                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", method: "POST", pageSize: 50, postBodyFromFormField: {field: "project", paramName: "project"}, remountKeyFormField: "project", cascadeClearFormFields: ["floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "floor",
-                            widget: "#ApiSelect",
-                            label: "form.floorLabel",
-                            placeholder: "form.floorPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/floor/select",
-                                method: "POST",
-                                pageSize: 50,
-                                postBodyFromFormField: { field: "edifice", paramName: "edifice" },
-                                remountKeyFormField: "edifice",
-                                cascadeClearFormFields: ["unit"],
-                            },
-                        },
+                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", method: "POST", pageSize: 50, postBodyFromFormField: {field: "edifice", paramName: "edifice"}, remountKeyFormField: "edifice", cascadeClearFormFields: ["unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "unit",
-                            widget: "#ApiSelect",
-                            label: "form.unitLabel",
-                            placeholder: "form.unitPlaceholder",
-                            required: true,
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
-                                pageSize: 50,
-                                postBodyFromFormFields: [
-                                    { field: "project", paramName: "project" },
-                                    { field: "edifice", paramName: "edifice" },
-                                    { field: "floor", paramName: "floor" },
-                                ],
-                                enableWhenFormFieldsNonEmpty: ["project", "edifice"],
-                                remountKeyFormField: "project",
-                            },
-                        },
+                        field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50, postBodyFromFormFields: [{field: "project", paramName: "project"}, {field: "edifice", paramName: "edifice"}, {field: "floor", paramName: "floor"}], enableWhenFormFieldsNonEmpty: ["project", "edifice"], remountKeyFormField: "project"}},
                     },
                 ],
             },
@@ -806,33 +745,11 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {
-                            name: "reservationContract",
-                            widget: "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                maxFiles: 10,
-                                showLabel: true,
-                                labelKey: "form.reservationContractLabel",
-                                addFileKey: "form.uploadReservationContract",
-                                filesSelectedKey: "form.filesSelected",
-                            },
-                        },
+                        field: {name: "reservationContract", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 10, showLabel: true, labelKey: "form.reservationContractLabel", addFileKey: "form.uploadReservationContract", filesSelectedKey: "form.filesSelected"}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "additionalDocuments",
-                            widget: "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                maxFiles: 10,
-                                showLabel: true,
-                                labelKey: "form.additionalDocumentsLabel",
-                                addFileKey: "form.uploadAdditionalDocuments",
-                                filesSelectedKey: "form.filesSelected",
-                            },
-                        },
+                        field: {name: "additionalDocuments", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 10, showLabel: true, labelKey: "form.additionalDocumentsLabel", addFileKey: "form.uploadAdditionalDocuments", filesSelectedKey: "form.filesSelected"}},
                     },
                 ],
             },

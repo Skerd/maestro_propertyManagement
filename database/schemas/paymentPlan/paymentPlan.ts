@@ -15,6 +15,7 @@ import {paymentPlanViews} from "./paymentPlan.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {PaymentPlanSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/paymentPlan.schema-def";
 import {SaleBlankSnippet} from "../sale/sale.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import dayjs from "dayjs";
 import crypto from "crypto";
 import {SalePaymentType} from "../sale/sale";
@@ -163,7 +164,10 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                     write: "no-permission"
                 }
             },
-            refAllowlist: SaleBlankSnippet
+            refAllowlist: SaleBlankSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+            },
         },
         status: {
             type: SchemaTypes.String,
@@ -464,7 +468,15 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
         restructureHistory: {
             type: [{
                 restructuredAt:              {type: SchemaTypes.Date,     required: true},
-                restructuredBy:              {type: SchemaTypes.ObjectId, required: true},
+                restructuredBy: {
+                    type: SchemaTypes.ObjectId,
+                    ref: "User",
+                    required: true,
+                    refAllowlist: SimpleBlankUserSnippet,
+                    dynamicTableConfiguration: {
+                        refDisplayKey: ["name", "surname"],
+                    },
+                },
                 reason:                      {type: SchemaTypes.String,   required: false, trim: true},
                 previousNumberOfInstallments:{type: SchemaTypes.Number,   required: true},
                 previousStartDate:           {type: SchemaTypes.Date,     required: true},

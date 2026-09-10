@@ -18,8 +18,16 @@ export interface IPropertyManagementConfig extends Document, IOwnershipPluginFie
 
 const PropertyManagementConfigSchema = new Schema<IPropertyManagementConfig>(
     {
-        requiresSaleApproval: {type: SchemaTypes.Boolean, required: false, default: false},
-        requiresHandoverPackageForHandover: {type: SchemaTypes.Boolean, required: false, default: false},
+        requiresSaleApproval: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false
+        },
+        requiresHandoverPackageForHandover: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false
+        },
     },
     {accessMode: "loose"},
 );

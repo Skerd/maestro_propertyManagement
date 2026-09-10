@@ -44,7 +44,7 @@ export const propertyManagementConfigSheetView: ViewConfig = {
     ],
 };
 
-const formNodes: ViewConfig["nodes"] = [
+const propertyManagementConfigCreateFormNode: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -75,6 +75,37 @@ const formNodes: ViewConfig["nodes"] = [
     },
 ];
 
+const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "generalInfo"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "requiresSaleApproval",
+                            widget: "#Switch",
+                            label: "form.requiresSaleApprovalLabel",
+                        }, permissions: {read: "requiresSaleApproval", write: "requiresSaleApproval"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "requiresHandoverPackageForHandover",
+                            widget: "#Switch",
+                            label: "form.requiresHandoverPackageForHandoverLabel",
+                        }, permissions: {read: "requiresHandoverPackageForHandover", write: "requiresHandoverPackageForHandover"},
+                    },
+                ],
+            },
+        ],
+    },
+];
+
 export const propertyManagementConfigCreateFormView: ViewConfig = {
     model: "propertymanagementconfigs",
     viewType: "form",
@@ -82,7 +113,7 @@ export const propertyManagementConfigCreateFormView: ViewConfig = {
     accessModel: "propertymanagementconfigs",
     apiUrl: "/api/realEstate/propertyManagementConfig",
     method: "PUT",
-    nodes: formNodes,
+    nodes: propertyManagementConfigCreateFormNode,
 };
 
 export const propertyManagementConfigEditFormView: ViewConfig = {
@@ -92,7 +123,7 @@ export const propertyManagementConfigEditFormView: ViewConfig = {
     accessModel: "propertymanagementconfigs",
     apiUrl: "/api/realEstate/propertyManagementConfig",
     method: "PATCH",
-    nodes: formNodes,
+    nodes: propertyManagementConfigEditFormNode,
 };
 
 export const propertyManagementConfigViews: ViewConfig[] = [

@@ -12,7 +12,7 @@
  * onto the detailed plan by rasterizing that polygon into a small bounding-box
  * crop — no full-image mask warp.
  *
- * Uses @techstark/opencv-js (as provided — not ported to opencv4nodejs).
+ * Uses @techstark/opencv-js.
  */
 
 import cv from "@techstark/opencv-js";

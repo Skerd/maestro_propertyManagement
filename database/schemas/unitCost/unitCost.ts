@@ -42,6 +42,12 @@ import {
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
+/** Nested line fields stay off the table (`visible: false`) but remain in the Filter Builder. */
+const expenditureLineFilterColumn = {
+    visible: false,
+    sortable: false,
+};
+
 export type IExpenditureItem = {
     title: string;
     category: (typeof EXPENDITURE_CATEGORY_VALUES)[number];
@@ -260,41 +266,25 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
                     type: SchemaTypes.String,
                     required: true,
                     trim: true,
-                    dynamicTableConfiguration: {
-                        hideColumn: true,
-                        filterable: false,
-                        sortable: false,
-                    },
+                    dynamicTableConfiguration: expenditureLineFilterColumn,
                 },
                 category: {
                     type: SchemaTypes.String,
                     enum: [...EXPENDITURE_CATEGORY_VALUES],
                     required: true,
-                    dynamicTableConfiguration: {
-                        hideColumn: true,
-                        filterable: false,
-                        sortable: false,
-                    },
+                    dynamicTableConfiguration: expenditureLineFilterColumn,
                 },
                 amount: {
                     type: SchemaTypes.Number,
                     required: true,
                     min: 0,
-                    dynamicTableConfiguration: {
-                        hideColumn: true,
-                        filterable: false,
-                        sortable: false,
-                    },
+                    dynamicTableConfiguration: expenditureLineFilterColumn,
                 },
                 unit: {
                     type: SchemaTypes.String,
                     enum: [...MEASURE_UNIT_VALUES],
                     required: true,
-                    dynamicTableConfiguration: {
-                        hideColumn: true,
-                        filterable: false,
-                        sortable: false,
-                    },
+                    dynamicTableConfiguration: expenditureLineFilterColumn,
                 },
                 pricePerUnit: {
                     type: SchemaTypes.Decimal128,
@@ -311,11 +301,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
                         },
                         message: "pricePerUnit must be non-negative",
                     },
-                    dynamicTableConfiguration: {
-                        hideColumn: true,
-                        filterable: false,
-                        sortable: false,
-                    },
+                    dynamicTableConfiguration: expenditureLineFilterColumn,
                 },
                 media: {
                     type: [{type: SchemaTypes.ObjectId, ref: "Media"}],

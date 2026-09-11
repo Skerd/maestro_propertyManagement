@@ -18,6 +18,17 @@ import {escapeRegex} from "@coreModule/utilities/helpers";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import type {SelectResponse} from "armonia/src/modules/core/types/shared.types";
 import {InspectionActions} from "../../../../database/schemas/inspection/inspection.actions";
+import {
+    concatenateTemplateItems,
+    inspectionsWithChecklistContext,
+    isInspectionChecklistComplete,
+    isInspectionChecklistLocked,
+    loadChecklistTemplate,
+    mergeInspectionChecklist,
+    seedChecklistFromTemplate,
+    toChecklistRows,
+} from "@propertyManagement/utilities/inspectionChecklist/inspectionChecklist";
+import {idString} from "@propertyManagement/utilities/inspectionChecklist/inspectionChecklist.sync";
 
 export const basePath = "/api/realEstate/unit/inspection";
 
@@ -206,6 +217,18 @@ export const {router} = createCrudRouter({
             data.cancellationReason = cancellationReason;
         }
 
+        const templateId = data.checklistTemplate ? new ObjectId(String(data.checklistTemplate)) : undefined;
+        if (templateId) {
+            const template = await loadChecklistTemplate(templateId, company._id, {session, logger, languageCode});
+            if (template) {
+                data.checklistItems = seedChecklistFromTemplate(template);
+            }
+        }
+
+        if (resolvedStatus === InspectionStatus.COMPLETED && !isInspectionChecklistComplete(data.checklistItems ?? [])) {
+            throw apiValidationException("inspection_checklist_incomplete", "", null, languageCode);
+        }
+
         return data;
     },
     afterCreate: async (created, params) => {
@@ -281,6 +304,28 @@ export const {router} = createCrudRouter({
             const currentStatus = (data.status ?? status ?? existing.status) as InspectionStatus;
             if (currentStatus === InspectionStatus.CANCELLED) {
                 data.cancellationReason = cancellationReason;
+            }
+        }
+
+        const ctx = {session, logger, languageCode};
+        const nextTemplateRaw = Object.prototype.hasOwnProperty.call(data, "checklistTemplate")
+            ? data.checklistTemplate
+            : existing.checklistTemplate;
+        const nextTemplateId = idString(nextTemplateRaw) ? new ObjectId(idString(nextTemplateRaw)!) : undefined;
+
+        if (!isInspectionChecklistLocked(existing.status)) {
+            const template = await loadChecklistTemplate(nextTemplateId, company._id, ctx);
+            data.checklistItems = mergeInspectionChecklist(
+                toChecklistRows(existing.checklistItems),
+                concatenateTemplateItems(template),
+            );
+        }
+
+        const nextStatus = (data.status ?? status ?? existing.status) as InspectionStatus;
+        if (nextStatus === InspectionStatus.COMPLETED && existing.status !== InspectionStatus.COMPLETED) {
+            const itemsForGate = data.checklistItems ?? existing.checklistItems ?? [];
+            if (!isInspectionChecklistComplete(itemsForGate)) {
+                throw apiValidationException("inspection_checklist_incomplete", "", null, languageCode);
             }
         }
 
@@ -371,4 +416,13 @@ export const {router} = createCrudRouter({
         return {message: "Inspection successfully restored"};
     },
     actions: InspectionActions,
+    enrichList: async (docs, params) => inspectionsWithChecklistContext(docs, params),
+    enrichSingle: async (doc, params) => {
+        const [enriched] = await inspectionsWithChecklistContext([doc], params);
+        return enriched;
+    },
+    enrichUpdate: async (doc, params) => {
+        const [enriched] = await inspectionsWithChecklistContext([doc], params);
+        return enriched;
+    },
 });

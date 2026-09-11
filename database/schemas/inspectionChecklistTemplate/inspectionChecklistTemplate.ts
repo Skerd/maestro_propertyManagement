@@ -8,9 +8,15 @@ import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {InspectionChecklistTemplateSchemaDef, inspectionChecklistTemplateStatusValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/inspectionChecklistTemplate/inspectionChecklistTemplate.schema-def";
-import {ProjectSimpleSnippet} from "../project/project.snippets";
-import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
+import {
+    InspectionChecklistTemplateSchemaDef,
+    inspectionChecklistTemplateStatusValues,
+    inspectionChecklistItemImportanceValues,
+    INSPECTION_CHECKLIST_TITLE_MAX,
+    INSPECTION_CHECKLIST_LONG_TEXT_MAX,
+    INSPECTION_CHECKLIST_ITEM_NAME_MAX,
+    INSPECTION_CHECKLIST_ITEM_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/inspectionChecklistTemplate/inspectionChecklistTemplate.schema-def";
 import {inspectionChecklistTemplateViews} from "./inspectionChecklistTemplate.views";
 import {applyInspectionChecklistTemplateIndexes} from "./inspectionChecklistTemplate.indexes";
 
@@ -25,12 +31,20 @@ const InspectionChecklistTemplateSchema = new Schema<IInspectionChecklistTemplat
     {
         name: {type: SchemaTypes.String, required: true, trim: true},
 
-        title: {type: SchemaTypes.String, required: true, trim: true},
+        title: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_TITLE_MAX},
         trade: {type: SchemaTypes.String, required: false},
         stage: {type: SchemaTypes.String, required: false},
-        description: {type: SchemaTypes.String, required: false},
-        itemsJson: {type: SchemaTypes.String, required: false},
-        notes: {type: SchemaTypes.String, required: false},
+        description: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX},
+        notes: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX},
+        items: {
+            type: [{
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
+                importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false},
+            }],
+            default: [],
+        },
 
         status: {
             type: SchemaTypes.String,

@@ -17,13 +17,23 @@ import {applyInspectionIndexes} from "./inspection.indexes";
 import {addModelData} from "@coreModule/database/collections";
 import {inspectionViews} from "./inspection.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {InspectionSchemaDef, INSPECTION_CHECKLIST_JSON_MAX, INSPECTION_FINDING_NOTES_MAX, INSPECTION_LONG_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
+import {InspectionSchemaDef, INSPECTION_FINDING_NOTES_MAX, INSPECTION_LONG_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
+import {
+    inspectionChecklistItemImportanceValues,
+    INSPECTION_CHECKLIST_ITEM_NAME_MAX,
+    INSPECTION_CHECKLIST_ITEM_TEXT_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/inspectionChecklistTemplate/inspectionChecklistTemplate.schema-def";
 import {UnitSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {InspectionSimpleSnippet} from "./inspection.snippets";
 import {InspectionChecklistTemplateSimpleSnippet} from "../inspectionChecklistTemplate/inspectionChecklistTemplate.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+
+const noWrite = {
+    self: {write: "no-permission" as const},
+    others: {write: "no-permission" as const},
+};
 
 export enum InspectionStatus {
     SCHEDULED = "scheduled",
@@ -66,6 +76,20 @@ export interface IInspectionFindings {
     otherObservations?: IInspectionFindingItem[];
 }
 
+export type IInspectionChecklistItem = {
+    _id?: unknown;
+    sourceTemplateId?: unknown;
+    sourceItemId?: unknown;
+    name: string;
+    description?: string;
+    instructions?: string;
+    importance?: string;
+    completed?: boolean;
+    completedAt?: Date;
+    completedBy?: unknown;
+    retained?: boolean;
+};
+
 export interface IInspection extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name: string;
     unit: IUnit;
@@ -88,7 +112,7 @@ export interface IInspection extends Document, IOwnershipPluginFields, ISoftDele
     clientSignatureMediaId?: IMedia;
     clientSignedAt?: Date;
     checklistTemplate?: any;
-    checklistResponsesJson?: string;
+    checklistItems?: IInspectionChecklistItem[];
 }
 
 function findingItemSchemaDef() {
@@ -304,10 +328,27 @@ const InspectionSchema = new Schema<IInspection>(
             required: false,
             refAllowlist: InspectionChecklistTemplateSimpleSnippet,
         },
-        checklistResponsesJson: {
-            type: SchemaTypes.String,
-            required: false,
-            maxlength: INSPECTION_CHECKLIST_JSON_MAX,
+        checklistItems: {
+            type: [{
+                sourceTemplateId: {type: SchemaTypes.ObjectId, ref: "InspectionChecklistTemplate", required: false},
+                sourceItemId: {type: SchemaTypes.ObjectId, required: false},
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
+                importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false},
+                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite},
+                completedBy: {
+                    type: SchemaTypes.ObjectId,
+                    ref: "User",
+                    required: false,
+                    refAllowlist: SimpleBlankUserSnippet,
+                    permissions: noWrite,
+                },
+                retained: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+            }],
+            default: [],
+            permissions: noWrite,
         },
     },
     {accessMode: "loose"},
@@ -349,4 +390,4 @@ normalizeSchemaPermissions(Inspection);
 export default Inspection;
 
 addModelData(Inspection, inspectionViews);
-validateSchemaDefAgainstMongoose(InspectionSchema, InspectionSchemaDef, "Inspection");
+validateSchemaDefAgainstMongoose(InspectionSchema, InspectionSchemaDef, "Inspection", ["checklistItems"]);

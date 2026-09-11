@@ -42,10 +42,9 @@ export const {router} = createCrudRouter({
     selectSearchField: "title",
     
     actions: InspectionChecklistTemplateActions,
-    extraListFilter: async ({projectId, edificeId, status}: any) => {
+    extraSelectFilter: async () => ({status: "active"}),
+    extraListFilter: async ({status}: any) => {
         const filter: Record<string, any> = {};
-        if (projectId && projectId !== "") filter.project = new ObjectId(String(projectId));
-        if (edificeId && edificeId !== "") filter.edifice = new ObjectId(String(edificeId));
         if (status && status !== "") filter.status = status;
         return filter;
     },
@@ -57,7 +56,15 @@ export const {router} = createCrudRouter({
     },
     buildUpdateData: async ({fileIds, media, ...params}: any, writeFields) => {
         const data = buildUpdateDataFromSchemaDef(InspectionChecklistTemplateSchemaDef, transforms)({...params, media}, writeFields);
-        
+        if (Array.isArray(data.items) && Array.isArray(params.items)) {
+            data.items = data.items.map((item: Record<string, unknown>, index: number) => {
+                const rawId = params.items[index]?._id;
+                if (rawId == null || rawId === "") return item;
+                const id = String(rawId);
+                if (!ObjectId.isValid(id)) return item;
+                return {...item, _id: new ObjectId(id)};
+            });
+        }
         return data;
     },
 });

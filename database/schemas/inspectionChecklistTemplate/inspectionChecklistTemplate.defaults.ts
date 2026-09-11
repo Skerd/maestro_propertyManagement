@@ -47,7 +47,11 @@ export async function createInspectionChecklistTemplates(
             trade: "finishes",
             stage: "handover",
             description: "Standard snagging checklist used at practical completion.",
-            itemsJson: "[{\"item\":\"Doors and ironmongery\"},{\"item\":\"Sanitaryware\"},{\"item\":\"HVAC outlets\"}]",
+            items: [
+                {name: "Doors and ironmongery", importance: "medium"},
+                {name: "Sanitaryware", importance: "medium"},
+                {name: "HVAC outlets", importance: "medium"},
+            ],
             status: "active"
         }, logger, "inspection checklist template");
         if (doc?._id) created.set(seedKey, doc._id as ObjectId);

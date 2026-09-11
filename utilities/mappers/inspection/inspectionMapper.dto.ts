@@ -1,7 +1,8 @@
-import {IInspection} from "../../../database/schemas/inspection/inspection";
-import {Inspection, InspectionFindings} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.dto";
+import {IInspection, IInspectionChecklistItem} from "../../../database/schemas/inspection/inspection";
+import {Inspection, InspectionChecklistItem, InspectionFindings} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.dto";
 import {mapMedia, mapPopulatedRef, mapPopulatedSimpleUser} from "@coreModule/utilities/mappers/common.mapper";
 import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {isInspectionChecklistComplete} from "../../inspectionChecklist/inspectionChecklist.sync";
 
 const FINDINGS_KEYS = [
     "structuralIssues", "electricalIssues", "plumbingIssues", "hvacIssues",
@@ -27,6 +28,22 @@ function mapFindings(findings: any): InspectionFindings | undefined {
         }));
     }
     return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function mapChecklistItem(item: IInspectionChecklistItem): InspectionChecklistItem {
+    return {
+        _id: item._id != null ? String(item._id) : undefined,
+        sourceTemplateId: item.sourceTemplateId != null ? String(item.sourceTemplateId) : undefined,
+        sourceItemId: item.sourceItemId != null ? String(item.sourceItemId) : undefined,
+        name: item.name,
+        description: item.description,
+        instructions: item.instructions,
+        importance: item.importance as InspectionChecklistItem["importance"],
+        completed: !!item.completed,
+        completedAt: item.completedAt ? new Date(item.completedAt).toISOString() : undefined,
+        completedBy: mapPopulatedSimpleUser(item.completedBy),
+        retained: !!item.retained,
+    };
 }
 
 function mapUnitRef(unit: any): Inspection["unit"] | undefined {
@@ -84,7 +101,10 @@ export function inspectionToDTO(inspection: IInspection | any): Inspection {
                   title: (inspection.checklistTemplate as any).title,
               }
             : undefined,
-        checklistResponsesJson: inspection.checklistResponsesJson ?? undefined,
+        checklistItems: Array.isArray(inspection.checklistItems)
+            ? inspection.checklistItems.map(mapChecklistItem)
+            : [],
+        checklistComplete: isInspectionChecklistComplete(inspection.checklistItems ?? []),
         createdAt: (inspection as any).createdAt ? new Date((inspection as any).createdAt).toISOString() : undefined,
         updatedAt: (inspection as any).updatedAt ? new Date((inspection as any).updatedAt).toISOString() : undefined,
         ...mapSoftDeleteToDTO(inspection),

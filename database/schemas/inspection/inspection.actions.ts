@@ -4,8 +4,16 @@ import {getModelCollectedData} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {cancelScheduledInspectionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/cancelScheduledInspection.form.validator";
+import {updateInspectionChecklistItemsFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/updateInspectionChecklistItems.form.validator";
 import type {Inspection as InspectionData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.dto";
 import {inspectionToDTO} from "@propertyManagement/utilities/mappers/inspection/inspectionMapper.dto";
+import {
+    applyInspectionItemPatches,
+    inspectionsWithChecklistContext,
+    isInspectionChecklistLocked,
+    syncInspectionChecklist,
+    toChecklistRows,
+} from "@propertyManagement/utilities/inspectionChecklist/inspectionChecklist";
 import {unitService} from "../unit/unit.service";
 import Inspection, {InspectionStatus} from "./inspection";
 import {inspectionService} from "./inspection.service";
@@ -62,5 +70,41 @@ export class InspectionActions {
 
         logger.finish(`Successfully cancelled scheduled inspection: ${_id}`);
         return returnData;
+    }
+
+    @action({
+        auth: "private",
+        rateLimit: {windowMs: 60000, max: 30},
+        transaction: true,
+        schema: updateInspectionChecklistItemsFormSchema,
+    })
+    async updateChecklistItems(params: Record<string, any>): Promise<InspectionData | undefined> {
+        const {logger, languageCode, session, actionUserCtx, company, _id, items} = params;
+        logger.start(`Inspection.updateChecklistItems ${_id}...`);
+
+        const existing = await inspectionService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {session, logger, languageCode},
+        );
+        if (isInspectionChecklistLocked(existing.status)) {
+            throw apiValidationException("invalid_status_for_update_inspection_checklist", "", null, languageCode);
+        }
+
+        const synced = await syncInspectionChecklist(existing, company._id, {session, logger, languageCode});
+        const nextItems = applyInspectionItemPatches(
+            toChecklistRows(synced.inspection.checklistItems),
+            items,
+            actionUserCtx.userId,
+        );
+        await inspectionService.updateByIdOrThrow(
+            existing._id,
+            {$set: {checklistItems: nextItems}},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        );
+        const updated = await inspectionService.findById(existing._id, {session, logger, languageCode});
+        if (!updated) return inspectionToDTO(existing);
+        const [dto] = await inspectionsWithChecklistContext([updated], {company, session, logger, languageCode});
+        logger.finish(`Inspection.updateChecklistItems done`);
+        return dto;
     }
 }

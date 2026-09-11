@@ -1,6 +1,5 @@
 import type {ViewConfig, ViewNode} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {
-    INSPECTION_CHECKLIST_JSON_MAX,
     INSPECTION_FINDING_NOTES_MAX,
     INSPECTION_LONG_TEXT_MAX,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
@@ -343,7 +342,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            permissions: { readAny: ["checklistTemplate", "checklistResponsesJson"] },
+            permissions: { readAny: ["checklistTemplate"] },
             props: { title: "checklist" },
             children: [
                 {
@@ -360,6 +359,10 @@ export const inspectionSheetView: ViewConfig = {
                                 label: "checklistTemplate",
                                 widgetProps: {
                                     icon: "#ListDetails",
+                                    linkedRefPath: "checklistTemplate",
+                                    linkedSheetModel: "inspectionchecklisttemplates",
+                                    linkedSheetWidget: "#InspectionChecklistTemplateSheetView",
+                                    linkedSheetEntityProp: "entity",
                                     parent: "checklistTemplate",
                                     valuePath: ["title", "name"],
                                     pickFirstTruthyValuePath: true,
@@ -368,19 +371,50 @@ export const inspectionSheetView: ViewConfig = {
                         },
                     ],
                 },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: {
+                storageKey: "inspection.sheet.checklistItems.display",
+                defaultMode: "cards",
+            },
+            children: [
                 {
-                    render: "div",
-                    props: { className: "p-2 rounded-lg bg-muted/30 border border-border/50" },
-                    dependent: "checklistResponsesJson",
+                    render: "#SheetGroup",
+                    dependent: "checklistItems",
+                    dependentRuntimeOnly: true,
+                    props: {
+                        title: "checklistItems",
+                        titleActions: "#ReferencesViewModeToggle",
+                    },
                     children: [
                         {
-                            render: "#ExpandableText",
-                            permissions: { read: "checklistResponsesJson" },
-                            field: {
-                                name: "checklistResponsesJson",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm font-mono" },
-                            },
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                            children: [
+                                {
+                                    render: "#SheetEmbeddedItemsList",
+                                    field: {
+                                        name: "checklistItems",
+                                        skipReadAccessGate: true,
+                                        widget: "#SheetEmbeddedItemsList",
+                                        widgetProps: {
+                                            pageSize: 20,
+                                            cardColumns: 3,
+                                            compactSummaryFields: ["name", "completed"],
+                                            fields: [
+                                                {name: "name", type: "text", icon: "#IconLabel", labelKey: "itemName"},
+                                                {name: "importance", type: "text", icon: "#CircleDot", labelKey: "importance", languageKeyCategory: "importanceLevels"},
+                                                {name: "completed", type: "text", icon: "#CircleCheck", labelKey: "completed", languageKeyCategory: "completedState"},
+                                                {name: "description", type: "expandableText", icon: "#IconAlignLeft", labelKey: "itemDescription"},
+                                                {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions"},
+                                            ],
+                                        },
+                                    },
+                                    dependent: "checklistItems",
+                                },
+                            ],
                         },
                     ],
                 },
@@ -813,23 +847,11 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                 method: "POST",
                                 pageSize: 50,
                                 normalizeEmptyToUndefined: true,
+                                postBody: {status: "active"},
                             },
                         },
                     },
                 ],
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "checklistResponsesJson",
-                    widget: "#Textarea",
-                    label: "form.checklistResponsesJsonLabel",
-                    placeholder: "form.checklistResponsesJsonPlaceholder",
-                    widgetProps: {
-                        className: "resize-none max-h-[250px] overflow-y-auto font-mono text-xs",
-                        maxLength: INSPECTION_CHECKLIST_JSON_MAX,
-                    },
-                },
             },
         ],
     },
@@ -1335,8 +1357,8 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
         render: "#TitleWithCollapse",
         props: { title: "checklist" },
         permissions: {
-            readAny: ["checklistTemplate", "checklistResponsesJson"],
-            writeAny: ["checklistTemplate", "checklistResponsesJson"],
+            readAny: ["checklistTemplate"],
+            writeAny: ["checklistTemplate"],
         },
         children: [
             {
@@ -1355,23 +1377,11 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                 method: "POST",
                                 pageSize: 50,
                                 normalizeEmptyToUndefined: true,
+                                postBody: {status: "active"},
                             },
                         }, permissions: {read: "checklistTemplate", write: "checklistTemplate"},
                     },
                 ],
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "checklistResponsesJson",
-                    widget: "#Textarea",
-                    label: "form.checklistResponsesJsonLabel",
-                    placeholder: "form.checklistResponsesJsonPlaceholder",
-                    widgetProps: {
-                        className: "resize-none max-h-[250px] overflow-y-auto font-mono text-xs",
-                        maxLength: INSPECTION_CHECKLIST_JSON_MAX,
-                    },
-                }, permissions: {read: "checklistResponsesJson", write: "checklistResponsesJson"},
             },
         ],
     },

@@ -15,6 +15,23 @@ import {
 } from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/imageUtils";
 
 /**
+ * Ghostscript DPI that yields ~{@link config.DETAIL_PDF_PAGE_TARGET_HEIGHT_PX} for
+ * the tallest page in the batch (PDF points → pixels at 72 pt/inch).
+ */
+function detailRenderDpiForPages(pdfDoc: PDFDocument, pageIndices: number[]): number {
+    let maxDisplayHeightPts = 0;
+    for (const pageIndex of pageIndices) {
+        const page = pdfDoc.getPage(pageIndex);
+        const isRotated = Math.abs(page.getRotation().angle) % 180 !== 0;
+        const displayHeight = isRotated ? page.getWidth() : page.getHeight();
+        maxDisplayHeightPts = Math.max(maxDisplayHeightPts, displayHeight);
+    }
+    return Math.max(72, Math.round(
+        (config.DETAIL_PDF_PAGE_TARGET_HEIGHT_PX * 72) / Math.max(1, maxDisplayHeightPts)
+    ));
+}
+
+/**
  * Batch processes multiple PDF pages efficiently
  */
 export async function batchRenderAndProcessPages(
@@ -25,6 +42,7 @@ export async function batchRenderAndProcessPages(
     outputRoot: string,
     timer: PerformanceTimer,
     pageCount: number,
+    oldPdf: boolean = false,
 ): Promise<PageImageResult[]> {
     return await timer.timeAsync('batchRenderAndProcessPages', async () => {
         const logger = getLogger("batch_render_and_process", parentLogger);
@@ -86,15 +104,24 @@ export async function batchRenderAndProcessPages(
         });
         logger.debug("Finished batch rendering!");
 
-        // Batch-render all pages at high detail DPI in one GS call (replaces N per-page GS calls)
+        // Detail rasters are sized to DETAIL_PDF_PAGE_TARGET_HEIGHT_PX (not a fixed DPI),
+        // so large CAD sheets stay ~1.2k tall instead of 9k+. One GS DPI for the batch,
+        // then each page is normalized to the exact target height after rotation.
         let detailTempDir = path.join(outputRoot, '_temp_detail_batch');
         ensureDir(detailTempDir, logger);
 
-        logger.debug(`Batch detail rendering pages ${firstPage}-${lastPage} @ ${config.DETAIL_PDF_PAGES_DPI} DPI...`);
+        const detailDpi = detailRenderDpiForPages(pdfDoc, pageIndices);
+        logger.debug(
+            `Batch detail rendering pages ${firstPage}-${lastPage} @ ${detailDpi} DPI ` +
+            `(target height ${config.DETAIL_PDF_PAGE_TARGET_HEIGHT_PX}px)...`
+        );
         const detailedImageOutputPattern = 'detail-%d.png';
         const detailPageToPath = timer.timeSync('turnPDFPageToDetailedImage', () => {
             const detailBatchRenderingLogger = getLogger('render_detail_pages_batch_ghostscript', logger);
-            detailBatchRenderingLogger.start(`Batch detail rendering pages ${firstPage}-${lastPage} @ ${config.DETAIL_PDF_PAGES_DPI} DPI`);
+            detailBatchRenderingLogger.start(
+                `Batch detail rendering pages ${firstPage}-${lastPage} @ ${detailDpi} DPI ` +
+                `(→ ${config.DETAIL_PDF_PAGE_TARGET_HEIGHT_PX}px height)`
+            );
 
             const outputPath = path.join(detailTempDir, detailedImageOutputPattern);
             const flags = [
@@ -106,7 +133,7 @@ export async function batchRenderAndProcessPages(
                 '-dMaxBitmap=500000000',
                 '-dBufferSpace=16777216',
                 '-sDEVICE=png16m',
-                `-r${config.DETAIL_PDF_PAGES_DPI}`,
+                `-r${detailDpi}`,
                 `-dFirstPage=${firstPage}`,
                 `-dLastPage=${lastPage}`,
                 '-dUseCropBox',
@@ -124,7 +151,7 @@ export async function batchRenderAndProcessPages(
             let found = 0;
             for (const [, fp] of pageToPath) if (fs.existsSync(fp)) found++;
 
-            detailBatchRenderingLogger.finish(`Finished batch detail rendering ${lastPage - firstPage + 1} pages! Found ${pageToPath.size}/${lastPage - firstPage + 1} files.`);
+            detailBatchRenderingLogger.finish(`Finished batch detail rendering ${lastPage - firstPage + 1} pages! Found ${found}/${lastPage - firstPage + 1} files.`);
             return pageToPath;
         });
         logger.debug("Finished batch detail rendering!");
@@ -171,18 +198,22 @@ export async function batchRenderAndProcessPages(
             // Pass the already-in-memory buffer to avoid a redundant disk read in boost
             let boostedBuffer: Buffer = await boostImageMaxInMemory(renderedImageBuffer, logger, timer, path.join(pageFolder, `page-${pageNumber}-boosted.png`));
             // Detect lines using the boosted image
-            const detection = await detectImageLines(boostedBuffer, path.join(pageFolder, `page-${pageNumber}-lines.png`), logger, timer);
+            const detection = await detectImageLines(boostedBuffer, path.join(pageFolder, `page-${pageNumber}-lines.png`), logger, timer, oldPdf);
 
             // Read pre-rendered detail buffer for this page.
-            // Apply the same landscape rotation as the preview so crop coords align.
-            let detailPipeline = sharp(detailedTempPagePath);
+            // Apply the same landscape rotation as the preview so crop coords align,
+            // then force height to the config target (width scales).
+            let detailPipeline = sharp(detailedTempPagePath!);
             if (rotationNeeded !== 0) {
                 detailPipeline = detailPipeline.rotate(rotationNeeded);
             }
-            const renderedDetailedImageBuffer = await detailPipeline.png().toBuffer();
-            fs.unlinkSync(detailedTempPagePath);
+            const renderedDetailedImageBuffer = await detailPipeline
+                .resize({height: config.DETAIL_PDF_PAGE_TARGET_HEIGHT_PX})
+                .png()
+                .toBuffer();
+            fs.unlinkSync(detailedTempPagePath!);
 
-            const crops = await cropByRectangles(outputPath, detection, pageFolder, pageNumber, logger, timer, renderedDetailedImageBuffer, config.CROP_EDGE_INSET_PX,);
+            const crops = await cropByRectangles(outputPath, detection, pageFolder, pageNumber, logger, timer, renderedDetailedImageBuffer, config.CROP_EDGE_INSET_PX, oldPdf);
 
             results.push({
                 pageNumber,

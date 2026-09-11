@@ -4,6 +4,7 @@ import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {PerformanceTimer} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/performanceTimer';
 import {ensureDir, slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
 import type {CropResult, ExtractedImageOcrData, PageType, TextExtractionMethod} from '../types';
+import {extractAlbanianApartmentNameFromText, formatAlbanianUnitDisplayName} from './albanianUnitName';
 
 /**
  * Classifies page type as 'floor' or 'unit'.
@@ -549,81 +550,6 @@ export async function extractPdfTextData(
 }
 
 /**
- * After "APARTAMENTI &lt;id&gt;", vector PDFs (txtwrite) may inject huge spans before "KATI &lt;floor&gt;".
- */
-const APARTAMENTI_KATI_SEARCH_WINDOW = 250_000;
-
-/**
- * Formats Albanian-style unit token + floor (e.g. A02 + 4 → "A-02 Floor 4").
- */
-function formatAlbanianUnitDisplayName(unitToken: string, floorDigits: string): string {
-    const u = unitToken.replace(/[,;.:]+$/g, '').trim();
-    if (/^A\d+$/i.test(u)) {
-        return `A-${u.slice(1)} Floor ${floorDigits}`;
-    }
-    if (/^A-\d+$/i.test(u)) {
-        return `${u} Floor ${floorDigits}`;
-    }
-    return `${u} Floor ${floorDigits}`;
-}
-
-/**
- * Pairs "APARTAMENTI &lt;id&gt;" with the nearest following "KATI &lt;floor&gt;" in the page text.
- */
-function extractAlbanianApartmentNameFromText(text: string, logger?: serverLogger): string | null {
-    if (!text?.trim()) {
-        return null;
-    }
-
-    const collapsed = text.replace(/\s+/g, ' ');
-    const tightPatterns = [
-        /(?:NJESI\s+BANIMI[_\s]+)?APARTAMENTI\s+([A-Z]?[-]?\d+)[_\s]+KATI\s+(-?\d+)/i,
-        /APARTAMENTI\s+([A-Z]?[-]?\d+)[_\s]+KATI\s+(-?\d+)/i,
-        /(?:NJ[ËE]SI\s+BANIMI[_\s]+)?APARTAMENTI\s+([A-Z]?[-]?\d+)[_\s]+KATI\s+(-?\d+)/i
-    ];
-    for (const pattern of tightPatterns) {
-        const match = collapsed.match(pattern);
-        if (match?.[1] != null && match?.[2] != null) {
-            const name = formatAlbanianUnitDisplayName(match[1], match[2]);
-            logger?.debug(`Extracted name from tight Albanian pattern: ${name}`);
-            return name;
-        }
-    }
-
-    const apartRe = /APARTAMENTI\s+([^\s\r\n]+)/gi;
-    let apartMatch: RegExpExecArray | null;
-    while ((apartMatch = apartRe.exec(text)) !== null) {
-        const unitTok = apartMatch[1];
-        const afterLabel = apartMatch.index + apartMatch[0].length;
-        const windowText = text.slice(afterLabel, afterLabel + APARTAMENTI_KATI_SEARCH_WINDOW);
-        const katiMatch = windowText.match(/KATI\s+(-?\d+)/i);
-        if (katiMatch?.[1] != null) {
-            const name = formatAlbanianUnitDisplayName(unitTok, katiMatch[1]);
-            logger?.debug(`Extracted name from windowed APARTAMENTI…KATI: ${name}`);
-            return name;
-        }
-    }
-
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
-    for (let i = 0; i < lines.length; i += 1) {
-        const lineUnit = lines[i].match(/^APARTAMENTI\s+([^\s]+)\s*$/i);
-        if (!lineUnit?.[1]) {
-            continue;
-        }
-        for (let j = i + 1; j < Math.min(i + 12, lines.length); j += 1) {
-            const kRow = lines[j].match(/KATI\s+(-?\d+)/i);
-            if (kRow?.[1] != null) {
-                const name = formatAlbanianUnitDisplayName(lineUnit[1], kRow[1]);
-                logger?.debug(`Extracted name from line-pair APARTAMENTI / KATI: ${name}`);
-                return name;
-            }
-        }
-    }
-
-    return null;
-}
-
-/**
  * Where `parseFloorPlanDataSimple` got its name from:
  *   'unit-pattern'    — a real "APARTAMENTI <id> KATI <n>" (or inline id+KATI) title
  *   'header-fallback' — first substantial line of the page, a descriptive label only
@@ -649,10 +575,11 @@ function parseFloorPlanDataSimple(
     let name = 'Unknown Unit';
     let nameSource: NameSource = 'none';
     if (text && text.trim().length > 0) {
-        const albanianName = extractAlbanianApartmentNameFromText(text, logger);
+        const albanianName = extractAlbanianApartmentNameFromText(text);
         if (albanianName) {
             name = albanianName;
             nameSource = 'unit-pattern';
+            logger?.debug(`Extracted name from Albanian unit title: ${name}`);
         }
 
         if (name === 'Unknown Unit') {
@@ -663,6 +590,14 @@ function parseFloorPlanDataSimple(
                 name = formatAlbanianUnitDisplayName(looseLine[1], looseLine[2]);
                 nameSource = 'unit-pattern';
                 logger?.debug(`Extracted name from inline id+KATI: ${name}`);
+            }
+            if (name === 'Unknown Unit') {
+                const reversed = /KATI\s+(-?\d+)[_\s]+APARTAMENTI\s+([A-Z]?[-]?\d+)/i.exec(normalizedText);
+                if (reversed?.[1] != null && reversed[2] != null) {
+                    name = formatAlbanianUnitDisplayName(reversed[2], reversed[1]);
+                    nameSource = 'unit-pattern';
+                    logger?.debug(`Extracted name from inline KATI+APARTAMENTI: ${name}`);
+                }
             }
         }
 

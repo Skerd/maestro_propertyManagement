@@ -133,13 +133,19 @@ export function buildRectanglesOverlaySvg(width: number, height: number, rectang
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${rectMarkup}</svg>`;
 }
 
-export async function detectImageLines(input: Buffer, outputPath: string, parentLogger: serverLogger, timer: PerformanceTimer): Promise<LineDetection> {
+export async function detectImageLines(
+    input: Buffer,
+    outputPath: string,
+    parentLogger: serverLogger,
+    timer: PerformanceTimer,
+    oldPdf: boolean = false,
+): Promise<LineDetection> {
     return await timer.timeAsync('overlayDetectedLines', async () => {
 
         const logger = getLogger("overlay_detected_lines", parentLogger);
         logger.start("Detecting image lines...");
         logger.debug("Detecting lines from image buffer...");
-        const detection =  await detectLinesFromBuffer(input, logger, timer);
+        const detection =  await detectLinesFromBuffer(input, logger, timer, {darkBlockEdges: oldPdf});
         logger.debug("Finished detecting lines from image buffer!");
 
         logger.debug("Building overlay svg...");

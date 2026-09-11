@@ -20,6 +20,7 @@ import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import type {PolygonPoint} from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/types";
+import {config} from "@propertyManagement/utilities/edifice/floorAndUnitsGenerator/config";
 
 export type Point = { x: number; y: number };
 
@@ -35,11 +36,17 @@ const POLYGON_BOUNDS_MARGIN = 0.02;
 
 // ---- IO helpers -----------------------------------------------------
 
-async function loadMatRGBA(filePath: string): Promise<InstanceType<typeof cv.Mat>> {
-  const { data, info } = await sharp(filePath)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+async function loadMatRGBA(
+  filePath: string,
+  targetHeightPx?: number,
+): Promise<InstanceType<typeof cv.Mat>> {
+  let pipeline = sharp(filePath).ensureAlpha();
+  // Match DETAIL_PDF_PAGE_TARGET_HEIGHT_PX so DB-reused 9k masters align with
+  // unit schematics cropped from the current detail render (not the old 300 DPI).
+  if (targetHeightPx != null && targetHeightPx > 0) {
+    pipeline = pipeline.resize({height: targetHeightPx});
+  }
+  const { data, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
 
   const mat = new cv.Mat(info.height, info.width, cv.CV_8UC4);
   mat.data.set(data);
@@ -143,7 +150,7 @@ function computeHomography(
 
 // ---- Per-unit work (cheap — run once per unit) ----------------------------
 
-function isolateTealMask(schematic: InstanceType<typeof cv.Mat>): InstanceType<typeof cv.Mat> {
+function isolateHighlightMask(schematic: InstanceType<typeof cv.Mat>): InstanceType<typeof cv.Mat> {
   const mask = new cv.Mat(schematic.rows, schematic.cols, cv.CV_8UC1);
   for (let y = 0; y < schematic.rows; y++) {
     for (let x = 0; x < schematic.cols; x++) {
@@ -151,12 +158,19 @@ function isolateTealMask(schematic: InstanceType<typeof cv.Mat>): InstanceType<t
       const r = schematic.data[idx];
       const g = schematic.data[idx + 1];
       const b = schematic.data[idx + 2];
-      const isTeal = g - r > 15 && b - r > 15 && r < 160;
-      mask.data[y * schematic.cols + x] = isTeal ? 255 : 0;
+      const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+      const isHighlight = chroma > 30 && Math.max(r, g, b) > 80;
+      mask.data[y * schematic.cols + x] = isHighlight ? 255 : 0;
     }
   }
-  cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, cv.Mat.ones(3, 3, cv.CV_8U));
-  cv.morphologyEx(mask, mask, cv.MORPH_OPEN, cv.Mat.ones(3, 3, cv.CV_8U));
+  const close = Math.max(3, Math.round(Math.min(schematic.cols, schematic.rows) * 0.012) | 1);
+  const open = 3;
+  const closeKernel = cv.Mat.ones(close, close, cv.CV_8U);
+  const openKernel = cv.Mat.ones(open, open, cv.CV_8U);
+  cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, closeKernel);
+  cv.morphologyEx(mask, mask, cv.MORPH_OPEN, openKernel);
+  closeKernel.delete();
+  openKernel.delete();
   return mask;
 }
 
@@ -371,7 +385,7 @@ export async function beginFloorAlign(
 ): Promise<FloorAlignSession> {
   await waitForOpenCV();
 
-  const detailed = await loadMatRGBA(detailedPath);
+  const detailed = await loadMatRGBA(detailedPath, config.DETAIL_PDF_PAGE_TARGET_HEIGHT_PX);
   const firstSchematic = await loadMatRGBA(firstSchematicPath);
   const schematicWidth = firstSchematic.cols;
   const schematicHeight = firstSchematic.rows;
@@ -454,8 +468,8 @@ export type AlignUnitResult = {
 };
 
 /**
- * Extract teal highlight polygon from a unit schematic, map onto the floor
- * master via the shared homography, composite highlight, and write PNG.
+ * Extract the saturated highlight polygon from a unit schematic, map onto the
+ * floor master via the shared homography, composite highlight, and write PNG.
  */
 export async function alignUnitHighlight(
   session: FloorAlignSession,
@@ -478,7 +492,7 @@ export async function alignUnitHighlight(
 
   try {
     assertSchematicMatchesSession(schematic, session, schematicPath);
-    mask = isolateTealMask(schematic);
+    mask = isolateHighlightMask(schematic);
     pixelPolygon = extractPolygon(mask, internal.H_full_inv);
     // Validate before compositing so a bad mapping never reaches disk.
     assertPlausiblePolygon(pixelPolygon, session.width, session.height);

@@ -407,6 +407,354 @@ function rangesOverlap(startA: number, endA: number, startB: number, endB: numbe
     return Math.min(endA, endB) >= Math.max(startA, startB);
 }
 
+function rectangleFromBounds(left: number, right: number, top: number, bottom: number): Rectangle {
+    return {
+        left,
+        right,
+        top,
+        bottom,
+        width: right - left,
+        height: bottom - top,
+        centerX: (left + right) / 2,
+        centerY: (top + bottom) / 2,
+    };
+}
+
+function pickClosestToCenter(rectangles: Rectangle[], width: number, height: number): Rectangle {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    return rectangles.reduce((best, current) => {
+        const bestDist = Math.hypot(best.centerX - centerX, best.centerY - centerY);
+        const currentDist = Math.hypot(current.centerX - centerX, current.centerY - centerY);
+        return currentDist < bestDist ? current : best;
+    });
+}
+
+/**
+ * Sheet border that includes the header and footer title blocks.
+ * Older CAD pages inset that frame from the raster edge, so this is coverage-based
+ * rather than "touches the image edge".
+ */
+function isPageFrameRectangle(rect: Rectangle, width: number, height: number): boolean {
+    return rect.width >= width * config.OLD_PDF_PAGE_FRAME_WIDTH_RATIO
+        && rect.height >= height * config.OLD_PDF_PAGE_FRAME_HEIGHT_RATIO;
+}
+
+/**
+ * When the unit plan never closes as a 4-sided rect, rebuild the sheet from the
+ * full-width border lines (title-block top/bottom). Never promote a narrow sidebar
+ * stack to "page frame" — that swallows POZICIONI+photo as the center crop.
+ */
+function sheetFrameFromHorizontals(
+    horizontals: HorizontalSegment[],
+    width: number,
+    height: number,
+): Rectangle | null {
+    const minLen = width * config.OLD_PDF_PAGE_FRAME_WIDTH_RATIO;
+    const fullWidth = horizontals.filter((line) => (line.xEnd - line.xStart) >= minLen);
+    if (fullWidth.length < 2) {
+        return null;
+    }
+    const topLine = fullWidth.reduce((best, line) => (line.y < best.y ? line : best));
+    const bottomLine = fullWidth.reduce((best, line) => (line.y > best.y ? line : best));
+    if (bottomLine.y - topLine.y < height * config.OLD_PDF_PAGE_FRAME_HEIGHT_RATIO) {
+        return null;
+    }
+    const left = Math.min(topLine.xStart, bottomLine.xStart);
+    const right = Math.max(topLine.xEnd, bottomLine.xEnd);
+    if (right - left < width * config.OLD_PDF_PAGE_FRAME_WIDTH_RATIO) {
+        return null;
+    }
+    return rectangleFromBounds(left, right, topLine.y, bottomLine.y);
+}
+
+/**
+ * Unit pages stack POZICIONI / photo / areas in a shared right column. Two or more
+ * column-wide panels with aligned left edges mark that column so the unit-plan crop
+ * can stop before it. A lone inner room on a floor sheet must not qualify.
+ */
+function findOldPdfRightColumnLeft(rectangles: Rectangle[], width: number): number | null {
+    const panels = rectangles.filter((rect) =>
+        rect.centerX >= width * config.OLD_PDF_TOP_RIGHT_MIN_CENTER_X_RATIO
+        && rect.width >= width * config.OLD_PDF_RIGHT_COLUMN_MIN_WIDTH_RATIO
+        && rect.width < width * config.OLD_PDF_TOP_RIGHT_MAX_WIDTH_RATIO
+    );
+    if (panels.length < 2) {
+        return null;
+    }
+    const snap = config.LINE_SNAP_TOLERANCE;
+    const buckets: {left: number; count: number}[] = [];
+    for (const panel of panels) {
+        const existing = buckets.find((bucket) => Math.abs(bucket.left - panel.left) <= snap);
+        if (existing) {
+            existing.left = (existing.left * existing.count + panel.left) / (existing.count + 1);
+            existing.count += 1;
+        } else {
+            buckets.push({left: panel.left, count: 1});
+        }
+    }
+    const column = buckets
+        .filter((bucket) => bucket.count >= 2)
+        .sort((a, b) => b.count - a.count || b.left - a.left)[0];
+    return column ? column.left : null;
+}
+
+/**
+ * Old CAD brochures draw a full-page sheet frame plus header/footer title blocks.
+ * The closed 4-sided rectangle finder usually returns that sheet frame, so the
+ * crop swallows the title blocks. Prefer a large inner plan panel when one exists;
+ * otherwise crop the sheet between the header and footer separator lines.
+ */
+export function selectOldPdfCenterRectangle(
+    rectangles: Rectangle[],
+    horizontals: HorizontalSegment[],
+    width: number,
+    height: number,
+): Rectangle | null {
+    if (rectangles.length === 0) {
+        return null;
+    }
+
+    const pageArea = Math.max(1, width * height);
+    const innerPlanRects = rectangles.filter((rect) =>
+        !isPageFrameRectangle(rect, width, height)
+        && rect.width * rect.height >= pageArea * config.OLD_PDF_MIN_INNER_AREA_RATIO
+    );
+    if (innerPlanRects.length > 0) {
+        return pickClosestToCenter(innerPlanRects, width, height);
+    }
+
+    const pageFrame = rectangles.find((rect) => isPageFrameRectangle(rect, width, height))
+        ?? sheetFrameFromHorizontals(horizontals, width, height);
+    if (!pageFrame) {
+        return null;
+    }
+    const left = pageFrame.left;
+    const columnLeft = findOldPdfRightColumnLeft(rectangles, width);
+    const right = columnLeft != null && columnLeft > left + width * config.RECT_MIN_WIDTH_RATIO
+        ? columnLeft
+        : pageFrame.right;
+    const frameTop = pageFrame.top;
+    const frameBottom = pageFrame.bottom;
+    const frameHeight = Math.max(1, frameBottom - frameTop);
+    // Header/footer separators span the sheet, not the clipped unit-plan width.
+    const sheetWidth = Math.max(1, pageFrame.right - pageFrame.left);
+
+    const fullWidthMin = sheetWidth * config.OLD_PDF_FULL_WIDTH_LINE_RATIO;
+    const band = frameHeight * config.OLD_PDF_TITLE_BLOCK_BAND_RATIO;
+    const separatorTol = Math.max(config.RECT_DEDUP_TOLERANCE, frameHeight * 0.02);
+    const headerYs = horizontals
+        .filter((line) =>
+            (line.xEnd - line.xStart) >= fullWidthMin
+            && line.y > frameTop + separatorTol
+            && line.y <= frameTop + band
+        )
+        .map((line) => line.y);
+    const footerYs = horizontals
+        .filter((line) =>
+            (line.xEnd - line.xStart) >= fullWidthMin
+            && line.y < frameBottom - separatorTol
+            && line.y >= frameBottom - band
+        )
+        .map((line) => line.y);
+
+    const fallbackInset = frameHeight * config.OLD_PDF_FALLBACK_INSET_RATIO;
+    const headerBottom = headerYs.length > 0 ? Math.max(...headerYs) : null;
+    const footerTop = footerYs.length > 0 ? Math.min(...footerYs) : null;
+
+    const top = headerBottom != null && headerBottom >= frameTop + fallbackInset
+        ? headerBottom
+        : frameTop + fallbackInset;
+    const bottom = footerTop != null && footerTop <= frameBottom - fallbackInset
+        ? footerTop
+        : frameBottom - fallbackInset;
+
+    if (
+        bottom - top < height * config.RECT_MIN_HEIGHT_RATIO
+        || right - left < width * config.RECT_MIN_WIDTH_RATIO
+    ) {
+        return rectangleFromBounds(left, right, frameTop, frameBottom);
+    }
+
+    return rectangleFromBounds(left, right, top, bottom);
+}
+
+function boundsMatch(a: Rectangle, b: Rectangle): boolean {
+    return Math.abs(a.left - b.left) <= config.RECT_DEDUP_TOLERANCE
+        && Math.abs(a.right - b.right) <= config.RECT_DEDUP_TOLERANCE
+        && Math.abs(a.top - b.top) <= config.RECT_DEDUP_TOLERANCE
+        && Math.abs(a.bottom - b.bottom) <= config.RECT_DEDUP_TOLERANCE;
+}
+
+function topRightScore(rect: Rectangle, width: number, height: number): number {
+    return (1 - rect.centerX / width) + (rect.centerY / height);
+}
+
+function hasOldPdfUnitRightColumn(centerRect: Rectangle | null, width: number): boolean {
+    if (!centerRect) {
+        return false;
+    }
+    return width - centerRect.right >= width * config.OLD_PDF_RIGHT_COLUMN_MIN_WIDTH_RATIO;
+}
+
+/**
+ * Old CAD unit pages stack a position thumbnail, a photo, and an areas table in the
+ * right column. The position drawing is only the top panel — never merge those
+ * stacked boxes into one crop. Floor pages have no such column; inner rooms on
+ * the right of the plan must not be treated as a POZICIONI panel.
+ */
+export function selectOldPdfTopRightRectangle(
+    rectangles: Rectangle[],
+    width: number,
+    height: number,
+    centerRect: Rectangle | null,
+    horizontals: HorizontalSegment[] = [],
+): Rectangle | null {
+    if (!hasOldPdfUnitRightColumn(centerRect, width)) {
+        return null;
+    }
+    const candidates = rectangles.filter((rect) => {
+        if (isPageFrameRectangle(rect, width, height)) {
+            return false;
+        }
+        if (centerRect && boundsMatch(rect, centerRect)) {
+            return false;
+        }
+        if (centerRect && rect.left < centerRect.right - config.LINE_SNAP_TOLERANCE) {
+            return false;
+        }
+        if (rect.centerX < width * config.OLD_PDF_TOP_RIGHT_MIN_CENTER_X_RATIO) {
+            return false;
+        }
+        if (rect.top > height * config.OLD_PDF_TOP_RIGHT_MAX_TOP_RATIO) {
+            return false;
+        }
+        if (rect.height >= height * config.OLD_PDF_TOP_RIGHT_MAX_HEIGHT_RATIO) {
+            return false;
+        }
+        if (rect.width >= width * config.OLD_PDF_TOP_RIGHT_MAX_WIDTH_RATIO) {
+            return false;
+        }
+        return true;
+    });
+    if (candidates.length > 0) {
+        return candidates.reduce((best, current) =>
+            topRightScore(current, width, height) < topRightScore(best, width, height) ? current : best
+        );
+    }
+    return constructOldPdfTopRightFromPhotoEdge(horizontals, width, height, centerRect);
+}
+
+/**
+ * When the photo's top edge was missing, no closed POZICIONI rectangle exists.
+ * Build that panel from the right-column photo separator and the unit-plan top.
+ */
+function constructOldPdfTopRightFromPhotoEdge(
+    horizontals: HorizontalSegment[],
+    width: number,
+    height: number,
+    centerRect: Rectangle | null,
+): Rectangle | null {
+    const minLen = width * config.OLD_PDF_DARK_BLOCK_MIN_WIDTH_RATIO;
+    const rightLines = horizontals.filter((line) =>
+        (line.xEnd - line.xStart) >= minLen
+        && line.xStart >= width * config.OLD_PDF_TOP_RIGHT_MIN_CENTER_X_RATIO
+        && line.y >= height * 0.22
+        && line.y <= height * 0.58
+    );
+    if (rightLines.length === 0) {
+        return null;
+    }
+    const maxLen = Math.max(...rightLines.map((line) => line.xEnd - line.xStart));
+    const photoTop = rightLines
+        .filter((line) => (line.xEnd - line.xStart) >= maxLen * 0.9)
+        .reduce((best, line) => (line.y < best.y ? line : best));
+
+    const left = centerRect && centerRect.right < photoTop.xEnd
+        ? centerRect.right
+        : photoTop.xStart;
+    const right = photoTop.xEnd;
+    const top = centerRect && centerRect.top < photoTop.y
+        ? centerRect.top
+        : Math.max(0, photoTop.y - height * 0.35);
+    const bottom = photoTop.y;
+    if (
+        bottom - top < height * config.RECT_MIN_HEIGHT_RATIO
+        || bottom - top >= height * config.OLD_PDF_TOP_RIGHT_MAX_HEIGHT_RATIO
+        || right - left < width * config.RECT_MIN_WIDTH_RATIO
+        || right - left >= width * config.OLD_PDF_TOP_RIGHT_MAX_WIDTH_RATIO
+    ) {
+        return null;
+    }
+    return rectangleFromBounds(left, right, top, bottom);
+}
+
+/**
+ * POZICIONI is an elevation on the left and the highlighted floor schematic on
+ * the right, split by a full-height vertical. The schematic is what ORB aligns
+ * to the floor master — the elevation is a different drawing.
+ */
+export function selectOldPdfPositionSchematic(
+    panel: Rectangle,
+    verticals: VerticalSegment[],
+    horizontals: HorizontalSegment[] = [],
+): Rectangle {
+    const snap = config.LINE_SNAP_TOLERANCE;
+    const midMin = panel.left + panel.width * 0.35;
+    const midMax = panel.left + panel.width * 0.65;
+    const buckets: {x: number; y0: number; y1: number}[] = [];
+    for (const line of verticals) {
+        if (line.x < midMin || line.x > midMax) {
+            continue;
+        }
+        const y0 = Math.max(line.yStart, panel.top);
+        const y1 = Math.min(line.yEnd, panel.bottom);
+        if (y1 - y0 < 2) {
+            continue;
+        }
+        const existing = buckets.find((bucket) => Math.abs(bucket.x - line.x) <= snap);
+        if (existing) {
+            existing.y0 = Math.min(existing.y0, y0);
+            existing.y1 = Math.max(existing.y1, y1);
+            existing.x = (existing.x + line.x) / 2;
+        } else {
+            buckets.push({x: line.x, y0, y1});
+        }
+    }
+    const minSpan = panel.height * 0.35;
+    const viable = buckets.filter((bucket) => bucket.y1 - bucket.y0 >= minSpan);
+    const dividerX = viable.length === 0
+        ? null
+        : viable.reduce((best, bucket) =>
+            Math.abs(bucket.x - panel.centerX) < Math.abs(best.x - panel.centerX) ? bucket : best
+        ).x;
+
+    let left = panel.left;
+    let top = panel.top;
+    const right = panel.right;
+    const bottom = panel.bottom;
+    if (dividerX != null && panel.right - dividerX >= panel.width * 0.25) {
+        left = dividerX;
+    }
+
+    const titleBandTop = panel.top + panel.height * 0.04;
+    const titleBandBottom = panel.top + panel.height * 0.28;
+    const titleMinLen = panel.width * 0.5;
+    const titleLines = horizontals.filter((line) =>
+        line.y >= titleBandTop
+        && line.y <= titleBandBottom
+        && Math.min(line.xEnd, panel.right) - Math.max(line.xStart, panel.left) >= titleMinLen
+    );
+    if (titleLines.length > 0) {
+        top = titleLines.reduce((best, line) => (line.y < best.y ? line : best)).y;
+    }
+
+    if (right - left < 2 || bottom - top < 2 || (left === panel.left && top === panel.top)) {
+        return panel;
+    }
+    return rectangleFromBounds(left, right, top, bottom);
+}
+
 /**
  * Selects the rectangle closest to the center of the image and merges it with adjacent similar rectangles
  */
@@ -460,11 +808,9 @@ export function selectTopRightRectangle(rectangles: Rectangle[], width: number, 
     }
     const sorted = [...rectangles].sort((a, b) => (b.width * b.height) - (a.width * a.height));
     const candidates = sorted.slice(0, Math.min(10, sorted.length));
-    return candidates.reduce((best, current) => {
-        const bestScore = (1 - best.centerX / width) + (best.centerY / height);
-        const currentScore = (1 - current.centerX / width) + (current.centerY / height);
-        return currentScore < bestScore ? current : best;
-    });
+    return candidates.reduce((best, current) =>
+        topRightScore(current, width, height) < topRightScore(best, width, height) ? current : best
+    );
 }
 
 /**

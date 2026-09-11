@@ -6,6 +6,9 @@ import {
     applyCropPadding,
     findRectanglesFromLines,
     selectCenterRectangle,
+    selectOldPdfCenterRectangle,
+    selectOldPdfPositionSchematic,
+    selectOldPdfTopRightRectangle,
     selectTopRightRectangle
 } from './rectangleDetectionUtils';
 import type {CropResult, LineDetection} from '../types';
@@ -38,6 +41,7 @@ export async function cropByRectangles(
     timer: PerformanceTimer,
     detailBuffer: Buffer,
     edgeInsetPx: number = 0,
+    oldPdf: boolean = false,
 ): Promise<CropResult> {
     return await timer.timeAsync('cropByRectangles', async () => {
         const logger = getLogger("cropRectangles", parentLogger);
@@ -51,21 +55,35 @@ export async function cropByRectangles(
         }
         logger.debug(`Found ${rectangles.length} rectangles.`);
 
-        // Save rectangles overlay only if configured
+        logger.debug(oldPdf ? "Selecting old-PDF center rectangle..." : "Selecting center rectangle...");
+        const centerRect = oldPdf
+            ? selectOldPdfCenterRectangle(rectangles, horizontals, width, height)
+            : selectCenterRectangle(rectangles, width, height);
+        logger.debug(`Selected center rectangle!`);
+
+        const topRightRect = oldPdf
+            ? selectOldPdfTopRightRectangle(rectangles, width, height, centerRect, horizontals)
+            : selectTopRightRectangle(
+                centerRect ? rectangles.filter((rect) => rect !== centerRect) : rectangles,
+                width,
+                height,
+            );
+        const positionSchematic = oldPdf && topRightRect
+            ? selectOldPdfPositionSchematic(topRightRect, verticals, horizontals)
+            : topRightRect;
+
         logger.debug("Overlaying rectangles on page image...");
         const rectanglesOutputPath = path.join(outputFolder, `page-${pageNumber}-rectangles.png`);
-        const rectangleOverlay = buildRectanglesOverlaySvg(width, height, rectangles, null, null);
+        const overlayRects = [...rectangles];
+        if (centerRect) {
+            overlayRects.push(centerRect);
+        }
+        if (positionSchematic) {
+            overlayRects.push(positionSchematic);
+        }
+        const rectangleOverlay = buildRectanglesOverlaySvg(width, height, overlayRects, centerRect, positionSchematic);
         await sharp(pagePath).composite([{input: Buffer.from(rectangleOverlay), blend: 'over'}]).png().toFile(rectanglesOutputPath);
-
         logger.debug("Done overlaying rectangles.");
-
-        logger.debug("Selecting center rectangle...");
-        const centerRect = selectCenterRectangle(rectangles, width, height);
-        const remaining = centerRect ? rectangles.filter((rect) => rect !== centerRect) : rectangles;
-        logger.debug(`Selected center rectangle!`);
-        logger.debug(`Selecting top-right rectangle...`);
-        const topRightRect = selectTopRightRectangle(remaining, width, height);
-        logger.debug(`Selected top-right rectangle!`);
 
         // Semantic classification count used by classifyPageType:
         //   2 = unit layout  (large center detail + small top-right floor thumbnail)
@@ -77,7 +95,9 @@ export async function cropByRectangles(
         if (centerRect && topRightRect) {
             // topRightRect qualifies as a thumbnail only when it is noticeably smaller than
             // the page in both dimensions — a genuine unit-page floor thumbnail is narrow and short.
-            const isThumbnail = topRightRect.width < width * 0.40 && topRightRect.height < height * 0.40;
+            // Old-PDF position panels are already filtered to the top-right box (no column merge).
+            const isThumbnail = oldPdf
+                || (topRightRect.width < width * 0.40 && topRightRect.height < height * 0.40);
             classificationRectCount = isThumbnail ? 2 : 1;
         }
         else {
@@ -120,8 +140,8 @@ export async function cropByRectangles(
             await extractCropToOut(crop, centerOutput);
             cropResult.centerUnitPath = centerOutput;
         }
-        if (topRightRect) {
-            const crop = applyCropPadding(topRightRect, width, height, edgeInsetPx);
+        if (positionSchematic) {
+            const crop = applyCropPadding(positionSchematic, width, height, edgeInsetPx);
             const topRightOutput = path.join(outputFolder, `page-${pageNumber}-top-right-floor-plan.png`);
             await extractCropToOut(crop, topRightOutput);
             cropResult.floorPlanPath = topRightOutput;

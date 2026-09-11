@@ -48,6 +48,11 @@ export interface PdfProcessingOptions {
     /** Forwarded verbatim into the fetchFloorImage context. */
     edificeId?: string;
     companyId?: string;
+    /**
+     * Older CAD brochures (title-block header + footer around a centered plan).
+     * Crops the inner center rectangle and drops the sheet header/footer.
+     */
+    oldPdf?: boolean;
 }
 
 const timer = new PerformanceTimer();
@@ -75,7 +80,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
         for (let j = i; j < Math.min(i + config.BATCH_PDF_PAGES_TO_IMAGES, pageCount); j++) {
             indexes.push(j);
         }
-        results.push(...await batchRenderAndProcessPages(inputPath, pdfDoc, logger, indexes, outputRoot, timer, pageCount))
+        results.push(...await batchRenderAndProcessPages(inputPath, pdfDoc, logger, indexes, outputRoot, timer, pageCount, options.oldPdf === true))
     }
     logger.debug("Finished extracting and processing images!");
 

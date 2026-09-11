@@ -714,11 +714,113 @@ function mergeCollinearVerticalGroup(group: VerticalSegment[], merged: VerticalS
     merged.push(current);
 }
 
+function xRangesOverlap(a: HorizontalSegment, b: HorizontalSegment): boolean {
+    return Math.min(a.xEnd, b.xEnd) >= Math.max(a.xStart, b.xStart);
+}
+
+function alreadyHasHorizontal(existing: HorizontalSegment[], candidate: HorizontalSegment): boolean {
+    return existing.some((line) =>
+        Math.abs(line.y - candidate.y) <= config.LINE_SNAP_TOLERANCE
+        && xRangesOverlap(line, candidate)
+    );
+}
+
+/**
+ * Boosted photos become a solid dark block whose top/bottom edges are a grey ramp,
+ * so the normal 1-pixel ink detector misses them. Those edges are the missing
+ * separator under POZICIONI on old CAD unit pages. Scan only the right column so
+ * filled stair cores in the unit plan are not treated as photo edges.
+ */
+export function findDarkBlockHorizontalEdges(
+    data: Buffer,
+    width: number,
+    height: number,
+): HorizontalSegment[] {
+    const darkThreshold = config.DARK_PIXEL_THRESHOLD;
+    const lightThreshold = config.OLD_PDF_DARK_BLOCK_LIGHT_THRESHOLD;
+    const minWidth = Math.max(1, Math.round(width * config.OLD_PDF_DARK_BLOCK_MIN_WIDTH_RATIO));
+    const minBlockHeight = Math.max(2, Math.round(height * config.OLD_PDF_DARK_BLOCK_MIN_HEIGHT_RATIO));
+    const rightColumnStart = Math.floor(width * config.OLD_PDF_TOP_RIGHT_MIN_CENTER_X_RATIO);
+    const gapTol = config.LINE_GAP_TOLERANCE;
+    const edges: HorizontalSegment[] = [];
+
+    const runIsDarkBlock = (
+        y: number,
+        xStart: number,
+        xEnd: number,
+        direction: 1 | -1,
+    ): boolean => {
+        let dark = 0;
+        let total = 0;
+        const rowStep = Math.max(1, Math.floor(minBlockHeight / 4));
+        for (let dy = rowStep; dy < minBlockHeight; dy += rowStep) {
+            const rowY = y + direction * dy;
+            if (rowY < 0 || rowY >= height) {
+                return false;
+            }
+            const row = rowY * width;
+            for (let x = xStart; x <= xEnd; x += 2) {
+                total += 1;
+                if (data[row + x] <= darkThreshold) {
+                    dark += 1;
+                }
+            }
+        }
+        return total > 0 && dark / total >= 0.75;
+    };
+
+    const collectRuns = (y: number, neighborY: number, direction: 1 | -1): void => {
+        const row = y * width;
+        const neighborRow = neighborY * width;
+        let runStart = -1;
+        let runEnd = -1;
+        let gap = 0;
+        const flush = (): void => {
+            if (runStart !== -1 && runEnd - runStart + 1 >= minWidth && runIsDarkBlock(y, runStart, runEnd, direction)) {
+                edges.push({y, xStart: runStart, xEnd: runEnd});
+            }
+            runStart = -1;
+            runEnd = -1;
+            gap = 0;
+        };
+        for (let x = rightColumnStart; x < width; x += 1) {
+            const inRun = data[row + x] <= darkThreshold
+                && data[neighborRow + x] >= lightThreshold;
+            if (inRun) {
+                if (runStart === -1) {
+                    runStart = x;
+                }
+                runEnd = x;
+                gap = 0;
+                continue;
+            }
+            if (runStart === -1) {
+                continue;
+            }
+            gap += 1;
+            if (gap > gapTol) {
+                flush();
+            }
+        }
+        flush();
+    };
+
+    for (let y = 1; y < height; y += 1) {
+        collectRuns(y, y - 1, 1);
+    }
+    for (let y = 0; y < height - 1; y += 1) {
+        collectRuns(y, y + 1, -1);
+    }
+    return edges;
+}
+
 export type DetectLinesOptions = {
     /** Override {@link config.HORIZONTAL_RUN_RATIO}. Lower = shorter wall segments kept. */
     horizontalRunRatio?: number;
     /** Override {@link config.VERTICAL_RUN_RATIO}. */
     verticalRunRatio?: number;
+    /** Close photo-sized dark fills whose edges the ink detector misses. */
+    darkBlockEdges?: boolean;
 };
 
 /**
@@ -746,6 +848,18 @@ export async function detectLinesFromBuffer(
         let horizontals = timer.timeSync('detectHorizontalLines', () => detectHorizontalLines(data, width, height, timer, hRatio));
         let verticals = timer.timeSync('detectVerticalLines', () => detectVerticalLines(data, width, height, timer, vRatio));
         logger.debug("Finished detecting horizontal and vertical lines!");
+
+        if (options.darkBlockEdges) {
+            const darkEdges = timer.timeSync('findDarkBlockHorizontalEdges', () => findDarkBlockHorizontalEdges(data, width, height));
+            let added = 0;
+            for (const edge of darkEdges) {
+                if (!alreadyHasHorizontal(horizontals, edge)) {
+                    horizontals.push(edge);
+                    added += 1;
+                }
+            }
+            logger.debug(`Added ${added} dark-block edge(s) for old-PDF photo separators.`);
+        }
 
         logger.debug("Splitting lines at intersections...");
         horizontals = timer.timeSync('splitHorizontalLinesAtIntersections', () => splitHorizontalLinesAtIntersections(horizontals, verticals));

@@ -36,8 +36,8 @@ export async function assertUnitRentable(unitId: ObjectId, ctx: Ctx): Promise<vo
     }
 
     const activeLease = await leaseService.findOne(
-        {unit: unitId, company: company._id, status: LeaseStatus.ACTIVE, deletedAt: null},
-        {session, logger, languageCode},
+        {unit: unitId, company: company._id, status: LeaseStatus.ACTIVE},
+        {session, logger, languageCode, withDeleted: false},
     );
     if (activeLease) {
         throw apiValidationException("unit_has_active_lease", "", null, languageCode);

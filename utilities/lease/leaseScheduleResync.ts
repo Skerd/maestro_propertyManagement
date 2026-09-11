@@ -87,8 +87,8 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
     }
 
     const payments = await rentalPaymentService.find(
-        {lease: current._id, company: company._id, deletedAt: null},
-        {session, logger, languageCode},
+        {lease: current._id, company: company._id},
+        {session, logger, languageCode, withDeleted: false},
         [],
         undefined,
         {dueDate: 1},

@@ -18,13 +18,14 @@ import {edificeService} from './edifice.service';
 import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
 import {computeUnitPriceFromEdificeRates} from '@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
+import type {GenerateFloorsAndUnitsFormType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.type';
+import {generateFloorsAndUnitsFormSchema} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.validator';
 import {slugifyLabel} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/utils/fileUtils';
 import {PDFDocument} from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import {SingleForm} from "armonia/src/modules/core/types/shared.types";
-import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 
 /** Extract one brochure page (1-indexed) into a standalone PDF buffer. */
 async function extractSinglePdfPage(sourcePdf: PDFDocument, pageNumber: number): Promise<Buffer> {
@@ -168,12 +169,12 @@ export class EdificeActions {
         auth: "private",
         rateLimit: {windowMs: 60000, max: 10},
         middleware: [
-            mediaUploadMW({fieldName: "file", maxFiles: 1, maxFileSize: 50 * 1024 * 1024}),
+            mediaUploadMW({fieldName: "file", maxFiles: 1, maxFileSize: 200 * 1024 * 1024}),
         ],
-        schema: validateSingleForm,
+        schema: generateFloorsAndUnitsFormSchema,
     })
-    async generateFloorsUnits(params: SingleForm & Record<string, any>): Promise<GenerateFloorsAndUnitsFormResponseType> {
-        const {logger, languageCode, session, _id, company, actionUserCtx, fileIds} = params;
+    async generateFloorsUnits(params: SingleForm & GenerateFloorsAndUnitsFormType & Record<string, any>): Promise<GenerateFloorsAndUnitsFormResponseType> {
+        const {logger, languageCode, session, _id, company, actionUserCtx, fileIds, oldPdf} = params;
 
         const edificeId = _id;
         logger.start(`Generating floors and units from PDF brochure for edifice: ${edificeId}...`);
@@ -212,6 +213,7 @@ export class EdificeActions {
         const outputRoot = path.join(tempDir, 'output');
 
         let floorsCreated = 0;
+        let floorsSkipped = 0;
         let unitsCreated  = 0;
         let unitsSkipped  = 0;
 
@@ -305,7 +307,7 @@ export class EdificeActions {
                 }
             };
 
-            const summaryData  = await processPdfForFloorsAndUnits(pdfPath, outputRoot, {fetchFloorImage});
+            const summaryData  = await processPdfForFloorsAndUnits(pdfPath, outputRoot, {fetchFloorImage, oldPdf: oldPdf === true});
             const sourcePdfDoc = await PDFDocument.load(pdfBuffer);
 
             const tasks: FloorTask[] = Object.entries(summaryData.floors).map(([floorKey, floorData]) => ({
@@ -446,11 +448,23 @@ export class EdificeActions {
                 }
             }
 
+            // Units-only brochures have no master page, so floor-plan.png was never
+            // written. Floor.mainImage is required; reuse a unit position thumbnail
+            // rather than failing the insert. A later floors-PDF import overwrites it.
+            for (const task of tasks) {
+                if (task.floorPlan) continue;
+                const fallback = task.units.find((unit) => unit.unitFloorPlan)?.unitFloorPlan;
+                if (!fallback) continue;
+                task.floorPlan = fallback;
+                logger.debug(`PDF import: no master page for ${task.floorKey}; using a unit position thumbnail as floor mainImage edificeId=${edificeId}`);
+            }
+
             logger.debug(`PDF import: uploaded ${uploadedGridFsIds.length} blobs for ${tasks.length} floors edificeId=${edificeId}`);
 
             // ── Phase 3: document writes ────────────────────────────────────────────
             // Short transaction: no file I/O, no PDF work, no reads.
 
+            const unitsSkippedAtUpload = unitsSkipped;
             const floorImportSession = await mongooseInstance.startSession();
             try {
                 await floorImportSession.withTransaction(async () => {
@@ -461,7 +475,9 @@ export class EdificeActions {
                     // re-read rather than reusing documents an aborted attempt mutated
                     // (whose inserts have since been rolled away).
                     floorsCreated = 0;
+                    floorsSkipped = 0;
                     unitsCreated  = 0;
+                    unitsSkipped  = unitsSkippedAtUpload;
                     referencedGridFsIds.clear();
 
                     const txFloors: any[] = await floorService.find(
@@ -478,9 +494,13 @@ export class EdificeActions {
                         target.unitsByName = new Map(existingUnits.map((unit: any) => [unit.name, unit]));
                     }
 
+                    const mediaByGridFsId = new Map<string, ReturnType<typeof mediaService.create>>();
                     const createMediaDoc = (blob: UploadedBlob) => {
-                        referencedGridFsIds.add(blob.gridFsId.toString());
-                        return mediaService.create({
+                        const key = blob.gridFsId.toString();
+                        const cached = mediaByGridFsId.get(key);
+                        if (cached) return cached;
+                        referencedGridFsIds.add(key);
+                        const created = mediaService.create({
                             type:         blob.mediaType,
                             originalName: blob.fileName,
                             fileName:     blob.fileName,
@@ -493,6 +513,8 @@ export class EdificeActions {
                             sizeInBytes:  blob.size,
                             company,
                         } as any, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                        mediaByGridFsId.set(key, created);
+                        return created;
                     };
 
                     for (const [taskIndex, task] of tasks.entries()) {
@@ -504,6 +526,13 @@ export class EdificeActions {
                         const floorDoc = target.created ?? target.existing;
                         let createdFloor;
                         const isNewFloor = !floorDoc;
+
+                        if (isNewFloor && !floorPlanMedia) {
+                            logger.warn(`PDF import: skipping new floor ${floorName} — Floor.mainImage is required and no plan image was produced edificeId=${edificeId} floorKey=${task.floorKey}`);
+                            floorsSkipped++;
+                            unitsSkipped += task.units.length;
+                            continue;
+                        }
 
                         // Re-checked against the document this attempt actually read: the
                         // upload phase only guessed, and a floor that already has a booklet
@@ -684,14 +713,15 @@ export class EdificeActions {
                 logger.warn(`PDF import: unreferenced-blob sweep failed edificeId=${edificeId}`, sweepError);
             }
 
-            const floorsUpdated = Object.keys(summaryData.floors).length - floorsCreated;
+            const floorsUpdated = Object.keys(summaryData.floors).length - floorsCreated - floorsSkipped;
             const unitsTotal    = Object.values(summaryData.floors).reduce((t, f: any) => t + Object.keys(f.units).length, 0);
             // Units skipped for a missing unit type / currency were neither created nor
             // updated — counting them as updated claimed work that never happened.
             const unitsUpdated  = unitsTotal - unitsCreated - unitsSkipped;
 
             const summaryMessage = `Successfully processed PDF: ${floorsCreated} floors created, ${floorsUpdated} floors updated, ${unitsCreated} units created, ${unitsUpdated} units updated`
-                + (unitsSkipped > 0 ? `, ${unitsSkipped} units skipped` : '');
+                + (unitsSkipped > 0 ? `, ${unitsSkipped} units skipped` : '')
+                + (floorsSkipped > 0 ? `, ${floorsSkipped} floors skipped` : '');
 
             logger.finish(summaryMessage);
             return {

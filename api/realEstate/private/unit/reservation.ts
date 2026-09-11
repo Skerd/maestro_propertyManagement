@@ -9,7 +9,7 @@ import {unitService} from "../../../../database/schemas/unit/unit.service";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {escapeRegex} from "@coreModule/utilities/helpers";
-import Reservation, {type IReservation} from "../../../../database/schemas/reservation/reservation";
+import Reservation, {ReservationStatus, type IReservation} from "../../../../database/schemas/reservation/reservation";
 import {ReservationActions} from "../../../../database/schemas/reservation/reservation.actions";
 import {
     createReservationFormSchema
@@ -160,9 +160,11 @@ export const {router} = createCrudRouter({
             throw apiValidationException("unit_not_available", "", null, languageCode);
         }
 
+        // Soft-delete + expiry are separate: admins see deleted unless withDeleted:false;
+        // expire job stamps status EXPIRED but leaves isActive true.
         const existingReservation = await reservationService.findOne(
-            {unit: foundUnit._id, isActive: true},
-            {session, logger, languageCode},
+            {unit: foundUnit._id, isActive: true, status: ReservationStatus.ACTIVE},
+            {session, logger, languageCode, withDeleted: false},
         );
         if (existingReservation) {
             throw apiValidationException("unit_already_has_active_reservation", "", null, languageCode);

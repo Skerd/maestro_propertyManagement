@@ -106,9 +106,8 @@ export const {router} = createCrudRouter({
                 lease: leaseId,
                 company: company._id,
                 dueDate: data.dueDate,
-                deletedAt: null,
             },
-            {session, logger, languageCode},
+            {session, logger, languageCode, withDeleted: false},
         );
         if (clash) {
             throw apiValidationException("rental_payment_duplicate_due", "", null, languageCode);

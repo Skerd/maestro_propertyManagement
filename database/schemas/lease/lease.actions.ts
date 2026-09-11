@@ -184,10 +184,9 @@ export class LeaseActions {
             {
                 lease: existing._id,
                 company: company._id,
-                deletedAt: null,
                 status: {$in: [...OPEN_RENT_STATUSES]},
             },
-            {session, logger, languageCode},
+            {session, logger, languageCode, withDeleted: false},
             [],
             undefined,
             {dueDate: 1},

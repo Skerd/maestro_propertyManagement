@@ -23,6 +23,7 @@ import {
 } from "../../../database/schemas/modificationRequest/modificationRequest.service";
 import {paymentPlanService} from "../../../database/schemas/paymentPlan/paymentPlan.service";
 import {reservationService} from "../../../database/schemas/reservation/reservation.service";
+import {ReservationStatus} from "../../../database/schemas/reservation/reservation";
 import {saleService} from "../../../database/schemas/sale/sale.service";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {projectService} from "../../../database/schemas/project/project.service";
@@ -283,7 +284,7 @@ async function getDashboardStats(
     } = params;
 
     logger.start("Fetching dashboard stats...");
-    const opts = { logger, languageCode };
+    const opts = {logger, languageCode, withDeleted: false as const};
     const access = dashboardReadAccess(actionUserCtx, languageCode);
     assertAnyCollectedRead(access.any, languageCode);
 
@@ -520,7 +521,7 @@ async function getDashboardStats(
             opts
         ) : Promise.resolve(zero),
         access.reservations ? reservationService.count(
-            { unit: { $in: companyUnitIds }, isActive: true },
+            {unit: {$in: companyUnitIds}, isActive: true, status: ReservationStatus.ACTIVE},
             opts
         ) : Promise.resolve(zero),
         access.paymentPlans && saleIds.length > 0
@@ -601,9 +602,10 @@ async function getDashboardStats(
         ) : Promise.resolve(none),
         access.reservations ? reservationService.count(
             {
-                unit: { $in: companyUnitIds },
+                unit: {$in: companyUnitIds},
                 isActive: true,
-                expirationDate: { $exists: true, $gte: now, $lte: expiringEnd },
+                status: ReservationStatus.ACTIVE,
+                expirationDate: {$exists: true, $gte: now, $lte: expiringEnd},
             },
             opts
         ) : Promise.resolve(zero),
@@ -611,12 +613,14 @@ async function getDashboardStats(
             [
                 {
                     $match: {
-                        unit: { $in: companyUnitIds },
+                        unit: {$in: companyUnitIds},
                         isActive: true,
-                        depositAmount: { $exists: true, $ne: null },
+                        status: ReservationStatus.ACTIVE,
+                        deletedAt: null,
+                        depositAmount: {$exists: true, $ne: null},
                     },
                 },
-                { $group: { _id: null, total: { $sum: "$depositAmount" } } },
+                {$group: {_id: null, total: {$sum: "$depositAmount"}}},
             ],
             opts
         ) : Promise.resolve(none),
@@ -653,8 +657,10 @@ async function getDashboardStats(
             [
                 {
                     $match: {
-                        unit: { $in: companyUnitIds },
+                        unit: {$in: companyUnitIds},
                         isActive: true,
+                        status: ReservationStatus.ACTIVE,
+                        deletedAt: null,
                         paid: false,
                         expirationDate: {
                             $exists: true,
@@ -671,18 +677,18 @@ async function getDashboardStats(
                         as: "unitDoc",
                     },
                 },
-                { $unwind: "$unitDoc" },
+                {$unwind: "$unitDoc"},
                 {
                     $project: {
                         reservationId: "$_id",
                         unitId: "$unitDoc._id",
                         unitNumber: "$unitDoc.unitNumber",
                         unitName: "$unitDoc.name",
-                        amount: { $ifNull: ["$depositAmount", 0] },
+                        amount: {$ifNull: ["$depositAmount", 0]},
                         dueDate: "$expirationDate",
                     },
                 },
-                { $limit: 50 },
+                {$limit: 50},
             ],
             opts
         ) : Promise.resolve(none),
@@ -720,7 +726,7 @@ async function getDashboardStats(
             "amount paidAmount lateFeeAmount status currency unit dueDate",
         ) : Promise.resolve(none),
         access.leases ? leaseService.count(
-            {unit: {$in: companyUnitIds}, status: LeaseStatus.ACTIVE, deletedAt: null},
+            {unit: {$in: companyUnitIds}, status: LeaseStatus.ACTIVE},
             opts,
         ) : Promise.resolve(zero),
     ]);

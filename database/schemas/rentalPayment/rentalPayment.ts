@@ -22,6 +22,7 @@ import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/v
 import {
     RentalPaymentSchemaDef,
     RENTAL_PAYMENT_LONG_TEXT_MAX,
+    RENTAL_PAYMENT_RECEIPT_MEDIA_MAX,
     RENTAL_PAYMENT_SHORT_TEXT_MAX,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
@@ -48,8 +49,9 @@ export interface IRentalPayment extends Document, IOwnershipPluginFields, ISoftD
     status: RentalPaymentStatus;
     paidDate?: Date;
     paidAmount?: Decimal128;
+    remaining?: number;
     lateFeeAmount?: Decimal128;
-    paymentReceipts?: {amount: Decimal128; paidDate: Date; notes?: string}[];
+    paymentReceipts?: {amount: Decimal128; paidDate: Date; notes?: string; media?: IMedia[]}[];
     notes?: string;
     receiptMedia?: IMedia;
     rentReminderEmailAt3d?: Date;
@@ -68,10 +70,9 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             maxlength:   RENTAL_PAYMENT_SHORT_TEXT_MAX,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
-                order: 1,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
+                sortable: true,
             },
         },
         lease: {
@@ -80,11 +81,10 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required:     true,
             refAllowlist: LeaseSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 2,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
                 filterable: true,
+                sortable: true,
             },
         },
         unit: {
@@ -93,31 +93,28 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required:     true,
             refAllowlist: UnitSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 3,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
+                refDisplayKey: ["name", "unitNumber"],
                 filterable: true,
+                sortable: true,
             },
         },
         dueDate: {
             type: SchemaTypes.Date,
             required: true,
             dynamicTableConfiguration: {
-                order: 4,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
+                sortable: true,
             },
         },
         amount: {
             type: SchemaTypes.Decimal128,
             required: true,
             dynamicTableConfiguration: {
-                order: 5,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
+                sortable: true,
             },
         },
         currency: {
@@ -126,11 +123,10 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required:     true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
-                order: 6,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
+                refDisplayKey: ["symbol", "name"],
                 filterable: true,
+                sortable: true,
             },
         },
         status: {
@@ -140,20 +136,18 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             default:  RentalPaymentStatus.PENDING,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
-                order: 7,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.ENUM,
                 filterable: true,
+                sortable: true,
             },
         },
         paidDate: {
             type: SchemaTypes.Date,
             required: false,
             dynamicTableConfiguration: {
-                order: 8,
-                defaultVisible: true,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
+                sortable: true,
             },
         },
         paidAmount: {
@@ -161,10 +155,20 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
-                order: 9,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
+                sortable: true,
+            },
+        },
+        remaining: {
+            type: SchemaTypes.Number,
+            required: false,
+            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: false,
+                sortable: false,
+                dtoPath: "remaining",
             },
         },
         lateFeeAmount: {
@@ -172,19 +176,72 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
-                hideColumn: true,
-                filterable: false,
+                cellType: COLUMN_TYPE.NUMBER,
+                filterable: true,
+                sortable: true,
             },
         },
         paymentReceipts: {
             type: [{
-                amount: {type: SchemaTypes.Decimal128, required: true},
-                paidDate: {type: SchemaTypes.Date, required: true},
-                notes: {type: SchemaTypes.String, required: false, trim: true, maxlength: RENTAL_PAYMENT_LONG_TEXT_MAX},
+                amount: {
+                    type: SchemaTypes.Decimal128,
+                    required: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                        visible: false,
+                    },
+                },
+                paidDate: {
+                    type: SchemaTypes.Date,
+                    required: true,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                        visible: false,
+                    },
+                },
+                notes: {
+                    type: SchemaTypes.String,
+                    required: false,
+                    trim: true,
+                    maxlength: RENTAL_PAYMENT_LONG_TEXT_MAX,
+                    dynamicTableConfiguration: {
+                        hideColumn: true,
+                        filterable: false,
+                        sortable: false,
+                        visible: false,
+                    },
+                },
+                media: {
+                    type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
+                    required: false,
+                    default: [],
+                    refAllowlist: MediaSimpleSnippet,
+                    validate: {
+                        validator: (v: unknown) => !Array.isArray(v) || v.length <= RENTAL_PAYMENT_RECEIPT_MEDIA_MAX,
+                    },
+                    dynamicTableConfiguration: {
+                        cellType: COLUMN_TYPE.FILE,
+                        filterable: true,
+                        sortable: false,
+                        dtoPath: "paymentReceiptsMedia",
+                    },
+                },
             }],
             required: false,
             default: [],
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            /** objectId cell → badges; label from each receipt via refDisplayKey. */
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["currency.symbol", "amount", "! · ", "paidDate"],
+                maxInlineItems: 2,
+                filterable: false,
+                sortable: false,
+            },
         },
         notes: {
             type: SchemaTypes.String,
@@ -192,10 +249,9 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             trim: true,
             maxlength: RENTAL_PAYMENT_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
-                order: 10,
-                defaultVisible: false,
                 cellType: COLUMN_TYPE.STRING,
-                filterable: false,
+                filterable: true,
+                sortable: false,
             },
         },
         receiptMedia: {
@@ -204,29 +260,49 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required:     false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                hideColumn: true,
-                filterable: false,
+                cellType: COLUMN_TYPE.FILE,
+                sortable: false,
             },
         },
         rentReminderEmailAt3d: {
             type: SchemaTypes.Date,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+                sortable: true,
+            },
         },
         rentReminderEmailAt1d: {
             type: SchemaTypes.Date,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+                sortable: true,
+            },
         },
         rentReminderEmailAt0d: {
             type: SchemaTypes.Date,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+                sortable: true,
+            },
         },
         rentOverdueNoticeEmailAt: {
             type: SchemaTypes.Date,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+                sortable: true,
+            },
         },
     },
     {accessMode: "loose"},
@@ -258,6 +334,6 @@ addModelData(RentalPayment, rentalPaymentViews);
 validateSchemaDefAgainstMongoose(RentalPaymentSchema, RentalPaymentSchemaDef, "RentalPayment", [
     // name: auto-generated; status/unit/paidDate: server or action-managed
     "name", "status", "paidDate", "unit",
-    "paidAmount", "lateFeeAmount", "paymentReceipts",
+    "paidAmount", "remaining", "lateFeeAmount", "paymentReceipts",
     "rentReminderEmailAt3d", "rentReminderEmailAt1d", "rentReminderEmailAt0d", "rentOverdueNoticeEmailAt",
 ]);

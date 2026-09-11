@@ -17,7 +17,6 @@ import {reservationService} from "../../../../database/schemas/reservation/reser
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
-import {handoverPackageService} from "../../../../database/schemas/handoverPackage/handoverPackage.service";
 import {propertyManagementConfigService} from "../../../../database/schemas/propertyManagementConfig/propertyManagementConfig.service";
 import {recordCommission} from "../../../../utilities/mappers/commissions/commission";
 import Sale, {SaleApprovalStatus, SalePaymentType} from "../../../../database/schemas/sale/sale";
@@ -55,6 +54,7 @@ import {SaleActions} from "../../../../database/schemas/sale/sale.actions";
 import type {PaymentPlan as PaymentPlanData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/paymentPlan.dto";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import authMW from "@coreModule/utilities/middlewares/authMW";
+import {salesWithHandoverContext} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
 
 export const basePath = "/api/realEstate/unit/sale";
 
@@ -173,17 +173,22 @@ const {router} = createCrudRouter({
             fields: {
                 purchaseContract: 1,
                 additionalDocuments: 10,
-                handoverCertificate: 1,
-                titleTransferCertificate: 1,
             },
             maxFileSize: 100 * 1024 * 1024,
         }),
     ],
-    editMiddleware: [
-        mediaUploadMW({fields: {handoverCertificate: 1, titleTransferCertificate: 1}, maxFileSize: 100 * 1024 * 1024}),
-    ],
 
     actions: SaleActions,
+
+    enrichList: async (docs, params) => salesWithHandoverContext(docs, params),
+    enrichSingle: async (doc, params) => {
+        const [enriched] = await salesWithHandoverContext([doc], params);
+        return enriched;
+    },
+    enrichUpdate: async (doc, params) => {
+        const [enriched] = await salesWithHandoverContext([doc], params);
+        return enriched;
+    },
 
     // ── Select: custom field sanitization + DSL filter ──────────────────────
     overrideSelectHandler: async (params) => {
@@ -222,8 +227,6 @@ const {router} = createCrudRouter({
             paymentType, unit, soldBy, buyer, saleDate, saleCurrency,
             localDiscount, purchaseContract, additionalDocuments, notes,
             transactionReference, reservationExchangeRate, saleExchangeRate, buyerCompany,
-            handoverDate, handedOverBy, handoverNotes, handoverCertificate,
-            titleTransferDate, deedNumber, notaryName, titleTransferCertificate,
             // payment plan fields (all optional at schema level)
             downPayment, installments: installmentsParam, numberOfInstallments: numberOfInstallmentsField,
             startDate: startDateField, endDate: endDateField,
@@ -363,16 +366,6 @@ const {router} = createCrudRouter({
             paymentPlanId = paymentPlan._id;
         }
 
-        const settingHandoverDate = typeof handoverDate === "string" && handoverDate.trim() !== "";
-
-        const handedOverById = typeof handedOverBy === "string" && handedOverBy.trim() !== "" ? handedOverBy : undefined;
-        if (handedOverById) {
-            await userService.findOneOrThrow(
-                {_id: new ObjectId(handedOverById), "roles.company": company._id},
-                {session, logger, languageCode},
-            );
-        }
-
         const firstMediaId = (value: unknown) => {
             const raw = Array.isArray(value) ? value[0] : value;
             if (raw == null || raw === "") return undefined;
@@ -403,14 +396,6 @@ const {router} = createCrudRouter({
             reservationConvertedAmount,
             company:                    company._id,
             paymentPlan:                paymentPlanId,
-            handoverDate:               settingHandoverDate ? new Date(handoverDate) : undefined,
-            handedOverBy:               handedOverById ? new ObjectId(handedOverById) : undefined,
-            handoverNotes:              typeof handoverNotes === "string" && handoverNotes.trim() !== "" ? handoverNotes : undefined,
-            handoverCertificate:        firstMediaId(handoverCertificate),
-            titleTransferDate:          typeof titleTransferDate === "string" && titleTransferDate.trim() !== "" ? new Date(titleTransferDate) : undefined,
-            deedNumber:                 typeof deedNumber === "string" && deedNumber.trim() !== "" ? deedNumber.trim() : undefined,
-            notaryName:                 typeof notaryName === "string" && notaryName.trim() !== "" ? notaryName.trim() : undefined,
-            titleTransferCertificate:   firstMediaId(titleTransferCertificate),
         };
     },
 
@@ -563,37 +548,7 @@ const {router} = createCrudRouter({
 
     // ── Update ─────────────────────────────────────────────────────────────
     buildUpdateData: async (params, writeFields) => {
-        const {
-            notes, transactionReference,
-            handoverDate, handedOverBy, handoverNotes, handoverCertificate: handoverCertificateFile,
-            titleTransferDate, deedNumber, notaryName, titleTransferCertificate: titleTransferCertificateFile,
-            existing, company, session, logger, languageCode,
-        } = params as any;
-
-        // Handover gate: when the company requires it, a handover date can only be
-        // stamped once the unit's HandoverPackage is completed (delivery evidence).
-        const settingHandoverDate = handoverDate !== undefined && handoverDate !== null;
-        const alreadyHandedOver = !!existing?.handoverDate;
-        let requiresHandoverPackage = false;
-        if (settingHandoverDate && !alreadyHandedOver) {
-            const settings = await propertyManagementConfigService.getSettingsForCompany(
-                company._id,
-                {session, logger, languageCode},
-            );
-            requiresHandoverPackage = settings.requiresHandoverPackageForHandover;
-        }
-        if (requiresHandoverPackage && settingHandoverDate && !alreadyHandedOver) {
-            const unitId = existing?.unit?._id ?? existing?.unit;
-            const completedPackage = unitId
-                ? await handoverPackageService.findOne(
-                    {unit: new ObjectId(unitId.toString()), company: company._id, status: "completed", deletedAt: null},
-                    {session, logger, languageCode},
-                )
-                : null;
-            if (!completedPackage) {
-                throw apiValidationException("sale_handover_requires_completed_handover_package", "", null, languageCode);
-            }
-        }
+        const {notes, transactionReference} = params as {notes?: string | null; transactionReference?: string | null};
 
         const update: Record<string, unknown> = {};
 
@@ -601,25 +556,6 @@ const {router} = createCrudRouter({
         if (transactionReference !== undefined && writeFields.transactionReference) {
             update.transactionReference = transactionReference == null || String(transactionReference).trim() === "" ? undefined : String(transactionReference).trim();
         }
-        if (handoverDate !== undefined) {
-            update.handoverDate = handoverDate === null ? null : new Date(handoverDate);
-        }
-        if (handedOverBy !== undefined) {
-            update.handedOverBy = handedOverBy === null ? null : new ObjectId(handedOverBy);
-        }
-        if (handoverNotes !== undefined) {
-            update.handoverNotes = handoverNotes === null ? undefined : handoverNotes;
-        }
-        const hcFile = Array.isArray(handoverCertificateFile) ? handoverCertificateFile[0] : handoverCertificateFile;
-        if (hcFile) update.handoverCertificate = new ObjectId(hcFile.toString());
-
-        if (titleTransferDate !== undefined) {
-            update.titleTransferDate = titleTransferDate === null ? null : new Date(titleTransferDate);
-        }
-        if (deedNumber !== undefined) update.deedNumber = deedNumber === null ? undefined : String(deedNumber).trim() || undefined;
-        if (notaryName !== undefined)  update.notaryName  = notaryName  === null ? undefined : String(notaryName).trim()  || undefined;
-        const ttcFile = Array.isArray(titleTransferCertificateFile) ? titleTransferCertificateFile[0] : titleTransferCertificateFile;
-        if (ttcFile) update.titleTransferCertificate = new ObjectId(ttcFile.toString());
 
         return update;
     },

@@ -1,4 +1,4 @@
-import {Decimal128} from "mongodb";
+import {Decimal128, ObjectId} from "mongodb";
 
 /** Internal scale: 3 decimal places. Remaining ≤ 0.005 is settled. */
 const SCALE = 3;
@@ -13,13 +13,14 @@ export type RentMoneyRow = {
     paidAmount?: Decimal128 | string | number | null;
     lateFeeAmount?: Decimal128 | string | number | null;
     status?: string | null;
-    paymentReceipts?: {amount?: unknown; paidDate?: Date; notes?: string}[] | null;
+    paymentReceipts?: {amount?: unknown; paidDate?: Date; notes?: string; media?: ObjectId[]}[] | null;
 };
 
 export type RentalPaymentReceiptWrite = {
     amount: Decimal128;
     paidDate: Date;
     notes?: string;
+    media?: ObjectId[];
 };
 
 export type ApplySliceOk = {
@@ -123,7 +124,7 @@ export function sliceFitsRemaining(row: RentMoneyRow, slice: Decimal128 | string
 
 export function applyRentalPaymentSlice(
     row: RentMoneyRow,
-    slice: {paidAmount: Decimal128 | string | number; paidDate: Date; notes?: string},
+    slice: {paidAmount: Decimal128 | string | number; paidDate: Date; notes?: string; media?: string[]},
 ): ApplySliceOk | ApplySliceFail {
     if (row.status === "paid" || row.status === "waived") {
         return {ok: false, reason: "not_open"};
@@ -140,12 +141,14 @@ export function applyRentalPaymentSlice(
             amount: r.amount instanceof Decimal128 ? r.amount : scaledToDecimal128(moneyToScaled(r.amount as Decimal128 | string | number | null | undefined)),
             paidDate: r.paidDate instanceof Date ? r.paidDate : new Date(),
             ...(typeof r.notes === "string" && r.notes !== "" ? {notes: r.notes} : {}),
+            ...(r.media?.length ? {media: r.media} : {}),
         }))
         : [];
     const receipt: RentalPaymentReceiptWrite = {
         amount: scaledToDecimal128(sliceScaled),
         paidDate: slice.paidDate,
         ...(slice.notes != null && slice.notes !== "" ? {notes: slice.notes} : {}),
+        ...(slice.media?.length ? {media: slice.media.map((id) => new ObjectId(id))} : {}),
     };
     receipts.push(receipt);
 

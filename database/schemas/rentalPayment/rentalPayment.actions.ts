@@ -9,13 +9,21 @@ import {
     decimal128FromNumber,
     isOpenRentStatus,
 } from "@propertyManagement/utilities/lease/rentRemaining";
+import {RENTAL_PAYMENT_RECEIPT_MEDIA_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {markRentalPaymentPaidFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/markRentalPaymentPaid.form.validator";
 import {waiveRentalPaymentFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/waiveRentalPayment.form.validator";
+import {sendRentalPaymentReminderFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/sendRentReminder.form.validator";
+import {sendManualRentReminder} from "@propertyManagement/utilities/database/lease/leaseClientEmailDispatch";
+import {
+    UNIT_EMAIL_POPULATE,
+    UNIT_EMAIL_SELECT,
+} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 import type {RentalPayment as RentalPaymentData} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.dto";
 import {rentalPaymentToDTO} from "@propertyManagement/utilities/mappers/rentalPayment/rentalPaymentMapper.dto";
 import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
+import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 
 async function loadPaymentForAction(params: Record<string, any>) {
     const {logger, languageCode, session, company, _id} = params;
@@ -62,10 +70,11 @@ export class RentalPaymentActions {
         auth:        "private",
         rateLimit:   {windowMs: 60000, max: 30},
         transaction: true,
+        middleware:  [mediaUploadMW({maxFiles: RENTAL_PAYMENT_RECEIPT_MEDIA_MAX, maxFileSize: 25 * 1024 * 1024})],
         schema:      markRentalPaymentPaidFormSchema,
     })
     async markPaid(params: Record<string, any>): Promise<RentalPaymentData | undefined> {
-        const {logger, languageCode, session, actionUserCtx, _id, paidAmount, paidDate, notes} = params;
+        const {logger, languageCode, session, actionUserCtx, _id, paidAmount, paidDate, notes, fileIds} = params;
 
         logger.start(`Recording rental payment ${_id}...`);
 
@@ -88,6 +97,7 @@ export class RentalPaymentActions {
             paidAmount: decimal128FromNumber(paidAmount),
             paidDate: paidAt,
             notes,
+            media: fileIds,
         });
         if (!applied.ok) {
             throw apiValidationException(
@@ -152,5 +162,48 @@ export class RentalPaymentActions {
         const returnData = await returnPaymentDto(existing._id, params);
         logger.finish(`Waived rental payment ${_id}`);
         return returnData;
+    }
+
+    @action({
+        auth:        "private",
+        rateLimit:   {windowMs: 60000, max: 20},
+        schema:      sendRentalPaymentReminderFormSchema,
+    })
+    async sendRentReminder(params: Record<string, any>): Promise<{ok: true}> {
+        const {logger, languageCode, session, company, _id, kind} = params;
+
+        logger.start(`Sending rent reminder ${kind} for rental payment ${_id}...`);
+
+        const payment = await rentalPaymentService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {session, logger, languageCode},
+            [
+                {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
+                {path: "currency", select: "symbol"},
+            ],
+        );
+
+        const leaseId = (payment.lease as any)?._id ?? payment.lease;
+        const lease = await leaseService.findOneOrThrow(
+            {_id: new ObjectId(String(leaseId)), company: company._id},
+            {session, logger, languageCode},
+        );
+        if (lease.status !== LeaseStatus.ACTIVE) {
+            throw apiValidationException("lease_not_active", "", null, languageCode);
+        }
+
+        const companyName = typeof company.name === "string" ? company.name : "";
+        await sendManualRentReminder({
+            lease,
+            payment,
+            kind,
+            languageCode: languageCode ?? "en-US",
+            companyId: company._id.toString(),
+            companyName,
+            session,
+        });
+
+        logger.finish(`Sent rent reminder ${kind} for rental payment ${_id}`);
+        return {ok: true};
     }
 }

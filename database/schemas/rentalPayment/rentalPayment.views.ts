@@ -210,6 +210,73 @@ export const rentalPaymentSheetView: ViewConfig = {
             ],
         },
         {
+            render: "#ReferencesViewModeScope",
+            props: {
+                storageKey: "rentalPayment.sheet.paymentReceipts.listDisplay",
+                defaultMode: "compact",
+            },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    permissions: {readAny: ["paymentReceipts"]},
+                    dependent: "paymentReceipts",
+                    props: {
+                        title: "paymentReceipts",
+                        titleActions: "#ReferencesViewModeToggle",
+                    },
+                    children: [
+                        {
+                            render: "div",
+                            props: {className: "rounded-lg bg-muted/30 border border-border/50 max-w-full"},
+                            children: [
+                                {
+                                    render: "#SheetEmbeddedItemsList",
+                                    permissions: {read: "paymentReceipts"},
+                                    field: {
+                                        name: "paymentReceipts",
+                                        widget: "#SheetEmbeddedItemsList",
+                                        widgetProps: {
+                                            pageSize: 10,
+                                            cardColumns: 2,
+                                            sortField: "paidDate",
+                                            compactSummaryFields: ["paidDate", "amount"],
+                                            fields: [
+                                                {
+                                                    name: "amount",
+                                                    type: "text",
+                                                    icon: "#Banknote",
+                                                    labelKey: "receiptAmount",
+                                                    currencyField: "currency",
+                                                },
+                                                {
+                                                    name: "paidDate",
+                                                    type: "text",
+                                                    format: "date",
+                                                    icon: "#Calendar",
+                                                    labelKey: "receiptPaidDate",
+                                                },
+                                                {
+                                                    name: "notes",
+                                                    type: "expandableText",
+                                                    icon: "#IconAlignLeft",
+                                                    labelKey: "receiptNotes",
+                                                },
+                                                {
+                                                    name: "media",
+                                                    type: "mediaStrip",
+                                                    labelKey: "receiptAttachments",
+                                                },
+                                            ],
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
             render: "#SheetGroup",
             permissions: {readAny: ["receiptMedia"]},
             props: {title: "receiptMedia"},

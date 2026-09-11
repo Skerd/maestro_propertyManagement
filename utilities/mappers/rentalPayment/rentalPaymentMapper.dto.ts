@@ -16,11 +16,14 @@ import {
 export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
     const unit  = payment.unit  as any;
     const lease = payment.lease as any;
+    const currency = mapPopulatedSimpleCurrency(payment.currency as any);
     const receipts = Array.isArray(payment.paymentReceipts)
         ? payment.paymentReceipts.map((r) => ({
             amount: moneyNumber(r.amount),
             paidDate: r.paidDate ? new Date(r.paidDate).toISOString().split("T")[0] : "",
             ...(r.notes ? {notes: r.notes} : {}),
+            ...(currency ? {currency} : {}),
+            ...(r.media?.length ? {media: r.media.map(mapMedia)} : {}),
         }))
         : undefined;
     return {
@@ -30,13 +33,14 @@ export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
         unit:     unit   ? {_id: unit._id?.toString() ?? unit.toString(), name: unit.name, unitNumber: unit.unitNumber} : undefined,
         dueDate:  payment.dueDate ? new Date(payment.dueDate).toISOString().split("T")[0] : "",
         amount:   moneyNumber(payment.amount),
-        currency: mapPopulatedSimpleCurrency(payment.currency as any),
+        currency,
         status:   payment.status || undefined,
         paidDate: payment.paidDate   ? new Date(payment.paidDate).toISOString().split("T")[0] : undefined,
         paidAmount: paidAmountNumber(payment),
         remaining: remainingNumber(payment),
         lateFeeAmount: lateFeeNumber(payment),
         paymentReceipts: receipts,
+        paymentReceiptsMedia: receipts?.flatMap((r) => r.media ?? []),
         notes:      payment.notes,
         receiptMedia: payment.receiptMedia ? mapMedia(payment.receiptMedia) : undefined,
         ...mapSoftDeleteToDTO(payment),

@@ -9,6 +9,12 @@ import {manualSaleClientEmailFormSchema} from "armonia/src/modules/propertyManag
 import {payInstallmentFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/payInstallment.form.validator";
 import {restructurePaymentPlanFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/restructurePaymentPlan.form.validator";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
+import {recordTitleTransferFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/recordTitleTransfer.form.validator";
+import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
+import {
+    assertTitleTransferAllowed,
+    salesWithHandoverContext,
+} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
 import Sale, {SaleApprovalStatus, SalePaymentType} from "./sale";
 import PaymentPlan, {
     computePaymentPlanRemainingBalance,
@@ -683,15 +689,19 @@ export class SaleActions {
         auth: "private",
         rateLimit: {windowMs: 60000, max: 20},
         transaction: true,
-        schema: validateSingleForm,
+        middleware: [mediaUploadMW({fields: {titleTransferCertificate: 1}, maxFileSize: 100 * 1024 * 1024})],
+        schema: recordTitleTransferFormSchema,
     })
-    async completeHandover(params: Record<string, any>): Promise<SaleData | undefined> {
-        const {logger, languageCode, session, _id, actionUserCtx, company} = params;
+    async recordTitleTransfer(params: Record<string, any>): Promise<SaleData | undefined> {
+        const {
+            logger, languageCode, session, _id, actionUserCtx, company,
+            titleTransferDate, deedNumber, notaryName, titleTransferCertificate,
+        } = params;
 
-        logger.start(`Completing handover for sale: ${_id}...`);
+        logger.start(`Recording title transfer for sale: ${_id}...`);
 
         try {
-            SchemaGuard.sanitizeFields(Sale, {handoverDate: {}}, "write", actionUserCtx, languageCode);
+            SchemaGuard.sanitizeFields(Sale, {titleTransferDate: {}}, "write", actionUserCtx, languageCode);
         } catch {
             throw apiValidationException("sale_not_found", "", null, languageCode);
         }
@@ -704,16 +714,20 @@ export class SaleActions {
         if (sale.deletedAt) {
             throw apiValidationException("sale_not_found", "", null, languageCode);
         }
-        if (!sale.handoverDate) {
-            throw apiValidationException("sale_handover_not_recorded", "", null, languageCode);
-        }
-        if (sale.handoverCompletedAt) {
-            throw apiValidationException("sale_handover_already_completed", "", null, languageCode);
-        }
+
+        await assertTitleTransferAllowed(sale, company._id, {session, logger, languageCode});
+
+        const certificateRaw = Array.isArray(titleTransferCertificate) ? titleTransferCertificate[0] : titleTransferCertificate;
+        const $set: Record<string, unknown> = {
+            titleTransferDate: new Date(titleTransferDate),
+        };
+        if (typeof deedNumber === "string" && deedNumber.trim() !== "") $set.deedNumber = deedNumber.trim();
+        if (typeof notaryName === "string" && notaryName.trim() !== "") $set.notaryName = notaryName.trim();
+        if (certificateRaw) $set.titleTransferCertificate = new ObjectId(certificateRaw.toString());
 
         await saleService.updateByIdOrThrow(
             sale._id,
-            {$set: {handoverCompletedAt: new Date()}},
+            {$set},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 
@@ -728,12 +742,15 @@ export class SaleActions {
             );
             const populate = SchemaGuard.generatePopulate(readFields, Sale.schema);
             const updated = await saleService.findById(sale._id, {session, logger, languageCode}, populate.populate);
-            returnSale = saleToDTO(updated);
+            if (updated) {
+                const [enriched] = await salesWithHandoverContext([updated], {company, session, logger, languageCode});
+                returnSale = enriched;
+            }
         } catch {
-            logger.debug("User has no read permission on sale after completing handover!");
+            logger.debug("User has no read permission on sale after recording title transfer!");
         }
 
-        logger.finish(`Handover completed: ${_id}`);
+        logger.finish(`Title transfer recorded: ${_id}`);
         return returnSale;
     }
 }

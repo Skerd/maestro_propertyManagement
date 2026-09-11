@@ -442,8 +442,6 @@ const paymentPlanCreateFormNode: ViewConfig["nodes"] = [
         ],
     },
     saleCreateCashFormFields[2],
-    saleCreateCashFormFields[3],
-    saleCreateCashFormFields[4],
 ];
 
 /** Standalone PaymentPlan CRUD (`/api/realEstate/unit/paymentPlan`). Sale-attached plans use `sales` + `saleCreatePaymentPlanFormView` in `sale.views.ts`. */

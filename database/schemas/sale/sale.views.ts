@@ -538,84 +538,49 @@ export const saleSheetView: ViewConfig = {
             ],
         },
         {
-            render: "#SheetGroup",
-            dependentAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt", "handoverCertificate"],
-            permissions: { readAny: ["handoverDate", "handedOverBy", "handoverNotes", "handoverCompletedAt", "handoverCertificate"] },
-            props: { title: "handover" },
+            render: "#ReferencesViewModeScope",
+            props: {
+                storageKey: "sale.sheet.handoverPackage.display",
+                defaultMode: "compact",
+            },
             children: [
                 {
-                    render: "#SheetGrid",
-                    props: { columns: 2 },
+                    render: "#SheetGroup",
+                    dependent: "handoverPackage",
+                    dependentRuntimeOnly: true,
+                    props: {
+                        title: "handover",
+                        titleActions: "#ReferencesViewModeToggle",
+                    },
                     children: [
                         {
-                            render: "#DisplayCard",
-                            permissions: { read: "handoverDate" },
-                            field: {
-                                name: "handoverDate",
-                                widget: "#DisplayCard",
-                                label: "handoverDate",
-                                widgetProps: { icon: "#Calendar", format: "date", type: "date" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "handoverCompletedAt" },
-                            field: {
-                                name: "handoverCompletedAt",
-                                widget: "#DisplayCard",
-                                label: "handoverCompletedAt",
-                                widgetProps: { icon: "#CheckCircle", format: "date", type: "date" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "handedOverBy" },
-                            field: {
-                                name: "handedOverBy",
-                                widget: "#DisplayCard",
-                                label: "handedOverBy",
-                                widgetProps: {
-                                    icon: "#UserCheck",
-                                    parent: "handedOverBy",
-                                    valuePath: ["name", "surname"],
-                                    joinSeparator: " ",
-                                    type: "user",
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    dependent: "handoverPackage",
+                                    dependentRuntimeOnly: true,
+                                    field: {
+                                        name: "handoverPackage",
+                                        skipReadAccessGate: true,
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#HandoverPackageCard",
+                                            pageSize: 1,
+                                            small: true,
+                                            compactRow: {
+                                                icon: "#ClipboardCheck",
+                                                label: "handoverPackage",
+                                                valuePath: ["title"],
+                                                linkedSheetModel: "handoverpackages",
+                                                linkedSheetWidget: "#HandoverPackageSheetView",
+                                                linkedSheetEntityProp: "entity",
+                                            },
+                                        },
+                                    },
                                 },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "handoverNotes" },
-                            field: {
-                                name: "handoverNotes",
-                                widget: "#DisplayCard",
-                                label: "handoverNotes",
-                                widgetProps: {
-                                    icon: "#IconAlignLeft",
-                                    expandable: true,
-                                    maxLength: 250,
-                                },
-                            },
-                        },
-                    ],
-                },
-                {
-                    render: "div",
-                    dependent: "handoverCertificate",
-                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
-                    children: [
-                        {
-                            render: "#SheetMediaFilesStrip",
-                            permissions: { read: "handoverCertificate" },
-                            field: {
-                                name: "handoverCertificate",
-                                widget: "#SheetMediaFilesStrip",
-                                widgetProps: {
-                                    canDownload: true,
-                                    canRemove: false,
-                                    isBig: false,
-                                },
-                            },
+                            ],
                         },
                     ],
                 },
@@ -858,129 +823,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {name: "additionalDocuments", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 10, showLabel: true, labelKey: "form.additionalDocumentsLabel", addFileKey: "form.uploadAdditionalDocuments", filesSelectedKey: "form.filesSelected"}},
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: {title: "handoverSectionTitle"},
-        children: [
-            {
-                render: "#FormGrid",
-                props: {columns: 2, className: "items-start gap-4"},
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "handoverDate",
-                            widget: "#DateInput",
-                            label: "form.handoverDateLabel",
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "handedOverBy",
-                            widget: "#ApiSelect",
-                            label: "form.handedOverByLabel",
-                            placeholder: "form.handedOverByPlaceholder",
-                            widgetProps: {
-                                apiUrl: "/api/company/users/select",
-                                method: "POST",
-                                postBody: {administration: true},
-                            },
-                        },
-                    },
-                    {
-                        render: "#FormGrid",
-                        props: {columns: 1, className: "md:col-span-2 items-start gap-4"},
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name: "handoverNotes",
-                                    widget: "#Textarea",
-                                    label: "form.handoverNotesLabel",
-                                    placeholder: "form.handoverNotesPlaceholder",
-                                    widgetProps: {
-                                        className: "resize-none max-h-[250px] overflow-y-auto",
-                                        maxLength: SALE_LONG_TEXT_MAX,
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "handoverCertificate",
-                            widget: "#FormMultiLocalFileField",
-                            widgetProps: {
-                                maxFiles: 1,
-                                showLabel: true,
-                                labelKey: "form.handoverCertificateLabel",
-                                addFileKey: "form.uploadHandoverCertificate",
-                                filesSelectedKey: "form.filesSelected",
-                            },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: {title: "titleTransferSectionTitle"},
-        children: [
-            {
-                render: "#FormGrid",
-                props: {columns: 3, className: "items-start gap-4"},
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "titleTransferDate",
-                            widget: "#DateInput",
-                            label: "form.titleTransferDateLabel",
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "deedNumber",
-                            widget: "#Input",
-                            label: "form.deedNumberLabel",
-                            placeholder: "form.deedNumberPlaceholder",
-                            widgetProps: {maxLength: SALE_SHORT_TEXT_MAX},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "notaryName",
-                            widget: "#Input",
-                            label: "form.notaryNameLabel",
-                            placeholder: "form.notaryNamePlaceholder",
-                            widgetProps: {maxLength: SALE_SHORT_TEXT_MAX},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "titleTransferCertificate",
-                            widget: "#FormMultiLocalFileField",
-                            widgetProps: {
-                                maxFiles: 1,
-                                showLabel: true,
-                                labelKey: "form.titleTransferCertificateLabel",
-                                addFileKey: "form.uploadTitleTransferCertificate",
-                                filesSelectedKey: "form.filesSelected",
-                            },
-                        },
                     },
                 ],
             },

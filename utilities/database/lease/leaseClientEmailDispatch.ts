@@ -1,5 +1,6 @@
 import type {ClientSession} from "mongodb";
 import {ObjectId} from "mongodb";
+import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import type {LeaseClientEmailEvent} from "../../../kafka/types";
 import {formatReservationExpirationForEmail} from "../reservation/reservationClientEmailDispatch";
@@ -8,7 +9,16 @@ import {
     formatMoneyAmountForEmail,
     unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
-import {remainingNumber} from "@propertyManagement/utilities/lease/rentRemaining";
+import {
+    isOpenRentStatus,
+    isSettledRemaining,
+    remainingNumber,
+    remainingScaled,
+} from "@propertyManagement/utilities/lease/rentRemaining";
+import {
+    isPastExpirationUtcEndOfDay,
+    utcCalendarDaysUntilExpirationDay,
+} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import type {RentReminderKind} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/sendRentReminder.form.validator";
 
 export type DispatchLeaseClientEmailInput = Omit<
@@ -60,6 +70,9 @@ export function reminderKindToDispatch(
     if (kind === "overdue") {
         return {kind: "rent_overdue"};
     }
+    if (kind === "remaining_days") {
+        return {kind: "rent_remaining_days"};
+    }
     if (kind === "1d") {
         return {kind: "rent_reminder", reminderPhase: "1"};
     }
@@ -67,6 +80,34 @@ export function reminderKindToDispatch(
         return {kind: "rent_reminder", reminderPhase: "0"};
     }
     return {kind: "rent_reminder", reminderPhase: "3"};
+}
+
+export function assertRentReminderKindAllowed(
+    kind: RentReminderKind,
+    dueDate: Date,
+    languageCode: string,
+): void {
+    const past = isPastExpirationUtcEndOfDay(dueDate);
+    const diff = utcCalendarDaysUntilExpirationDay(dueDate);
+    switch (kind) {
+        case "3d":
+            if (diff < 3) throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
+            return;
+        case "1d":
+            if (diff < 1) throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
+            return;
+        case "0d":
+            if (diff !== 0 || past) throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
+            return;
+        case "remaining_days":
+            if (past || diff < 0) throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
+            return;
+        case "overdue":
+            if (!past) throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
+            return;
+        default:
+            throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
+    }
 }
 
 type NamedId = {_id?: ObjectId | string} | ObjectId | string | null | undefined;
@@ -103,6 +144,7 @@ export function buildLeaseRentEmailPayload(params: {
     companyName: string;
     kind: DispatchLeaseClientEmailInput["kind"];
     reminderPhase?: DispatchLeaseClientEmailInput["reminderPhase"];
+    daysRemaining?: number;
 }): DispatchLeaseClientEmailInput | null {
     const tenantId = idOf(params.lease.tenant);
     if (!tenantId) {
@@ -139,8 +181,50 @@ export function buildLeaseRentEmailPayload(params: {
         ...location,
         kind: params.kind,
         reminderPhase: params.reminderPhase,
+        daysRemaining: params.daysRemaining,
         rentRemainingDisplay,
         dueDateIso: dueIso,
         dueDateFormatted: formatRentDueDateForEmail(dueIso, params.languageCode),
     };
+}
+
+export async function sendManualRentReminder(params: {
+    lease: Parameters<typeof buildLeaseRentEmailPayload>[0]["lease"];
+    payment: Parameters<typeof buildLeaseRentEmailPayload>[0]["payment"];
+    kind: RentReminderKind;
+    languageCode: string;
+    companyId: string;
+    companyName: string;
+    session?: ClientSession;
+}): Promise<void> {
+    const {lease, payment, kind, languageCode, companyId, companyName, session} = params;
+
+    if (!isOpenRentStatus(payment.status) || isSettledRemaining(remainingScaled(payment))) {
+        throw apiValidationException("rental_payment_already_paid", "", null, languageCode);
+    }
+
+    const due = new Date(payment.dueDate);
+    assertRentReminderKindAllowed(kind, due, languageCode);
+
+    const dispatchKind = reminderKindToDispatch(kind);
+    const daysRemaining =
+        kind === "remaining_days" ? utcCalendarDaysUntilExpirationDay(due) : undefined;
+    const payload = buildLeaseRentEmailPayload({
+        lease,
+        payment,
+        languageCode: languageCode ?? "en-US",
+        companyId,
+        companyName,
+        kind: dispatchKind.kind,
+        reminderPhase: dispatchKind.reminderPhase,
+        daysRemaining,
+    });
+    if (!payload) {
+        throw apiValidationException("client_has_no_email", "", null, languageCode);
+    }
+
+    const sent = await dispatchLeaseClientEmail(payload, {session});
+    if (!sent) {
+        throw apiValidationException("client_has_no_email", "", null, languageCode);
+    }
 }

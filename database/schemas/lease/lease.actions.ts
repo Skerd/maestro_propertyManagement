@@ -19,19 +19,16 @@ import {resyncLeaseSchedule} from "@propertyManagement/utilities/lease/leaseSche
 import {
     applyRentalPaymentSlice,
     decimal128FromNumber,
-    isOpenRentStatus,
-    isSettledRemaining,
     OPEN_RENT_STATUSES,
     planFifoSlices,
-    remainingScaled,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {rentalPaymentService} from "../rentalPayment/rentalPayment.service";
 import Lease, {LeaseStatus} from "./lease";
 import {leaseService} from "./lease.service";
+import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
+import {RENTAL_PAYMENT_RECEIPT_MEDIA_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {
-    buildLeaseRentEmailPayload,
-    dispatchLeaseClientEmail,
-    reminderKindToDispatch,
+    sendManualRentReminder,
 } from "@propertyManagement/utilities/database/lease/leaseClientEmailDispatch";
 import {
     UNIT_EMAIL_POPULATE,
@@ -170,10 +167,11 @@ export class LeaseActions {
         auth:        "private",
         rateLimit:   {windowMs: 60000, max: 30},
         transaction: true,
+        middleware:  [mediaUploadMW({maxFiles: RENTAL_PAYMENT_RECEIPT_MEDIA_MAX, maxFileSize: 25 * 1024 * 1024})],
         schema:      recordRentPaymentFormSchema,
     })
     async recordRentPayment(params: Record<string, any>): Promise<LeaseData | undefined> {
-        const {logger, languageCode, session, actionUserCtx, company, _id, paidAmount, paidDate, notes} = params;
+        const {logger, languageCode, session, actionUserCtx, company, _id, paidAmount, paidDate, notes, fileIds} = params;
 
         logger.start(`Recording lease rent payment ${_id}...`);
 
@@ -224,6 +222,7 @@ export class LeaseActions {
                 paidAmount: slice.slice,
                 paidDate: paidAt,
                 notes,
+                media: fileIds,
             });
             if (!applied.ok) {
                 throw apiValidationException("rental_payment_overpay", "", null, languageCode);
@@ -290,29 +289,16 @@ export class LeaseActions {
             ],
         );
 
-        if (!isOpenRentStatus(payment.status) || isSettledRemaining(remainingScaled(payment))) {
-            throw apiValidationException("rental_payment_already_paid", "", null, languageCode);
-        }
-
         const companyName = typeof company.name === "string" ? company.name : "";
-        const dispatchKind = reminderKindToDispatch(kind);
-        const payload = buildLeaseRentEmailPayload({
+        await sendManualRentReminder({
             lease: existing,
             payment,
+            kind,
             languageCode: languageCode ?? "en-US",
             companyId: company._id.toString(),
             companyName,
-            kind: dispatchKind.kind,
-            reminderPhase: dispatchKind.reminderPhase,
+            session,
         });
-        if (!payload) {
-            throw apiValidationException("client_has_no_email", "", null, languageCode);
-        }
-
-        const sent = await dispatchLeaseClientEmail(payload, {session});
-        if (!sent) {
-            throw apiValidationException("client_has_no_email", "", null, languageCode);
-        }
 
         logger.finish(`Sent rent reminder ${kind} for lease ${_id}`);
         return {ok: true};

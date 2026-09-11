@@ -8,13 +8,27 @@ import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
-import {HandoverPackageSchemaDef, handoverPackageStatusValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.schema-def";
+import {
+    HandoverPackageSchemaDef,
+    handoverItemImportanceValues,
+    HANDOVER_PACKAGE_ITEM_NAME_MAX,
+    HANDOVER_PACKAGE_ITEM_TEXT_MAX,
+    HANDOVER_PACKAGE_LONG_TEXT_MAX,
+    HANDOVER_PACKAGE_TITLE_MAX,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.schema-def";
 import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
+import {FloorSimpleSnippet} from "../floor/floor.snippets";
 import {handoverPackageViews} from "./handoverPackage.views";
 import {applyHandoverPackageIndexes} from "./handoverPackage.indexes";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
+import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+
+const noWrite = {
+    self: {write: "no-permission" as const},
+    others: {write: "no-permission" as const},
+};
 
 export interface IHandoverPackage extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
     name: string;
@@ -29,22 +43,37 @@ const HandoverPackageSchema = new Schema<IHandoverPackage>(
 
         project: {type: SchemaTypes.ObjectId, ref: "Project", required: true, refAllowlist: ProjectSimpleSnippet},
         edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, refAllowlist: EdificeSimpleSnippet},
-        unit: {type: SchemaTypes.ObjectId, ref: "Unit", required: false, refAllowlist: UnitSimpleSnippet},
-        title: {type: SchemaTypes.String, required: true, trim: true},
-        omManualsComplete: {type: SchemaTypes.Boolean, required: false, default: false},
-        asBuiltComplete: {type: SchemaTypes.Boolean, required: false, default: false},
-        keysTransferred: {type: SchemaTypes.Boolean, required: false, default: false},
-        trainingComplete: {type: SchemaTypes.Boolean, required: false, default: false},
-        description: {type: SchemaTypes.String, required: false},
-        notes: {type: SchemaTypes.String, required: false},
+        floor: {type: SchemaTypes.ObjectId, ref: "Floor", required: false, refAllowlist: FloorSimpleSnippet},
+        unit: {type: SchemaTypes.ObjectId, ref: "Unit", required: true, refAllowlist: UnitSimpleSnippet},
+        title: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_TITLE_MAX},
+        description: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX},
+        notes: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX},
         media: {type: [{type: SchemaTypes.ObjectId, ref: "Media"}], default: [], refAllowlist: MediaSimpleSnippet},
+        items: {
+            type: [{
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
+                importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false},
+                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite},
+                completedBy: {
+                    type: SchemaTypes.ObjectId,
+                    ref: "User",
+                    required: false,
+                    refAllowlist: SimpleUserSnippet,
+                    permissions: noWrite,
+                },
+            }],
+            default: [],
+        },
 
         status: {
             type: SchemaTypes.String,
-            enum: [...handoverPackageStatusValues],
+            enum: ["draft", "in_progress", "ready", "completed"],
             required: false,
             default: "draft",
-            permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            permissions: noWrite,
         },
     },
     {accessMode: "loose"},

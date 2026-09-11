@@ -6,9 +6,16 @@ import {apiValidationException} from "armonia/src/modules/core/helpers/exception
 import {startHandoverPackageFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/startHandoverPackage.form.validator";
 import {markReadyHandoverPackageFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/markReadyHandoverPackage.form.validator";
 import {completeHandoverPackageFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/completeHandoverPackage.form.validator";
+import {updateHandoverItemsFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/updateHandoverItems.form.validator";
 import HandoverPackage from "./handoverPackage";
 import {handoverPackageService} from "./handoverPackage.service";
 import {handoverPackageToDTO} from "@propertyManagement/utilities/mappers/handoverPackage/handoverPackageMapper.dto";
+import {
+    applyHandoverItemPatches,
+    assertPackageMutableForUnit,
+    computeHandoverPackageStatus,
+    packagesWithTitleTransferFlag,
+} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
 
 export class HandoverPackageActions {
 
@@ -125,5 +132,33 @@ export class HandoverPackageActions {
         } catch { /* no read */ }
         logger.finish(`HandoverPackage.complete done`);
         return undefined;
+    }
+
+    @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: updateHandoverItemsFormSchema})
+    async updateHandoverItems(params: Record<string, any>): Promise<any> {
+        const {logger, languageCode, session, actionUserCtx, company, _id, items} = params;
+        logger.start(`HandoverPackage.updateHandoverItems ` + String(_id) + `...`);
+        const existing = await handoverPackageService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {session, logger, languageCode},
+        );
+        const unitId = existing.unit?._id ?? existing.unit;
+        await assertPackageMutableForUnit(unitId, company._id, {session, logger, languageCode});
+        const nextItems = applyHandoverItemPatches(
+            Array.isArray(existing.items) ? existing.items : [],
+            items,
+            actionUserCtx.userId,
+        );
+        await handoverPackageService.updateByIdOrThrow(
+            existing._id,
+            {$set: {items: nextItems, status: computeHandoverPackageStatus(nextItems)}},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        );
+        const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode});
+        const [dto] = updated
+            ? await packagesWithTitleTransferFlag([updated], {company, session, logger, languageCode})
+            : [];
+        logger.finish(`HandoverPackage.updateHandoverItems done`);
+        return dto ?? (updated ? handoverPackageToDTO(updated) : undefined);
     }
 }

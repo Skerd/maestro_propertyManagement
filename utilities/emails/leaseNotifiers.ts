@@ -21,12 +21,13 @@ const fallbackLanguageCode = "en-US";
 const LOCALES_ROOT = path.join(__dirname, "static", "locales");
 const TEMPLATE_DIR = path.join(__dirname, "templates", "leaseClient");
 
-type LeaseVariant = "RentReminder3" | "RentReminder1" | "RentReminder0" | "RentOverdue";
+type LeaseVariant = "RentReminder3" | "RentReminder1" | "RentReminder0" | "RentRemainingDays" | "RentOverdue";
 
 const BODY_FILES: Record<LeaseVariant, string> = {
     RentReminder3: "body-rent-reminder-3.html",
     RentReminder1: "body-rent-reminder-1.html",
     RentReminder0: "body-rent-reminder-0.html",
+    RentRemainingDays: "body-rent-remaining-days.html",
     RentOverdue: "body-rent-overdue.html",
 };
 
@@ -41,6 +42,9 @@ function readTemplateHtml(templateDir: string, filename: string): string {
 function resolveVariant(data: LeaseClientEmailEvent): LeaseVariant {
     if (data.kind === "rent_overdue") {
         return "RentOverdue";
+    }
+    if (data.kind === "rent_remaining_days") {
+        return "RentRemainingDays";
     }
     const phase = data.reminderPhase ?? "3";
     return phase === "1" ? "RentReminder1" : phase === "0" ? "RentReminder0" : "RentReminder3";
@@ -71,6 +75,7 @@ export async function sendLeaseClientMail(data: LeaseClientEmailEvent): Promise<
     const companyName = data.companyName ?? "";
     const dueDate = data.dueDateFormatted ?? data.dueDateIso ?? "—";
     const rentRemaining = data.rentRemainingDisplay ?? "—";
+    const daysRem = String(data.daysRemaining ?? 0);
 
     const rentContext = buildRentContextHtml(loc, data);
     const greeting = localized(strings, "greeting", {fullName: data.fullName});
@@ -86,6 +91,13 @@ export async function sendLeaseClientMail(data: LeaseClientEmailEvent): Promise<
         closingRent1: loc.closingRent1 ?? "",
         introRent0: localized(strings, "introRent0", {companyName, dueDate, rentRemaining}),
         closingRent0: loc.closingRent0 ?? "",
+        introRentRemainingDays: localized(strings, "introRentRemainingDays", {
+            daysRemaining: daysRem,
+            companyName,
+            dueDate,
+            rentRemaining,
+        }),
+        closingRentRemainingDays: loc.closingRentRemainingDays ?? "",
         introRentOverdue: localized(strings, "introRentOverdue", {companyName, dueDate, rentRemaining}),
         closingRentOverdue: loc.closingRentOverdue ?? "",
     };

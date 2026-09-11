@@ -50,6 +50,10 @@ function hasQualifyFacts(lead: ILead): boolean {
     return Boolean(lead.interest && (lead.projectInterest || lead.unitInterest));
 }
 
+function hasReached(lead: ILead, status: LeadStatus): boolean {
+    return (STATUS_RANK[lead.status] ?? -1) >= STATUS_RANK[status];
+}
+
 function joinActivityNotes(...parts: (string | undefined)[]): string | undefined {
     const text = parts.map((part) => part?.trim()).filter(Boolean).join("\n");
     if (!text) return undefined;
@@ -136,6 +140,9 @@ export class LeadActions {
                 if (!hasContact(lead)) {
                     throw apiValidationException("lead_contact_required", "", null, languageCode);
                 }
+                if (!hasQualifyFacts(lead)) {
+                    throw apiValidationException("lead_qualify_required", "", null, languageCode);
+                }
             },
         });
     }
@@ -152,7 +159,7 @@ export class LeadActions {
             activityAction: LEAD_WORKFLOW_ACTIVITY_ACTION.markedProposal,
             statusError:    "invalid_status_for_markProposal",
             extraGate:      (lead, languageCode) => {
-                if (!hasQualifyFacts(lead) || (STATUS_RANK[lead.status] ?? -1) < STATUS_RANK[LeadStatus.QUALIFIED]) {
+                if (!hasReached(lead, LeadStatus.QUALIFIED)) {
                     throw apiValidationException("invalid_status_for_markProposal", "", null, languageCode);
                 }
             },
@@ -171,7 +178,7 @@ export class LeadActions {
             activityAction: LEAD_WORKFLOW_ACTIVITY_ACTION.markedNegotiation,
             statusError:    "invalid_status_for_markNegotiation",
             extraGate:      (lead, languageCode) => {
-                if (!hasQualifyFacts(lead) || (STATUS_RANK[lead.status] ?? -1) < STATUS_RANK[LeadStatus.PROPOSAL]) {
+                if (!hasReached(lead, LeadStatus.PROPOSAL)) {
                     throw apiValidationException("invalid_status_for_markNegotiation", "", null, languageCode);
                 }
             },

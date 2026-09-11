@@ -49,7 +49,12 @@ export async function createHandoverPackages(
             edifice: ariaEd,
             unit,
             status: "in_progress",
-            notes: "Keys, O&M and snag close-out for the cash sale unit."
+            notes: "Keys, O&M and snag close-out for the cash sale unit.",
+            items: [
+                {name: "Keys transferred", description: "Unit keys handed to the buyer.", importance: "high", completed: true, completedAt: new Date()},
+                {name: "O&M manuals", description: "Operation and maintenance manuals delivered.", importance: "medium", completed: false},
+                {name: "Snag close-out", description: "Outstanding snags closed or accepted.", importance: "high", completed: false},
+            ],
         }, logger, "handover package");
         if (doc?._id) created.set(seedKey, doc._id as ObjectId);
     }

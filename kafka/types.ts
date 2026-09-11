@@ -71,8 +71,10 @@ export interface LeaseClientEmailEvent extends UnitLocationForEmail {
     fullName: string;
     languageCode: string;
     timestamp: number;
-    kind: "rent_reminder" | "rent_overdue";
+    kind: "rent_reminder" | "rent_remaining_days" | "rent_overdue";
     reminderPhase?: "3" | "1" | "0";
+    /** Calendar days left until due day (UTC); used for `rent_remaining_days` emails. */
+    daysRemaining?: number;
     companyId: string;
     companyName: string;
     leaseId: string;

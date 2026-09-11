@@ -1,18 +1,30 @@
 import type {HandoverPackage, HandoverPackageItem} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.dto";
+import type {HandoverConfigScopeValue} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.schema-def";
 import type {IHandoverPackage} from "../../../database/schemas/handoverPackage/handoverPackage";
-import {mapMedia, mapPopulatedRef, mapPopulatedSimpleUser} from "@coreModule/utilities/mappers/common.mapper";
+import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
 import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-function mapItem(item: IHandoverPackage["items"][number]): HandoverPackageItem {
+function hasRef(value: unknown): boolean {
+    if (value == null) return false;
+    if (typeof value === "string") return value.length > 0;
+    if (typeof value === "object" && "_id" in value) return (value as {_id: unknown})._id != null;
+    return true;
+}
+
+export function handoverPackageScope(doc: IHandoverPackage): HandoverConfigScopeValue {
+    if (hasRef(doc.unit)) return "unit";
+    if (hasRef(doc.floor)) return "floor";
+    if (hasRef(doc.edifice)) return "edifice";
+    return "project";
+}
+
+function mapItem(item: { _id?: {toString(): string}; name: string; description?: string; instructions?: string; importance?: HandoverPackageItem["importance"] }): HandoverPackageItem {
     return {
         _id: item._id?.toString(),
         name: item.name,
         description: item.description,
         instructions: item.instructions,
         importance: item.importance,
-        completed: item.completed,
-        completedAt: item.completedAt ? new Date(item.completedAt).toISOString() : undefined,
-        completedBy: mapPopulatedSimpleUser(item.completedBy),
     };
 }
 
@@ -25,11 +37,11 @@ export function handoverPackageToDTO(doc: IHandoverPackage): HandoverPackage {
         title: doc.title,
         description: doc.description ?? undefined,
         notes: doc.notes ?? undefined,
-        status: doc.status === "ready" ? "in_progress" : doc.status,
+        scope: handoverPackageScope(doc),
         project: mapPopulatedRef(doc.project)!,
         edifice: mapPopulatedRef(doc.edifice),
         floor: mapPopulatedRef(doc.floor),
-        unit: mapPopulatedRef(doc.unit)!,
+        unit: mapPopulatedRef(doc.unit),
         items,
         media: doc.media?.length ? doc.media.map(mapMedia) : undefined,
         ...mapOwnershipToDTO(doc),

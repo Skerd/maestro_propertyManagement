@@ -1,5 +1,7 @@
-import {ISale} from "../../../database/schemas/sale/sale";
+import {ISale, ISaleHandoverChecklistItem} from "../../../database/schemas/sale/sale";
 import {Sale} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.dto";
+import type {SaleHandoverChecklistItem} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.dto";
+import type {HandoverChecklistSourceScopeValue} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.schema-def";
 import type {ApprovalStage} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/modificationRequest/modificationRequest.dto";
 import {
     decimalToNumber,
@@ -18,6 +20,24 @@ function mapSaleApprovalStage(stage: any): ApprovalStage | undefined {
         user: mapPopulatedSimpleUser(stage.user),
         notes: stage.notes,
         reviewedAt: stage.reviewedAt ? new Date(stage.reviewedAt).toISOString() : undefined,
+    };
+}
+
+function mapHandoverChecklistItem(item: ISaleHandoverChecklistItem): SaleHandoverChecklistItem {
+    const sourceScope = (item.sourceScope ?? "retained") as HandoverChecklistSourceScopeValue;
+    return {
+        _id: item._id != null ? String(item._id) : undefined,
+        sourcePackageId: item.sourcePackageId != null ? String(item.sourcePackageId) : undefined,
+        sourceItemId: item.sourceItemId != null ? String(item.sourceItemId) : undefined,
+        sourceScope: item.retained ? "retained" : sourceScope,
+        name: item.name,
+        description: item.description,
+        instructions: item.instructions,
+        importance: item.importance as SaleHandoverChecklistItem["importance"],
+        completed: !!item.completed,
+        completedAt: item.completedAt ? new Date(item.completedAt).toISOString() : undefined,
+        completedBy: mapPopulatedSimpleUser(item.completedBy),
+        retained: !!item.retained,
     };
 }
 
@@ -87,6 +107,9 @@ export function saleToDTO(sale: ISale): Sale {
         deedNumber: sale.deedNumber,
         notaryName: sale.notaryName,
         titleTransferCertificate: sale.titleTransferCertificate ? mapMedia(sale.titleTransferCertificate) : undefined,
+        handoverChecklistItems: Array.isArray(sale.handoverChecklistItems)
+            ? sale.handoverChecklistItems.map(mapHandoverChecklistItem)
+            : [],
         ...mapSoftDeleteToDTO(sale),
         ...mapOwnershipToDTO(sale),
         ...mapLifeCycleToDTO(sale),

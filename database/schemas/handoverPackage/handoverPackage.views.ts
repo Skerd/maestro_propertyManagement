@@ -95,7 +95,7 @@ export const handoverPackageSheetView: ViewConfig = {
                                 },
                             },
                         },
-                        {render: "#DisplayCard", permissions: {read: "status"}, field: {name: "status", widget: "#DisplayCard", label: "status", widgetProps: {icon: "#CircleDot", languageKeyCategory: "statuses"}}},
+                        {render: "#DisplayCard", field: {name: "scope", widget: "#DisplayCard", label: "scope", skipReadAccessGate: true, widgetProps: {icon: "#Layers", languageKeyCategory: "scopes"}}},
                     ],
                 },
                 {
@@ -160,11 +160,10 @@ export const handoverPackageSheetView: ViewConfig = {
                                         widgetProps: {
                                             pageSize: 20,
                                             cardColumns: 3,
-                                            compactSummaryFields: ["name", "importance", "completed"],
+                                            compactSummaryFields: ["name", "importance"],
                                             fields: [
                                                 {name: "name", type: "text", icon: "#IconLabel", labelKey: "itemName"},
                                                 {name: "importance", type: "text", icon: "#CircleDot", labelKey: "importance", languageKeyCategory: "importanceLevels"},
-                                                {name: "completed", type: "text", icon: "#CircleCheck", labelKey: "completed", languageKeyCategory: "completedState"},
                                                 {name: "description", type: "expandableText", icon: "#IconAlignLeft", labelKey: "itemDescription"},
                                                 {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions"},
                                             ],
@@ -230,7 +229,7 @@ const handoverPackageCreateFormNode: ViewConfig["nodes"] = [
                     },
                     {
                         render: "#Field",
-                        field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50, normalizeEmptyToUndefined: true, postBodyFromFormFields: [{field: "project", paramName: "project"}, {field: "edifice", paramName: "edifice"}, {field: "floor", paramName: "floor"}], enableWhenFormFieldsNonEmpty: ["project"], remountKeyFormField: "project"}},
+                        field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50, normalizeEmptyToUndefined: true, postBodyFromFormFields: [{field: "project", paramName: "project"}, {field: "edifice", paramName: "edifice"}, {field: "floor", paramName: "floor"}], enableWhenFormFieldsNonEmpty: ["project"], remountKeyFormField: "project"}},
                     },
                     {
                         render: "#Field",
@@ -419,7 +418,7 @@ const handoverPackageEditFormNode: ViewConfig["nodes"] = [
                                 normalizeEmptyToUndefined: true,
                                 cascadeClearFormFields: ["edifice", "floor", "unit"],
                             },
-                        }, permissions: {read: "project", write: "project"},
+                        }, permissions: {read: "project"},
                     },
                     {
                         render: "#Field",
@@ -438,7 +437,7 @@ const handoverPackageEditFormNode: ViewConfig["nodes"] = [
                                 remountKeyFormField: "project",
                                 cascadeClearFormFields: ["floor", "unit"],
                             },
-                        }, permissions: {read: "edifice", write: "edifice"},
+                        }, permissions: {read: "edifice"},
                     },
                     {
                         render: "#Field",
@@ -457,7 +456,7 @@ const handoverPackageEditFormNode: ViewConfig["nodes"] = [
                                 remountKeyFormField: "edifice",
                                 cascadeClearFormFields: ["unit"],
                             },
-                        }, permissions: {write: "floor", read: "floor"},
+                        }, permissions: {read: "floor"},
                     },
                     {
                         render: "#Field",
@@ -466,7 +465,6 @@ const handoverPackageEditFormNode: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.unitLabel",
                             placeholder: "form.unitPlaceholder",
-                            required: true,
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
@@ -481,7 +479,7 @@ const handoverPackageEditFormNode: ViewConfig["nodes"] = [
                                 enableWhenFormFieldsNonEmpty: ["project"],
                                 remountKeyFormField: "project",
                             },
-                        }, permissions: {read: "unit", write: "unit"},
+                        }, permissions: {read: "unit"},
                     },
                     {
                         render: "#Field",

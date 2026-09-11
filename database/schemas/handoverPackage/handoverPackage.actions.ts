@@ -1,164 +1,44 @@
 import {ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
-import {getModelCollectedData} from "@coreModule/database/collections";
-import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
-import {startHandoverPackageFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/startHandoverPackage.form.validator";
-import {markReadyHandoverPackageFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/markReadyHandoverPackage.form.validator";
-import {completeHandoverPackageFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/completeHandoverPackage.form.validator";
 import {updateHandoverItemsFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/updateHandoverItems.form.validator";
-import HandoverPackage from "./handoverPackage";
-import {handoverPackageService} from "./handoverPackage.service";
-import {handoverPackageToDTO} from "@propertyManagement/utilities/mappers/handoverPackage/handoverPackageMapper.dto";
+import {saleService} from "../sale/sale.service";
+import {saleToDTO} from "@propertyManagement/utilities/mappers/sale/saleMapper.dto";
 import {
     applyHandoverItemPatches,
-    assertPackageMutableForUnit,
-    computeHandoverPackageStatus,
-    packagesWithTitleTransferFlag,
+    salesWithHandoverContext,
+    syncSaleHandoverChecklist,
+    toChecklistRows,
 } from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
 
 export class HandoverPackageActions {
 
-    @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: startHandoverPackageFormSchema})
-    async start(params: Record<string, any>): Promise<any> {
-        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params;
-        logger.start(`HandoverPackage.start ` + String(_id) + `...`);
-        const existing = await handoverPackageService.findOneOrThrow(
-            {_id: new ObjectId(_id), company: company._id},
-            {session, logger, languageCode},
-        );
-        const status = existing.status ?? "draft";
-        if (!["draft"].includes(status)) {
-            throw apiValidationException("invalid_status_for_start", "", null, languageCode);
-        }
-        const $set: Record<string, any> = {status: "in_progress"};
-        if (notes !== undefined && notes !== null && String(notes).trim()) {
-            const prev = typeof existing.notes === "string" ? existing.notes.trim() : "";
-            const next = String(notes).trim();
-            $set.notes = prev ? (prev + "\n-----\n" + next) : next;
-        }
-        await handoverPackageService.updateByIdOrThrow(
-            existing._id,
-            {$set},
-            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
-        );
-        try {
-            const readFields = SchemaGuard.sanitizeFields(
-                HandoverPackage,
-                getModelCollectedData("handoverpackages").readFields!,
-                "read",
-                actionUserCtx,
-                languageCode,
-            );
-            const populate = SchemaGuard.generatePopulate(readFields, HandoverPackage.schema);
-            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
-            if (updated) return handoverPackageToDTO(updated);
-        } catch { /* no read */ }
-        logger.finish(`HandoverPackage.start done`);
-        return undefined;
-    }
-    @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: markReadyHandoverPackageFormSchema})
-    async markReady(params: Record<string, any>): Promise<any> {
-        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params;
-        logger.start(`HandoverPackage.markReady ` + String(_id) + `...`);
-        const existing = await handoverPackageService.findOneOrThrow(
-            {_id: new ObjectId(_id), company: company._id},
-            {session, logger, languageCode},
-        );
-        const status = existing.status ?? "draft";
-        if (!["in_progress"].includes(status)) {
-            throw apiValidationException("invalid_status_for_markReady", "", null, languageCode);
-        }
-        const $set: Record<string, any> = {status: "ready"};
-        if (notes !== undefined && notes !== null && String(notes).trim()) {
-            const prev = typeof existing.notes === "string" ? existing.notes.trim() : "";
-            const next = String(notes).trim();
-            $set.notes = prev ? (prev + "\n-----\n" + next) : next;
-        }
-        await handoverPackageService.updateByIdOrThrow(
-            existing._id,
-            {$set},
-            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
-        );
-        try {
-            const readFields = SchemaGuard.sanitizeFields(
-                HandoverPackage,
-                getModelCollectedData("handoverpackages").readFields!,
-                "read",
-                actionUserCtx,
-                languageCode,
-            );
-            const populate = SchemaGuard.generatePopulate(readFields, HandoverPackage.schema);
-            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
-            if (updated) return handoverPackageToDTO(updated);
-        } catch { /* no read */ }
-        logger.finish(`HandoverPackage.markReady done`);
-        return undefined;
-    }
-    @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: completeHandoverPackageFormSchema})
-    async complete(params: Record<string, any>): Promise<any> {
-        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params;
-        logger.start(`HandoverPackage.complete ` + String(_id) + `...`);
-        const existing = await handoverPackageService.findOneOrThrow(
-            {_id: new ObjectId(_id), company: company._id},
-            {session, logger, languageCode},
-        );
-        const status = existing.status ?? "draft";
-        if (!["ready", "in_progress"].includes(status)) {
-            throw apiValidationException("invalid_status_for_complete", "", null, languageCode);
-        }
-        const $set: Record<string, any> = {status: "completed"};
-        if (notes !== undefined && notes !== null && String(notes).trim()) {
-            const prev = typeof existing.notes === "string" ? existing.notes.trim() : "";
-            const next = String(notes).trim();
-            $set.notes = prev ? (prev + "\n-----\n" + next) : next;
-        }
-        await handoverPackageService.updateByIdOrThrow(
-            existing._id,
-            {$set},
-            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
-        );
-        try {
-            const readFields = SchemaGuard.sanitizeFields(
-                HandoverPackage,
-                getModelCollectedData("handoverpackages").readFields!,
-                "read",
-                actionUserCtx,
-                languageCode,
-            );
-            const populate = SchemaGuard.generatePopulate(readFields, HandoverPackage.schema);
-            const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode}, populate.populate, populate.select);
-            if (updated) return handoverPackageToDTO(updated);
-        } catch { /* no read */ }
-        logger.finish(`HandoverPackage.complete done`);
-        return undefined;
-    }
-
     @action({auth: "private", rateLimit: {windowMs: 60000, max: 30}, transaction: true, schema: updateHandoverItemsFormSchema})
     async updateHandoverItems(params: Record<string, any>): Promise<any> {
         const {logger, languageCode, session, actionUserCtx, company, _id, items} = params;
-        logger.start(`HandoverPackage.updateHandoverItems ` + String(_id) + `...`);
-        const existing = await handoverPackageService.findOneOrThrow(
+        logger.start(`HandoverPackage.updateHandoverItems sale ` + String(_id) + `...`);
+        const sale = await saleService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
             {session, logger, languageCode},
         );
-        const unitId = existing.unit?._id ?? existing.unit;
-        await assertPackageMutableForUnit(unitId, company._id, {session, logger, languageCode});
+        if (sale.titleTransferDate) {
+            throw apiValidationException("handover_package_title_already_transferred", "", null, languageCode);
+        }
+        const synced = await syncSaleHandoverChecklist(sale, company._id, {session, logger, languageCode});
         const nextItems = applyHandoverItemPatches(
-            Array.isArray(existing.items) ? existing.items : [],
+            toChecklistRows(synced.sale.handoverChecklistItems),
             items,
             actionUserCtx.userId,
         );
-        await handoverPackageService.updateByIdOrThrow(
-            existing._id,
-            {$set: {items: nextItems, status: computeHandoverPackageStatus(nextItems)}},
+        await saleService.updateByIdOrThrow(
+            sale._id,
+            {$set: {handoverChecklistItems: nextItems}},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
-        const updated = await handoverPackageService.findById(existing._id, {session, logger, languageCode});
-        const [dto] = updated
-            ? await packagesWithTitleTransferFlag([updated], {company, session, logger, languageCode})
-            : [];
+        const updated = await saleService.findById(sale._id, {session, logger, languageCode});
+        if (!updated) return saleToDTO(sale);
+        const [dto] = await salesWithHandoverContext([updated], {company, session, logger, languageCode});
         logger.finish(`HandoverPackage.updateHandoverItems done`);
-        return dto ?? (updated ? handoverPackageToDTO(updated) : undefined);
+        return dto;
     }
 }

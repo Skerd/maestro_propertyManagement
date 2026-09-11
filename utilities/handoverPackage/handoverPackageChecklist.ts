@@ -1,178 +1,261 @@
 import {ObjectId} from "mongodb";
+import type {ClientSession} from "mongoose";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
-import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import type {HandoverPackage} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.dto";
 import type {Sale} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.dto";
 import type {IHandoverPackage} from "../../database/schemas/handoverPackage/handoverPackage";
-import type {ISale} from "../../database/schemas/sale/sale";
+import type {ISale, ISaleHandoverChecklistItem} from "../../database/schemas/sale/sale";
 import {handoverPackageService} from "../../database/schemas/handoverPackage/handoverPackage.service";
 import {saleService} from "../../database/schemas/sale/sale.service";
 import {unitService} from "../../database/schemas/unit/unit.service";
+import {floorService} from "../../database/schemas/floor/floor.service";
+import {edificeService} from "../../database/schemas/edifice/edifice.service";
+import {projectService} from "../../database/schemas/project/project.service";
 import {propertyManagementConfigService} from "../../database/schemas/propertyManagementConfig/propertyManagementConfig.service";
 import {handoverPackageToDTO} from "../mappers/handoverPackage/handoverPackageMapper.dto";
 import {saleToDTO} from "../mappers/sale/saleMapper.dto";
+import {
+    applyHandoverItemPatches,
+    checklistRowsChanged,
+    concatenateEffectiveItems,
+    configHasLegacyCompletion,
+    idString,
+    isHandoverChecklistComplete,
+    mergeSaleHandoverChecklist,
+    seedChecklistFromLegacyConfigItems,
+    type ResolvedHandoverConfigs,
+    type SaleHandoverChecklistRow,
+} from "./handoverPackageChecklist.sync";
 
-export type HandoverChecklistItem = {
-    _id?: ObjectId | string;
-    name?: string;
-    description?: string;
-    instructions?: string;
-    importance?: string;
-    completed?: boolean;
-    completedAt?: Date;
-    completedBy?: ObjectId;
+export {
+    applyHandoverItemPatches,
+    concatenateEffectiveItems,
+    isHandoverChecklistComplete,
+    mergeSaleHandoverChecklist,
+    seedChecklistFromLegacyConfigItems,
 };
 
 type CrudCtx = {
-    session?: unknown;
+    session?: ClientSession;
     logger: unknown;
     languageCode: string;
 };
 
 function crudOpts(ctx: CrudCtx) {
-    return {session: ctx.session, logger: ctx.logger, languageCode: ctx.languageCode};
+    return {session: ctx.session, logger: ctx.logger as never, languageCode: ctx.languageCode};
 }
 
-function refId(value: {_id?: unknown} | string | ObjectId | undefined | null): string | undefined {
-    if (value == null) return undefined;
-    if (typeof value === "string") return value;
-    if (value instanceof ObjectId) return value.toString();
-    if (typeof value === "object" && value._id != null) return String(value._id);
-    return undefined;
+function asObjectId(value: unknown): ObjectId | undefined {
+    const s = idString(value);
+    return s != null ? new ObjectId(s) : undefined;
 }
 
-export function computeHandoverPackageStatus(items: {completed?: boolean}[]): "draft" | "in_progress" | "completed" {
-    const n = items.length;
-    if (n === 0) return "draft";
-    const done = items.filter((item) => item.completed).length;
-    if (done === 0) return "draft";
-    if (done === n) return "completed";
-    return "in_progress";
+const unsetRef = {$in: [null, undefined]};
+
+function scopeUnset(field: "edifice" | "floor" | "unit"): Record<string, unknown> {
+    return {$or: [{[field]: {$exists: false}}, {[field]: null}]};
 }
 
-export function mergeHandoverItems(
-    existing: HandoverChecklistItem[],
-    incoming: HandoverChecklistItem[],
-): HandoverChecklistItem[] {
-    const remaining = existing.map((item) => ({item, used: false}));
-    return incoming.map((row) => {
-        const match = remaining.find((entry) => !entry.used && entry.item.name === row.name);
-        if (match) match.used = true;
-        return {
-            name: row.name,
-            description: row.description,
-            instructions: row.instructions,
-            importance: row.importance,
-            completed: match?.item.completed ?? false,
-            completedAt: match?.item.completedAt,
-            completedBy: match?.item.completedBy,
-        };
-    });
-}
-
-function plainHandoverItem(item: HandoverChecklistItem): HandoverChecklistItem {
-    const raw = typeof (item as {toObject?: () => HandoverChecklistItem}).toObject === "function"
-        ? (item as {toObject: () => HandoverChecklistItem}).toObject()
-        : item;
+export async function resolveHandoverConfigsForUnit(
+    unitId: ObjectId,
+    companyId: ObjectId,
+    ctx: CrudCtx,
+): Promise<{configs: ResolvedHandoverConfigs; packages: IHandoverPackage[]}> {
+    const foundUnit = await unitService.findOneOrThrow(
+        {_id: unitId, company: companyId},
+        crudOpts(ctx),
+    );
+    const projectId = asObjectId(foundUnit.project);
+    const edificeId = asObjectId(foundUnit.edifice);
+    const floorId = asObjectId(foundUnit.floor);
+    const [projectPkg, edificePkg, floorPkg, unitPkg] = await Promise.all([
+        projectId
+            ? handoverPackageService.findOne({
+                company: companyId,
+                project: projectId,
+                ...{},
+                $and: [scopeUnset("edifice"), scopeUnset("floor"), scopeUnset("unit")],
+            }, crudOpts(ctx))
+            : Promise.resolve(null),
+        edificeId
+            ? handoverPackageService.findOne({
+                company: companyId,
+                edifice: edificeId,
+                $and: [scopeUnset("floor"), scopeUnset("unit")],
+            }, crudOpts(ctx))
+            : Promise.resolve(null),
+        floorId
+            ? handoverPackageService.findOne({
+                company: companyId,
+                floor: floorId,
+                $and: [scopeUnset("unit")],
+            }, crudOpts(ctx))
+            : Promise.resolve(null),
+        handoverPackageService.findOne({company: companyId, unit: unitId}, crudOpts(ctx)),
+    ]);
+    const packages = [projectPkg, edificePkg, floorPkg, unitPkg].filter((pkg): pkg is IHandoverPackage => pkg != null);
     return {
-        _id: raw._id,
-        name: raw.name,
-        description: raw.description,
-        instructions: raw.instructions,
-        importance: raw.importance,
-        completed: !!raw.completed,
-        completedAt: raw.completedAt,
-        completedBy: raw.completedBy,
+        configs: {project: projectPkg, edifice: edificePkg, floor: floorPkg, unit: unitPkg},
+        packages,
     };
 }
 
-export function applyHandoverItemPatches(
-    existing: HandoverChecklistItem[],
-    patches: {_id: string; completed: boolean}[],
-    userId: string,
-): HandoverChecklistItem[] {
-    const next = existing.map((item) => plainHandoverItem(item));
-    for (const patch of patches) {
-        const target = next.find((item) => item._id != null && String(item._id) === patch._id);
-        if (!target) continue;
-        if (patch.completed && !target.completed) {
-            target.completed = true;
-            target.completedAt = new Date();
-            target.completedBy = new ObjectId(userId);
-        } else if (!patch.completed && target.completed) {
-            target.completed = false;
-            target.completedAt = undefined;
-            target.completedBy = undefined;
-        }
-    }
-    return next;
+export function toChecklistRows(items: ISaleHandoverChecklistItem[] | undefined): SaleHandoverChecklistRow[] {
+    return (items ?? []).map((item) => ({
+        _id: asObjectId(item._id),
+        sourcePackageId: asObjectId(item.sourcePackageId),
+        sourceItemId: asObjectId(item.sourceItemId),
+        sourceScope: item.sourceScope === "project" || item.sourceScope === "edifice" || item.sourceScope === "floor" || item.sourceScope === "unit" || item.sourceScope === "retained"
+            ? item.sourceScope
+            : undefined,
+        name: item.name,
+        description: item.description,
+        instructions: item.instructions,
+        importance: item.importance,
+        completed: item.completed,
+        completedAt: item.completedAt,
+        completedBy: asObjectId(item.completedBy),
+        retained: item.retained,
+    }));
 }
 
-export async function findSaleForUnit(
-    unitId: ObjectId,
+async function stripLegacyCompletionFromConfigs(configs: ResolvedHandoverConfigs, ctx: CrudCtx) {
+    for (const pkg of [configs.project, configs.edifice, configs.floor, configs.unit]) {
+        if (!pkg?._id || !configHasLegacyCompletion({project: pkg})) continue;
+        const items = (pkg.items ?? []).map((item) => ({
+            _id: item._id,
+            name: item.name,
+            description: item.description,
+            instructions: item.instructions,
+            importance: item.importance,
+        }));
+        await handoverPackageService.updateByIdOrThrow(
+            pkg._id,
+            {$set: {items}, $unset: {status: 1}},
+            crudOpts(ctx),
+        );
+    }
+}
+
+export async function syncSaleHandoverChecklist(
+    sale: ISale,
     companyId: ObjectId,
     ctx: CrudCtx,
-) {
+): Promise<{sale: ISale; configs: IHandoverPackage[]; complete: boolean}> {
+    const unitId = asObjectId(sale.unit);
+    if (!unitId) {
+        return {sale, configs: [], complete: false};
+    }
+    const resolved = await resolveHandoverConfigsForUnit(unitId, companyId, ctx);
+    if (sale.titleTransferDate) {
+        return {
+            sale,
+            configs: resolved.packages,
+            complete: isHandoverChecklistComplete(sale.handoverChecklistItems ?? [], resolved.packages.length > 0),
+        };
+    }
+
+    let existing = toChecklistRows(sale.handoverChecklistItems);
+    if (existing.length === 0) {
+        existing = seedChecklistFromLegacyConfigItems(resolved.configs);
+    }
+    const live = concatenateEffectiveItems(resolved.configs);
+    const next = mergeSaleHandoverChecklist(existing, live);
+    if (checklistRowsChanged(existing, next)) {
+        await saleService.updateByIdOrThrow(
+            sale._id,
+            {$set: {handoverChecklistItems: next}},
+            crudOpts(ctx),
+        );
+        sale.handoverChecklistItems = next.map((row) => ({
+            ...row,
+            name: row.name ?? "",
+        }));
+    }
+    if (configHasLegacyCompletion(resolved.configs)) {
+        await stripLegacyCompletionFromConfigs(resolved.configs, ctx);
+    }
+    return {
+        sale,
+        configs: resolved.packages,
+        complete: isHandoverChecklistComplete(next, resolved.packages.length > 0),
+    };
+}
+
+export async function findSaleForUnit(unitId: ObjectId, companyId: ObjectId, ctx: CrudCtx) {
     return saleService.findOne({unit: unitId, company: companyId}, crudOpts(ctx));
 }
 
-export async function findPackageForUnit(
-    unitId: ObjectId,
+export async function assertHandoverPackageScopeAvailable(
     companyId: ObjectId,
-    ctx: CrudCtx,
-) {
-    return handoverPackageService.findOne({unit: unitId, company: companyId}, crudOpts(ctx));
-}
-
-export async function assertUnitSoldAndTitleNotTransferred(
-    unitId: string,
-    companyId: ObjectId,
-    ctx: CrudCtx,
-) {
-    const foundUnit = await unitService.findOneOrThrow(
-        {_id: new ObjectId(unitId), company: companyId},
-        crudOpts(ctx),
-        [{path: "floor", populate: {path: "edifice"}}],
-    );
-    if (foundUnit.status !== UnitStatus.SOLD) {
-        throw apiValidationException("handover_package_unit_not_sold", "", null, ctx.languageCode);
-    }
-    const sale = await findSaleForUnit(foundUnit._id as ObjectId, companyId, ctx);
-    if (sale?.titleTransferDate) {
-        throw apiValidationException("handover_package_title_already_transferred", "", null, ctx.languageCode);
-    }
-    return {foundUnit, sale};
-}
-
-export async function assertNoExistingPackageForUnit(
-    unitId: ObjectId,
-    companyId: ObjectId,
+    scope: {project: ObjectId; edifice: ObjectId | null; floor: ObjectId | null; unit: ObjectId | null},
     ctx: CrudCtx,
     excludePackageId?: ObjectId,
 ) {
-    const existing = await handoverPackageService.findOne(
-        {
-            unit: unitId,
-            company: companyId,
-            ...(excludePackageId ? {_id: {$ne: excludePackageId}} : {}),
-        },
-        crudOpts(ctx),
-    );
+    const query: Record<string, unknown> = {
+        company: companyId,
+        ...(excludePackageId ? {_id: {$ne: excludePackageId}} : {}),
+    };
+    if (scope.unit) {
+        query.unit = scope.unit;
+    } else if (scope.floor) {
+        query.floor = scope.floor;
+        query.$and = [scopeUnset("unit")];
+    } else if (scope.edifice) {
+        query.edifice = scope.edifice;
+        query.$and = [scopeUnset("floor"), scopeUnset("unit")];
+    } else {
+        query.project = scope.project;
+        query.$and = [scopeUnset("edifice"), scopeUnset("floor"), scopeUnset("unit")];
+    }
+    const existing = await handoverPackageService.findOne(query, crudOpts(ctx));
     if (existing) {
-        throw apiValidationException("handover_package_already_exists_for_unit", "", null, ctx.languageCode);
+        throw apiValidationException("handover_package_already_exists_for_scope", "", null, ctx.languageCode);
     }
 }
 
-export async function assertPackageMutableForUnit(
-    unitId: ObjectId | string,
+export async function resolveAndFillHandoverPackageScope(
+    data: {project?: unknown; edifice?: unknown; floor?: unknown; unit?: unknown},
     companyId: ObjectId,
     ctx: CrudCtx,
 ) {
-    const sale = await findSaleForUnit(new ObjectId(unitId.toString()), companyId, ctx);
-    if (sale?.titleTransferDate) {
-        throw apiValidationException("handover_package_title_already_transferred", "", null, ctx.languageCode);
+    const opts = crudOpts(ctx);
+    const unitId = asObjectId(data.unit);
+    if (unitId) {
+        const foundUnit = await unitService.findOneOrThrow({_id: unitId, company: companyId}, opts);
+        const project = asObjectId(foundUnit.project);
+        const edifice = asObjectId(foundUnit.edifice);
+        const floor = asObjectId(foundUnit.floor);
+        if (!project || !edifice || !floor) {
+            throw apiValidationException("handover_package_ancestry_mismatch", "", null, ctx.languageCode);
+        }
+        return {project, edifice, floor, unit: foundUnit._id as ObjectId};
     }
-    return sale;
+    const floorId = asObjectId(data.floor);
+    if (floorId) {
+        const foundFloor = await floorService.findOneOrThrow({_id: floorId, company: companyId}, opts);
+        const project = asObjectId(foundFloor.project);
+        const edifice = asObjectId(foundFloor.edifice);
+        if (!project || !edifice) {
+            throw apiValidationException("handover_package_ancestry_mismatch", "", null, ctx.languageCode);
+        }
+        return {project, edifice, floor: foundFloor._id as ObjectId, unit: null};
+    }
+    const edificeId = asObjectId(data.edifice);
+    if (edificeId) {
+        const foundEdifice = await edificeService.findOneOrThrow({_id: edificeId, company: companyId}, opts);
+        const project = asObjectId(foundEdifice.project);
+        if (!project) {
+            throw apiValidationException("handover_package_ancestry_mismatch", "", null, ctx.languageCode);
+        }
+        return {project, edifice: foundEdifice._id as ObjectId, floor: null, unit: null};
+    }
+    const projectId = asObjectId(data.project);
+    if (!projectId) {
+        throw apiValidationException("handover_package_ancestry_mismatch", "", null, ctx.languageCode);
+    }
+    await projectService.findOneOrThrow({_id: projectId, company: companyId}, opts);
+    return {project: projectId, edifice: null, floor: null, unit: null};
 }
 
 export async function assertTitleTransferAllowed(
@@ -188,15 +271,11 @@ export async function assertTitleTransferAllowed(
         crudOpts(ctx),
     );
     if (!settings.requiresHandoverPackageForHandover) return;
-    const unitId = sale.unit?._id ?? sale.unit;
-    const pkg = unitId
-        ? await findPackageForUnit(new ObjectId(unitId.toString()), companyId, ctx)
-        : null;
-    if (!pkg) {
+    const synced = await syncSaleHandoverChecklist(sale, companyId, ctx);
+    if (synced.configs.length === 0) {
         throw apiValidationException("sale_title_transfer_package_required", "", null, ctx.languageCode);
     }
-    const status = pkg.status === "ready" ? "in_progress" : pkg.status;
-    if (status !== "completed") {
+    if (!synced.complete) {
         throw apiValidationException("sale_title_transfer_package_in_progress", "", null, ctx.languageCode);
     }
 }
@@ -205,54 +284,23 @@ export async function salesWithHandoverContext(
     sales: ISale[],
     params: Record<string, any>,
 ): Promise<Sale[]> {
-    const {company} = params;
-    const ctx = crudOpts(params);
+    const {company, session, logger, languageCode} = params;
+    const ctx = crudOpts({session, logger, languageCode});
     const settings = await propertyManagementConfigService.getSettingsForCompany(company._id, ctx);
-    const unitIds = sales
-        .map((sale) => refId(sale.unit))
-        .filter((id): id is string => !!id)
-        .map((id) => new ObjectId(id));
-    const packages = unitIds.length
-        ? await handoverPackageService.find({unit: {$in: unitIds}, company: company._id}, ctx)
-        : [];
-    const byUnit = new Map(
-        packages.map((pkg) => [refId(pkg.unit), pkg] as const).filter(([id]) => !!id),
-    );
-    return sales.map((sale) => {
-        const dto = saleToDTO(sale);
-        const pkg = dto.unit?._id ? byUnit.get(dto.unit._id) : undefined;
-        return {
+    const enriched: Sale[] = [];
+    for (const sale of sales) {
+        const synced = await syncSaleHandoverChecklist(sale, company._id, ctx);
+        const dto = saleToDTO(synced.sale);
+        enriched.push({
             ...dto,
-            handoverPackage: pkg ? handoverPackageToDTO(pkg) : undefined,
+            handoverConfigs: synced.configs.map(handoverPackageToDTO),
+            handoverChecklistComplete: synced.complete,
             requiresHandoverPackageForHandover: settings.requiresHandoverPackageForHandover,
-        };
-    });
+        });
+    }
+    return enriched;
 }
 
-export async function packagesWithTitleTransferFlag(
-    docs: IHandoverPackage[],
-    params: Record<string, any>,
-): Promise<HandoverPackage[]> {
-    const {company} = params;
-    const ctx = crudOpts(params);
-    const unitIds = docs
-        .map((doc) => refId(doc.unit))
-        .filter((id): id is string => !!id)
-        .map((id) => new ObjectId(id));
-    const sales = unitIds.length
-        ? await saleService.find({unit: {$in: unitIds}, company: company._id}, ctx)
-        : [];
-    const transferred = new Set(
-        sales
-            .filter((sale) => !!sale.titleTransferDate)
-            .map((sale) => refId(sale.unit))
-            .filter((id): id is string => !!id),
-    );
-    return docs.map((doc) => {
-        const dto = handoverPackageToDTO(doc);
-        return {
-            ...dto,
-            titleTransferred: dto.unit?._id ? transferred.has(dto.unit._id) : false,
-        };
-    });
+export function packagesToDTO(docs: IHandoverPackage[]): HandoverPackage[] {
+    return docs.map(handoverPackageToDTO);
 }

@@ -11,12 +11,8 @@ import {HandoverPackageActions} from "../../../database/schemas/handoverPackage/
 import {handoverPackageToDTO, handoverPackagesToDTO} from "../../../utilities/mappers/handoverPackage/handoverPackageMapper.dto";
 import {handoverPackagesToSelect} from "../../../utilities/mappers/handoverPackage/handoverPackageMapper.select";
 import {
-    assertNoExistingPackageForUnit,
-    assertPackageMutableForUnit,
-    assertUnitSoldAndTitleNotTransferred,
-    computeHandoverPackageStatus,
-    mergeHandoverItems,
-    packagesWithTitleTransferFlag,
+    assertHandoverPackageScopeAvailable,
+    resolveAndFillHandoverPackageScope,
 } from "../../../utilities/handoverPackage/handoverPackageChecklist";
 
 const uploadMW = mediaUploadMW({maxFiles: 20, maxFileSize: 50 * 1024 * 1024});
@@ -35,23 +31,14 @@ export const {router} = createCrudRouter({
     selectSearchField: "title",
     createMiddleware: [uploadMW], editMiddleware: [uploadMW],
     actions: HandoverPackageActions,
-    extraListFilter: async ({projectId, edificeId, unit, unitId, status}: Record<string, unknown>) => {
+    extraListFilter: async ({projectId, edificeId, floorId, unit, unitId}: Record<string, unknown>) => {
         const filter: Record<string, unknown> = {};
         if (projectId) filter.project = new ObjectId(String(projectId));
         if (edificeId) filter.edifice = new ObjectId(String(edificeId));
+        if (floorId) filter.floor = new ObjectId(String(floorId));
         const unitRaw = unit || unitId;
         if (unitRaw) filter.unit = new ObjectId(String(unitRaw));
-        if (status) filter.status = status;
         return filter;
-    },
-    enrichList: async (docs, params) => packagesWithTitleTransferFlag(docs, params),
-    enrichSingle: async (doc, params) => {
-        const [enriched] = await packagesWithTitleTransferFlag([doc], params);
-        return enriched;
-    },
-    enrichUpdate: async (doc, params) => {
-        const [enriched] = await packagesWithTitleTransferFlag([doc], params);
-        return enriched;
     },
     buildCreateData: async ({fileIds, ...params}: Record<string, unknown>) => {
         const {company, session, logger, languageCode} = params as {
@@ -61,39 +48,29 @@ export const {router} = createCrudRouter({
             languageCode: string;
         };
         const data = buildCreateDataFromSchemaDef(HandoverPackageSchemaDef)(params);
-        const unitId = String(data.unit);
-        const {foundUnit} = await assertUnitSoldAndTitleNotTransferred(unitId, company._id, {session, logger, languageCode});
-        await assertNoExistingPackageForUnit(foundUnit._id, company._id, {session, logger, languageCode});
-
-        const items = Array.isArray(data.items) ? data.items : [];
-        data.status = computeHandoverPackageStatus(items);
+        const scope = await resolveAndFillHandoverPackageScope(data, company._id, {session, logger, languageCode});
+        await assertHandoverPackageScopeAvailable(company._id, scope, {session, logger, languageCode});
+        data.project = scope.project;
+        data.edifice = scope.edifice;
+        data.floor = scope.floor;
+        data.unit = scope.unit;
         if (Array.isArray(fileIds) && fileIds.length > 0) {
             data.media = fileIds.map((id: string) => new ObjectId(id));
         }
         return data;
     },
     buildUpdateData: async ({fileIds, media, existing, ...params}: Record<string, unknown>, writeFields) => {
-        const {company, session, logger, languageCode} = params as {
-            company: {_id: ObjectId};
-            session?: unknown;
-            logger: unknown;
-            languageCode: string;
-        };
-        const existingDoc = existing as {unit: ObjectId; items?: unknown[]; _id: ObjectId};
         const data = buildUpdateDataFromSchemaDef(HandoverPackageSchemaDef)({...params, media}, writeFields);
+        delete data.project;
+        delete data.edifice;
+        delete data.floor;
+        delete data.unit;
         if (writeFields.media && (media !== undefined || (Array.isArray(fileIds) && fileIds.length > 0))) {
             const kept = Array.isArray(media) ? media.filter((id: unknown) => typeof id === "string" && id.trim()) : [];
             data.media = [
                 ...kept.map((id: string) => new ObjectId(id)),
                 ...((fileIds as string[]) || []).map((id) => new ObjectId(id)),
             ];
-        }
-        if (writeFields.items && Array.isArray(params.items)) {
-            await assertPackageMutableForUnit(existingDoc.unit, company._id, {session, logger, languageCode});
-            const incoming = (params.items as {name?: string; description?: string; instructions?: string; importance?: string}[]);
-            const existingItems = Array.isArray(existingDoc.items) ? existingDoc.items as {name?: string; completed?: boolean; completedAt?: Date; completedBy?: ObjectId}[] : [];
-            data.items = mergeHandoverItems(existingItems, incoming);
-            data.status = computeHandoverPackageStatus(data.items);
         }
         return data;
     },

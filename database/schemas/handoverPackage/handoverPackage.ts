@@ -23,17 +23,10 @@ import {handoverPackageViews} from "./handoverPackage.views";
 import {applyHandoverPackageIndexes} from "./handoverPackage.indexes";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
-import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
-
-const noWrite = {
-    self: {write: "no-permission" as const},
-    others: {write: "no-permission" as const},
-};
 
 export interface IHandoverPackage extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
     name: string;
     title: string;
-    status?: string;
     [key: string]: any;
 }
 
@@ -42,9 +35,9 @@ const HandoverPackageSchema = new Schema<IHandoverPackage>(
         name: {type: SchemaTypes.String, required: true, trim: true},
 
         project: {type: SchemaTypes.ObjectId, ref: "Project", required: true, refAllowlist: ProjectSimpleSnippet},
-        edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, refAllowlist: EdificeSimpleSnippet},
-        floor: {type: SchemaTypes.ObjectId, ref: "Floor", required: false, refAllowlist: FloorSimpleSnippet},
-        unit: {type: SchemaTypes.ObjectId, ref: "Unit", required: true, refAllowlist: UnitSimpleSnippet},
+        edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, default: null, refAllowlist: EdificeSimpleSnippet},
+        floor: {type: SchemaTypes.ObjectId, ref: "Floor", required: false, default: null, refAllowlist: FloorSimpleSnippet},
+        unit: {type: SchemaTypes.ObjectId, ref: "Unit", required: false, default: null, refAllowlist: UnitSimpleSnippet},
         title: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_TITLE_MAX},
         description: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX},
         notes: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX},
@@ -55,25 +48,8 @@ const HandoverPackageSchema = new Schema<IHandoverPackage>(
                 description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
                 instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
                 importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false},
-                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
-                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite},
-                completedBy: {
-                    type: SchemaTypes.ObjectId,
-                    ref: "User",
-                    required: false,
-                    refAllowlist: SimpleUserSnippet,
-                    permissions: noWrite,
-                },
             }],
             default: [],
-        },
-
-        status: {
-            type: SchemaTypes.String,
-            enum: ["draft", "in_progress", "ready", "completed"],
-            required: false,
-            default: "draft",
-            permissions: noWrite,
         },
     },
     {accessMode: "loose"},
@@ -98,4 +74,4 @@ export default HandoverPackage;
 
 normalizeSchemaPermissions(HandoverPackage);
 addModelData(HandoverPackage, handoverPackageViews);
-validateSchemaDefAgainstMongoose(HandoverPackageSchema, HandoverPackageSchemaDef, "HandoverPackage", ["name", "status"]);
+validateSchemaDefAgainstMongoose(HandoverPackageSchema, HandoverPackageSchemaDef, "HandoverPackage", ["name"]);

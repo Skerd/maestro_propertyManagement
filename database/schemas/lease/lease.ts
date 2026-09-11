@@ -77,7 +77,7 @@ const LeaseSchema = new Schema<ILease>(
             refAllowlist: UnitSimpleSnippet,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name", "unitNumber"],
+                refDisplayKey: ["name"],
                 filterable: true,
             },
         },

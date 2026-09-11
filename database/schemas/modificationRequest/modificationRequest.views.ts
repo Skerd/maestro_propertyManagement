@@ -134,7 +134,6 @@ export const modificationRequestSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "description" },
-                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",
@@ -155,7 +154,6 @@ export const modificationRequestSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "specifications" },
-                            dependent: "specifications",
                             field: {
                                 name: "specifications",
                                 widget: "#DisplayCard",
@@ -932,12 +930,7 @@ export const modificationRequestSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "clientNotifiedAt" },
-                            field: {
-                                name: "clientNotifiedAt",
-                                widget: "#DisplayCard",
-                                label: "clientNotifiedAt",
-                                widgetProps: { icon: "#BellRing", format: "dateTime" , type: "dateTime"},
-                            },
+                            field: {name: "clientNotifiedAt", widget: "#DisplayCard", label: "clientNotifiedAt", widgetProps: {icon: "#IconCalendarEvent", format: "dateTime", type: "dateTime"}},
                         },
                     ],
                 },
@@ -987,60 +980,15 @@ const modificationRequestCreateFormNode: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {
-                            name: "project",
-                            widget: "#ApiSelect",
-                            label: "form.projectLabel",
-                            placeholder: "form.projectPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
-                                pageSize: 50,
-                                formFieldName: "project",
-                                cascadeClearFormFields: ["edifice", "floor", "unit"],
-                            },
-                        },
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50, formFieldName: "project", cascadeClearFormFields: ["edifice", "floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "edifice",
-                            widget: "#ApiSelect",
-                            label: "form.edificeLabel",
-                            placeholder: "form.edificePlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/edifice/select",
-                                method: "POST",
-                                pageSize: 50,
-                                formFieldName: "edifice",
-                                postBodyFromFormField: { field: "project", paramName: "project" },
-                                cascadeClearFormFields: ["floor", "unit"],
-                                remountKeyFormField: "project",
-                                enableWhenFormFieldsNonEmpty: ["project"],
-                            },
-                        },
+                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", method: "POST", pageSize: 50, formFieldName: "edifice", postBodyFromFormField: {field: "project", paramName: "project"}, cascadeClearFormFields: ["floor", "unit"], remountKeyFormField: "project", enableWhenFormFieldsNonEmpty: ["project"]}},
                     },
                     {
                         render: "#Field",
-                        field: {
-                            name: "floor",
-                            widget: "#ApiSelect",
-                            label: "form.floorLabel",
-                            placeholder: "form.floorPlaceholder",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                apiUrl: "/api/realEstate/floor/select",
-                                method: "POST",
-                                pageSize: 50,
-                                formFieldName: "floor",
-                                postBodyFromFormField: { field: "edifice", paramName: "edifice" },
-                                cascadeClearFormFields: ["unit"],
-                                remountKeyFormField: "edifice",
-                                enableWhenFormFieldsNonEmpty: ["edifice"],
-                            },
-                        },
+                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", method: "POST", pageSize: 50, formFieldName: "floor", postBodyFromFormField: {field: "edifice", paramName: "edifice"}, cascadeClearFormFields: ["unit"], remountKeyFormField: "edifice", enableWhenFormFieldsNonEmpty: ["edifice"]}},
                     },
                     {
                         render: "#Field",

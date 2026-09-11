@@ -540,16 +540,63 @@ export const saleSheetView: ViewConfig = {
         {
             render: "#ReferencesViewModeScope",
             props: {
-                storageKey: "sale.sheet.handoverPackage.display",
+                storageKey: "sale.sheet.handoverChecklist.display",
+                defaultMode: "cards",
+            },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "handoverChecklistItems",
+                    dependentRuntimeOnly: true,
+                    props: {
+                        title: "handoverChecklist",
+                        titleActions: "#ReferencesViewModeToggle",
+                    },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                            children: [
+                                {
+                                    render: "#SheetEmbeddedItemsList",
+                                    field: {
+                                        name: "handoverChecklistItems",
+                                        skipReadAccessGate: true,
+                                        widget: "#SheetEmbeddedItemsList",
+                                        widgetProps: {
+                                            pageSize: 20,
+                                            cardColumns: 3,
+                                            compactSummaryFields: ["name", "sourceScope", "completed"],
+                                            fields: [
+                                                {name: "name", type: "text", icon: "#IconLabel", labelKey: "itemName"},
+                                                {name: "sourceScope", type: "text", icon: "#Layers", labelKey: "sourceScope", languageKeyCategory: "sourceScopes"},
+                                                {name: "importance", type: "text", icon: "#CircleDot", labelKey: "importance", languageKeyCategory: "importanceLevels"},
+                                                {name: "completed", type: "text", icon: "#CircleCheck", labelKey: "completed", languageKeyCategory: "completedState"},
+                                                {name: "description", type: "expandableText", icon: "#IconAlignLeft", labelKey: "itemDescription"},
+                                                {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions"},
+                                            ],
+                                        },
+                                    }, dependent: "handoverChecklistItems",
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: {
+                storageKey: "sale.sheet.handoverConfigs.display",
                 defaultMode: "compact",
             },
             children: [
                 {
                     render: "#SheetGroup",
-                    dependent: "handoverPackage",
+                    dependent: "handoverConfigs",
                     dependentRuntimeOnly: true,
                     props: {
-                        title: "handover",
+                        title: "handoverConfigs",
                         titleActions: "#ReferencesViewModeToggle",
                     },
                     children: [
@@ -559,15 +606,15 @@ export const saleSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#ReferencesRender",
-                                    dependent: "handoverPackage",
+                                    dependent: "handoverConfigs",
                                     dependentRuntimeOnly: true,
                                     field: {
-                                        name: "handoverPackage",
+                                        name: "handoverConfigs",
                                         skipReadAccessGate: true,
                                         widget: "#ReferencesRender",
                                         widgetProps: {
                                             cardWidget: "#HandoverPackageCard",
-                                            pageSize: 1,
+                                            pageSize: 4,
                                             small: true,
                                             compactRow: {
                                                 icon: "#ClipboardCheck",

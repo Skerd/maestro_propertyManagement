@@ -24,6 +24,11 @@ import {addModelData} from "@coreModule/database/collections";
 import {saleViews} from "./sale.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {SaleSchemaDef, SALE_LONG_TEXT_MAX, SALE_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/sale.schema-def";
+import {
+    HANDOVER_PACKAGE_ITEM_NAME_MAX,
+    HANDOVER_PACKAGE_ITEM_TEXT_MAX,
+    handoverItemImportanceValues,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.schema-def";
 import {UnitSnippet} from "../unit/unit.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
@@ -33,6 +38,11 @@ import {ReservationSnippet} from "../reservation/reservation.snippets";
 import {PaymentPlanSimpleSnippet} from "../paymentPlan/paymentPlan.snippts";
 import {CompanyBlankSnippet} from "@coreModule/database/schemas/company/company.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+
+const noWrite = {
+    self: {write: "no-permission" as const},
+    others: {write: "no-permission" as const},
+};
 
 /**
  * Sale payment type
@@ -47,6 +57,21 @@ export enum SaleApprovalStatus {
     APPROVED = "approved",
     REJECTED = "rejected",
 }
+
+export type ISaleHandoverChecklistItem = {
+    _id?: unknown;
+    sourcePackageId?: unknown;
+    sourceItemId?: unknown;
+    sourceScope?: string;
+    name: string;
+    description?: string;
+    instructions?: string;
+    importance?: string;
+    completed?: boolean;
+    completedAt?: Date;
+    completedBy?: unknown;
+    retained?: boolean;
+};
 
 /**
  * Sale model
@@ -97,6 +122,9 @@ export interface ISale extends Document, IOwnershipPluginFields, ISoftDeletePlug
     handoverNotes?: string;
     /** Set by `completeHandover`. Absent until that action runs. */
     handoverCompletedAt?: Date;
+
+    /** System-managed checklist copied from inherited handover configs. */
+    handoverChecklistItems?: ISaleHandoverChecklistItem[];
 
     // FEAT-014 — title transfer tracking
     titleTransferDate?: Date;
@@ -464,6 +492,33 @@ const SaleSchema = new Schema<ISale>(
                 others: {write: "no-permission"},
             },
         },
+        handoverChecklistItems: {
+            type: [{
+                sourcePackageId: {type: SchemaTypes.ObjectId, ref: "HandoverPackage", required: false},
+                sourceItemId: {type: SchemaTypes.ObjectId, required: false},
+                sourceScope: {
+                    type: SchemaTypes.String,
+                    enum: ["project", "edifice", "floor", "unit", "retained"],
+                    required: false,
+                },
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
+                importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false},
+                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite},
+                completedBy: {
+                    type: SchemaTypes.ObjectId,
+                    ref: "User",
+                    required: false,
+                    refAllowlist: SimpleBlankUserSnippet,
+                    permissions: noWrite,
+                },
+                retained: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+            }],
+            default: [],
+            permissions: noWrite,
+        },
         // FEAT-014 — title transfer tracking
         titleTransferDate: {type: SchemaTypes.Date, required: false},
         deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
@@ -505,4 +560,4 @@ normalizeSchemaPermissions(Sale);
 export default Sale;
 
 addModelData(Sale, saleViews);
-validateSchemaDefAgainstMongoose(SaleSchema, SaleSchemaDef, "Sale", ["approvalStatus", "saleApproval", "handoverDate", "titleTransferDate", "handoverCompletedAt"]);
+validateSchemaDefAgainstMongoose(SaleSchema, SaleSchemaDef, "Sale", ["approvalStatus", "saleApproval", "handoverDate", "titleTransferDate", "handoverCompletedAt", "handoverChecklistItems"]);

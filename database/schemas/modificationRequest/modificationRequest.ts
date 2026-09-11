@@ -38,6 +38,7 @@ import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/curre
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {InspectionSimpleSnippet} from "../inspection/inspection.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 /**
  * Modification request status enum
@@ -257,27 +258,33 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
         }
     };
     if (config?.withMaterialsPlan) {
+        const hideLineItem = {hideColumn: true};
         base.materialsPlan = {
             type: [{
-                type: {
-                    item:         {type: SchemaTypes.String,   required: true,  trim: true, minlength: 1, maxlength: MODIFICATION_REQUEST_LINE_ITEM_MAX},
-                    quantity:     {type: SchemaTypes.Number,   required: false, min: 0},
-                    unit:         {type: SchemaTypes.String,   required: false, trim: true, maxlength: MODIFICATION_REQUEST_UNIT_MAX},
-                    notes:        {type: SchemaTypes.String,   required: false, trim: true, maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX},
-                    pricePerUnit: {
-                        type:     SchemaTypes.Decimal128,
-                        required: false,
-                        set: (v: unknown) => {
-                            if (v == null) return v;
-                            if (v instanceof Decimal128) return v;
-                            return Decimal128.fromString(String(v));
-                        },
+                item:         {type: SchemaTypes.String,   required: true,  trim: true, minlength: 1, maxlength: MODIFICATION_REQUEST_LINE_ITEM_MAX, dynamicTableConfiguration: hideLineItem},
+                quantity:     {type: SchemaTypes.Number,   required: false, min: 0, dynamicTableConfiguration: hideLineItem},
+                unit:         {type: SchemaTypes.String,   required: false, trim: true, maxlength: MODIFICATION_REQUEST_UNIT_MAX, dynamicTableConfiguration: hideLineItem},
+                notes:        {type: SchemaTypes.String,   required: false, trim: true, maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX, dynamicTableConfiguration: hideLineItem},
+                pricePerUnit: {
+                    type:     SchemaTypes.Decimal128,
+                    required: false,
+                    set: (v: unknown) => {
+                        if (v == null) return v;
+                        if (v instanceof Decimal128) return v;
+                        return Decimal128.fromString(String(v));
                     },
-                    currency:     {type: SchemaTypes.ObjectId, required: false, ref: "Currency", refAllowlist: CurrencySimpleSnippet},
-                }
+                    dynamicTableConfiguration: hideLineItem,
+                },
+                currency:     {type: SchemaTypes.ObjectId, required: false, ref: "Currency", refAllowlist: CurrencySimpleSnippet, dynamicTableConfiguration: hideLineItem},
             }],
             required: false,
-            default: []
+            default: [],
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["quantity", "! ", "unit", "! · ", "item"],
+                sortable: false,
+                filterable: false,
+            },
         };
     }
     if (config?.withInspections) {
@@ -388,40 +395,51 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                     required: false,
                     refAllowlist: CurrencySimpleSnippet
                 },
-                costBreakdown: [{
-                    type: {
+                costBreakdown: {
+                    type: [{
                         item: {
                             type: SchemaTypes.String,
                             required: true,
                             trim: true,
                             minlength: 1,
                             maxlength: MODIFICATION_REQUEST_LINE_ITEM_MAX,
+                            dynamicTableConfiguration: {hideColumn: true},
                         },
                         cost: {
                             type: SchemaTypes.Number,
-                            required: true
+                            required: true,
+                            dynamicTableConfiguration: {hideColumn: true},
                         },
                         quantity: {
                             type: SchemaTypes.Number,
                             required: false,
-                            min: [0]
+                            min: [0],
+                            dynamicTableConfiguration: {hideColumn: true},
                         },
                         unit: {
                             type: SchemaTypes.String,
                             required: false,
                             trim: true,
                             maxlength: MODIFICATION_REQUEST_UNIT_MAX,
+                            dynamicTableConfiguration: {hideColumn: true},
                         },
                         source: {
                             type: SchemaTypes.String,
                             enum: ["engineer_material", "manual"],
                             required: false,
-                            default: "manual"
+                            default: "manual",
+                            dynamicTableConfiguration: {hideColumn: true},
                         }
-                    },
+                    }],
                     required: false,
-                    default: []
-                }],
+                    default: [],
+                    dynamicTableConfiguration: {
+                        cellType: COLUMN_TYPE.OBJECT_ID,
+                        refDisplayKey: ["item", "! · ", "cost"],
+                        sortable: false,
+                        filterable: false,
+                    },
+                },
                 media: {
                     type: [{
                         type: SchemaTypes.ObjectId,

@@ -13,7 +13,7 @@ export type RentMoneyRow = {
     paidAmount?: Decimal128 | string | number | null;
     lateFeeAmount?: Decimal128 | string | number | null;
     status?: string | null;
-    paymentReceipts?: {amount?: unknown; paidDate?: Date; notes?: string; media?: ObjectId[]}[] | null;
+    paymentReceipts?: {amount?: unknown; paidDate?: Date; notes?: string; media?: ReadonlyArray<unknown>}[] | null;
 };
 
 export type RentalPaymentReceiptWrite = {
@@ -141,7 +141,7 @@ export function applyRentalPaymentSlice(
             amount: r.amount instanceof Decimal128 ? r.amount : scaledToDecimal128(moneyToScaled(r.amount as Decimal128 | string | number | null | undefined)),
             paidDate: r.paidDate instanceof Date ? r.paidDate : new Date(),
             ...(typeof r.notes === "string" && r.notes !== "" ? {notes: r.notes} : {}),
-            ...(r.media?.length ? {media: r.media} : {}),
+            ...(r.media?.length ? {media: r.media.map(mediaItemToObjectId)} : {}),
         }))
         : [];
     const receipt: RentalPaymentReceiptWrite = {
@@ -211,6 +211,13 @@ export function planFifoSlices(months: FifoMonth[], lump: Decimal128 | string | 
     }
 
     return {ok: true, slices};
+}
+
+function mediaItemToObjectId(item: unknown): ObjectId {
+    if (typeof item === "object" && item !== null && "_id" in item && !("_bsontype" in item)) {
+        return new ObjectId(String(item._id));
+    }
+    return new ObjectId(String(item));
 }
 
 function parseDecimalStringToScaled(raw: string): bigint {

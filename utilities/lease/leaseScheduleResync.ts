@@ -46,7 +46,7 @@ async function createPendingRows(
 ): Promise<void> {
     const {session, logger, languageCode, actionUserCtx, company} = ctx;
     const amount = lease.monthlyRent;
-    if (amount == null || moneyToScaled(amount) === 0n) return;
+    if (amount == null || !moneyToScaled(amount)) return;
 
     const currency = (lease.rentCurrency as any)?._id ?? lease.rentCurrency;
     const leaseUnit = (lease.unit as any)?._id ?? lease.unit;
@@ -102,7 +102,7 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
 
     const startDate = asDate(current.startDate);
     const endDate = asDate(current.endDate);
-    if (rentScheduleExceedsCap(startDate, endDate) && moneyToScaled(current.monthlyRent) > 0n) {
+    if (rentScheduleExceedsCap(startDate, endDate) && moneyToScaled(current.monthlyRent)) {
         throw apiValidationException("lease_term_too_long", "", null, languageCode);
     }
 
@@ -172,7 +172,7 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
 export async function generateLeaseSchedule(lease: ILease, ctx: Ctx): Promise<void> {
     const startDate = asDate(lease.startDate);
     const endDate = asDate(lease.endDate);
-    if (moneyToScaled(lease.monthlyRent) === 0n) return;
+    if (!moneyToScaled(lease.monthlyRent)) return;
     if (rentScheduleExceedsCap(startDate, endDate)) {
         throw apiValidationException("lease_term_too_long", "", null, ctx.languageCode);
     }

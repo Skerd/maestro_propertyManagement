@@ -242,6 +242,7 @@ export const leaseSheetView: ViewConfig = {
                                 label: "terminationDate",
                                 widgetProps: {icon: "#Calendar", format: "date", type: "date"},
                             },
+                            dependent: "terminationDate",
                         },
                     ],
                 },
@@ -267,6 +268,7 @@ export const leaseSheetView: ViewConfig = {
                     ],
                 },
             ],
+            dependentAny: ["terminationDate", "terminationReason"],
         },
         {
             render: "#SheetGroup",

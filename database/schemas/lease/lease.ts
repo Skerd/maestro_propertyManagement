@@ -77,7 +77,7 @@ const LeaseSchema = new Schema<ILease>(
             refAllowlist: UnitSimpleSnippet,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
+                refDisplayKey: ["name", "unitNumber"],
                 filterable: true,
             },
         },
@@ -123,7 +123,7 @@ const LeaseSchema = new Schema<ILease>(
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name"],
+                refDisplayKey: ["symbol", "name"],
                 filterable: true,
             },
         },
@@ -142,8 +142,8 @@ const LeaseSchema = new Schema<ILease>(
             min: 0,
             max: 100,
             dynamicTableConfiguration: {
-                cellType: COLUMN_TYPE.NUMBER,
-                filterable: false,
+                cellType: COLUMN_TYPE.PERCENTAGE,
+                filterable: true,
             },
         },
         gracePeriodDays: {
@@ -153,7 +153,7 @@ const LeaseSchema = new Schema<ILease>(
             min: 0,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.NUMBER,
-                filterable: false,
+                filterable: true,
             },
         },
         depositPaid: {
@@ -199,7 +199,8 @@ const LeaseSchema = new Schema<ILease>(
             maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
-                filterable: false,
+                filterable: true,
+                sortable: false,
             },
         },
         notes: {
@@ -209,7 +210,8 @@ const LeaseSchema = new Schema<ILease>(
             maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
-                filterable: false,
+                filterable: true,
+                sortable: false,
             },
         },
         contractMedia: {
@@ -218,8 +220,8 @@ const LeaseSchema = new Schema<ILease>(
             required:     false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
-                hideColumn: true,
-                filterable: false,
+                cellType: COLUMN_TYPE.FILE,
+                sortable: false,
             },
         },
     },

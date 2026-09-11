@@ -3,13 +3,18 @@ import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {schemaSanitizer} from "@coreModule/utilities/middlewares/schemaSanitizerMW";
+import type {TransactionRequiredParams} from "@coreModule/utilities/middlewares/transactionUtils";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {addLeadActivityFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/addLeadActivity.form.validator";
 import {closeLeadFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/closeLead.form.validator";
-import type {LeadCloseOutcome} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/closeLead.form.type";
+import type {CloseLeadForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/closeLead.form.type";
 import {leadTransitionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/leadTransition.form.validator";
+import type {LeadTransitionForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/leadTransition.form.type";
 import {LEAD_LONG_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.schema-def";
-import {LEAD_WORKFLOW_ACTIVITY_ACTION} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/leadActivity.constants";
+import {
+    LEAD_WORKFLOW_ACTIVITY_ACTION,
+    type LeadActivityActionValue,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/leadActivity.constants";
 import type {Lead as LeadData} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/lead.dto";
 import {leadToDTO} from "@propertyManagement/utilities/mappers/lead/leadMapper.dto";
 import Lead, {ILead, LeadStatus} from "./lead";
@@ -60,15 +65,6 @@ function joinActivityNotes(...parts: (string | undefined)[]): string | undefined
     return text.length > LEAD_LONG_TEXT_MAX ? text.slice(0, LEAD_LONG_TEXT_MAX) : text;
 }
 
-type TransitionParams = {
-    logger: {start: (m: string) => void; finish: (m: string) => void; debug: (m: string) => void};
-    languageCode: string;
-    session: unknown;
-    actionUserCtx: {userId: string};
-    company: {_id: ObjectId};
-    _id: string;
-};
-
 export class LeadActions {
 
     @action({
@@ -78,7 +74,9 @@ export class LeadActions {
         middleware:  [schemaSanitizer({model: "leads", requiredModes: ["write"]})], // TODO check this, it need to check for activity keys, not whole schema
         schema:      addLeadActivityFormSchema,
     })
-    async addActivity(params: Record<string, any>): Promise<LeadData | undefined> {
+    async addActivity(
+        params: TransactionRequiredParams & {_id: string; action: LeadActivityActionValue; notes?: string},
+    ): Promise<LeadData | undefined> {
         const {logger, languageCode, session, actionUserCtx, company, _id, action, notes} = params;
 
         logger.start(`Adding activity to lead ${_id}...`);
@@ -98,7 +96,7 @@ export class LeadActions {
         await leadService.updateByIdOrThrow(
             lead._id,
             {$push: {activityLog: entry}},
-            {session, logger, languageCode, actionUserCtx},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 
         const returnData = await this.reloadLeadDto(lead._id, params);
@@ -112,7 +110,7 @@ export class LeadActions {
         transaction: true,
         schema:      leadTransitionFormSchema,
     })
-    async markContacted(params: Record<string, any>): Promise<LeadData | undefined> {
+    async markContacted(params: TransactionRequiredParams & LeadTransitionForm): Promise<LeadData | undefined> {
         return this.advanceLead(params, {
             destination:    LeadStatus.CONTACTED,
             activityAction: LEAD_WORKFLOW_ACTIVITY_ACTION.markedContacted,
@@ -131,7 +129,7 @@ export class LeadActions {
         transaction: true,
         schema:      leadTransitionFormSchema,
     })
-    async qualify(params: Record<string, any>): Promise<LeadData | undefined> {
+    async qualify(params: TransactionRequiredParams & LeadTransitionForm): Promise<LeadData | undefined> {
         return this.advanceLead(params, {
             destination:    LeadStatus.QUALIFIED,
             activityAction: LEAD_WORKFLOW_ACTIVITY_ACTION.qualified,
@@ -153,7 +151,7 @@ export class LeadActions {
         transaction: true,
         schema:      leadTransitionFormSchema,
     })
-    async markProposal(params: Record<string, any>): Promise<LeadData | undefined> {
+    async markProposal(params: TransactionRequiredParams & LeadTransitionForm): Promise<LeadData | undefined> {
         return this.advanceLead(params, {
             destination:    LeadStatus.PROPOSAL,
             activityAction: LEAD_WORKFLOW_ACTIVITY_ACTION.markedProposal,
@@ -172,7 +170,7 @@ export class LeadActions {
         transaction: true,
         schema:      leadTransitionFormSchema,
     })
-    async markNegotiation(params: Record<string, any>): Promise<LeadData | undefined> {
+    async markNegotiation(params: TransactionRequiredParams & LeadTransitionForm): Promise<LeadData | undefined> {
         return this.advanceLead(params, {
             destination:    LeadStatus.NEGOTIATION,
             activityAction: LEAD_WORKFLOW_ACTIVITY_ACTION.markedNegotiation,
@@ -191,10 +189,10 @@ export class LeadActions {
         transaction: true,
         schema:      closeLeadFormSchema,
     })
-    async closeLead(params: Record<string, any>): Promise<LeadData | undefined> {
+    async closeLead(params: TransactionRequiredParams & CloseLeadForm): Promise<LeadData | undefined> {
         const {
             logger, languageCode, session, actionUserCtx, company, _id, outcome, notes, lostReason,
-        } = params as TransitionParams & {outcome: LeadCloseOutcome; notes?: string; lostReason?: string};
+        } = params;
 
         logger.start(`Closing lead ${_id} as ${outcome}...`);
 
@@ -232,7 +230,7 @@ export class LeadActions {
                         ),
                     },
                 },
-                {session, logger, languageCode, actionUserCtx},
+                {session, logger, languageCode, auditUserId: actionUserCtx.userId},
             );
         } else {
             const reason = lostReason?.trim() ?? "";
@@ -251,7 +249,7 @@ export class LeadActions {
                         ),
                     },
                 },
-                {session, logger, languageCode, actionUserCtx},
+                {session, logger, languageCode, auditUserId: actionUserCtx.userId},
             );
         }
 
@@ -266,8 +264,8 @@ export class LeadActions {
         transaction: true,
         schema:      leadTransitionFormSchema,
     })
-    async reopen(params: Record<string, any>): Promise<LeadData | undefined> {
-        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params as TransitionParams & {notes?: string};
+    async reopen(params: TransactionRequiredParams & LeadTransitionForm): Promise<LeadData | undefined> {
+        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params;
 
         logger.start(`Reopening lead ${_id}...`);
 
@@ -298,7 +296,7 @@ export class LeadActions {
                     ),
                 },
             },
-            {session, logger, languageCode, actionUserCtx},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 
         const returnData = await this.reloadLeadDto(lead._id, params);
@@ -307,7 +305,7 @@ export class LeadActions {
     }
 
     private async advanceLead(
-        params: Record<string, any>,
+        params: TransactionRequiredParams & LeadTransitionForm,
         options: {
             destination: LeadStatus;
             activityAction: string;
@@ -315,7 +313,7 @@ export class LeadActions {
             extraGate?: (lead: ILead, languageCode: string) => void;
         },
     ): Promise<LeadData | undefined> {
-        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params as TransitionParams & {notes?: string};
+        const {logger, languageCode, session, actionUserCtx, company, _id, notes} = params;
         const {destination, activityAction, statusError, extraGate} = options;
 
         logger.start(`Moving lead ${_id} to ${destination}...`);
@@ -336,7 +334,7 @@ export class LeadActions {
                 $set:  {status: destination},
                 $push: {activityLog: this.activityEntry(actionUserCtx.userId, activityAction, notes)},
             },
-            {session, logger, languageCode, actionUserCtx},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 
         const returnData = await this.reloadLeadDto(lead._id, params);
@@ -353,7 +351,7 @@ export class LeadActions {
         };
     }
 
-    private async reloadLeadDto(leadId: ObjectId, params: Record<string, any>): Promise<LeadData | undefined> {
+    private async reloadLeadDto(leadId: ObjectId, params: TransactionRequiredParams): Promise<LeadData | undefined> {
         const {logger, languageCode, session, actionUserCtx} = params;
         try {
             const readFields = SchemaGuard.sanitizeFields(

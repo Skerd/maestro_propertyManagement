@@ -329,8 +329,11 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
                 },
             }],
             default: [],
+            /** objectId cell → badges; label from each line via refDisplayKey. */
             dynamicTableConfiguration: {
-                hideColumn: true,
+                cellType: COLUMN_TYPE.OBJECT_ID,
+                refDisplayKey: ["amount", "! ", "unit", "! · ", "title"],
+                maxInlineItems: 2,
                 filterable: false,
                 sortable: false,
             },

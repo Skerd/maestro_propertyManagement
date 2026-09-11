@@ -278,12 +278,7 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {
-                            name: "invoiceMedia",
-                            widget: "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
-                            widgetProps: {maxFiles: 20},
-                        },
+                        field: {name: "invoiceMedia", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 20}},
                     },
                 ],
             },
@@ -302,17 +297,7 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {
-                            name: "invoiceMedia",
-                            widget: "#FormMultiLocalFileField",
-                            skipWriteAccessGate: true,
-                            widgetProps: {
-                                maxFiles: 20,
-                                existingListExtraKey: "editUnitCostInvoiceMediaList",
-                                existingFilesLabelKey: "form.existingFilesLabel",
-                                newFilesLabelKey: "form.newFilesLabel",
-                            },
-                        },
+                        field: {name: "invoiceMedia", widget: "#FormMultiLocalFileField", widgetProps: {maxFiles: 20, existingListExtraKey: "editUnitCostInvoiceMediaList", existingFilesLabelKey: "form.existingFilesLabel", newFilesLabelKey: "form.newFilesLabel"}},
                     },
                 ],
             },
@@ -631,7 +616,7 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             widget: "#FormMultiLocalFileField",
                             skipWriteAccessGate: true,
                             widgetProps: {maxFiles: 20},
-                        }, permissions: {read: "invoiceMedia"},
+                        }, permissions: {read: "invoiceMedia", write: "invoiceMedia"},
                     },
                 ],
             },
@@ -661,7 +646,7 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                                 existingFilesLabelKey: "form.existingFilesLabel",
                                 newFilesLabelKey: "form.newFilesLabel",
                             },
-                        }, permissions: {read: "invoiceMedia"},
+                        }, permissions: {read: "invoiceMedia", write: "invoiceMedia"},
                     },
                 ],
             },

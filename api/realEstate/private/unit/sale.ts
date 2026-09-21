@@ -43,6 +43,7 @@ import {
     dispatchSaleClientEmail,
 } from "@propertyManagement/utilities/database/sale/saleClientEmailDispatch";
 import {
+    formatDiscountForEmail,
     formatMoneyAmountForEmail,
     UNIT_EMAIL_POPULATE,
     unitLocationForEmail,
@@ -68,14 +69,12 @@ function purchaseContractMediaIdFromFormValue(v: unknown): string | undefined {
     return t !== "" ? t : undefined;
 }
 
-async function unitPriceDisplayForEmail(foundUnit: any, companyId: ObjectId, languageCode: string): Promise<string | undefined> {
+async function unitPriceCurrencySymbolForEmail(foundUnit: any, companyId: ObjectId): Promise<string | undefined> {
     try {
         const pc = foundUnit.priceCurrency;
         const pcid = pc instanceof ObjectId ? pc : pc?._id;
         const pcDoc = pcid ? await currencyService.findOne({_id: new ObjectId(pcid), company: companyId}) : undefined;
-        const sym = pcDoc?.symbol ?? "";
-        const amt = formatMoneyAmountForEmail(foundUnit.price.toString(), languageCode);
-        return sym ? `${amt} ${sym}` : amt;
+        return pcDoc?.symbol || undefined;
     } catch {
         return undefined;
     }
@@ -491,8 +490,12 @@ const {router} = createCrudRouter({
 
         // Confirmation email (best-effort)
         const lang = languageCode ?? "en-US";
+        const unitPriceSym = await unitPriceCurrencySymbolForEmail(unitSnapshot, company._id);
         let unitPriceDisplay: string | undefined;
-        try { unitPriceDisplay = await unitPriceDisplayForEmail(unitSnapshot, company._id, lang); } catch { /* best-effort */ }
+        if (unitSnapshot.price != null) {
+            const amt = formatMoneyAmountForEmail(unitSnapshot.price.toString(), lang);
+            unitPriceDisplay = unitPriceSym ? `${amt} ${unitPriceSym}` : amt;
+        }
         const saleSymForEmail = saleCurrencyDoc?.symbol as string | undefined;
         const finalDisp = finalPriceDisplayForEmail(finalPrice, saleSymForEmail, lang);
         const purchaseContractMediaId = purchaseContractMediaIdFromFormValue((params as any).purchaseContract);
@@ -512,7 +515,12 @@ const {router} = createCrudRouter({
             edificeName: unitSnapshot.edificeName,
             floorName: unitSnapshot.floorName,
             unitPriceDisplay,
+            localDiscountDisplay: formatDiscountForEmail(created.localDiscount, unitSnapshot.price, unitPriceSym, lang),
             finalPriceDisplay: finalDisp,
+            // Always shown (0 unless a payment plan sets it below); paid status only for a non-zero amount.
+            downPaymentDisplay: saleSymForEmail
+                ? `${formatMoneyAmountForEmail("0", lang)} ${saleSymForEmail}`
+                : formatMoneyAmountForEmail("0", lang),
             purchaseContractMediaId,
         };
 
@@ -522,11 +530,13 @@ const {router} = createCrudRouter({
                 const ppForEmail = await paymentPlanService.findOneOrThrow(
                     {_id: planId, company: company._id},
                     {logger, languageCode},
-                    "downPayment numberOfInstallments",
+                    "downPayment downPaymentPaid numberOfInstallments",
                 );
-                if (ppForEmail.downPayment != null) {
-                    const dAmt = formatMoneyAmountForEmail(ppForEmail.downPayment.toString(), lang);
+                const dpAmount = parseFloat(ppForEmail.downPayment?.toString() ?? "0") || 0;
+                if (dpAmount > 0) {
+                    const dAmt = formatMoneyAmountForEmail(String(dpAmount), lang);
                     emailPayload.downPaymentDisplay = saleSymForEmail ? `${dAmt} ${saleSymForEmail}` : dAmt;
+                    emailPayload.downPaymentPaid = !!ppForEmail.downPaymentPaid;
                 }
                 emailPayload.numberOfInstallments = ppForEmail.numberOfInstallments;
             } catch { /* best-effort */ }

@@ -52,9 +52,12 @@ export interface SaleClientEmailEvent extends UnitLocationForEmail {
     unitNumber?: string;
     unitDisplayName?: string;
     unitPriceDisplay?: string;
+    /** Localized local-discount percentage; omitted when the sale has no discount. */
+    localDiscountDisplay?: string;
     finalPriceDisplay?: string;
     /** Payment plan summary (sale_created with payment_plan only). */
     downPaymentDisplay?: string;
+    downPaymentPaid?: boolean;
     numberOfInstallments?: number;
     /** Installment emails */
     installmentNumber?: number;

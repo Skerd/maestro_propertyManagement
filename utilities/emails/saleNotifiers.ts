@@ -73,9 +73,11 @@ function buildSaleCreatedSummaryHtml(
         edificeName?: string;
         floorName?: string;
         unitPriceDisplay?: string;
+        localDiscountDisplay?: string;
         finalPriceDisplay?: string;
         paymentTypeLabel: string;
         downPaymentDisplay?: string;
+        downPaymentPaid?: boolean;
         numberOfInstallments?: number;
     }
 ): string {
@@ -87,9 +89,15 @@ function buildSaleCreatedSummaryHtml(
 
     pushRow(rows, loc.labelUnitName, rowData.unitDisplayName);
     pushRow(rows, loc.labelUnitPrice, rowData.unitPriceDisplay);
+    if (rowData.downPaymentDisplay) {
+        // Paid status is only sent for a non-zero down payment.
+        const status =
+            rowData.downPaymentPaid == null ? undefined : rowData.downPaymentPaid ? loc.downPaymentPaid : loc.downPaymentNotPaid;
+        pushRow(rows, loc.labelDownPayment, status ? `${rowData.downPaymentDisplay} (${status})` : rowData.downPaymentDisplay);
+    }
+    pushRow(rows, loc.labelLocalDiscount, rowData.localDiscountDisplay);
     pushRow(rows, loc.labelFinalPrice, rowData.finalPriceDisplay);
     rows.push({label: loc.labelPaymentType ?? "", value: rowData.paymentTypeLabel});
-    pushRow(rows, loc.labelDownPayment, rowData.downPaymentDisplay);
     if (rowData.numberOfInstallments != null && rowData.numberOfInstallments > 0) {
         rows.push({label: loc.labelInstallmentCount ?? "", value: String(rowData.numberOfInstallments)});
     }
@@ -144,9 +152,11 @@ export async function sendSaleClientMail(data: SaleClientEmailEvent): Promise<vo
                   edificeName: data.edificeName,
                   floorName: data.floorName,
                   unitPriceDisplay: data.unitPriceDisplay,
+                  localDiscountDisplay: data.localDiscountDisplay,
                   finalPriceDisplay: data.finalPriceDisplay,
                   paymentTypeLabel,
                   downPaymentDisplay: data.downPaymentDisplay,
+                  downPaymentPaid: data.downPaymentPaid,
                   numberOfInstallments: data.numberOfInstallments,
               })
             : "";

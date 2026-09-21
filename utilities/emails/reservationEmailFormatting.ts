@@ -72,6 +72,31 @@ export function formatMoneyAmountForEmail(rawNumeric: string, languageCode: stri
     }
 }
 
+/**
+ * Localized discount percentage with the amount it takes off the listed price, e.g. "5% (6,000 EUR)".
+ * Undefined when the discount is missing or zero; the amount is omitted when the price is unknown.
+ */
+export function formatDiscountForEmail(
+    rawPercent: {toString(): string} | number | string | null | undefined,
+    listedPrice: {toString(): string} | number | string | null | undefined,
+    currencySymbol: string | undefined,
+    languageCode: string
+): string | undefined {
+    if (rawPercent == null) return undefined;
+    const pct = parseFloat(String(rawPercent));
+    if (!Number.isFinite(pct) || pct <= 0) return undefined;
+    let pctDisplay: string;
+    try {
+        pctDisplay = new Intl.NumberFormat(languageCode, {style: "percent", maximumFractionDigits: 2}).format(pct / 100);
+    } catch {
+        pctDisplay = `${pct}%`;
+    }
+    const price = listedPrice == null ? NaN : parseFloat(String(listedPrice));
+    if (!Number.isFinite(price)) return pctDisplay;
+    const amt = formatMoneyAmountForEmail(String((price * pct) / 100), languageCode);
+    return `${pctDisplay} (${currencySymbol ? `${amt} ${currencySymbol}` : amt})`;
+}
+
 export function formatReservationDepositForEmailDisplay(
     depositAmount: Decimal128 | undefined,
     currencySymbol: string | undefined,

@@ -46,6 +46,7 @@ import {
     utcCalendarDaysUntilExpirationDay,
 } from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import {
+    formatDiscountForEmail,
     formatMoneyAmountForEmail,
     UNIT_EMAIL_POPULATE,
     UNIT_EMAIL_SELECT,
@@ -270,6 +271,12 @@ export class SaleActions {
             unitDisplayName,
             ...location,
             unitPriceDisplay,
+            localDiscountDisplay: formatDiscountForEmail(
+                sale.localDiscount,
+                unitRef?.price,
+                unitRef?.priceCurrency?.symbol,
+                languageCode ?? "en-US",
+            ),
             finalPriceDisplay,
         } as const;
 
@@ -277,24 +284,27 @@ export class SaleActions {
         let payload: DispatchSaleClientEmailInput;
 
         if (action === "send_sale_confirmation") {
-            let downPaymentDisplay: string | undefined;
+            // Always shown (0 when there is no plan / down payment); paid status only for a non-zero amount.
+            let downPaymentAmount = 0;
+            let downPaymentPaid: boolean | undefined;
             let numberOfInstallments: number | undefined;
             if (paymentType === "payment_plan" && sale.paymentPlan) {
                 const pp = await paymentPlanService.findOneOrThrow(
                     {_id: sale.paymentPlan, company: company._id},
                     {logger, languageCode},
-                    "downPayment numberOfInstallments",
+                    "downPayment downPaymentPaid numberOfInstallments",
                 );
-                if (pp.downPayment != null) {
-                    const dAmt = formatMoneyAmountForEmail(pp.downPayment.toString(), lang);
-                    downPaymentDisplay = saleSym ? `${dAmt} ${saleSym}` : dAmt;
-                }
+                downPaymentAmount = parseFloat(pp.downPayment?.toString() ?? "0") || 0;
+                if (downPaymentAmount > 0) downPaymentPaid = !!pp.downPaymentPaid;
                 numberOfInstallments = pp.numberOfInstallments;
             }
+            const dAmt = formatMoneyAmountForEmail(String(downPaymentAmount), lang);
+            const downPaymentDisplay = saleSym ? `${dAmt} ${saleSym}` : dAmt;
             payload = {
                 ...base,
                 kind: "sale_created",
                 downPaymentDisplay,
+                downPaymentPaid,
                 numberOfInstallments,
                 purchaseContractMediaId,
             };

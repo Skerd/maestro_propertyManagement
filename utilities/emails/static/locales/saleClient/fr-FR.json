@@ -55,5 +55,11 @@
   "introInstRemainingDays": "Il vous reste {daysRemaining} jour(s) calendaire(s) avant l'échéance {installmentNumber} (date d'échéance : {dueDate}) de votre achat chez {companyName}.",
   "closingInstRemainingDays": "Merci de prévoir votre paiement avant la date d'échéance.",
   "introInstOverdue": "L'échéance {installmentNumber} de votre achat chez {companyName} a dépassé sa date limite ({dueDate}).",
-  "closingInstOverdue": "Merci de contacter votre conseiller ou de finaliser le paiement dès que possible."
+  "closingInstOverdue": "Merci de contacter votre conseiller ou de finaliser le paiement dès que possible.",
+  "scheduleTitle": "Échéancier",
+  "colInstallment": "Échéance",
+  "colDueDate": "Date d’échéance",
+  "colAmount": "Montant",
+  "colPrincipal": "Capital",
+  "colInterest": "Intérêts"
 }

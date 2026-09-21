@@ -55,5 +55,11 @@
   "introInstRemainingDays": "Sie haben noch {daysRemaining} Kalendertag(e), bis Rate {installmentNumber} fällig wird (Fälligkeitsdatum: {dueDate}) für Ihren Kauf bei {companyName}.",
   "closingInstRemainingDays": "Bitte planen Sie Ihre Zahlung vor dem Fälligkeitsdatum.",
   "introInstOverdue": "Rate {installmentNumber} für Ihren Kauf bei {companyName} hat das Fälligkeitsdatum überschritten ({dueDate}).",
-  "closingInstOverdue": "Bitte kontaktieren Sie Ihren Berater oder schliessen Sie die Zahlung so bald wie möglich ab."
+  "closingInstOverdue": "Bitte kontaktieren Sie Ihren Berater oder schliessen Sie die Zahlung so bald wie möglich ab.",
+  "scheduleTitle": "Zahlungsplan",
+  "colInstallment": "Rate",
+  "colDueDate": "Fälligkeit",
+  "colAmount": "Betrag",
+  "colPrincipal": "Kapital",
+  "colInterest": "Zinsen"
 }

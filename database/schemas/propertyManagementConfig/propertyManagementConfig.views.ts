@@ -44,7 +44,46 @@ export const propertyManagementConfigSheetView: ViewConfig = {
     ],
 };
 
+function notifyUsersField(name: "notifyOnSales" | "notifyOnReservations", withPermissions: boolean): ViewConfig["nodes"][number] {
+    return {
+        render: "#Field",
+        field: {
+            name,
+            widget: "#ObjectIdChipsInput",
+            label: `form.${name}Label`,
+            widgetProps: {
+                apiUrl: "/api/company/users/select",
+                method: "POST",
+                placeholderKey: "form.selectUser",
+                removeTooltipKey: "form.removeUser",
+                selectPageSizeCreate: 50,
+                selectPageSizeEdit: 200,
+                labelRefFormExtraKey: name,
+            },
+        },
+        ...(withPermissions ? {permissions: {read: name, write: name}} : {}),
+    };
+}
+
+function notificationsSection(withPermissions: boolean): ViewConfig["nodes"][number] {
+    return {
+        render: "#TitleWithCollapse",
+        props: {title: "notifications"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
+                    notifyUsersField("notifyOnSales", withPermissions),
+                    notifyUsersField("notifyOnReservations", withPermissions),
+                ],
+            },
+        ],
+    };
+}
+
 const propertyManagementConfigCreateFormNode: ViewConfig["nodes"] = [
+    notificationsSection(false),
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -76,6 +115,7 @@ const propertyManagementConfigCreateFormNode: ViewConfig["nodes"] = [
 ];
 
 const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
+    notificationsSection(true),
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},

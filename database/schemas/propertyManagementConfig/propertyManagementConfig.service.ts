@@ -8,6 +8,19 @@ export type PropertyManagementSettingsFlags = {
     requiresHandoverPackageForHandover: boolean;
 };
 
+export type PropertyManagementNotificationRecipients = {
+    notifyOnSales: string[];
+    notifyOnReservations: string[];
+};
+
+function idList(refs: unknown): string[] {
+    if (!Array.isArray(refs)) return [];
+    return refs
+        .map(ref => (ref && typeof ref === "object" && "_id" in ref ? (ref as {_id: unknown})._id : ref))
+        .filter(Boolean)
+        .map(String);
+}
+
 export class PropertyManagementConfigService extends BaseCrudService<
     IPropertyManagementConfig,
     typeof PropertyManagementConfig
@@ -76,6 +89,19 @@ export class PropertyManagementConfigService extends BaseCrudService<
         return {
             requiresSaleApproval: !!doc.requiresSaleApproval,
             requiresHandoverPackageForHandover: !!doc.requiresHandoverPackageForHandover,
+        };
+    }
+
+    /** Staff user ids to alert on new sales / reservations (read-only; never creates the config). */
+    async getNotificationRecipients(
+        companyId: ObjectId | string,
+        options: CrudOptions = {},
+    ): Promise<PropertyManagementNotificationRecipients> {
+        const companyObjectId = typeof companyId === "string" ? new ObjectId(companyId) : companyId;
+        const doc = await this.findOne({company: companyObjectId, deletedAt: null}, options);
+        return {
+            notifyOnSales: idList(doc?.notifyOnSales),
+            notifyOnReservations: idList(doc?.notifyOnReservations),
         };
     }
 }

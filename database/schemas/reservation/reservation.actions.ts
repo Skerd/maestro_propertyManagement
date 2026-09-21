@@ -10,6 +10,7 @@ import {manualReservationClientEmailFormSchema} from "armonia/src/modules/proper
 import type {ManualReservationClientEmailForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/manualReservationClientEmail.form.type";
 import type {Reservation as ReservationData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.dto";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
+import {notifyReservationWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {
@@ -110,6 +111,66 @@ async function loadReservationDto(
 }
 
 export class ReservationActions {
+
+    /** Re-sends the "new reservation" alert to the Sales & handover → Notify on reservations list. */
+    @action({
+        auth: "private",
+        rateLimit: {windowMs: 60000, max: 10},
+        schema: validateSingleForm,
+    })
+    async resendStaffNotifications(params: Record<string, any>): Promise<{ok: true; recipients: number}> {
+        const {logger, languageCode, _id, actionUserCtx, company} = params;
+
+        logger.start(`Resending staff notifications for reservation: ${_id}`);
+        try {
+            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
+        } catch {
+            throw apiValidationException("reservation_not_found", "", null, languageCode);
+        }
+
+        const reservation = await reservationService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {logger, languageCode},
+            [
+                {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
+                {path: "depositCurrency", select: "symbol"},
+            ],
+        );
+        if (reservation.deletedAt) {
+            throw apiValidationException("reservation_not_found", "", null, languageCode);
+        }
+
+        const lang = languageCode ?? "en-US";
+        const unitRef = reservation.unit as {_id?: ObjectId; unitNumber?: string | number} | undefined;
+        const idOf = (ref: unknown) =>
+            ref instanceof ObjectId ? ref.toString() : (ref as {_id?: ObjectId} | undefined)?._id?.toString();
+        const listing = reservationClientEmailListingFieldsFromLoadedReservation(reservation, lang);
+        const expIso = reservation.expirationDate ? new Date(reservation.expirationDate).toISOString() : undefined;
+
+        const recipients = await notifyReservationWatchers({
+            companyId: company._id,
+            companyName: company.name ?? "",
+            languageCode: lang,
+            reservationId: reservation._id.toString(),
+            reservationCode: reservation.name,
+            clientId: idOf(reservation.client),
+            depositDisplay: listing.reservationDepositDisplay,
+            expirationDateFormatted: formatReservationExpirationForEmail(expIso, lang),
+            createdById: idOf((reservation as {createdBy?: unknown}).createdBy),
+            unitId: idOf(reservation.unit) ?? "",
+            unitNumber: unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined,
+            unitDisplayName: listing.unitDisplayName,
+            projectName: listing.projectName,
+            edificeName: listing.edificeName,
+            floorName: listing.floorName,
+        });
+        if (!recipients) {
+            throw apiValidationException("no_notification_recipients", "", null, languageCode);
+        }
+
+        logger.finish(`Resent reservation staff notifications to ${recipients} user(s)`);
+        return {ok: true, recipients};
+    }
 
     @action({
         auth: "private",

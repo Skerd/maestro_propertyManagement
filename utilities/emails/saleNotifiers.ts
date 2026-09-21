@@ -14,6 +14,7 @@ import {
     noteHtml,
     pushRow,
     pushUnitLocationRows,
+    scheduleTableHtml,
     summaryCardHtml,
     type SummaryRow,
 } from "./emailLayout";
@@ -177,6 +178,7 @@ export async function sendSaleClientMail(data: SaleClientEmailEvent): Promise<vo
         saleCode,
         unitNumber,
         detailsSummary,
+        scheduleTable: variant === "SaleCreated" && data.paymentType === "payment_plan" ? scheduleTableHtml(loc, data.paymentSchedule) : "",
         installmentContext,
         contractNote,
         introSaleCreated: localized(strings, "introSaleCreated", {companyName}),

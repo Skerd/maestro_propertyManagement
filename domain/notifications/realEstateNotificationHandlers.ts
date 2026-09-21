@@ -252,6 +252,76 @@ export function registerRealEstateNotificationEventHandlers(): void {
         }
     });
 
+    // ─── Staff watchers (Sales & handover → Notifications) ─────────────────────
+
+    notificationEventBus.on(NotificationEventCodes.RESERVATION_CREATED_STAFF, async (event: NotificationEvent) => {
+        const {receiverIds, payload} = event;
+        const opts = langOpts(event);
+        const who = payload.clientName ? ` for ${payload.clientName}` : "";
+
+        for (const receiverId of receiverIds) {
+            try {
+                await createAndPushNotification(
+                    {
+                        receiver: new ObjectId(receiverId),
+                        company: new ObjectId(payload.companyId as string),
+                        code: NotificationEventCodes.RESERVATION_CREATED_STAFF,
+                        description: `New reservation: Unit ${payload.unitNumber ?? "—"}${who}`,
+                        content: {
+                            reservationId: payload.reservationId,
+                            unitId: payload.unitId,
+                            unitNumber: payload.unitNumber,
+                            clientName: payload.clientName,
+                            depositDisplay: payload.depositDisplay,
+                            expirationDate: payload.expirationDate,
+                        },
+                        importance: NotificationImportance.MEDIUM,
+                        category: NotificationCategory.FINANCIAL,
+                    },
+                    opts
+                );
+            }
+            catch (e) {
+                console.error(`Failed to create RESERVATION_CREATED_STAFF notification for ${receiverId}:`, e);
+            }
+        }
+    });
+
+    notificationEventBus.on(NotificationEventCodes.SALE_CREATED_STAFF, async (event: NotificationEvent) => {
+        const {receiverIds, payload} = event;
+        const opts = langOpts(event);
+        const prefix = payload.pendingApproval ? "New sale pending approval" : "New sale";
+        const price = payload.finalPriceDisplay ? ` (${payload.finalPriceDisplay})` : "";
+
+        for (const receiverId of receiverIds) {
+            try {
+                await createAndPushNotification(
+                    {
+                        receiver: new ObjectId(receiverId),
+                        company: new ObjectId(payload.companyId as string),
+                        code: NotificationEventCodes.SALE_CREATED_STAFF,
+                        description: `${prefix}: Unit ${payload.unitNumber ?? "—"}${price}`,
+                        content: {
+                            saleId: payload.saleId,
+                            unitId: payload.unitId,
+                            unitNumber: payload.unitNumber,
+                            finalPriceDisplay: payload.finalPriceDisplay,
+                            buyerName: payload.buyerName,
+                            soldByName: payload.soldByName,
+                            pendingApproval: !!payload.pendingApproval,
+                        },
+                        importance: NotificationImportance.HIGH,
+                        category: NotificationCategory.FINANCIAL,
+                    },
+                    opts
+                );
+            }
+            catch (e) {
+                console.error(`Failed to create SALE_CREATED_STAFF notification for ${receiverId}:`, e);
+            }
+        }
+    });
+
     // ─── Payment Plans ─────────────────────────────────────────────────────────
 
     notificationEventBus.on(NotificationEventCodes.PAYMENT_PLAN_DOWN_PAYMENT_PAID, async (event: NotificationEvent) => {

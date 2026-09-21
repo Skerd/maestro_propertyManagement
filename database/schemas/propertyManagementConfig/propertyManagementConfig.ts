@@ -1,10 +1,12 @@
 import {Document, model, Schema, SchemaTypes} from "mongoose";
+import {ObjectId} from "mongodb";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
 import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
+import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {PropertyManagementConfigSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/propertyManagementConfig/propertyManagementConfig.schema-def";
 import {propertyManagementConfigViews} from "./propertyManagementConfig.views";
@@ -13,6 +15,8 @@ import {applyPropertyManagementConfigIndexes} from "./propertyManagementConfig.i
 export interface IPropertyManagementConfig extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
     requiresSaleApproval?: boolean;
     requiresHandoverPackageForHandover?: boolean;
+    notifyOnSales?: ObjectId[];
+    notifyOnReservations?: ObjectId[];
     [key: string]: any;
 }
 
@@ -27,6 +31,22 @@ const PropertyManagementConfigSchema = new Schema<IPropertyManagementConfig>(
             type: SchemaTypes.Boolean,
             required: false,
             default: false
+        },
+        notifyOnSales: {
+            type: [{
+                type: SchemaTypes.ObjectId,
+                ref: "User",
+                refAllowlist: SimpleUserSnippet
+            }],
+            default: [],
+        },
+        notifyOnReservations: {
+            type: [{
+                type: SchemaTypes.ObjectId,
+                ref: "User",
+                refAllowlist: SimpleUserSnippet
+            }],
+            default: [],
         },
     },
     {accessMode: "loose"},

@@ -55,5 +55,11 @@
   "introInstRemainingDays": "You have {daysRemaining} calendar day(s) left before installment {installmentNumber} is due (due date: {dueDate}) for your purchase at {companyName}.",
   "closingInstRemainingDays": "Please plan your payment before the due date.",
   "introInstOverdue": "Installment {installmentNumber} for your purchase at {companyName} is past its due date ({dueDate}).",
-  "closingInstOverdue": "Please contact your agent or complete payment as soon as possible."
+  "closingInstOverdue": "Please contact your agent or complete payment as soon as possible.",
+  "scheduleTitle": "Payment schedule",
+  "colInstallment": "Installment",
+  "colDueDate": "Due date",
+  "colAmount": "Amount",
+  "colPrincipal": "Principal",
+  "colInterest": "Interest"
 }

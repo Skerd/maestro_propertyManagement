@@ -1,3 +1,4 @@
+import type {PaymentScheduleRowForEmail} from "../utilities/emails/salePlanSummaryForEmail";
 /** Display names snapshotted at send time — never ObjectIds. */
 export interface UnitLocationForEmail {
     projectName?: string;
@@ -59,6 +60,8 @@ export interface SaleClientEmailEvent extends UnitLocationForEmail {
     downPaymentDisplay?: string;
     downPaymentPaid?: boolean;
     numberOfInstallments?: number;
+    /** Installment table (sale_created with payment_plan only). */
+    paymentSchedule?: PaymentScheduleRowForEmail[];
     /** Installment emails */
     installmentNumber?: number;
     installmentAmountDisplay?: string;

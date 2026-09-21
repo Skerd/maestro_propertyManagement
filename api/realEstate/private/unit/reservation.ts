@@ -41,6 +41,7 @@ import {
 import {CommissionSourceType, CommissionStatus} from "../../../../database/schemas/commission/commission";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
+import {afterCommit, notifyReservationWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
 
 const mediaUpload = mediaUploadMW({
     fields: {reservationContract: 10, additionalDocuments: 10},
@@ -275,6 +276,23 @@ export const {router} = createCrudRouter({
             const msg = err instanceof Error ? err.message : String(err);
             logger.debug(`Reservation created client email skipped or failed: ${msg}`);
         }
+
+        // Staff watchers (Sales & handover → Notify on reservations)
+        afterCommit(session, () => notifyReservationWatchers({
+            companyId: company._id,
+            companyName: company.name ?? "",
+            languageCode: languageCode ?? "en-US",
+            reservationId: created._id.toString(),
+            reservationCode: (created as any).name,
+            clientId: client ? String(client) : undefined,
+            depositDisplay: reservationDepositDisplay,
+            expirationDateFormatted: formatReservationExpirationForEmail(expIso, languageCode ?? "en-US"),
+            createdById: actionUserCtx?.userId ? String(actionUserCtx.userId) : undefined,
+            unitId: foundUnit._id.toString(),
+            unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,
+            unitDisplayName: foundUnit.name,
+            ...unitLocationForEmail(foundUnit),
+        }));
     },
     beforeDelete: async (params, doc) => {
         const reservation = doc as IReservation;

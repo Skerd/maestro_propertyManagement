@@ -55,5 +55,11 @@
   "introInstRemainingDays": "Keni {daysRemaining} ditë kalendarike të mbetura para se kësti {installmentNumber} të jetë i duhur (data: {dueDate}) për blerjen te {companyName}.",
   "closingInstRemainingDays": "Ju lutemi planifikoni pagesën para datës së këstit.",
   "introInstOverdue": "Kësti {installmentNumber} për blerjen tuaj te {companyName} ka kaluar datën e pagesës ({dueDate}).",
-  "closingInstOverdue": "Ju lutemi kontaktoni agjentin ose përfundoni pagesën sa më shpejt."
+  "closingInstOverdue": "Ju lutemi kontaktoni agjentin ose përfundoni pagesën sa më shpejt.",
+  "scheduleTitle": "Plani i pagesave",
+  "colInstallment": "Kësti",
+  "colDueDate": "Afati",
+  "colAmount": "Shuma",
+  "colPrincipal": "Principali",
+  "colInterest": "Interesi"
 }

@@ -55,6 +55,8 @@ import {
 import type {ManualSaleClientEmailForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/manualSaleClientEmail.form.type";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
+import {notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
+import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 
 function finalPriceDisplayForEmail(
     finalPrice: number | Decimal128 | undefined,
@@ -81,6 +83,13 @@ async function unitPriceDisplayForEmail(foundUnit: any, companyId: ObjectId, lan
     } catch {
         return undefined;
     }
+}
+
+/** Id of a possibly-populated ref. */
+function idOfRef(ref: unknown): ObjectId | undefined {
+    if (ref instanceof ObjectId) return ref;
+    const id = (ref as {_id?: unknown} | null | undefined)?._id;
+    return id instanceof ObjectId ? id : undefined;
 }
 
 export class SaleActions {
@@ -173,6 +182,83 @@ export class SaleActions {
 
         logger.finish(`Sale ${decision}: ${_id}`);
         return returnSale;
+    }
+
+    /** Re-sends the "new sale" alert to the Sales & handover → Notify on sales list. */
+    @action({
+        auth: "private",
+        rateLimit: {windowMs: 60000, max: 10},
+        schema: validateSingleForm,
+    })
+    async resendStaffNotifications(params: Record<string, any>): Promise<{ok: true; recipients: number}> {
+        const {logger, languageCode, _id, actionUserCtx, company} = params;
+
+        logger.start(`Resending staff notifications for sale: ${_id}`);
+        try {
+            SchemaGuard.sanitizeFields(Sale, {buyer: {}}, "read", actionUserCtx, languageCode);
+        } catch {
+            throw apiValidationException("sale_not_found", "", null, languageCode);
+        }
+
+        const sale = await saleService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {logger, languageCode},
+            [
+                {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
+                {path: "saleCurrency", select: "symbol"},
+            ],
+        );
+        if (sale.deletedAt) {
+            throw apiValidationException("sale_not_found", "", null, languageCode);
+        }
+
+        const lang = languageCode ?? "en-US";
+        const saleSym = (sale.saleCurrency as {symbol?: string} | undefined)?.symbol;
+        const unitRef = sale.unit as
+            | {
+                  _id?: ObjectId;
+                  unitNumber?: string | number;
+                  name?: string;
+                  price?: Decimal128;
+                  priceCurrency?: {symbol?: string};
+                  floor?: {name?: string};
+                  edifice?: {name?: string};
+                  project?: {name?: string};
+              }
+            | undefined;
+        const idOf = (ref: unknown) =>
+            ref instanceof ObjectId ? ref.toString() : (ref as {_id?: ObjectId} | undefined)?._id?.toString();
+
+        const recipients = await notifySalesWatchers({
+            companyId: company._id,
+            companyName: company.name ?? "",
+            languageCode: lang,
+            saleId: sale._id.toString(),
+            saleCode: sale.name,
+            pendingApproval: sale.approvalStatus === SaleApprovalStatus.PENDING_APPROVAL,
+            finalPriceDisplay: finalPriceDisplayForEmail(sale.finalPrice, saleSym, lang),
+            unitPriceDisplay: unitRef?.price != null ? finalPriceDisplayForEmail(unitRef.price, unitRef.priceCurrency?.symbol, lang) : undefined,
+            localDiscountDisplay: formatDiscountForEmail(sale.localDiscount, unitRef?.price, unitRef?.priceCurrency?.symbol, lang),
+            ...await salePlanSummaryForEmail({
+                paymentPlanId: sale.paymentType === SalePaymentType.PAYMENT_PLAN ? idOfRef(sale.paymentPlan) : undefined,
+                companyId: company._id,
+                currencySymbol: saleSym,
+                languageCode: lang,
+            }),
+            paymentType: sale.paymentType === SalePaymentType.PAYMENT_PLAN ? "payment_plan" : "cash",
+            buyerId: idOf(sale.buyer),
+            soldById: idOf(sale.soldBy),
+            unitId: idOf(sale.unit) ?? "",
+            unitNumber: unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined,
+            unitDisplayName: unitRef?.name,
+            ...unitLocationForEmail(unitRef),
+        });
+        if (!recipients) {
+            throw apiValidationException("no_notification_recipients", "", null, languageCode);
+        }
+
+        logger.finish(`Resent sale staff notifications to ${recipients} user(s)`);
+        return {ok: true, recipients};
     }
 
     @action({
@@ -284,28 +370,16 @@ export class SaleActions {
         let payload: DispatchSaleClientEmailInput;
 
         if (action === "send_sale_confirmation") {
-            // Always shown (0 when there is no plan / down payment); paid status only for a non-zero amount.
-            let downPaymentAmount = 0;
-            let downPaymentPaid: boolean | undefined;
-            let numberOfInstallments: number | undefined;
-            if (paymentType === "payment_plan" && sale.paymentPlan) {
-                const pp = await paymentPlanService.findOneOrThrow(
-                    {_id: sale.paymentPlan, company: company._id},
-                    {logger, languageCode},
-                    "downPayment downPaymentPaid numberOfInstallments",
-                );
-                downPaymentAmount = parseFloat(pp.downPayment?.toString() ?? "0") || 0;
-                if (downPaymentAmount > 0) downPaymentPaid = !!pp.downPaymentPaid;
-                numberOfInstallments = pp.numberOfInstallments;
-            }
-            const dAmt = formatMoneyAmountForEmail(String(downPaymentAmount), lang);
-            const downPaymentDisplay = saleSym ? `${dAmt} ${saleSym}` : dAmt;
+            const planSummary = await salePlanSummaryForEmail({
+                paymentPlanId: paymentType === "payment_plan" ? idOfRef(sale.paymentPlan) : undefined,
+                companyId: company._id,
+                currencySymbol: saleSym,
+                languageCode: lang,
+            });
             payload = {
                 ...base,
                 kind: "sale_created",
-                downPaymentDisplay,
-                downPaymentPaid,
-                numberOfInstallments,
+                ...planSummary,
                 purchaseContractMediaId,
             };
         } else {

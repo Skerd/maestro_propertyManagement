@@ -3,5 +3,7 @@ export const PropertyManagementConfigSimpleSnippet = {
         _id: {},
         requiresSaleApproval: {},
         requiresHandoverPackageForHandover: {},
+        notifyOnSales: {},
+        notifyOnReservations: {},
     },
 };

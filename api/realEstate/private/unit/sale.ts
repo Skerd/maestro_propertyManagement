@@ -54,6 +54,8 @@ import {saleFormSchema} from "armonia/src/modules/propertyManagement/api/realEst
 import {SaleActions} from "../../../../database/schemas/sale/sale.actions";
 import type {PaymentPlan as PaymentPlanData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/paymentPlan.dto";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
+import {afterCommit, notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
+import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import authMW from "@coreModule/utilities/middlewares/authMW";
 import {salesWithHandoverContext} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
 
@@ -517,30 +519,22 @@ const {router} = createCrudRouter({
             unitPriceDisplay,
             localDiscountDisplay: formatDiscountForEmail(created.localDiscount, unitSnapshot.price, unitPriceSym, lang),
             finalPriceDisplay: finalDisp,
-            // Always shown (0 unless a payment plan sets it below); paid status only for a non-zero amount.
-            downPaymentDisplay: saleSymForEmail
-                ? `${formatMoneyAmountForEmail("0", lang)} ${saleSymForEmail}`
-                : formatMoneyAmountForEmail("0", lang),
             purchaseContractMediaId,
         };
 
-        if (paymentType === "payment_plan" && created.paymentPlan) {
-            const planId = (created.paymentPlan as any)?._id ?? created.paymentPlan;
-            try {
-                const ppForEmail = await paymentPlanService.findOneOrThrow(
-                    {_id: planId, company: company._id},
-                    {logger, languageCode},
-                    "downPayment downPaymentPaid numberOfInstallments",
-                );
-                const dpAmount = parseFloat(ppForEmail.downPayment?.toString() ?? "0") || 0;
-                if (dpAmount > 0) {
-                    const dAmt = formatMoneyAmountForEmail(String(dpAmount), lang);
-                    emailPayload.downPaymentDisplay = saleSymForEmail ? `${dAmt} ${saleSymForEmail}` : dAmt;
-                    emailPayload.downPaymentPaid = !!ppForEmail.downPaymentPaid;
-                }
-                emailPayload.numberOfInstallments = ppForEmail.numberOfInstallments;
-            } catch { /* best-effort */ }
-        }
+        // Down payment, installment count and schedule table. The plan is not committed yet, so read in-session.
+        const planId = paymentType === "payment_plan" && created.paymentPlan
+            ? (created.paymentPlan as any)?._id ?? created.paymentPlan
+            : undefined;
+        try {
+            Object.assign(emailPayload, await salePlanSummaryForEmail({
+                paymentPlanId: planId,
+                companyId: company._id,
+                currencySymbol: saleSymForEmail,
+                languageCode: lang,
+                session,
+            }));
+        } catch { /* best-effort */ }
 
         try {
             const emailed = await dispatchSaleClientEmail(emailPayload, {session});
@@ -554,6 +548,32 @@ const {router} = createCrudRouter({
         } catch (err: unknown) {
             logger.debug(`Sale created client email skipped or failed: ${err instanceof Error ? err.message : String(err)}`);
         }
+
+        // Staff watchers (Sales & handover → Notify on sales)
+        afterCommit(session, () => notifySalesWatchers({
+            companyId: company._id,
+            companyName: company.name ?? "",
+            languageCode: lang,
+            saleId: created._id.toString(),
+            saleCode: created.name,
+            pendingApproval: !!requiresApproval,
+            finalPriceDisplay: finalDisp,
+            unitPriceDisplay: emailPayload.unitPriceDisplay,
+            localDiscountDisplay: emailPayload.localDiscountDisplay,
+            downPaymentDisplay: emailPayload.downPaymentDisplay,
+            downPaymentPaid: emailPayload.downPaymentPaid,
+            numberOfInstallments: emailPayload.numberOfInstallments,
+            paymentSchedule: emailPayload.paymentSchedule,
+            paymentType: paymentTypeStr,
+            buyerId: buyer ? String(buyer) : undefined,
+            soldById: soldBy ? String(soldBy) : undefined,
+            unitId: unitSnapshot._id.toString(),
+            unitNumber: emailPayload.unitNumber,
+            unitDisplayName: unitSnapshot.name,
+            projectName: unitSnapshot.projectName,
+            edificeName: unitSnapshot.edificeName,
+            floorName: unitSnapshot.floorName,
+        }));
     },
 
     // ── Update ─────────────────────────────────────────────────────────────

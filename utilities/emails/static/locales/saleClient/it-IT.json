@@ -55,5 +55,11 @@
   "introInstRemainingDays": "Le restano {daysRemaining} giorno/i di calendario prima della scadenza della rata {installmentNumber} (data di scadenza: {dueDate}) per il suo acquisto presso {companyName}.",
   "closingInstRemainingDays": "La preghiamo di pianificare il pagamento entro la data di scadenza.",
   "introInstOverdue": "La rata {installmentNumber} per il suo acquisto presso {companyName} ha superato la data di scadenza ({dueDate}).",
-  "closingInstOverdue": "La preghiamo di contattare il suo consulente o di completare il pagamento il prima possibile."
+  "closingInstOverdue": "La preghiamo di contattare il suo consulente o di completare il pagamento il prima possibile.",
+  "scheduleTitle": "Piano dei pagamenti",
+  "colInstallment": "Rata",
+  "colDueDate": "Scadenza",
+  "colAmount": "Importo",
+  "colPrincipal": "Capitale",
+  "colInterest": "Interessi"
 }

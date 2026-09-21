@@ -53,6 +53,8 @@ export enum LeadInterest {
     INVESTMENTS      = "investments",
     PLATFORM_SUPPORT = "platform_support",
     RESERVATION      = "reservation",
+    /** Website "Make enquiry" on a price-on-request unit — the visitor wants the price. */
+    PRICE_ENQUIRY    = "price_enquiry",
     OTHER            = "other",
 }
 

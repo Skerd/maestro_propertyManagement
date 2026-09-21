@@ -6,6 +6,8 @@ import {IEdifice} from "../../database/schemas/edifice/edifice";
 import {IFloor} from "../../database/schemas/floor/floor";
 import {IUnit} from "../../database/schemas/unit/unit";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {applyPriceOnRequest} from "./priceOnRequest.util";
+import {loadPriceOnRequestScope} from "./priceOnRequestScope.util";
 
 export type MarketingProjectHierarchy = {
     edifices: IEdifice[];
@@ -109,7 +111,7 @@ export async function loadMarketingHierarchyForProjects(
         }
     }
 
-    return {
+    const hierarchy = {
         edifices,
         floors,
         units,
@@ -118,6 +120,9 @@ export async function loadMarketingHierarchyForProjects(
         edificesByProject,
         unitsByProject,
     };
+    // Public-only loader: strip prices hidden by "show price on request" before any mapping.
+    applyPriceOnRequest(hierarchy, await loadPriceOnRequestScope(companyId));
+    return hierarchy;
 }
 
 export async function loadMarketingHierarchyForProject(

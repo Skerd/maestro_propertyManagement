@@ -41,6 +41,8 @@ export interface IProject extends Document, IOwnershipPluginFields, ISoftDeleteP
     socialLinks?: IProjectSocialLink[];
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
+    /** Hides unit prices on public surfaces for every edifice/floor/unit in this project. */
+    showPriceOnRequest?: boolean;
     saleCommissionRatePercent?: Decimal128;
     reservationCommissionRatePercent?: Decimal128;
     company: ICompany
@@ -248,6 +250,14 @@ const ProjectSchema = new Schema<IProject>(
             min: 0,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.NUMBER,
+            },
+        },
+        showPriceOnRequest: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.BOOLEAN,
             },
         },
     },

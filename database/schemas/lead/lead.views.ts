@@ -23,6 +23,7 @@ const leadInterestOptions = [
     {value: "investments",       label: "form.interestInvestments"},
     {value: "platform_support",  label: "form.interestPlatformSupport"},
     {value: "reservation",       label: "form.interestReservation"},
+    {value: "price_enquiry",     label: "form.interestPriceEnquiry"},
     {value: "other",             label: "form.interestOther"},
 ];
 

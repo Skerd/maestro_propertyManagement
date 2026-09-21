@@ -92,6 +92,7 @@ export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
         floor: unit.floor ? mapPopulatedRef(unit.floor) : undefined,
         featuredOnHomepage: !!unit.featuredOnHomepage,
         featuredSortOrder: unit.featuredSortOrder ?? 0,
+        showPriceOnRequest: !!unit.showPriceOnRequest,
         statistics: options?.statistics,
         ...mapSoftDeleteToDTO(unit),
         ...mapOwnershipToDTO(unit),

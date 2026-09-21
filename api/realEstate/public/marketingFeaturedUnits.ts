@@ -18,6 +18,8 @@ import {
 } from "../../../utilities/mappers/marketing/marketing.mapper";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import {mapUnitTypeToPropertyTypeId} from "../../../utilities/marketing/marketingPropertyType.util";
+import {isUnitPriceOnRequest} from "../../../utilities/marketing/priceOnRequest.util";
+import {loadPriceOnRequestScope} from "../../../utilities/marketing/priceOnRequestScope.util";
 
 const FEATURED_LIMIT = 12;
 
@@ -82,11 +84,14 @@ async function marketingFeaturedUnits(
         FEATURED_LIMIT,
     );
 
+    const priceScope = await loadPriceOnRequestScope(companyId);
+
     const mapped = units.map((unit: any) => {
         const floor = unit.floor;
         const edifice = floor?.edifice;
         const project = edifice?.project;
-        const price = decimalToNumber(unit.price);
+        const priceOnRequest = isUnitPriceOnRequest(unit, priceScope);
+        const price = priceOnRequest ? undefined : decimalToNumber(unit.price);
 
         return {
             _id: objectIdToString(unit._id),
@@ -97,6 +102,7 @@ async function marketingFeaturedUnits(
             bedrooms: unit.numberOfRooms,
             bathrooms: unit.numberOfBathrooms,
             price,
+            priceOnRequest: priceOnRequest || undefined,
             mainImage: marketingMediaUrl(unit.mainImage),
             imageGallery: marketingMediaUrls(unit.imageGallery),
             propertyType: mapUnitTypeToPropertyTypeId(unit.unitType),

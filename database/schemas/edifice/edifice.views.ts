@@ -36,6 +36,7 @@ export const edificeSheetView: ViewConfig = {
                     "pricePerMeterSquared",
                     "verandaPricePerMeterSquared",
                     "saleCurrency",
+                    "showPriceOnRequest",
                 ],
             },
             props: { title: "overview" },
@@ -175,6 +176,16 @@ export const edificeSheetView: ViewConfig = {
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
                                 },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "showPriceOnRequest" },
+                            field: {
+                                name: "showPriceOnRequest",
+                                widget: "#DisplayCard",
+                                label: "showPriceOnRequest",
+                                widgetProps: { icon: "#EyeOff", tooltip: "showPriceOnRequestTooltip", type: "boolean" },
                             },
                         },
                     ],
@@ -1062,6 +1073,26 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
         props: { title: "edificeLocationOnProject" },
         children: [
             {
@@ -1669,6 +1700,30 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.saleCurrencyPlaceholder",
                             widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
                         }, permissions: {read: "saleCurrency", write: "saleCurrency"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        permissions: {
+            readAny: ["showPriceOnRequest"],
+            writeAny: ["showPriceOnRequest"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        }, permissions: {read: "showPriceOnRequest", write: "showPriceOnRequest"},
                     },
                 ],
             },

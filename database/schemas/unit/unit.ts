@@ -108,6 +108,8 @@ export interface IUnit extends Document, IOwnershipPluginFields, ISoftDeletePlug
     priceManuallyEdited?: boolean;
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
+    /** Hides this unit's price on public surfaces (also inherited from floor/edifice/project). */
+    showPriceOnRequest?: boolean;
 }
 
 const UnitSchema = new Schema<IUnit>(
@@ -592,6 +594,14 @@ const UnitSchema = new Schema<IUnit>(
             min: 0,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.NUMBER,
+            },
+        },
+        showPriceOnRequest: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.BOOLEAN,
             },
         },
     },

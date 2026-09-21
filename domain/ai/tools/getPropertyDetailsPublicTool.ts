@@ -22,6 +22,8 @@ import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {isUnitPriceOnRequest} from "@propertyManagement/utilities/marketing/priceOnRequest.util";
+import {loadPriceOnRequestScope} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 
 const GetPropertyDetailsPublicArgs = z
     .object({
@@ -57,7 +59,7 @@ const PUBLIC_UNIT_FIELDS =
     "unitNumber name unitType area netArea verandaArea price priceCurrency " +
     "numberOfRooms numberOfBathrooms status constructionStatus orientation description " +
     "hasBalcony hasTerrace hasSeaView hasCityView hasLakeView hasElevator " +
-    "project edifice floor";
+    "showPriceOnRequest project edifice floor";
 
 function priceToNumber(price: unknown): number | null {
     if (price == null) return null;
@@ -99,6 +101,9 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         return {found: false, reason: `No property found for ${by}.`};
     }
 
+    // "Show price on request" (unit or any parent) hides the price from website visitors.
+    const priceOnRequest = isUnitPriceOnRequest(unit, await loadPriceOnRequestScope(new ObjectId(ctx.companyId)));
+
     return {
         found: true,
         property: {
@@ -106,8 +111,9 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
             name: unit.name || unit.unitNumber || null,
             reference: unit.unitNumber ?? null,
             type: unit.unitType ?? null,
-            price: priceToNumber(unit.price),
-            currency: unit.priceCurrency?.abbreviation || unit.priceCurrency?.symbol || null,
+            price: priceOnRequest ? null : priceToNumber(unit.price),
+            currency: priceOnRequest ? null : unit.priceCurrency?.abbreviation || unit.priceCurrency?.symbol || null,
+            priceOnRequest,
             area: unit.area ?? null,
             netArea: unit.netArea ?? null,
             verandaArea: unit.verandaArea ?? null,
@@ -142,7 +148,9 @@ export const getPropertyDetailsPublicTool: AssistantTool = {
         "price, rooms, amenities (balcony, terrace, sea/city/lake view, elevator), " +
         "orientation, description, location (project, building, floor) and whether it " +
         "is still available. Use this when the visitor asks about one specific " +
-        "property — typically after finding it with search_properties.",
+        "property — typically after finding it with search_properties. When " +
+        "`priceOnRequest` is true the price is only available on request: never guess " +
+        "or estimate it — invite the visitor to enquire with an agent instead.",
     parameters,
     execute
 };

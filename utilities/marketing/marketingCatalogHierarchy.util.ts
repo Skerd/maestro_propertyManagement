@@ -7,6 +7,8 @@ import {IFloor} from "../../database/schemas/floor/floor";
 import {IUnit} from "../../database/schemas/unit/unit";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import type {MarketingProjectHierarchy} from "./marketingHierarchy.util";
+import {applyPriceOnRequest} from "./priceOnRequest.util";
+import {loadPriceOnRequestScope} from "./priceOnRequestScope.util";
 
 function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
     const map = new Map<string, T[]>();
@@ -100,7 +102,7 @@ export async function loadMarketingCatalogHierarchy(
         }
     }
 
-    return {
+    const hierarchy = {
         edifices,
         floors,
         units,
@@ -109,6 +111,9 @@ export async function loadMarketingCatalogHierarchy(
         edificesByProject,
         unitsByProject,
     };
+    // Public-only loader: strip prices hidden by "show price on request" before any mapping.
+    applyPriceOnRequest(hierarchy, await loadPriceOnRequestScope(companyId));
+    return hierarchy;
 }
 
 export async function loadMarketingCatalogHierarchyForProject(

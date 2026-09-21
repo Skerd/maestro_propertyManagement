@@ -24,6 +24,8 @@ import {
     resolveUnitFloorContext,
 } from "../../../utilities/marketing/marketingHierarchy.util";
 import {mapMarketingUnitSingle} from "../../../utilities/mappers/marketing/marketing.mapper";
+import {applyUnitPriceOnRequest} from "../../../utilities/marketing/priceOnRequest.util";
+import {loadPriceOnRequestScope} from "../../../utilities/marketing/priceOnRequestScope.util";
 import {buildUnitMarketingBookletPdf} from "../../../utilities/marketing/marketingBooklet.util";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 
@@ -134,6 +136,7 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
         if (!fallbackUnit) {
             throw apiValidationException("unit_not_found", "unitId", [unitId], languageCode);
         }
+        applyUnitPriceOnRequest(fallbackUnit, await loadPriceOnRequestScope(company._id));
 
         const floorContext = await resolveFallbackUnitFloorContext(
             fallbackUnit,

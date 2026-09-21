@@ -27,6 +27,7 @@ export const projectSheetView: ViewConfig = {
                     "reservationCommissionRatePercent",
                     "featuredOnHomepage",
                     "featuredSortOrder",
+                    "showPriceOnRequest",
                     "description",
                 ],
             },
@@ -106,6 +107,20 @@ export const projectSheetView: ViewConfig = {
                                 label: "featuredSortOrder",
                                 widgetProps: {
                                     icon: "#BookMarked",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "showPriceOnRequest" },
+                            field: {
+                                name: "showPriceOnRequest",
+                                widget: "#DisplayCard",
+                                label: "showPriceOnRequest",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "showPriceOnRequestTooltip",
+                                    type: "boolean",
                                 },
                             },
                         },
@@ -891,6 +906,28 @@ const projectCreateFormNode: ViewConfig["nodes"] = [
         ],
     },
 
+    // ── Public price visibility ─────────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+
     // ── Social / follow links ───────────────────────────────────
     {
         render: "#Field",
@@ -1198,6 +1235,32 @@ const projectEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.featuredSortOrderPlaceholder",
                             widgetProps: { type: "number", min: 0, step: 1 },
                         }, permissions: {write: "featuredSortOrder", read: "featuredSortOrder"},
+                    },
+                ],
+            },
+        ],
+    },
+
+    // ── Public price visibility ─────────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        permissions: {
+            readAny: ["showPriceOnRequest"],
+            writeAny: ["showPriceOnRequest"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        }, permissions: {read: "showPriceOnRequest", write: "showPriceOnRequest"},
                     },
                 ],
             },

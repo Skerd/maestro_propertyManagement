@@ -75,6 +75,8 @@ export interface IEdifice extends Document, IOwnershipPluginFields, ISoftDeleteP
     actualCompletionDate?: Date,
     buildingPermitNumber?: string,
     energyClass?: EdificeEnergyClass,
+    /** Hides unit prices (and edifice price/m²) on public surfaces for this edifice and everything below. */
+    showPriceOnRequest?: boolean,
 }
 
 const EdificeSchema = new Schema<IEdifice>(
@@ -409,6 +411,14 @@ const EdificeSchema = new Schema<IEdifice>(
             required: false,
             index: true,
             dynamicTableConfiguration: { hideColumn: true },
+        },
+        showPriceOnRequest: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.BOOLEAN,
+            },
         },
     },
     {

@@ -16,6 +16,7 @@ import {
 } from "./marketing.mapper";
 import {mapUnitTypeToPropertyTypeId} from "../../marketing/marketingPropertyType.util";
 import {computeUnitCatalogStats} from "../../marketing/marketingCatalogFilters.util";
+import {isPriceOnRequestRedacted} from "../../marketing/priceOnRequest.util";
 import {
     countFloorsForProject,
     resolvePrimaryCity,
@@ -155,6 +156,7 @@ export function mapMarketingUnitCatalogListItem(
         bedrooms: unit.numberOfRooms,
         bathrooms: unit.numberOfBathrooms,
         price,
+        priceOnRequest: isPriceOnRequestRedacted(unit) || undefined,
         mainImage: marketingMediaUrl(unit.mainImage),
         propertyType: mapUnitTypeToPropertyTypeId(unit.unitType),
         floorLabel: floor?.name,
@@ -330,6 +332,7 @@ export function mapMarketingProjectCatalogSingle(
                 pricePerSqm: edifice.pricePerMeterSquared ?? undefined,
                 verandaPricePerSqm: edifice.verandaPricePerMeterSquared ?? undefined,
                 saleCurrency,
+                priceOnRequest: isPriceOnRequestRedacted(edifice) || undefined,
                 energyClass: edifice.energyClass || undefined,
                 expectedCompletionYear: toYear(edifice.expectedCompletionDate),
                 constructionStartYear: toYear(edifice.constructionStartDate),

@@ -15,5 +15,8 @@ export function applyFloorIndexes(FloorSchema: Schema): void {
     
     // For sorting by creation date
     FloorSchema.index({ createdAt: -1 });
+
+    // Public price-on-request scope resolution (loadPriceOnRequestScope)
+    FloorSchema.index({ company: 1, showPriceOnRequest: 1 });
 }
 

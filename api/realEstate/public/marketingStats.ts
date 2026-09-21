@@ -13,6 +13,8 @@ import {
     MarketingStatsFormResponseType
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingStats/marketingStats.form.response.type";
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
+import {priceVisibleUnitExpr} from "../../../utilities/marketing/priceOnRequest.util";
+import {loadPriceOnRequestScope} from "../../../utilities/marketing/priceOnRequestScope.util";
 
 const router = Router();
 
@@ -38,6 +40,7 @@ async function marketingStats(params: MarketingStatsParams): Promise<MarketingSt
     const company = await resolveMarketingCompany(origin, languageCode);
     const companyId = company._id;
     const opts = {logger, languageCode};
+    const priceScope = await loadPriceOnRequestScope(companyId);
 
     const [totalProjects, unitsByCurrencyAgg, coOwnersAgg] = await Promise.all([
         projectService.count({company: companyId, deletedAt: null}, opts),
@@ -47,7 +50,8 @@ async function marketingStats(params: MarketingStatsParams): Promise<MarketingSt
                 {
                     $group: {
                         _id: "$priceCurrency",
-                        totalValue: {$sum: "$price"},
+                        // Price-on-request units still count as units, but never contribute value.
+                        totalValue: {$sum: {$cond: [priceVisibleUnitExpr(priceScope), "$price", 0]}},
                         totalUnits: {$sum: 1},
                     },
                 },

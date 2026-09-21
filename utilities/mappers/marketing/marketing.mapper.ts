@@ -10,6 +10,7 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProject/marketingProjectSingle.form.response.type";
 import type {MarketingUnitSingleItem as MarketingUnitSingleDTO} from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingUnit/marketingUnitSingle.form.response.type";
 import {mapUnitTypeToPropertyTypeId} from "../../marketing/marketingPropertyType.util";
+import {isPriceOnRequestRedacted} from "../../marketing/priceOnRequest.util";
 import {
     MarketingProjectListItem
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjects/marketingProjects.form.response.type";
@@ -257,6 +258,7 @@ export function mapMarketingUnitSingle(
         bedrooms: unit.numberOfRooms,
         bathrooms: unit.numberOfBathrooms,
         price,
+        priceOnRequest: isPriceOnRequestRedacted(unit) || undefined,
         sharePrice: price,
         projectedYield: undefined,
         mainImage: marketingMediaUrl(unit.mainImage),

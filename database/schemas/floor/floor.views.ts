@@ -29,6 +29,7 @@ export const floorSheetView: ViewConfig = {
                     "area",
                     "isAccessible",
                     "hasEmergencyExit",
+                    "showPriceOnRequest",
                     "description",
                 ],
             },
@@ -127,6 +128,16 @@ export const floorSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "hasEmergencyExit",
                                 widgetProps: { icon: "#ShieldAlert", valueType: "boolean" , type: "boolean"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "showPriceOnRequest" },
+                            field: {
+                                name: "showPriceOnRequest",
+                                widget: "#DisplayCard",
+                                label: "showPriceOnRequest",
+                                widgetProps: { icon: "#EyeOff", tooltip: "showPriceOnRequestTooltip", type: "boolean" },
                             },
                         },
                     ],
@@ -695,6 +706,26 @@ const floorCreateFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
         props: { title: "form.mainImageLabel" },
         children: [
             {
@@ -945,6 +976,30 @@ const floorEditFormNode: ViewConfig["nodes"] = [
                             widget: "#Switch",
                             label: "form.hasEmergencyExitLabel",
                         }, permissions: {read: "hasEmergencyExit", write: "hasEmergencyExit"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        permissions: {
+            readAny: ["showPriceOnRequest"],
+            writeAny: ["showPriceOnRequest"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        }, permissions: {read: "showPriceOnRequest", write: "showPriceOnRequest"},
                     },
                 ],
             },

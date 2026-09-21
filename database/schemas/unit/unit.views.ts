@@ -39,6 +39,7 @@ export const unitSheetView: ViewConfig = {
                     "status",
                     "unavailableNotes",
                     "featuredOnHomepage",
+                    "showPriceOnRequest",
                     "floor",
                     "unitType",
                     "description",
@@ -93,6 +94,20 @@ export const unitSheetView: ViewConfig = {
                                 widgetProps: {
                                     icon: "#BookMarked",
                                     tooltip: "featuredOnHomepageTooltip",
+                                    type: "boolean",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "showPriceOnRequest" },
+                            field: {
+                                name: "showPriceOnRequest",
+                                widget: "#DisplayCard",
+                                label: "showPriceOnRequest",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "showPriceOnRequestTooltip",
                                     type: "boolean",
                                 },
                             },
@@ -1356,6 +1371,26 @@ const unitCreateFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
         props: { title: "commissions" },
         children: [
             {
@@ -1868,6 +1903,30 @@ const unitEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.featuredSortOrderPlaceholder",
                             widgetProps: { type: "number", min: 0, step: 1 },
                         }, permissions: {read: "featuredSortOrder", write: "featuredSortOrder"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "publicVisibility" },
+        permissions: {
+            readAny: ["showPriceOnRequest"],
+            writeAny: ["showPriceOnRequest"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "showPriceOnRequest",
+                            widget: "#Switch",
+                            label: "form.showPriceOnRequestLabel",
+                        }, permissions: {read: "showPriceOnRequest", write: "showPriceOnRequest"},
                     },
                 ],
             },

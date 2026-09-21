@@ -16,10 +16,13 @@
  * @module searchPropertiesTool
  */
 
+import {ObjectId} from "mongodb";
 import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {isUnitPriceOnRequest, priceVisibleUnitMatch} from "@propertyManagement/utilities/marketing/priceOnRequest.util";
+import {loadPriceOnRequestScope} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 import {
     UnitStatus,
     UNIT_CONSTRUCTION_STATUS_VALUES
@@ -181,43 +184,71 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const limit = args.limit ?? DEFAULT_RESULTS;
     const sort = SORT_ORDERS[args.sortBy ?? "price_asc"];
 
-    const units = await unitService.find(
-        query,
-        findOptions(ctx),
-        [
-            {path: "priceCurrency", select: "symbol abbreviation name"},
-            {path: "project", select: "name"},
-            {path: "edifice", select: "name"}
-        ],
-        "unitNumber name price area netArea numberOfRooms numberOfBathrooms status constructionStatus " +
-            "hasSeaView hasCityView hasLakeView hasBalcony hasTerrace hasElevator priceCurrency project edifice",
-        sort,
-        limit
-    );
+    // Website visitors never see prices hidden by "show price on request" (unit or any
+    // parent), and can't probe them: a price filter excludes those units entirely.
+    const priceScope = ctx.audience === "public"
+        ? await loadPriceOnRequestScope(new ObjectId(ctx.companyId))
+        : undefined;
+    const visibleMatch = priceScope ? priceVisibleUnitMatch(priceScope) : undefined;
+    if (visibleMatch && price) Object.assign(query, visibleMatch);
 
-    const results = units.map((u: any) => ({
-        id: u._id?.toString(),
-        name: u.name || u.unitNumber || null,
-        unitNumber: u.unitNumber ?? null,
-        price: toNumber(u.price),
-        currency: u.priceCurrency?.abbreviation || u.priceCurrency?.symbol || null,
-        area: u.area ?? null,
-        netArea: u.netArea ?? null,
-        rooms: u.numberOfRooms ?? null,
-        bathrooms: u.numberOfBathrooms ?? null,
-        status: u.status ?? null,
-        constructionStatus: u.constructionStatus ?? null,
-        amenities: {
-            seaView: u.hasSeaView ?? false,
-            cityView: u.hasCityView ?? false,
-            lakeView: u.hasLakeView ?? false,
-            balcony: u.hasBalcony ?? false,
-            terrace: u.hasTerrace ?? false,
-            elevator: u.hasElevator ?? false
-        },
-        project: u.project?.name ?? null,
-        building: u.edifice?.name ?? null
-    }));
+    const findUnits = (filter: Record<string, unknown>, order: Record<string, 1 | -1>, max: number) =>
+        unitService.find(
+            filter,
+            findOptions(ctx),
+            [
+                {path: "priceCurrency", select: "symbol abbreviation name"},
+                {path: "project", select: "name"},
+                {path: "edifice", select: "name"}
+            ],
+            "unitNumber name price area netArea numberOfRooms numberOfBathrooms status constructionStatus " +
+                "hasSeaView hasCityView hasLakeView hasBalcony hasTerrace hasElevator priceCurrency project edifice " +
+                "floor showPriceOnRequest",
+            order,
+            max
+        );
+
+    let units: any[];
+    if (visibleMatch && !price && sort.price != null) {
+        // A price sort would rank hidden units by their real price — list the priced
+        // units in price order first, then the on-request ones by name.
+        const priced = await findUnits({...query, ...visibleMatch}, sort, limit);
+        const remaining = limit - priced.length;
+        const onRequest = remaining > 0
+            ? await findUnits({...query, $nor: [visibleMatch]}, {name: 1}, remaining)
+            : [];
+        units = [...priced, ...onRequest];
+    } else {
+        units = await findUnits(query, sort, limit);
+    }
+
+    const results = units.map((u: any) => {
+        const priceOnRequest = priceScope ? isUnitPriceOnRequest(u, priceScope) : false;
+        return {
+            id: u._id?.toString(),
+            name: u.name || u.unitNumber || null,
+            unitNumber: u.unitNumber ?? null,
+            price: priceOnRequest ? null : toNumber(u.price),
+            currency: priceOnRequest ? null : u.priceCurrency?.abbreviation || u.priceCurrency?.symbol || null,
+            ...(priceOnRequest ? {priceOnRequest: true} : {}),
+            area: u.area ?? null,
+            netArea: u.netArea ?? null,
+            rooms: u.numberOfRooms ?? null,
+            bathrooms: u.numberOfBathrooms ?? null,
+            status: u.status ?? null,
+            constructionStatus: u.constructionStatus ?? null,
+            amenities: {
+                seaView: u.hasSeaView ?? false,
+                cityView: u.hasCityView ?? false,
+                lakeView: u.hasLakeView ?? false,
+                balcony: u.hasBalcony ?? false,
+                terrace: u.hasTerrace ?? false,
+                elevator: u.hasElevator ?? false
+            },
+            project: u.project?.name ?? null,
+            building: u.edifice?.name ?? null
+        };
+    });
 
     return listResult(unitService, query, results, ctx);
 }
@@ -226,7 +257,9 @@ export const searchPropertiesTool: AssistantTool = {
     name: "search_properties",
     // Every field returned here (price, area, rooms, status, project/building
     // name, amenities) is already published on the marketing site, so this is
-    // safe for anonymous website visitors as-is. Re-check if the projection widens.
+    // safe for anonymous website visitors — except prices hidden by "show price
+    // on request", which execute() strips for the public audience. Re-check if the
+    // projection widens.
     audience: "both",
     description:
         "Search the company's real-estate units (properties) by project or building " +
@@ -235,7 +268,8 @@ export const searchPropertiesTool: AssistantTool = {
         "elevator). Returns each unit's price, currency, area, rooms, status and " +
         "location, plus `total` — the true number of matching units, which is what " +
         "you must quote when asked how many. Use this whenever the user asks to find, " +
-        "list, count or filter properties/units.",
+        "list, count or filter properties/units. A result with `priceOnRequest: true` " +
+        "has no public price: never guess it — invite the visitor to enquire.",
     parameters,
     execute
 };

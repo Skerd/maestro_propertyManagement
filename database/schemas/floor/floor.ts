@@ -38,6 +38,7 @@ export interface IFloor extends Document, IOwnershipPluginFields, ISoftDeletePlu
     description?: string;
     sharedSpaces: string[];
     polygonCoordinates?: {x: number, y: number}[]; // Relative coordinates (0-1) for floor location on edifice main image
+    showPriceOnRequest?: boolean; // hides unit prices on public surfaces for every unit on this floor
 
     edifice: IEdifice;
     project?: import("mongodb").ObjectId; // denormalized from edifice.project for fast dashboard queries
@@ -220,6 +221,14 @@ const FloorSchema = new Schema<IFloor>(
             },
             dynamicTableConfiguration: {
                 refDisplayKey: ["name"],
+            },
+        },
+        showPriceOnRequest: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false,
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.BOOLEAN,
             },
         },
     },

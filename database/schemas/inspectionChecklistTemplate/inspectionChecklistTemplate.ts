@@ -52,6 +52,12 @@ const InspectionChecklistTemplateSchema = new Schema<IInspectionChecklistTemplat
             required: false,
             default: "active",
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {
+                enumTones: {
+                    active:     "success",
+                    archived:   "neutral",
+                },
+            },
         },
     },
     {accessMode: "loose"},

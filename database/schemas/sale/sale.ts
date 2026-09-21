@@ -456,6 +456,13 @@ const SaleSchema = new Schema<ISale>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {
+                enumTones: {
+                    pending_approval:   "warning",
+                    approved:           "success",
+                    rejected:           "danger",
+                },
+            },
         },
         saleApproval: {
             type: getApprovalStageSchemaDefinition(),

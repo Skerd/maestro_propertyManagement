@@ -269,6 +269,14 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {
+                enumTones: {
+                    active:      "success",
+                    expired:     "danger",
+                    cancelled:   "danger",
+                    converted:   "success",
+                },
+            },
         },
         isActive: {
             type: SchemaTypes.Boolean,

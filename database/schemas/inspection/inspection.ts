@@ -230,6 +230,15 @@ const InspectionSchema = new Schema<IInspection>(
             required: true,
             default: InspectionStatus.SCHEDULED,
             index: true,
+            dynamicTableConfiguration: {
+                enumTones: {
+                    scheduled:     "info",
+                    in_progress:   "warning",
+                    completed:     "success",
+                    cancelled:     "danger",
+                    rescheduled:   "warning",
+                },
+            },
         },
         notes: {
             type: SchemaTypes.String,

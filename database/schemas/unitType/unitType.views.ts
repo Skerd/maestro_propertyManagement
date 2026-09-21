@@ -143,7 +143,7 @@ const unitTypeCreateFormNode: ViewConfig["nodes"] = [
                         render: "#Field",
                         field: {
                             name: "icon",
-                            widget: "#IconPicker",
+                            widget: "#IconPickerInput",
                             label: "form.iconLabel",
                             placeholder: "form.iconPlaceholder",
                         },
@@ -239,7 +239,7 @@ const unitTypeEditFormNode: ViewConfig["nodes"] = [
                         permissions: {write: "icon", read: "icon"},
                         field: {
                             name: "icon",
-                            widget: "#IconPicker",
+                            widget: "#IconPickerInput",
                             label: "form.iconLabel",
                             placeholder: "form.iconPlaceholder",
                         },

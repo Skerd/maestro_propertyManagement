@@ -653,7 +653,7 @@ const floorCreateFormNode: ViewConfig["nodes"] = [
                 render: "#Field",
                 field: {
                     name: "sharedSpaces",
-                    widget: "#StringArrayField",
+                    widget: "#StringArrayInput",
                     label: "form.sharedSpacesLabel",
                     placeholder: "form.sharedSpacesPlaceholder",
                     widgetProps: {
@@ -906,7 +906,7 @@ const floorEditFormNode: ViewConfig["nodes"] = [
                 render: "#Field",
                 field: {
                     name: "sharedSpaces",
-                    widget: "#StringArrayField",
+                    widget: "#StringArrayInput",
                     label: "form.sharedSpacesLabel",
                     placeholder: "form.sharedSpacesPlaceholder",
                     widgetProps: {

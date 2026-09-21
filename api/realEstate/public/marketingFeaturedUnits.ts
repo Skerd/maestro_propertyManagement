@@ -25,12 +25,17 @@ const router = Router();
 
 type MarketingFeaturedUnitsParams = NotAuthenticatedMWType;
 
-function mapUnitStatus(status: string | undefined): "available" | "reserved" | "sold" {
+function mapUnitStatus(status: string | undefined): "available" | "reserved" | "sold" | "unavailable" {
     switch (status) {
+        case UnitStatus.AVAILABLE:
+            return "available";
         case UnitStatus.RESERVED:
             return "reserved";
         case UnitStatus.SOLD:
             return "sold";
+        case UnitStatus.UNAVAILABLE:
+        case UnitStatus.RENTED:
+            return "unavailable";
         default:
             return "available";
     }

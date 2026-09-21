@@ -1089,7 +1089,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                 render: "#Field",
                 field: {
                     name: "constructors",
-                    widget: "#FormObjectIdChips",
+                    widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/constructor/select",
                         method: "POST",
@@ -1111,7 +1111,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                 render: "#Field",
                 field: {
                     name: "propertyTypes",
-                    widget: "#FormObjectIdChips",
+                    widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/unitType/select",
                         method: "POST",
@@ -1303,7 +1303,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                         render: "#Field",
                         field: {
                             name: "commercialFacilities",
-                            widget: "#StringArrayField",
+                            widget: "#StringArrayInput",
                             label: "form.commercialFacilitiesLabel",
                             placeholder: "form.commercialFacilitiesPlaceholder",
                             widgetProps: {
@@ -1317,7 +1317,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                         render: "#Field",
                         field: {
                             name: "neighborhoodFacilities",
-                            widget: "#StringArrayField",
+                            widget: "#StringArrayInput",
                             label: "form.neighborhoodFacilitiesLabel",
                             placeholder: "form.neighborhoodFacilitiesPlaceholder",
                             widgetProps: {
@@ -1708,7 +1708,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                 render: "#Field",
                 field: {
                     name: "constructors",
-                    widget: "#FormObjectIdChips",
+                    widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/constructor/select",
                         method: "POST",
@@ -1731,7 +1731,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                 render: "#Field",
                 field: {
                     name: "propertyTypes",
-                    widget: "#FormObjectIdChips",
+                    widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/unitType/select",
                         method: "POST",
@@ -1963,7 +1963,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                         render: "#Field",
                         field: {
                             name: "commercialFacilities",
-                            widget: "#StringArrayField",
+                            widget: "#StringArrayInput",
                             label: "form.commercialFacilitiesLabel",
                             placeholder: "form.commercialFacilitiesPlaceholder",
                             widgetProps: {
@@ -1977,7 +1977,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                         render: "#Field",
                         field: {
                             name: "neighborhoodFacilities",
-                            widget: "#StringArrayField",
+                            widget: "#StringArrayInput",
                             label: "form.neighborhoodFacilitiesLabel",
                             placeholder: "form.neighborhoodFacilitiesPlaceholder",
                             widgetProps: {

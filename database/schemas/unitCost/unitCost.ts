@@ -182,6 +182,12 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             default: "pending_verification",
             index: true,
             dynamicTableConfiguration: {
+                enumTones: {
+                    pending_verification:   "warning",
+                    verified:               "success",
+                    rejected:               "danger",
+                    needs_revision:         "warning",
+                },
                 cellType: COLUMN_TYPE.ENUM,
             },
         },
@@ -192,6 +198,13 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             default: "unpaid",
             index: true,
             dynamicTableConfiguration: {
+                enumTones: {
+                    unpaid:           "danger",
+                    partially_paid:   "warning",
+                    paid:             "success",
+                    waived:           "neutral",
+                    disputed:         "danger",
+                },
                 cellType: COLUMN_TYPE.ENUM,
             },
         },

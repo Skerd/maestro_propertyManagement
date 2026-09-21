@@ -226,7 +226,14 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             type: SchemaTypes.String,
             enum: Object.values(ApprovalDecision),
             required: true,
-            default: ApprovalDecision.PENDING
+            default: ApprovalDecision.PENDING,
+            dynamicTableConfiguration: {
+                enumTones: {
+                    approved:   "success",
+                    rejected:   "danger",
+                    pending:    "warning",
+                },
+            },
         },
         user: {
             type: SchemaTypes.ObjectId,
@@ -366,7 +373,22 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
             enum: Object.values(ModificationRequestStatus),
             required: true,
             default: ModificationRequestStatus.PENDING_ARCHITECT,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {
+                enumTones: {
+                    pending_architect:            "warning",
+                    pending_engineer:             "warning",
+                    pending_ceo:                  "warning",
+                    pending_architect_revision:   "warning",
+                    pending_engineer_revision:    "warning",
+                    pending_finance:              "warning",
+                    pending_client_approval:      "warning",
+                    finance_completed:            "success",
+                    pending_delivery:             "warning",
+                    completed:                    "success",
+                    cancelled:                    "danger",
+                },
+            },
         },
 
 

@@ -180,6 +180,11 @@ const LeaseSchema = new Schema<ILease>(
             default:  LeaseStatus.ACTIVE,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                enumTones: {
+                    active:       "success",
+                    expired:      "danger",
+                    terminated:   "danger",
+                },
                 cellType: COLUMN_TYPE.ENUM,
                 filterable: true,
             },

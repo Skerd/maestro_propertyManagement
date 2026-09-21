@@ -136,6 +136,13 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             default:  RentalPaymentStatus.PENDING,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                enumTones: {
+                    pending:          "warning",
+                    paid:             "success",
+                    overdue:          "danger",
+                    waived:           "neutral",
+                    partially_paid:   "warning",
+                },
                 cellType: COLUMN_TYPE.ENUM,
                 filterable: true,
                 sortable: true,

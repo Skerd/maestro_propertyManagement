@@ -301,6 +301,13 @@ const CommissionSchema = new Schema<ICommission>(
             default: CommissionStatus.PENDING,
             index: true,
             dynamicTableConfiguration: {
+                enumTones: {
+                    pending:            "warning",
+                    pending_approval:   "warning",
+                    approved:           "success",
+                    paid:               "success",
+                    voided:             "danger",
+                },
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.ENUM,

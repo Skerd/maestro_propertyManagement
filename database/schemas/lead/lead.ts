@@ -130,6 +130,19 @@ const LeadSchema = new Schema<ILead>(
                 self:   {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            /* Same reading as `leadStatusBadgeClass` on the lead card, so the list and
+               the card agree. The schema names the meaning; the panel owns the colour. */
+            dynamicTableConfiguration: {
+                enumTones: {
+                    new:          "info",
+                    contacted:    "neutral",
+                    qualified:    "info",
+                    proposal:     "warning",
+                    negotiation:  "warning",
+                    won:          "success",
+                    lost:         "danger",
+                },
+            },
         },
         source: {
             type:     SchemaTypes.String,

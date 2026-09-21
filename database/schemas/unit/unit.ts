@@ -351,7 +351,16 @@ const UnitSchema = new Schema<IUnit>(
             enum: Object.values(UnitStatus),
             required: true,
             default: UnitStatus.AVAILABLE,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {
+                enumTones: {
+                    available_unit:     "success",
+                    unavailable_unit:   "neutral",
+                    reserved_unit:      "warning",
+                    sold_unit:          "danger",
+                    rented_unit:        "info",
+                },
+            },
         },
         unavailableNotes: {
             type: Schema.Types.String,

@@ -39,14 +39,22 @@ function formatEdificeLocation(edifice: IEdifice | any): string | undefined {
     return city || country || edifice?.address?.street || undefined;
 }
 
-function mapUnitStatus(status: UnitStatus | string): "available" | "reserved" | "sold" {
+function mapUnitStatus(status: UnitStatus | string): "available" | "reserved" | "sold" | "unavailable" {
     switch (status) {
+        case UnitStatus.AVAILABLE:
+        case "available_unit":
+            return "available";
         case UnitStatus.RESERVED:
         case "reserved_unit":
             return "reserved";
         case UnitStatus.SOLD:
         case "sold_unit":
             return "sold";
+        case UnitStatus.UNAVAILABLE:
+        case "unavailable_unit":
+        case UnitStatus.RENTED:
+        case "rented_unit":
+            return "unavailable";
         default:
             return "available";
     }

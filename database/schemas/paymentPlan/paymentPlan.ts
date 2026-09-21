@@ -174,7 +174,15 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
             enum: Object.values(PaymentPlanStatus),
             required: true,
             default: PaymentPlanStatus.ACTIVE,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {
+                enumTones: {
+                    active:      "success",
+                    completed:   "success",
+                    defaulted:   "danger",
+                    cancelled:   "danger",
+                },
+            },
         },
         totalAmount: {
             type: SchemaTypes.Decimal128,
@@ -340,7 +348,16 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                     type: SchemaTypes.String,
                     enum: Object.values(InstallmentStatus),
                     required: true,
-                    default: InstallmentStatus.PENDING
+                    default: InstallmentStatus.PENDING,
+                    dynamicTableConfiguration: {
+                        enumTones: {
+                            pending:          "warning",
+                            paid:             "success",
+                            overdue:          "danger",
+                            cancelled:        "danger",
+                            partially_paid:   "warning",
+                        },
+                    },
                 },
                 paidAmount: {
                     type: SchemaTypes.Decimal128,
@@ -446,7 +463,16 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 },
             }],
             required: true,
-            default: []
+            default: [],
+            dynamicTableConfiguration: {
+                enumTones: {
+                    pending:          "warning",
+                    paid:             "success",
+                    overdue:          "danger",
+                    cancelled:        "danger",
+                    partially_paid:   "warning",
+                },
+            },
         },
         gracePeriodDays: {
             type: SchemaTypes.Number,

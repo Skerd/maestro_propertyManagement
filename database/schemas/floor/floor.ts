@@ -43,6 +43,8 @@ export interface IFloor extends Document, IOwnershipPluginFields, ISoftDeletePlu
     sharedSpaces: string[];
     polygonCoordinates?: {x: number, y: number}[]; // Relative coordinates (0-1) for floor location on edifice main image
     priceVisibility?: PriceVisibility; // public price visibility for units on this floor (units may override)
+    pricePerMeterSquared?: number;        // overrides edifice sale rate per m²; empty = follows the edifice
+    verandaPricePerMeterSquared?: number; // overrides edifice veranda rate per m²; empty = follows the edifice
 
     edifice: IEdifice;
     project?: import("mongodb").ObjectId; // denormalized from edifice.project for fast dashboard queries
@@ -226,6 +228,16 @@ const FloorSchema = new Schema<IFloor>(
             dynamicTableConfiguration: {
                 refDisplayKey: ["name"],
             },
+        },
+        pricePerMeterSquared: {
+            type: SchemaTypes.Number,
+            required: false,
+            min: 0
+        },
+        verandaPricePerMeterSquared: {
+            type: SchemaTypes.Number,
+            required: false,
+            min: 0
         },
         priceVisibility: {
             type: SchemaTypes.String,

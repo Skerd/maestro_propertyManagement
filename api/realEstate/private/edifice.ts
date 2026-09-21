@@ -12,7 +12,7 @@ import {CreateEdificeFormType} from "armonia/src/modules/propertyManagement/api/
 import {constructorService} from "../../../database/schemas/constructor/constructor.service";
 import {edificeService} from "../../../database/schemas/edifice/edifice.service";
 import {unitTypeService} from "../../../database/schemas/unitType/unitType.service";
-import {unitService} from "../../../database/schemas/unit/unit.service";
+import {floorService} from "../../../database/schemas/floor/floor.service";
 import {projectService} from "../../../database/schemas/project/project.service";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {cityService} from "@coreModule/database/schemas/city/city.service";
@@ -21,7 +21,8 @@ import {countryService} from "@coreModule/database/schemas/country/country.servi
 import {EdificeActions} from "../../../database/schemas/edifice/edifice.actions";
 import {IConstructor} from "@propertyManagement/database/schemas/constructor/constructor";
 import {IUnitType} from "@propertyManagement/database/schemas/unitType/unitType";
-import {computeUnitPriceFromEdificeRates} from "@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates";
+import {cascadeUnitPrices} from "@propertyManagement/utilities/unit/cascadeUnitPrices";
+import {pickFloorsFollowingEdifice, resolveEffectiveRates, type RateField} from "@propertyManagement/utilities/unit/resolveEffectiveRates";
 import {loadEffectivePriceVisibility} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 
 const mediaUpload = mediaUploadMW({
@@ -160,88 +161,52 @@ export const { router } = createCrudRouter({
 
         const existingPricePerM2 = existing.pricePerMeterSquared;
         const existingVerandaPricePerM2 = existing.verandaPricePerMeterSquared;
-        const existingSaleCurrencyId = existing.saleCurrency?.toString() ?? undefined;
+        const existingSaleCurrencyId = ((existing.saleCurrency as any)?._id ?? existing.saleCurrency)?.toString() ?? undefined;
 
         const pricePerM2Changed =
             pricePerMeterSquared !== undefined && pricePerMeterSquared !== existingPricePerM2;
         const verandaPricePerM2Changed =
             verandaPricePerMeterSquared !== undefined && verandaPricePerMeterSquared !== existingVerandaPricePerM2;
         const saleCurrencyChanged =
-            saleCurrency !== undefined && (existing.saleCurrency?.toString()) !== existingSaleCurrencyId;
+            saleCurrency !== undefined && (saleCurrency?.toString() ?? undefined) !== existingSaleCurrencyId;
 
         if (!pricePerM2Changed && !verandaPricePerM2Changed && !saleCurrencyChanged) {
             return;
         }
 
-        const nextPricePerM2 =
-            pricePerMeterSquared !== undefined ? pricePerMeterSquared : existingPricePerM2;
-        const nextVerandaPricePerM2 =
-            verandaPricePerMeterSquared !== undefined
-                ? verandaPricePerMeterSquared
-                : existingVerandaPricePerM2;
+        const nextEdificeRates = {
+            pricePerMeterSquared:        pricePerMeterSquared !== undefined ? pricePerMeterSquared : existingPricePerM2,
+            verandaPricePerMeterSquared: verandaPricePerMeterSquared !== undefined ? verandaPricePerMeterSquared : existingVerandaPricePerM2,
+        };
         const nextSaleCurrencyId =
             saleCurrency !== undefined ? saleCurrency?.toString() : existingSaleCurrencyId;
 
-        // Same rule as PDF import: without a unit-area rate, do not invent prices.
-        if (typeof nextPricePerM2 !== "number") {
+        // Floors with their own rate for every changed field keep their units' prices untouched.
+        const changedFields: RateField[] = [];
+        if (pricePerM2Changed) changedFields.push("pricePerMeterSquared");
+        if (verandaPricePerM2Changed) changedFields.push("verandaPricePerMeterSquared");
+
+        const floors = await floorService.find({edifice: existing._id, company: company._id}, {session, logger, languageCode});
+        const targetFloors = pickFloorsFollowingEdifice(floors, changedFields, saleCurrencyChanged);
+        if (targetFloors.length === 0) {
             return;
         }
 
-        const derivedUnits = await unitService.find(
-            {
-                edifice: existing._id,
-                company: company._id,
-                priceManuallyEdited: false,
-            },
-            {session, logger, languageCode},
-        );
+        const ratesByFloorId = new Map(targetFloors.map((floor) => [floor._id.toString(), resolveEffectiveRates(floor, nextEdificeRates)]));
 
-        if (derivedUnits.length === 0) {
-            return;
-        }
-
-        const saleCurrencyObjectId = nextSaleCurrencyId ? new ObjectId(nextSaleCurrencyId) : null;
-        const changedBy = new ObjectId(actionUserCtx.userId);
-        const changedAt = new Date();
-
-        for (const unit of derivedUnits) {
-            const computed = computeUnitPriceFromEdificeRates({
-                pricePerMeterSquared: nextPricePerM2,
-                verandaPricePerMeterSquared: nextVerandaPricePerM2,
-                area: unit.area,
-                verandaArea: unit.verandaArea,
-            });
-            if (computed == null) continue;
-
-            const newPrice = Decimal128.fromString(String(computed));
-            const $set: Record<string, unknown> = {
-                price: newPrice,
-                priceManuallyEdited: false,
-            };
-            if (saleCurrencyObjectId) {
-                $set.priceCurrency = saleCurrencyObjectId;
-            }
-
-            await unitService.updateByIdOrThrow(
-                unit._id,
-                {
-                    $set,
-                    $push: {
-                        priceHistory: {
-                            price: newPrice,
-                            currency: saleCurrencyObjectId ?? (unit.priceCurrency?._id ?? unit.priceCurrency),
-                            changedAt,
-                            changedBy,
-                            reason: "Edifice rate update",
-                        },
-                    },
-                },
-                {session, logger, languageCode},
-            );
-        }
+        const repriced = await cascadeUnitPrices({
+            unitFilter:     {edifice: existing._id, company: company._id, floor: {$in: targetFloors.map((floor) => floor._id)}},
+            ratesByFloorId,
+            saleCurrencyId: nextSaleCurrencyId ? new ObjectId(nextSaleCurrencyId) : null,
+            reason:         "Edifice rate update",
+            changedBy:      new ObjectId(actionUserCtx.userId),
+            session,
+            logger,
+            languageCode,
+        });
 
         logger.debug(
-            `Cascaded edifice rates to ${derivedUnits.length} non-manual unit(s) edificeId=${existing._id}`,
+            `Cascaded edifice rates to ${repriced} non-manual unit(s) on ${targetFloors.length} floor(s) edificeId=${existing._id}`,
         );
     },
     actions: EdificeActions,

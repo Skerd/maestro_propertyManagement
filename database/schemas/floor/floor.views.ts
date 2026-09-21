@@ -34,6 +34,8 @@ export const floorSheetView: ViewConfig = {
                     "isAccessible",
                     "hasEmergencyExit",
                     "priceVisibility",
+                    "pricePerMeterSquared",
+                    "verandaPricePerMeterSquared",
                     "description",
                 ],
             },
@@ -161,6 +163,46 @@ export const floorSheetView: ViewConfig = {
                                     icon: "#Eye",
                                     tooltip: "effectivePriceVisibilityTooltip",
                                     languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "pricePerMeterSquared" },
+                            dependent: "effectivePricing",
+                            field: {
+                                name: "effectivePricing.pricePerMeterSquared",
+                                widget: "#DisplayCard",
+                                label: "pricePerMeterSquared",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#DollarSign",
+                                    tooltip: "pricePerMeterSquaredTooltip",
+                                    format: "locale",
+                                    valuePath: ["effectivePricing.saleCurrency.symbol", "effectivePricing.pricePerMeterSquared"],
+                                    joinSeparator: " ",
+                                    suffix: "/m²",
+                                    type: "currency",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "verandaPricePerMeterSquared" },
+                            dependent: "effectivePricing",
+                            field: {
+                                name: "effectivePricing.verandaPricePerMeterSquared",
+                                widget: "#DisplayCard",
+                                label: "verandaPricePerMeterSquared",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#DollarSign",
+                                    tooltip: "verandaPricePerMeterSquaredTooltip",
+                                    format: "locale",
+                                    valuePath: ["effectivePricing.saleCurrency.symbol", "effectivePricing.verandaPricePerMeterSquared"],
+                                    joinSeparator: " ",
+                                    suffix: "/m²",
+                                    type: "currency",
                                 },
                             },
                         },
@@ -730,6 +772,38 @@ const floorCreateFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
+        props: { title: "pricing" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "pricePerMeterSquared",
+                            widget: "#Input",
+                            label: "form.pricePerMeterSquaredLabel",
+                            placeholder: "form.pricePerMeterSquaredPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "verandaPricePerMeterSquared",
+                            widget: "#Input",
+                            label: "form.verandaPricePerMeterSquaredLabel",
+                            placeholder: "form.verandaPricePerMeterSquaredPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
         props: { title: "publicVisibility" },
         children: [
             {
@@ -1002,6 +1076,42 @@ const floorEditFormNode: ViewConfig["nodes"] = [
                             widget: "#Switch",
                             label: "form.hasEmergencyExitLabel",
                         }, permissions: {read: "hasEmergencyExit", write: "hasEmergencyExit"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "pricing" },
+        permissions: {
+            readAny: ["pricePerMeterSquared", "verandaPricePerMeterSquared"],
+            writeAny: ["pricePerMeterSquared", "verandaPricePerMeterSquared"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "pricePerMeterSquared",
+                            widget: "#Input",
+                            label: "form.pricePerMeterSquaredLabel",
+                            placeholder: "form.pricePerMeterSquaredPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "pricePerMeterSquared", write: "pricePerMeterSquared"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "verandaPricePerMeterSquared",
+                            widget: "#Input",
+                            label: "form.verandaPricePerMeterSquaredLabel",
+                            placeholder: "form.verandaPricePerMeterSquaredPlaceholder",
+                            widgetProps: { type: "decimal", min: 0 },
+                        }, permissions: {read: "verandaPricePerMeterSquared", write: "verandaPricePerMeterSquared"},
                     },
                 ],
             },

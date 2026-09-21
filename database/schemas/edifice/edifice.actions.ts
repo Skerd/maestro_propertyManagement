@@ -17,6 +17,7 @@ import Unit from '../unit/unit';
 import {edificeService} from './edifice.service';
 import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
 import {computeUnitPriceFromEdificeRates} from '@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates';
+import {resolveEffectiveRates} from '@propertyManagement/utilities/unit/resolveEffectiveRates';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
 import type {GenerateFloorsAndUnitsFormType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.type';
 import {generateFloorsAndUnitsFormSchema} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.validator';
@@ -193,10 +194,8 @@ export class EdificeActions {
             {session, logger, languageCode},
         );
 
-        // Sale pricing configured on the edifice — used to compute each generated unit's price:
-        // price = pricePerMeterSquared * totalArea + verandaPricePerMeterSquared * verandaArea, in saleCurrency.
-        const pricePerM2 = typeof foundEdifice.pricePerMeterSquared === "number" ? foundEdifice.pricePerMeterSquared : null;
-        const verandaPricePerM2 = typeof foundEdifice.verandaPricePerMeterSquared === "number" ? foundEdifice.verandaPricePerMeterSquared : null;
+        // Sale pricing — each generated unit's price uses its floor's effective rates (floor override, else edifice):
+        // price = pricePerMeterSquared * totalArea + verandaPricePerMeterSquared * verandaArea, in the edifice saleCurrency.
         const saleCurrencyId = foundEdifice.saleCurrency
             ? ((foundEdifice.saleCurrency as any)._id ?? foundEdifice.saleCurrency)
             : null;
@@ -576,6 +575,10 @@ export class EdificeActions {
                             target.created = createdFloor;
                         }
 
+                        const floorRates = resolveEffectiveRates(createdFloor, foundEdifice);
+                        const pricePerM2 = floorRates.pricePerMeterSquared;
+                        const verandaPricePerM2 = floorRates.verandaPricePerMeterSquared;
+
                         let floorTotalArea = 0;
                         for (const assets of task.units) {
                             const {unitName, unitSummary} = assets;
@@ -605,7 +608,7 @@ export class EdificeActions {
                                 existingUnit.verandaArea = preferExistingAreaWhenIncomingZero(existingUnit.verandaArea, unitSummary.verandaArea);
                                 existingUnit.polygonCoordinates = unitSummary.polygonCoordinates || existingUnit.polygonCoordinates || [];
 
-                                // Only recompute for units that still follow edifice rates.
+                                // Only recompute for units that still follow the sale rates.
                                 // Missing flag (legacy) is treated as manual — same as migration default.
                                 if (existingUnit.priceManuallyEdited === false) {
                                     const recomputed = computeUnitPriceFromEdificeRates({

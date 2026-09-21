@@ -17,6 +17,27 @@ import {floorsToSelect} from "../../../utilities/mappers/floor/floorMapper.selec
 import {createFloorFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/createFloor.form.validator";
 import {editFloorFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/editFloor.form.validator";
 import {loadEffectivePriceVisibility} from "../../../utilities/marketing/priceOnRequestScope.util";
+import {cascadeUnitPrices} from "../../../utilities/unit/cascadeUnitPrices";
+import {RATE_FIELDS, resolveEffectiveRates} from "../../../utilities/unit/resolveEffectiveRates";
+import type {FloorEffectivePricing} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.dto";
+
+/** Rates actually applied to the floor's units (floor override, else edifice), with the edifice sale currency. */
+async function loadEffectivePricing(floor: any, { companyId, logger, languageCode }: { companyId: ObjectId; logger: any; languageCode: string }): Promise<FloorEffectivePricing> {
+    const edificeId = floor.edifice?._id ?? floor.edifice;
+    const edifice: any = await edificeService.findOne(
+        { _id: new ObjectId(String(edificeId)), company: companyId },
+        { logger, languageCode },
+        [{ path: "saleCurrency", select: "symbol name" }],
+    );
+    const { pricePerMeterSquared, verandaPricePerMeterSquared, source } = resolveEffectiveRates(floor, edifice);
+    const currency = edifice?.saleCurrency;
+    return {
+        pricePerMeterSquared,
+        verandaPricePerMeterSquared,
+        source,
+        saleCurrency: currency?._id ? { _id: currency._id.toString(), symbol: currency.symbol, name: currency.name } : undefined,
+    };
+}
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
@@ -49,14 +70,16 @@ export const { router } = createCrudRouter({
     },
     enrichSingle: async (floor, { actionUserCtx, languageCode, logger, company }) => {
         const id = floor._id.toString();
-        const [statisticsByFloorId, unitsCoordinatesByFloorId, effectivePriceVisibility] = await Promise.all([
+        const [statisticsByFloorId, unitsCoordinatesByFloorId, effectivePriceVisibility, effectivePricing] = await Promise.all([
             floorService.calculateStatistics([floor._id], actionUserCtx, languageCode, { logger }),
             floorService.getUnitsCoordinatesByFloorIds([floor._id], { logger, languageCode, actionUserCtx }),
             loadEffectivePriceVisibility("floor", floor, { companyId: company._id, logger, languageCode }),
+            loadEffectivePricing(floor, { companyId: company._id, logger, languageCode }),
         ]);
         return {
             ...floorToDTO(floor, { statistics: statisticsByFloorId[id], unitsCoordinates: unitsCoordinatesByFloorId[id] }),
             effectivePriceVisibility,
+            effectivePricing,
         };
     },
     buildCreateData: async ({ edifice, polygonCoordinates, session, logger, languageCode, company, ...params }) => {
@@ -88,6 +111,31 @@ export const { router } = createCrudRouter({
         }
 
         return data;
+    },
+    afterUpdate: async ({ session, logger, languageCode, actionUserCtx, company }, existing) => {
+        // Compare the saved floor rather than raw params — a cleared rate may arrive as null or "".
+        const updated = await floorService.findOneOrThrow({ _id: existing._id, company: company._id }, { session, logger, languageCode });
+
+        const refId = (v: any) => (v?._id ?? v)?.toString();
+        const edificeChanged = refId(updated.edifice) !== refId(existing.edifice);
+        const ratesChanged = RATE_FIELDS.some((field) => (updated[field] ?? null) !== (existing[field] ?? null));
+        if (!edificeChanged && !ratesChanged) return;
+
+        const edifice = await edificeService.findOneOrThrow({ _id: new ObjectId(refId(updated.edifice)), company: company._id }, { session, logger, languageCode });
+        const saleCurrencyId = refId(edifice.saleCurrency);
+
+        const repriced = await cascadeUnitPrices({
+            unitFilter:     { floor: existing._id, company: company._id },
+            ratesByFloorId: new Map([[existing._id.toString(), resolveEffectiveRates(updated, edifice)]]),
+            saleCurrencyId: saleCurrencyId ? new ObjectId(saleCurrencyId) : null,
+            reason:         "Floor rate update",
+            changedBy:      new ObjectId(actionUserCtx.userId),
+            session,
+            logger,
+            languageCode,
+        });
+
+        logger.debug(`Cascaded floor rates to ${repriced} non-manual unit(s) floorId=${existing._id}`);
     },
     enrichUpdate: async (floor, { actionUserCtx, languageCode, logger }) => {
         const id = floor._id.toString();

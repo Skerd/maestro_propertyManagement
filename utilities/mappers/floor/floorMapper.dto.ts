@@ -36,6 +36,8 @@ export function floorToDTO(floor: IFloor, options?: FloorToDtoOptions): Floor {
         mediaFiles: !!floor.mediaFiles ? floor.mediaFiles?.map(mapMedia) : undefined,
         marketingBooklet: floor.marketingBooklet ? mapMedia(floor.marketingBooklet) : undefined,
         priceVisibility: floor.priceVisibility ?? "inherit",
+        pricePerMeterSquared: floor.pricePerMeterSquared,
+        verandaPricePerMeterSquared: floor.verandaPricePerMeterSquared,
         edifice: mapPopulatedRef(floor.edifice),
         project: mapPopulatedRef(floor.edifice?.project),
         unitsCoordinates: options?.unitsCoordinates && options?.unitsCoordinates.length > 0 ? options?.unitsCoordinates : undefined,

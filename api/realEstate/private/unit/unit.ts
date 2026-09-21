@@ -15,6 +15,7 @@ import {saleService} from '../../../../database/schemas/sale/sale.service';
 import Unit from "../../../../database/schemas/unit/unit";
 import UnitType from "../../../../database/schemas/unitType/unitType";
 import {unitsToDTO, unitToDTO} from "../../../../utilities/mappers/unit/unitMapper.dto";
+import {loadEffectivePriceVisibility} from "../../../../utilities/marketing/priceOnRequestScope.util";
 import {unitsToSelect} from "../../../../utilities/mappers/unit/unitMapper.select";
 import {createUnitFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/createUnit.form.validator";
 import {editUnitFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/editUnit.form.validator";
@@ -51,11 +52,15 @@ export const { router } = createCrudRouter({
         );
         return unitsToDTO(units, { statisticsByUnitId });
     },
-    enrichSingle: async (unit, { actionUserCtx, languageCode, logger }) => {
-        const statisticsByUnitId = await unitService.calculateStatistics(
-            [unit._id], actionUserCtx, languageCode, { logger },
-        );
-        return unitToDTO(unit, { statistics: statisticsByUnitId[unit._id.toString()] });
+    enrichSingle: async (unit, { actionUserCtx, languageCode, logger, company }) => {
+        const [statisticsByUnitId, effectivePriceVisibility] = await Promise.all([
+            unitService.calculateStatistics([unit._id], actionUserCtx, languageCode, { logger }),
+            loadEffectivePriceVisibility("unit", unit, { companyId: company._id, logger, languageCode }),
+        ]);
+        return {
+            ...unitToDTO(unit, { statistics: statisticsByUnitId[unit._id.toString()] }),
+            effectivePriceVisibility,
+        };
     },
     buildCreateData: async ({ floor, polygonCoordinates, connectedUnits, orientation, constructionStatus, session, logger, languageCode, company, unitType, priceCurrency, ...params }: any) => {
 

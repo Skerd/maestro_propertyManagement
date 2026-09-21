@@ -9,6 +9,10 @@ import {
     EDIFICE_STREET_MAX,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
+import {PRICE_VISIBILITY_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/priceVisibility.constants";
+
+/** Public price visibility select: inherit from parent, hide (price on request) or show. */
+const priceVisibilityOptions = PRICE_VISIBILITY_VALUES.map((value) => ({value, label: `form.priceVisibilityOptions.${value}`}));
 
 const energyClassOptions = EDIFICE_ENERGY_CLASS_VALUES.map((value) => ({value, label: value}));
 
@@ -36,7 +40,7 @@ export const edificeSheetView: ViewConfig = {
                     "pricePerMeterSquared",
                     "verandaPricePerMeterSquared",
                     "saleCurrency",
-                    "showPriceOnRequest",
+                    "priceVisibility",
                 ],
             },
             props: { title: "overview" },
@@ -180,12 +184,32 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "showPriceOnRequest" },
+                            permissions: { read: "priceVisibility" },
                             field: {
-                                name: "showPriceOnRequest",
+                                name: "priceVisibility",
                                 widget: "#DisplayCard",
-                                label: "showPriceOnRequest",
-                                widgetProps: { icon: "#EyeOff", tooltip: "showPriceOnRequestTooltip", type: "boolean" },
+                                label: "priceVisibility",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "priceVisibilityTooltip",
+                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            dependent: "effectivePriceVisibility",
+                            field: {
+                                name: "effectivePriceVisibility.key",
+                                widget: "#DisplayCard",
+                                label: "effectivePriceVisibility",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Eye",
+                                    tooltip: "effectivePriceVisibilityTooltip",
+                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
+                                },
                             },
                         },
                     ],
@@ -1082,9 +1106,11 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
-                            name: "showPriceOnRequest",
-                            widget: "#Switch",
-                            label: "form.showPriceOnRequestLabel",
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
                         },
                     },
                 ],
@@ -1709,8 +1735,8 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
         render: "#TitleWithCollapse",
         props: { title: "publicVisibility" },
         permissions: {
-            readAny: ["showPriceOnRequest"],
-            writeAny: ["showPriceOnRequest"],
+            readAny: ["priceVisibility"],
+            writeAny: ["priceVisibility"],
         },
         children: [
             {
@@ -1720,10 +1746,12 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
-                            name: "showPriceOnRequest",
-                            widget: "#Switch",
-                            label: "form.showPriceOnRequestLabel",
-                        }, permissions: {read: "showPriceOnRequest", write: "showPriceOnRequest"},
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
                     },
                 ],
             },

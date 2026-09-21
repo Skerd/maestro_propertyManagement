@@ -59,7 +59,7 @@ const PUBLIC_UNIT_FIELDS =
     "unitNumber name unitType area netArea verandaArea price priceCurrency " +
     "numberOfRooms numberOfBathrooms status constructionStatus orientation description " +
     "hasBalcony hasTerrace hasSeaView hasCityView hasLakeView hasElevator " +
-    "showPriceOnRequest project edifice floor";
+    "priceVisibility project edifice floor";
 
 function priceToNumber(price: unknown): number | null {
     if (price == null) return null;
@@ -101,7 +101,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         return {found: false, reason: `No property found for ${by}.`};
     }
 
-    // "Show price on request" (unit or any parent) hides the price from website visitors.
+    // Price visibility (nearest explicit choice: unit → floor → edifice → project) may hide the price.
     const priceOnRequest = isUnitPriceOnRequest(unit, await loadPriceOnRequestScope(new ObjectId(ctx.companyId)));
 
     return {

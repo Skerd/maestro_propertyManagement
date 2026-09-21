@@ -77,7 +77,7 @@ export function edificeToDTO(edifice: IEdifice, options?: EdificeToDtoOptions): 
         actualCompletionDate: edifice.actualCompletionDate,
         buildingPermitNumber: edifice.buildingPermitNumber,
         energyClass: edifice.energyClass,
-        showPriceOnRequest: !!edifice.showPriceOnRequest,
+        priceVisibility: edifice.priceVisibility ?? "inherit",
     };
 }
 

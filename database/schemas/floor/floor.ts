@@ -13,6 +13,10 @@ import {
 } from "@coreModule/database/types/plugin-fields";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
+import {
+    PRICE_VISIBILITY_VALUES,
+    type PriceVisibility,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/priceVisibility.constants";
 import {addModelData} from "@coreModule/database/collections";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {EdificeSimpleSnippet} from "../edifice/edifice.snippets";
@@ -38,7 +42,7 @@ export interface IFloor extends Document, IOwnershipPluginFields, ISoftDeletePlu
     description?: string;
     sharedSpaces: string[];
     polygonCoordinates?: {x: number, y: number}[]; // Relative coordinates (0-1) for floor location on edifice main image
-    showPriceOnRequest?: boolean; // hides unit prices on public surfaces for every unit on this floor
+    priceVisibility?: PriceVisibility; // public price visibility for units on this floor (units may override)
 
     edifice: IEdifice;
     project?: import("mongodb").ObjectId; // denormalized from edifice.project for fast dashboard queries
@@ -223,12 +227,15 @@ const FloorSchema = new Schema<IFloor>(
                 refDisplayKey: ["name"],
             },
         },
-        showPriceOnRequest: {
-            type: SchemaTypes.Boolean,
+        priceVisibility: {
+            type: SchemaTypes.String,
+            enum: [...PRICE_VISIBILITY_VALUES],
             required: false,
-            default: false,
+            default: "inherit",
             dynamicTableConfiguration: {
-                cellType: COLUMN_TYPE.BOOLEAN,
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
             },
         },
     },

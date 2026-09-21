@@ -17,6 +17,7 @@ import {unitCostService} from "@propertyManagement/database/schemas/unitCost/uni
 import {modificationRequestService} from "@propertyManagement/database/schemas/modificationRequest/modificationRequest.service";
 import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
+import {loadEffectivePriceVisibility} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 
 const mediaUpload = mediaUploadMW({
     fields: {
@@ -55,12 +56,16 @@ export const {router} = createCrudRouter({
         return projectsToDTO(projects, statisticsMap, edificesCoordinates);
     },
     enrichSingle: async (project, params) => {
-        const {actionUserCtx, languageCode, logger} = params;
-        const [statisticsMap, edificesCoordinates] = await Promise.all([
+        const {actionUserCtx, languageCode, logger, company} = params;
+        const [statisticsMap, edificesCoordinates, effectivePriceVisibility] = await Promise.all([
             projectService.calculateStatistics([project._id], actionUserCtx, languageCode, logger),
             edificeService.getEdificesCoordinatesByProjectIds([project._id], {logger, languageCode, actionUserCtx}),
+            loadEffectivePriceVisibility("project", project, {companyId: company._id, logger, languageCode}),
         ]);
-        return projectToDTO(project, statisticsMap[project._id], edificesCoordinates[project._id.toString()]);
+        return {
+            ...projectToDTO(project, statisticsMap[project._id], edificesCoordinates[project._id.toString()]),
+            effectivePriceVisibility,
+        };
     },
     buildCreateData: buildCreateDataFromSchemaDef(ProjectSchemaDef, {
         saleCommissionRatePercent:        (v) => Decimal128.fromString(String(v)),

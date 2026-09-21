@@ -22,6 +22,7 @@ import {EdificeActions} from "../../../database/schemas/edifice/edifice.actions"
 import {IConstructor} from "@propertyManagement/database/schemas/constructor/constructor";
 import {IUnitType} from "@propertyManagement/database/schemas/unitType/unitType";
 import {computeUnitPriceFromEdificeRates} from "@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates";
+import {loadEffectivePriceVisibility} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
@@ -49,12 +50,16 @@ export const { router } = createCrudRouter({
         ]);
         return edificesToDTO(edifices, { statisticsByEdificeId, floorsCoordinatesByEdificeId });
     },
-    enrichSingle: async (edifice, { actionUserCtx, languageCode, logger }) => {
-        const [statisticsByEdificeId, floorsCoordinatesByEdificeId] = await Promise.all([
+    enrichSingle: async (edifice, { actionUserCtx, languageCode, logger, company }) => {
+        const [statisticsByEdificeId, floorsCoordinatesByEdificeId, effectivePriceVisibility] = await Promise.all([
             edificeService.calculateStatistics([edifice._id], actionUserCtx, languageCode, logger),
             edificeService.getFloorsCoordinatesByEdificeIds([edifice._id], { logger, languageCode, actionUserCtx }),
+            loadEffectivePriceVisibility("edifice", edifice, { companyId: company._id, logger, languageCode }),
         ]);
-        return edificeToDTO(edifice, { statistics: statisticsByEdificeId[edifice._id], floorsCoordinates: floorsCoordinatesByEdificeId[edifice._id] });
+        return {
+            ...edificeToDTO(edifice, { statistics: statisticsByEdificeId[edifice._id], floorsCoordinates: floorsCoordinatesByEdificeId[edifice._id] }),
+            effectivePriceVisibility,
+        };
     },
     buildCreateData: async ({ session, logger, languageCode, company, polygonCoordinates, energyClass, ...params }: CreateEdificeFormType & Record<string, any>) => {
         const { project, investmentCurrency, address, constructors, propertyTypes } = params;

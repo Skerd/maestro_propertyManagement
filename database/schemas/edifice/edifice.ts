@@ -20,6 +20,10 @@ import {
 import {applyEdificeIndexes} from "./edifice.indexes";
 import {IProject} from "../project/project";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
+import {
+    PRICE_VISIBILITY_VALUES,
+    type PriceVisibility,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/priceVisibility.constants";
 import {addModelData} from "@coreModule/database/collections";
 import {edificeViews} from "./edifice.views";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
@@ -75,8 +79,8 @@ export interface IEdifice extends Document, IOwnershipPluginFields, ISoftDeleteP
     actualCompletionDate?: Date,
     buildingPermitNumber?: string,
     energyClass?: EdificeEnergyClass,
-    /** Hides unit prices (and edifice price/m²) on public surfaces for this edifice and everything below. */
-    showPriceOnRequest?: boolean,
+    /** Public price visibility for this edifice (incl. its price/m²) and everything below it. */
+    priceVisibility?: PriceVisibility,
 }
 
 const EdificeSchema = new Schema<IEdifice>(
@@ -412,12 +416,15 @@ const EdificeSchema = new Schema<IEdifice>(
             index: true,
             dynamicTableConfiguration: { hideColumn: true },
         },
-        showPriceOnRequest: {
-            type: SchemaTypes.Boolean,
+        priceVisibility: {
+            type: SchemaTypes.String,
+            enum: [...PRICE_VISIBILITY_VALUES],
             required: false,
-            default: false,
+            default: "inherit",
             dynamicTableConfiguration: {
-                cellType: COLUMN_TYPE.BOOLEAN,
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
             },
         },
     },

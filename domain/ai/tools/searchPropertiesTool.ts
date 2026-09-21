@@ -184,8 +184,9 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const limit = args.limit ?? DEFAULT_RESULTS;
     const sort = SORT_ORDERS[args.sortBy ?? "price_asc"];
 
-    // Website visitors never see prices hidden by "show price on request" (unit or any
-    // parent), and can't probe them: a price filter excludes those units entirely.
+    // Website visitors never see prices hidden by price visibility (nearest explicit
+    // choice on unit → floor → edifice → project), and can't probe them: a price filter
+    // excludes those units entirely.
     const priceScope = ctx.audience === "public"
         ? await loadPriceOnRequestScope(new ObjectId(ctx.companyId))
         : undefined;
@@ -203,7 +204,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
             ],
             "unitNumber name price area netArea numberOfRooms numberOfBathrooms status constructionStatus " +
                 "hasSeaView hasCityView hasLakeView hasBalcony hasTerrace hasElevator priceCurrency project edifice " +
-                "floor showPriceOnRequest",
+                "floor priceVisibility",
             order,
             max
         );
@@ -257,9 +258,9 @@ export const searchPropertiesTool: AssistantTool = {
     name: "search_properties",
     // Every field returned here (price, area, rooms, status, project/building
     // name, amenities) is already published on the marketing site, so this is
-    // safe for anonymous website visitors — except prices hidden by "show price
-    // on request", which execute() strips for the public audience. Re-check if the
-    // projection widens.
+    // safe for anonymous website visitors — except prices hidden by price visibility
+    // ("price on request"), which execute() strips for the public audience. Re-check
+    // if the projection widens.
     audience: "both",
     description:
         "Search the company's real-estate units (properties) by project or building " +

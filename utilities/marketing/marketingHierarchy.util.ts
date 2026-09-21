@@ -120,7 +120,7 @@ export async function loadMarketingHierarchyForProjects(
         edificesByProject,
         unitsByProject,
     };
-    // Public-only loader: strip prices hidden by "show price on request" before any mapping.
+    // Public-only loader: strip prices hidden by price visibility before any mapping.
     applyPriceOnRequest(hierarchy, await loadPriceOnRequestScope(companyId));
     return hierarchy;
 }

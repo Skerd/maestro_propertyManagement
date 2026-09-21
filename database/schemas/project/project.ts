@@ -13,6 +13,10 @@ import {
 } from "@coreModule/database/types/plugin-fields";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
+import {
+    PRICE_VISIBILITY_VALUES,
+    type PriceVisibility,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/priceVisibility.constants";
 import {addModelData} from "@coreModule/database/collections";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {applyProjectIndexes} from "./project.indexes";
@@ -41,8 +45,8 @@ export interface IProject extends Document, IOwnershipPluginFields, ISoftDeleteP
     socialLinks?: IProjectSocialLink[];
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
-    /** Hides unit prices on public surfaces for every edifice/floor/unit in this project. */
-    showPriceOnRequest?: boolean;
+    /** Public price visibility for this project and everything below it (children may override). */
+    priceVisibility?: PriceVisibility;
     saleCommissionRatePercent?: Decimal128;
     reservationCommissionRatePercent?: Decimal128;
     company: ICompany
@@ -252,12 +256,15 @@ const ProjectSchema = new Schema<IProject>(
                 cellType: COLUMN_TYPE.NUMBER,
             },
         },
-        showPriceOnRequest: {
-            type: SchemaTypes.Boolean,
+        priceVisibility: {
+            type: SchemaTypes.String,
+            enum: [...PRICE_VISIBILITY_VALUES],
             required: false,
-            default: false,
+            default: "inherit",
             dynamicTableConfiguration: {
-                cellType: COLUMN_TYPE.BOOLEAN,
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
             },
         },
     },

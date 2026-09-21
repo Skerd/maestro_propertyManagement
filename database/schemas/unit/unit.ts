@@ -22,6 +22,10 @@ import {IReservation} from "../reservation/reservation";
 import {ISale} from "../sale/sale";
 import type {IUnitCost} from "../unitCost/unitCost";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
+import {
+    PRICE_VISIBILITY_VALUES,
+    type PriceVisibility,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/priceVisibility.constants";
 import {addModelData} from "@coreModule/database/collections";
 import {unitViews} from "./unit.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
@@ -108,8 +112,8 @@ export interface IUnit extends Document, IOwnershipPluginFields, ISoftDeletePlug
     priceManuallyEdited?: boolean;
     featuredOnHomepage?: boolean;
     featuredSortOrder?: number;
-    /** Hides this unit's price on public surfaces (also inherited from floor/edifice/project). */
-    showPriceOnRequest?: boolean;
+    /** Public price visibility for this unit; `inherit` follows floor → edifice → project. */
+    priceVisibility?: PriceVisibility;
 }
 
 const UnitSchema = new Schema<IUnit>(
@@ -596,12 +600,15 @@ const UnitSchema = new Schema<IUnit>(
                 cellType: COLUMN_TYPE.NUMBER,
             },
         },
-        showPriceOnRequest: {
-            type: SchemaTypes.Boolean,
+        priceVisibility: {
+            type: SchemaTypes.String,
+            enum: [...PRICE_VISIBILITY_VALUES],
             required: false,
-            default: false,
+            default: "inherit",
             dynamicTableConfiguration: {
-                cellType: COLUMN_TYPE.BOOLEAN,
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.ENUM,
             },
         },
     },

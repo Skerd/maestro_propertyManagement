@@ -21,6 +21,6 @@ export function applyProjectIndexes(ProjectSchema: Schema): void {
 
     ProjectSchema.index({ company: 1, deletedAt: 1, featuredOnHomepage: 1, featuredSortOrder: 1 });
 
-    // Public price-on-request scope resolution (loadPriceOnRequestScope)
-    ProjectSchema.index({ company: 1, showPriceOnRequest: 1 });
+    // Public price visibility scope resolution (loadPriceOnRequestScope)
+    ProjectSchema.index({ company: 1, priceVisibility: 1 });
 }

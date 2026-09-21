@@ -1,22 +1,30 @@
 import {ObjectId} from "mongodb";
+import {
+    PRICE_VISIBILITY_LEVELS,
+    type EffectivePriceVisibility,
+    type PriceVisibilityLevel,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/priceVisibility.constants";
 import type {MarketingProjectHierarchy} from "./marketingHierarchy.util";
 
 /**
- * "Show price on request" scoping for PUBLIC surfaces (marketing API, public AI chat).
- * Pure helpers — the DB-backed scope loader lives in `priceOnRequestScope.util.ts`.
+ * Public price visibility ("price on request") for PUBLIC surfaces (marketing API, public AI chat).
+ * Pure helpers — the DB-backed loaders live in `priceOnRequestScope.util.ts`.
  *
- * The flag lives on project, edifice, floor and unit and cascades down with OR semantics:
- * a unit's price is hidden when the unit, its floor, its edifice or its project is flagged.
- * A child can never re-enable a price hidden by a parent.
+ * Project, edifice, floor and unit each carry `priceVisibility`: `inherit` | `hide` | `show`.
+ * Walking project → edifice → floor → unit, the level closest to the record with an explicit
+ * choice wins; when every level inherits, the price is shown. So a unit set to `show` shows its
+ * price inside a hidden edifice, and a floor set to `hide` hides a whole floor of a shown project.
  *
- * The scope is expanded down to floor ids, since `unit.floor` is the only required parent
- * ref on a unit — the denormalized `unit.edifice` / `unit.project` may be missing on old rows.
+ * The scope is resolved down to floor ids, since `unit.floor` is the only required parent ref
+ * on a unit — the denormalized `unit.edifice` / `unit.project` may be missing on old rows.
  */
+export type PriceDecision = "hide" | "show";
+
 export type PriceOnRequestScope = {
-    /** Edifices flagged directly or through their project. */
-    edificeIds: Set<string>;
-    /** Floors flagged directly or through their edifice / project. */
-    floorIds: Set<string>;
+    /** Decision per edifice from its own / its project's explicit choice. Absent = no decision (shown). */
+    edificeDecisions: Map<string, PriceDecision>;
+    /** Decision per floor from its own / edifice / project explicit choice. Absent = no decision (shown). */
+    floorDecisions: Map<string, PriceDecision>;
 };
 
 /** Marker set on redacted records so mappers can tell "hidden" apart from "no price set". */
@@ -28,30 +36,91 @@ const UNIT_PRICE_FIELDS = ["price", "priceHistory", "priceCurrency"] as const;
 const EDIFICE_PRICE_FIELDS = ["pricePerMeterSquared", "verandaPricePerMeterSquared", "saleCurrency"] as const;
 
 /** String id of a ref that may be populated (`{_id}`), an ObjectId or a string. */
-function refId(ref: unknown): string | undefined {
+export function refId(ref: unknown): string | undefined {
     if (ref == null) return undefined;
     const id = (ref as {_id?: unknown})._id ?? ref;
     const str = String(id);
     return str || undefined;
 }
 
-/** Builds a scope from already-expanded id lists (see `loadPriceOnRequestScope`). */
-export function buildPriceOnRequestScope(edificeIds: unknown[], floorIds: unknown[]): PriceOnRequestScope {
-    const toSet = (ids: unknown[]) =>
-        new Set(ids.map(refId).filter((id): id is string => id != null));
-    return {edificeIds: toSet(edificeIds), floorIds: toSet(floorIds)};
+/** A record's own explicit choice; `inherit`, missing or unknown values yield `undefined`. */
+export function explicitPriceDecision(value: unknown): PriceDecision | undefined {
+    return value === "hide" || value === "show" ? value : undefined;
+}
+
+/**
+ * Resolves visibility from each level's own `priceVisibility` (nearest explicit choice wins).
+ * Pass only the levels that exist for the record, e.g. `{project, edifice}` for an edifice.
+ */
+export function resolvePriceVisibility(
+    chain: Partial<Record<PriceVisibilityLevel, unknown>>,
+): EffectivePriceVisibility {
+    let hidden = false;
+    let source: EffectivePriceVisibility["source"] = "default";
+    for (const level of PRICE_VISIBILITY_LEVELS) {
+        const decision = explicitPriceDecision(chain[level]);
+        if (decision) {
+            hidden = decision === "hide";
+            source = level;
+        }
+    }
+    return {hidden, source, key: `${hidden ? "hidden" : "shown"}_${source}`};
+}
+
+// `_id` is optional to match Mongoose document typings; records without one are skipped.
+type ScopeProject = {_id?: unknown; priceVisibility?: unknown};
+type ScopeEdifice = {_id?: unknown; project?: unknown; priceVisibility?: unknown};
+type ScopeFloor = {_id?: unknown; edifice?: unknown; priceVisibility?: unknown};
+
+/**
+ * Builds a scope from the records that carry a decision: explicitly set projects, edifices
+ * with an explicit choice or a decided project, floors with an explicit choice or a decided edifice.
+ */
+export function buildPriceOnRequestScope(input: {
+    projects: ScopeProject[];
+    edifices: ScopeEdifice[];
+    floors: ScopeFloor[];
+}): PriceOnRequestScope {
+    const projectDecisions = new Map<string, PriceDecision>();
+    for (const project of input.projects) {
+        const id = refId(project._id);
+        const decision = explicitPriceDecision(project.priceVisibility);
+        if (id && decision) projectDecisions.set(id, decision);
+    }
+
+    const edificeDecisions = new Map<string, PriceDecision>();
+    for (const edifice of input.edifices) {
+        const id = refId(edifice._id);
+        const projectId = refId(edifice.project);
+        const decision = explicitPriceDecision(edifice.priceVisibility)
+            ?? (projectId ? projectDecisions.get(projectId) : undefined);
+        if (id && decision) edificeDecisions.set(id, decision);
+    }
+
+    const floorDecisions = new Map<string, PriceDecision>();
+    for (const floor of input.floors) {
+        const id = refId(floor._id);
+        const edificeId = refId(floor.edifice);
+        const decision = explicitPriceDecision(floor.priceVisibility)
+            ?? (edificeId ? edificeDecisions.get(edificeId) : undefined);
+        if (id && decision) floorDecisions.set(id, decision);
+    }
+
+    return {edificeDecisions, floorDecisions};
 }
 
 export function isUnitPriceOnRequest(unit: any, scope: PriceOnRequestScope): boolean {
-    if (unit?.showPriceOnRequest === true) return true;
     const floorId = refId(unit?.floor);
-    return floorId != null && scope.floorIds.has(floorId);
+    const decision = explicitPriceDecision(unit?.priceVisibility)
+        ?? (floorId ? scope.floorDecisions.get(floorId) : undefined);
+    return decision === "hide";
 }
 
 export function isEdificePriceOnRequest(edifice: any, scope: PriceOnRequestScope): boolean {
-    if (edifice?.showPriceOnRequest === true) return true;
     const edificeId = refId(edifice);
-    return edificeId != null && scope.edificeIds.has(edificeId);
+    const decision = explicitPriceDecision(edifice?.priceVisibility)
+        ?? (edificeId ? scope.edificeDecisions.get(edificeId) : undefined);
+    return decision === "hide";
 }
 
 /**
@@ -95,23 +164,30 @@ export function applyPriceOnRequest(hierarchy: MarketingProjectHierarchy, scope:
     }
 }
 
-function scopeFloorObjectIds(scope: PriceOnRequestScope): ObjectId[] {
-    return [...scope.floorIds].map((id) => new ObjectId(id));
+function hiddenFloorObjectIds(scope: PriceOnRequestScope): ObjectId[] {
+    const ids: ObjectId[] = [];
+    for (const [id, decision] of scope.floorDecisions) {
+        if (decision === "hide") ids.push(new ObjectId(id));
+    }
+    return ids;
 }
 
 /**
- * Mongo query clause matching only units whose price may be shown publicly.
- * Wrapped in `$and` so it can be spread into a query that already filters on `floor`.
+ * Mongo query clause matching only units whose price may be shown publicly: the unit is
+ * explicitly `show`, or it isn't explicitly `hide` and its floor doesn't resolve to hidden.
+ * Wrapped in `$and` so it can be merged into a query that already uses `$or` / `floor`.
  */
 export function priceVisibleUnitMatch(scope: PriceOnRequestScope): Record<string, unknown> {
-    const clauses: Record<string, unknown>[] = [{showPriceOnRequest: {$ne: true}}];
-    if (scope.floorIds.size > 0) clauses.push({floor: {$nin: scopeFloorObjectIds(scope)}});
-    return {$and: clauses};
+    const hiddenFloors = hiddenFloorObjectIds(scope);
+    const inherits: Record<string, unknown>[] = [{priceVisibility: {$ne: "hide"}}];
+    if (hiddenFloors.length > 0) inherits.push({floor: {$nin: hiddenFloors}});
+    return {$and: [{$or: [{priceVisibility: "show"}, {$and: inherits}]}]};
 }
 
 /** Aggregation expression form of {@link priceVisibleUnitMatch}, for `$cond` inside `$group`. */
 export function priceVisibleUnitExpr(scope: PriceOnRequestScope): Record<string, unknown> {
-    const clauses: Record<string, unknown>[] = [{$ne: ["$showPriceOnRequest", true]}];
-    if (scope.floorIds.size > 0) clauses.push({$not: [{$in: ["$floor", scopeFloorObjectIds(scope)]}]});
-    return {$and: clauses};
+    const hiddenFloors = hiddenFloorObjectIds(scope);
+    const inherits: Record<string, unknown>[] = [{$ne: ["$priceVisibility", "hide"]}];
+    if (hiddenFloors.length > 0) inherits.push({$not: [{$in: ["$floor", hiddenFloors]}]});
+    return {$or: [{$eq: ["$priceVisibility", "show"]}, {$and: inherits}]};
 }

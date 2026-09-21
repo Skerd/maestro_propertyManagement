@@ -16,7 +16,7 @@ export function applyEdificeIndexes(EdificeSchema: Schema): void {
     // For sorting by creation date
     EdificeSchema.index({ createdAt: -1 });
 
-    // Public price-on-request scope resolution (loadPriceOnRequestScope)
-    EdificeSchema.index({ company: 1, showPriceOnRequest: 1 });
+    // Public price visibility scope resolution (loadPriceOnRequestScope)
+    EdificeSchema.index({ company: 1, priceVisibility: 1 });
 }
 

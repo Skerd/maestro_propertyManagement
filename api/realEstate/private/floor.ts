@@ -16,6 +16,7 @@ import {floorsToDTO, floorToDTO} from "../../../utilities/mappers/floor/floorMap
 import {floorsToSelect} from "../../../utilities/mappers/floor/floorMapper.select";
 import {createFloorFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/createFloor.form.validator";
 import {editFloorFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/editFloor.form.validator";
+import {loadEffectivePriceVisibility} from "../../../utilities/marketing/priceOnRequestScope.util";
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
@@ -46,13 +47,17 @@ export const { router } = createCrudRouter({
         ]);
         return floorsToDTO(floors, { statisticsByFloorId, unitsCoordinatesByFloorId });
     },
-    enrichSingle: async (floor, { actionUserCtx, languageCode, logger }) => {
+    enrichSingle: async (floor, { actionUserCtx, languageCode, logger, company }) => {
         const id = floor._id.toString();
-        const [statisticsByFloorId, unitsCoordinatesByFloorId] = await Promise.all([
+        const [statisticsByFloorId, unitsCoordinatesByFloorId, effectivePriceVisibility] = await Promise.all([
             floorService.calculateStatistics([floor._id], actionUserCtx, languageCode, { logger }),
             floorService.getUnitsCoordinatesByFloorIds([floor._id], { logger, languageCode, actionUserCtx }),
+            loadEffectivePriceVisibility("floor", floor, { companyId: company._id, logger, languageCode }),
         ]);
-        return floorToDTO(floor, { statistics: statisticsByFloorId[id], unitsCoordinates: unitsCoordinatesByFloorId[id] });
+        return {
+            ...floorToDTO(floor, { statistics: statisticsByFloorId[id], unitsCoordinates: unitsCoordinatesByFloorId[id] }),
+            effectivePriceVisibility,
+        };
     },
     buildCreateData: async ({ edifice, polygonCoordinates, session, logger, languageCode, company, ...params }) => {
         const foundEdifice = await edificeService.findOneOrThrow({ _id: new ObjectId(edifice), company: company._id }, { session, logger, languageCode, withDeleted: false });

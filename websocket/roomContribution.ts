@@ -16,6 +16,7 @@ export function registerPropertyManagementRoomContributions(): void {
         sales: "Sales",
         contractsHub: "Contracts hub",
         commissions: "Commissions",
+        paymentsHub: "Payments hub",
         rentalsHub: "Rentals hub",
         ownerPortal: "Owner portal",
         leases: "Leases",

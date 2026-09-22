@@ -86,6 +86,12 @@ export const projectSheetView: ViewConfig = {
                                 },
                             },
                         },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 4},
+                    children: [
                         {
                             render: "#DisplayCard",
                             permissions: { read: "featuredOnHomepage" },

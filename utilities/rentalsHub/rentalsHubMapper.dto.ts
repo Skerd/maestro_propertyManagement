@@ -9,7 +9,7 @@ import {
     mapPopulatedSimpleCurrency,
     mapPopulatedSimpleUser,
 } from "@coreModule/utilities/mappers/common.mapper";
-import {lateFeeNumber, remainingNumber} from "@propertyManagement/utilities/lease/rentRemaining";
+import {lateFeeNumber, remainingNumber, type RentMoneyRow} from "@propertyManagement/utilities/lease/rentRemaining";
 
 const UNIT_POPULATE = [
     {
@@ -92,6 +92,8 @@ export function rentalPaymentToRegistryRow(doc: Record<string, any>): RentalPaym
     const unit = doc.unit as any;
     const lease = doc.lease as any;
     const tenant = lease?.tenant ? mapPopulatedSimpleUser(lease.tenant) : undefined;
+    // The money helpers read amount/paidAmount/lateFeeAmount/status off the payment.
+    const money = doc as RentMoneyRow;
     return {
         _id: doc._id.toString(),
         name: doc.name,
@@ -99,8 +101,8 @@ export function rentalPaymentToRegistryRow(doc: Record<string, any>): RentalPaym
         dueDate: doc.dueDate ? new Date(doc.dueDate).toISOString() : undefined,
         amount: decimalToNumber(doc.amount),
         paidAmount: decimalToNumber(doc.paidAmount),
-        remaining: remainingNumber(doc),
-        lateFeeAmount: lateFeeNumber(doc),
+        remaining: remainingNumber(money),
+        lateFeeAmount: lateFeeNumber(money),
         paidDate: doc.paidDate ? new Date(doc.paidDate).toISOString() : undefined,
         currency: mapPopulatedSimpleCurrency(doc.currency),
         lease: lease

@@ -15,7 +15,7 @@ import {
     scaledToDecimal128,
     type RentMoneyRow,
 } from "@propertyManagement/utilities/lease/rentRemaining";
-import {unitService} from "../../../database/schemas/unit/unit.service";
+import {resolveHubUnitIds} from "../../../utilities/hubShared/resolveHubUnitIds";
 import type {
     LeasesListResponseType,
     RentalPaymentsListResponseType,
@@ -81,48 +81,8 @@ router.post(
     }),
 );
 
+/** Cap on the rows one calendar month may return. */
 const CALENDAR_MAX_ROWS = 5000;
-
-type HubScopeParams = {
-    project?: string;
-    edifice?: string;
-    floor?: string;
-    unit?: string;
-    company: AuthenticatedMWType["company"];
-    logger: any;
-    languageCode: string;
-};
-
-async function resolveUnitIds(params: HubScopeParams): Promise<ObjectId[] | undefined> {
-    const {project, edifice, floor, unit, company, logger, languageCode} = params;
-    const opts = {logger, languageCode, withDeleted: false as const};
-
-    if (unit && ObjectId.isValid(unit)) {
-        const foundUnit = await unitService.findOne(
-            {_id: new ObjectId(unit), company: company._id},
-            opts as Parameters<typeof unitService.findOne>[1],
-        );
-        // Unknown / cross-company unit → empty match set (no throw; list returns empty).
-        return foundUnit?._id ? [foundUnit._id as ObjectId] : [];
-    }
-
-    const unitScope: Record<string, unknown> = {company: company._id};
-    if (project && ObjectId.isValid(project)) unitScope.project = new ObjectId(String(project));
-    if (edifice && ObjectId.isValid(edifice)) unitScope.edifice = new ObjectId(String(edifice));
-    if (floor && ObjectId.isValid(floor)) unitScope.floor = new ObjectId(String(floor));
-    if (!unitScope.project && !unitScope.edifice && !unitScope.floor) return undefined;
-
-    const units = await unitService.find(
-        unitScope,
-        opts as Parameters<typeof unitService.find>[1],
-        [],
-        "_id",
-        {},
-        10_000,
-        0,
-    );
-    return units.map((u) => u._id as ObjectId);
-}
 
 function parseDateRange(from?: string, to?: string): {from?: Date; to?: Date} {
     const result: {from?: Date; to?: Date} = {};
@@ -178,7 +138,7 @@ async function listLeases(
     );
 
     const companyId = company._id;
-    const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
+    const unitIds = await resolveHubUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
     const dateRange = parseDateRange(startDateFrom, startDateTo);
 
     const match: Record<string, unknown> = {
@@ -265,7 +225,7 @@ async function listRentalPayments(
     );
 
     const companyId = company._id;
-    const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
+    const unitIds = await resolveHubUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
     const dateRange = parseDateRange(dueDateFrom, dueDateTo);
 
     const match: Record<string, unknown> = {
@@ -383,7 +343,7 @@ async function listRentalPaymentsCalendar(
     logger.start("Listing rentals hub calendar...");
     assertAnyCollectedRead(canReadCollectedFields("rentalpayments", actionUserCtx, languageCode), languageCode);
 
-    const unitIds = await resolveUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
+    const unitIds = await resolveHubUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
     const [yearStr, monthStr] = month.split("-");
     const year = Number(yearStr);
     const monthIndex = Number(monthStr) - 1;

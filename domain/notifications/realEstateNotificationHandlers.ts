@@ -252,6 +252,44 @@ export function registerRealEstateNotificationEventHandlers(): void {
         }
     });
 
+    // ─── Construction progress (clients of units in scope) ───────────────────────
+
+    notificationEventBus.on(NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE, async (event: NotificationEvent) => {
+        const {receiverIds, payload} = event;
+        const opts = langOpts(event);
+        const unitsByUser = (payload.unitLabelsByUser ?? {}) as Record<string, string[]>;
+        const place = payload.edificeName ? `${payload.projectName} · ${payload.edificeName}` : payload.projectName;
+
+        for (const receiverId of receiverIds) {
+            const units = unitsByUser[receiverId]?.join(", ");
+            try {
+                await createAndPushNotification(
+                    {
+                        receiver: new ObjectId(receiverId),
+                        company: new ObjectId(payload.companyId as string),
+                        code: NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE,
+                        description: units
+                            ? `Unit ${units} (${place}) has reached ${payload.progressPercent}% of works`
+                            : `${place} has reached ${payload.progressPercent}% of works`,
+                        content: {
+                            constructionProgressId: payload.constructionProgressId,
+                            projectId: payload.projectId,
+                            phase: payload.phase,
+                            progressPercent: payload.progressPercent,
+                            units: unitsByUser[receiverId] ?? [],
+                        },
+                        importance: NotificationImportance.MEDIUM,
+                        category: NotificationCategory.COMPANY,
+                    },
+                    opts
+                );
+            }
+            catch (e) {
+                console.error(`Failed to create CONSTRUCTION_PROGRESS_UPDATE notification for ${receiverId}:`, e);
+            }
+        }
+    });
+
     // ─── Staff watchers (Sales & handover → Notifications) ─────────────────────
 
     notificationEventBus.on(NotificationEventCodes.RESERVATION_CREATED_STAFF, async (event: NotificationEvent) => {

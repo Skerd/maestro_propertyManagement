@@ -8,6 +8,7 @@ import Constructor from "@propertyManagement/database/schemas/constructor/constr
 import Inspection from "@propertyManagement/database/schemas/inspection/inspection";
 import ModificationRequest from "@propertyManagement/database/schemas/modificationRequest/modificationRequest";
 import Unit from "@propertyManagement/database/schemas/unit/unit";
+import ConstructionProgress from "@propertyManagement/database/schemas/constructionProgress/constructionProgress";
 import UnitCost from "@propertyManagement/database/schemas/unitCost/unitCost";
 import Reservation from "@propertyManagement/database/schemas/reservation/reservation";
 import Sale from "@propertyManagement/database/schemas/sale/sale";
@@ -30,6 +31,7 @@ export const propertyManagementModels: Model<any>[] = [
     Edifice,
     Floor,
     Unit,
+    ConstructionProgress,
     UnitCost,
     UnitType,
     UnitTypeCategory,

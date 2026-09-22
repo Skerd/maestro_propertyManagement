@@ -13,6 +13,7 @@ import {
     moneyToScaled,
     remainingScaled,
     scaledToDecimal128,
+    type RentMoneyRow,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import type {
@@ -61,6 +62,16 @@ router.post(
 );
 
 router.post(
+    "/rentalPayments/list",
+    authMW("private"),
+    rateLimiter({windowMs: 60_000, max: 60}),
+    validateFormZod(rentalPaymentsListFormSchema),
+    asyncHandler(async (params: AuthenticatedMWType & RentalPaymentsListFormType) => {
+        return listRentalPayments(params);
+    }),
+);
+
+router.post(
     "/rentalPayments/calendar",
     authMW("private"),
     rateLimiter({windowMs: 60_000, max: 60}),
@@ -77,7 +88,7 @@ type HubScopeParams = {
     edifice?: string;
     floor?: string;
     unit?: string;
-    company: {_id: ObjectId};
+    company: AuthenticatedMWType["company"];
     logger: any;
     languageCode: string;
 };
@@ -87,11 +98,12 @@ async function resolveUnitIds(params: HubScopeParams): Promise<ObjectId[] | unde
     const opts = {logger, languageCode, withDeleted: false as const};
 
     if (unit && ObjectId.isValid(unit)) {
-        const foundUnit = await unitService.findOneOrThrow(
+        const foundUnit = await unitService.findOne(
             {_id: new ObjectId(unit), company: company._id},
-            opts as Parameters<typeof unitService.findOneOrThrow>[1],
+            opts as Parameters<typeof unitService.findOne>[1],
         );
-        return [foundUnit._id as ObjectId];
+        // Unknown / cross-company unit → empty match set (no throw; list returns empty).
+        return foundUnit?._id ? [foundUnit._id as ObjectId] : [];
     }
 
     const unitScope: Record<string, unknown> = {company: company._id};
@@ -238,6 +250,7 @@ async function listRentalPayments(
         edifice,
         floor,
         unit,
+        payment,
         status,
         dueDateFrom,
         dueDateTo,
@@ -259,6 +272,7 @@ async function listRentalPayments(
         company: companyId,
         deletedAt: null,
     };
+    if (payment && ObjectId.isValid(payment)) match._id = new ObjectId(payment);
     if (unitIds) match.unit = {$in: unitIds};
     if (status) match.status = status;
 
@@ -294,13 +308,13 @@ async function listRentalPayments(
     return paginated;
 }
 
-function totalsByLease(payments: {lease?: unknown; paidAmount?: unknown; amount?: unknown; lateFeeAmount?: unknown; status?: string}[]): Map<string, {collected: number; outstanding: number}> {
+function totalsByLease(payments: (RentMoneyRow & {lease?: unknown})[]): Map<string, {collected: number; outstanding: number}> {
     const collected = new Map<string, bigint>();
     const outstanding = new Map<string, bigint>();
     for (const payment of payments) {
         const leaseId = leaseIdOf(payment.lease);
         if (!leaseId) continue;
-        collected.set(leaseId, (collected.get(leaseId) ?? 0n) + moneyToScaled(payment.paidAmount as never));
+        collected.set(leaseId, (collected.get(leaseId) ?? 0n) + moneyToScaled(payment.paidAmount));
         if (payment.status !== RentalPaymentStatus.WAIVED) {
             outstanding.set(leaseId, (outstanding.get(leaseId) ?? 0n) + remainingScaled(payment));
         }
@@ -326,13 +340,13 @@ function leaseIdOf(lease: unknown): string | undefined {
 
 function addRevenue(
     map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>,
-    payment: {currency?: unknown; paidAmount?: unknown; amount?: unknown; lateFeeAmount?: unknown; status?: string},
+    payment: RentMoneyRow & {currency?: unknown},
     kind: "collected" | "outstanding" | "overdue",
 ): void {
     const currency = payment.currency as {_id?: unknown; name?: string; symbol?: string} | undefined;
     const currencyId = currency?._id != null ? String(currency._id) : "_none";
     let add = 0n;
-    if (kind === "collected") add = moneyToScaled(payment.paidAmount as never);
+    if (kind === "collected") add = moneyToScaled(payment.paidAmount);
     else if (payment.status === RentalPaymentStatus.WAIVED) add = 0n;
     else {
         const rem = remainingScaled(payment);

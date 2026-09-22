@@ -11,6 +11,7 @@ const inventoryOwn = [
     "Unittypes",
     "Unittypecategories",
     "Constructors",
+    "Constructionprogresses",
 ];
 const unitCostOwn = ["Unitcosts"];
 const marketingOwn = ["Stories", "Storytypes"];

@@ -59,4 +59,6 @@ export const NotificationEventCodes = {
     BUDGET_APPROVED: "BUDGET_APPROVED",
     PROGRESS_CLAIM_SUBMITTED: "PROGRESS_CLAIM_SUBMITTED",
     SAFETY_INCIDENT_REPORTED: "SAFETY_INCIDENT_REPORTED",
+    /** Clients holding units in a project/building (ConstructionProgress). */
+    CONSTRUCTION_PROGRESS_UPDATE: "CONSTRUCTION_PROGRESS_UPDATE",
 } as const;

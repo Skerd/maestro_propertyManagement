@@ -63,6 +63,7 @@ import {
     remainingNumber,
     remainingScaled,
     scaledToDecimal128,
+    type RentMoneyRow,
 } from "../../../utilities/lease/rentRemaining";
 import {
     resolveHierarchySetsFromUnitIds,
@@ -188,7 +189,7 @@ function dashboardReadAccess(actionUserCtx: UserContext, languageCode: string) {
 }
 
 function rentalsFromPayments(
-    payments: {amount?: unknown; paidAmount?: unknown; lateFeeAmount?: unknown; status?: string; currency?: unknown}[],
+    payments: (RentMoneyRow & {currency?: unknown})[],
     activeLeases: number,
 ) {
     const collected = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
@@ -224,7 +225,7 @@ function rentalsFromPayments(
             }));
 
     for (const payment of payments) {
-        add(collected, payment, moneyToScaled(payment.paidAmount as never));
+        add(collected, payment, moneyToScaled(payment.paidAmount));
         if (payment.status === RentalPaymentStatus.WAIVED) continue;
         const rem = remainingScaled(payment);
         add(outstanding, payment, rem);
@@ -639,13 +640,19 @@ async function getDashboardStats(
                       { $unwind: "$saleDoc" },
                       { $lookup: { from: "units", localField: "saleDoc.unit", foreignField: "_id", as: "unitDoc" } },
                       { $unwind: "$unitDoc" },
+                      { $lookup: { from: "users", localField: "saleDoc.buyer", foreignField: "_id", as: "buyerDoc" } },
+                      { $unwind: { path: "$buyerDoc", preserveNullAndEmptyArrays: true } },
                       {
                           $project: {
+                              saleId: "$saleDoc._id",
                               unitId: "$unitDoc._id",
                               unitNumber: "$unitDoc.unitNumber",
                               unitName: "$unitDoc.name",
                               amount: "$installments.amount",
                               dueDate: "$installments.dueDate",
+                              clientId: "$buyerDoc._id",
+                              clientName: "$buyerDoc.name",
+                              clientSurname: "$buyerDoc.surname",
                           },
                       },
                       { $limit: 50 },
@@ -678,6 +685,8 @@ async function getDashboardStats(
                     },
                 },
                 {$unwind: "$unitDoc"},
+                { $lookup: { from: "users", localField: "client", foreignField: "_id", as: "clientDoc" } },
+                { $unwind: { path: "$clientDoc", preserveNullAndEmptyArrays: true } },
                 {
                     $project: {
                         reservationId: "$_id",
@@ -686,6 +695,9 @@ async function getDashboardStats(
                         unitName: "$unitDoc.name",
                         amount: {$ifNull: ["$depositAmount", 0]},
                         dueDate: "$expirationDate",
+                        clientId: "$clientDoc._id",
+                        clientName: "$clientDoc.name",
+                        clientSurname: "$clientDoc.surname",
                     },
                 },
                 {$limit: 50},
@@ -722,8 +734,13 @@ async function getDashboardStats(
             [
                 {path: "currency", select: "name symbol"},
                 {path: "unit", select: "name unitNumber"},
+                {
+                    path: "lease",
+                    select: "tenant",
+                    populate: {path: "tenant", select: "name surname"},
+                },
             ],
-            "amount paidAmount lateFeeAmount status currency unit dueDate",
+            "amount paidAmount lateFeeAmount status currency unit dueDate lease",
         ) : Promise.resolve(none),
         access.leases ? leaseService.count(
             {unit: {$in: companyUnitIds}, status: LeaseStatus.ACTIVE},
@@ -900,12 +917,26 @@ async function getDashboardStats(
     const oneDayMs = 24 * 60 * 60 * 1000;
     const rentAlertHorizon = nowMs + 30 * oneDayMs;
 
+    const mapAlertClient = (row: {
+        clientId?: unknown;
+        clientName?: string;
+        clientSurname?: string;
+    }): PaymentAlertItem["client"] | undefined => {
+        if (row.clientId == null) return undefined;
+        return {
+            _id: String(row.clientId),
+            name: row.clientName,
+            surname: row.clientSurname,
+        };
+    };
+
     const mapAlertRow = (
         row: any,
         kind: "installment" | "reservation" | "rent"
     ): PaymentAlertItem => {
         const dueDate = row.dueDate ? new Date(row.dueDate) : new Date();
         const daysUntilDue = Math.ceil((dueDate.getTime() - nowMs) / oneDayMs);
+        const client = mapAlertClient(row);
         return {
             kind,
             unit: {
@@ -913,6 +944,7 @@ async function getDashboardStats(
                 unitNumber: row.unitNumber,
                 name: row.unitName,
             },
+            ...(client ? {client} : {}),
             installment: {
                 amount: toNumber(row.amount),
                 dueDate: dueDate.toISOString(),
@@ -920,6 +952,9 @@ async function getDashboardStats(
             daysUntilDue,
             ...(kind === "reservation"
                 ? { reservationId: row.reservationId?.toString?.() ?? row._id?.toString?.() }
+                : {}),
+            ...(kind === "installment" && row.saleId
+                ? { saleId: row.saleId?.toString?.() ?? String(row.saleId) }
                 : {}),
         };
     };
@@ -934,7 +969,19 @@ async function getDashboardStats(
         })
         .map((p) => {
             const unit = p.unit as unknown as {_id?: unknown; unitNumber?: string; name?: string} | undefined;
+            const lease = p.lease as unknown as {
+                tenant?: {_id?: unknown; name?: string; surname?: string};
+            } | undefined;
+            const tenant = lease?.tenant;
             const dueDate = p.dueDate ? new Date(p.dueDate) : new Date();
+            const client =
+                tenant?._id != null
+                    ? {
+                          _id: String(tenant._id),
+                          name: tenant.name,
+                          surname: tenant.surname,
+                      }
+                    : undefined;
             return {
                 kind: "rent" as const,
                 unit: {
@@ -942,11 +989,13 @@ async function getDashboardStats(
                     unitNumber: unit?.unitNumber != null ? String(unit.unitNumber) : undefined,
                     name: unit?.name,
                 },
+                ...(client ? {client} : {}),
                 installment: {
                     amount: remainingNumber(p),
                     dueDate: dueDate.toISOString(),
                 },
                 daysUntilDue: Math.ceil((dueDate.getTime() - nowMs) / oneDayMs),
+                rentalPaymentId: p._id != null ? String(p._id) : undefined,
             };
         });
 

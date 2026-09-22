@@ -8,6 +8,7 @@ export function registerPropertyManagementRoomContributions(): void {
         edifices: "Edifices",
         floors: "Floors",
         units: "Units",
+        constructionProgress: "Construction progress",
         leads: "Leads",
         inspections: "Inspections",
         modificationRequests: "Modification requests",

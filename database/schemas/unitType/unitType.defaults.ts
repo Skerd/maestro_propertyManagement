@@ -377,10 +377,9 @@ export async function createUnitTypes(
                         company: company,
                         createdBy: company.createdBy
                     },
-                    $setOnInsert: {
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
+                    // See `unitTypeCategory.defaults.ts`: `auditPlugin` turns on
+                    // mongoose timestamps, which already manage both fields on an
+                    // upsert. Setting them here too makes mongo reject the batch.
                 },
                 upsert: true,
             },

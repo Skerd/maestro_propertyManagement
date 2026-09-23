@@ -29,10 +29,12 @@ export async function createUnitTypeCategories(parentLogger: serverLogger, compa
                         company,
                         createdBy: company.createdBy,
                     },
-                    $setOnInsert: {
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
+                    // No manual createdAt/updatedAt: `auditPlugin` sets
+                    // `timestamps: true`, so mongoose already adds `updatedAt`
+                    // to `$set` and `createdAt` to `$setOnInsert` on an upsert.
+                    // Setting them here too makes mongo reject the whole batch
+                    // with "Updating the path 'updatedAt' would create a
+                    // conflict at 'updatedAt'".
                 },
                 upsert: true,
             },

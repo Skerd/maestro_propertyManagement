@@ -4,6 +4,8 @@ import {runPaymentPlanInstallmentReminders} from "../../utilities/cronJobs/payme
 import {runModificationRequestSlaEscalations} from "../../utilities/cronJobs/modificationRequestSlaJob";
 import {runRentalMaintenance} from "../../utilities/cronJobs/rentalMaintenanceJob";
 import {runLeaseRentReminders} from "../../utilities/cronJobs/leaseRentReminderJob";
+import {runAdCampaignDispatchJob} from "../../utilities/cronJobs/adCampaignDispatchJob";
+import {runAdCampaignReclaimJob} from "../../utilities/cronJobs/adCampaignReclaimJob";
 
 export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
@@ -68,6 +70,38 @@ export function registerPropertyManagementCronHandlers(): void {
             name: "Lease rent reminder",
             cronExpression: "0 14 8 * * *",
             priority: 15,
+        },
+    });
+
+    // Every minute: picks up campaigns whose `scheduledAt` has arrived and
+    // resumes any left mid-send. The timeout is under the 5-minute tick budget
+    // so a long drain yields rather than being killed — the next tick simply
+    // reclaims the campaign and continues where it stopped.
+    registerCronHandler({
+        code: "propertyManagement.adCampaignDispatch",
+        handler: async ctx => {
+            await runAdCampaignDispatchJob(ctx);
+        },
+        version: "1",
+        defaultJob: {
+            name: "Ad campaign dispatch",
+            cronExpression: "0 * * * * *",
+            priority: 20,
+            timeoutSeconds: 280,
+        },
+    });
+
+    // Every ten minutes: frees rows and campaigns stranded by a dead worker.
+    registerCronHandler({
+        code: "propertyManagement.adCampaignReclaim",
+        handler: async ctx => {
+            await runAdCampaignReclaimJob(ctx);
+        },
+        version: "1",
+        defaultJob: {
+            name: "Ad campaign stuck-row reclaim",
+            cronExpression: "0 */10 * * * *",
+            priority: 25,
         },
     });
 

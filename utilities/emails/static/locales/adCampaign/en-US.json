@@ -1,0 +1,11 @@
+{
+  "htmlLang": "en",
+  "greeting": "Hello {fullName},",
+  "ignore": "If anything here looks unexpected, contact your agent.",
+  "footerNote": "You received this email because you are a client or contact of {companyName}.",
+  "copyright": "© {year} {pageName}. All rights reserved.",
+  "unsubscribeIntro": "Don't want these emails?",
+  "unsubscribeLabel": "Unsubscribe",
+  "managePreferencesLabel": "Manage your email preferences",
+  "unsubscribeSeparator": "·"
+}

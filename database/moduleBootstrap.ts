@@ -23,6 +23,10 @@ import HandoverPackage from "@propertyManagement/database/schemas/handoverPackag
 import InspectionChecklistTemplate from "@propertyManagement/database/schemas/inspectionChecklistTemplate/inspectionChecklistTemplate";
 import PropertyManagementConfig from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig";
 import DashboardCache from "@propertyManagement/database/schemas/dashboardCache/dashboardCache";
+import AdCampaignTemplate from "@propertyManagement/database/schemas/adCampaignTemplate/adCampaignTemplate";
+import AdCampaign from "@propertyManagement/database/schemas/adCampaign/adCampaign";
+import AdCampaignRecipient from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient";
+import MarketingPreference from "@propertyManagement/database/schemas/marketingPreference/marketingPreference";
 import {realEstateDefaultRoles} from "@propertyManagement/database/schemas/role/realEstate.role.defaults";
 import {registerDefaultRoles} from "@coreModule/database/schemas/role/role.defaults";
 
@@ -51,6 +55,10 @@ export const propertyManagementModels: Model<any>[] = [
     InspectionChecklistTemplate,
     PropertyManagementConfig,
     DashboardCache,
+    AdCampaignTemplate,
+    AdCampaign,
+    AdCampaignRecipient,
+    MarketingPreference,
 ];
 
 export async function dropPropertyManagementCollections(): Promise<void> {

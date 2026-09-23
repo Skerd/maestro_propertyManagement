@@ -1,0 +1,11 @@
+{
+  "htmlLang": "sq",
+  "greeting": "Përshëndetje {fullName},",
+  "ignore": "Nëse diçka këtu ju duket e papritur, kontaktoni agjentin tuaj.",
+  "footerNote": "E morët këtë email sepse jeni klient ose kontakt i {companyName}.",
+  "copyright": "© {year} {pageName}. Të gjitha të drejtat e rezervuara.",
+  "unsubscribeIntro": "Nuk dëshironi t'i merrni këto email?",
+  "unsubscribeLabel": "Çregjistrohu",
+  "managePreferencesLabel": "Menaxho preferencat e emailit",
+  "unsubscribeSeparator": "·"
+}

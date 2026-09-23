@@ -1,0 +1,11 @@
+{
+  "htmlLang": "it",
+  "greeting": "Gentile {fullName},",
+  "ignore": "Se qualcosa non le sembra corretto, contatti il suo consulente.",
+  "footerNote": "Riceve questa email perché è cliente o contatto di {companyName}.",
+  "copyright": "© {year} {pageName}. Tutti i diritti riservati.",
+  "unsubscribeIntro": "Non desidera più ricevere queste email?",
+  "unsubscribeLabel": "Annulla l'iscrizione",
+  "managePreferencesLabel": "Gestisci le preferenze email",
+  "unsubscribeSeparator": "·"
+}

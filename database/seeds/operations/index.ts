@@ -14,6 +14,7 @@ export {storyTypesSeed} from "./storyTypes.seed";
 export {storiesSeed} from "./stories.seed";
 export {constructionUpdatesSeed} from "./constructionUpdates.seed";
 export {propertyManagementConfigSeed} from "./propertyManagementConfig.seed";
+export {adCampaignTemplatesSeed} from "./adCampaignTemplates.seed";
 export {unavailableUnitIds} from "./unavailableUnits.seed";
 export {storyMediaSeed, storyMainImageByStoryId} from "./storyMedia.seed";
 export * from "./types";

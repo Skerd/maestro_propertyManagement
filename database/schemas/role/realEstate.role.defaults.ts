@@ -17,6 +17,15 @@ const unitCostOwn = ["Unitcosts"];
 const marketingOwn = ["Stories", "Storytypes"];
 const portfolioOwn = unique([...inventoryOwn, ...unitCostOwn, ...marketingOwn]);
 
+// Ad campaigns. Deliberately its own group rather than folded into
+// `marketingOwn`: writing a story changes a web page, whereas writing a
+// campaign can email every client the company has. The two do not belong
+// behind the same checkbox.
+const campaignOwn = ["Adcampaigns", "Adcampaigntemplates", "Marketingpreferences"];
+// Delivery records are machine-written (every field is SYSTEM_WRITE), so they
+// are only ever granted as read.
+const campaignRead = ["Adcampaignrecipients"];
+
 const leadOwn = ["Leads"];
 const salesAgentOwn = ["Reservations", "Sales", "Signaturerequests"];
 const collectionsOwn = ["Paymentplans"];
@@ -44,9 +53,10 @@ const allOwn = unique([
     ...leasingManagerOwn,
     ...changeOrderOwn,
     ...aftercareOwn,
+    ...campaignOwn,
 ]);
 
-const allRead = unique([...allOwn, ...INV, ...DASH, "Reservations"]);
+const allRead = unique([...allOwn, ...INV, ...DASH, ...campaignRead, "Reservations"]);
 
 function unique(values: string[]): string[] {
     return [...new Set(values)];
@@ -93,6 +103,13 @@ export const realEstateDefaultRoles: DefaultRoleDefinition[] = [
         "Publishes project and unit stories. Can look up inventory but cannot change it.",
         marketingOwn,
         [...INV, ...DASH],
+    ),
+    reRole(
+        "Campaign Manager",
+        "re_campaign_manager",
+        "Builds and sends ad campaigns to clients and leads, and maintains the email templates. Can look up inventory and leads but cannot change them.",
+        campaignOwn,
+        [...INV, ...campaignRead, "Leads", ...DASH],
     ),
     reRole(
         "Portfolio Manager",

@@ -1,0 +1,11 @@
+{
+  "htmlLang": "de",
+  "greeting": "Guten Tag {fullName},",
+  "ignore": "Falls Ihnen hier etwas unerwartet erscheint, wenden Sie sich an Ihre Beraterin oder Ihren Berater.",
+  "footerNote": "Sie erhalten diese E-Mail, weil Sie Kundin, Kunde oder Kontakt von {companyName} sind.",
+  "copyright": "© {year} {pageName}. Alle Rechte vorbehalten.",
+  "unsubscribeIntro": "Sie möchten diese E-Mails nicht mehr erhalten?",
+  "unsubscribeLabel": "Abmelden",
+  "managePreferencesLabel": "E-Mail-Einstellungen verwalten",
+  "unsubscribeSeparator": "·"
+}

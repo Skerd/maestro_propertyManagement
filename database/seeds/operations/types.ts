@@ -14,6 +14,11 @@
  *    the single exception of `Story.mainImage`, which the schema requires.
  */
 
+import type {
+    AdCampaignLocale,
+    AdCampaignType,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
+
 export type UserRef = {$user: string};
 export type CurrencyRef = {$currency: string};
 export type StoryTypeRef = {$storyType: string};
@@ -348,4 +353,20 @@ export type PropertyManagementConfigSeedRow = {
     id: PreservedId;
     requiresSaleApproval: boolean;
     requiresHandoverPackageForHandover: boolean;
+};
+
+export type AdCampaignTemplateSeedRow = {
+    id: PreservedId;
+    name: string;
+    // From the shared enums, not re-declared: a new campaign type or locale
+    // should widen this automatically rather than silently not fit.
+    campaignType: AdCampaignType;
+    locale: AdCampaignLocale;
+    subject: string;
+    previewText: string;
+    /** Email-safe HTML; only `AD_CAMPAIGN_PLACEHOLDERS` tokens. */
+    bodyHtml: string;
+    /** At most one per campaign type — the unique partial index enforces it. */
+    isDefault: boolean;
+    active: boolean;
 };

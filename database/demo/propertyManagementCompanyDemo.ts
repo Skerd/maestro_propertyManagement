@@ -38,6 +38,7 @@ import {loadWorkflowCtx} from "@propertyManagement/database/seeds/workflow/workf
 import {ObjectId} from "mongodb";
 import {createHandoverPackages} from "@propertyManagement/database/schemas/handoverPackage/handoverPackage.defaults";
 import {createInspectionChecklistTemplates} from "@propertyManagement/database/schemas/inspectionChecklistTemplate/inspectionChecklistTemplate.defaults";
+import {createAdCampaignTemplates} from "@propertyManagement/database/schemas/adCampaignTemplate/adCampaignTemplate.defaults";
 
 export async function seedPropertyManagementDemoData(
     parentLogger: serverLogger | undefined,
@@ -78,6 +79,9 @@ export async function seedPropertyManagementDemoData(
         await createStories(logger, company, projectIds, storyTypeIds, storyMedia);
 
         await createPropertyManagementConfig(logger, company);
+        // Independent of the estate graph — templates reference no project or
+        // unit, only `{placeholder}` tokens resolved per recipient at send time.
+        await createAdCampaignTemplates(logger, company);
 
         const ctx = await loadWorkflowCtx(company, refs, projectIds, edificeIds, unitIds);
         const extra: Record<string, Map<string, ObjectId>> = {};

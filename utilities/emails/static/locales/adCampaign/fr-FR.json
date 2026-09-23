@@ -1,0 +1,11 @@
+{
+  "htmlLang": "fr",
+  "greeting": "Bonjour {fullName},",
+  "ignore": "Si quelque chose vous semble inattendu, contactez votre conseiller.",
+  "footerNote": "Vous recevez cet e-mail car vous êtes client ou contact de {companyName}.",
+  "copyright": "© {year} {pageName}. Tous droits réservés.",
+  "unsubscribeIntro": "Vous ne souhaitez plus recevoir ces e-mails ?",
+  "unsubscribeLabel": "Se désabonner",
+  "managePreferencesLabel": "Gérer vos préférences d'e-mail",
+  "unsubscribeSeparator": "·"
+}

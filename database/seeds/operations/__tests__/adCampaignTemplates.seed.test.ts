@@ -23,11 +23,9 @@ import {
 import {adCampaignTemplatesSeed} from "../adCampaignTemplates.seed";
 
 describe("shipped ad campaign templates", () => {
-    it("ships exactly one default per campaign type, covering every type", () => {
-        const byType = adCampaignTemplatesSeed.filter(t => t.isDefault).map(t => t.campaignType);
+    it("ships exactly one template per campaign type, covering every type", () => {
+        const byType = adCampaignTemplatesSeed.map(t => t.campaignType);
         expect(byType.sort()).toEqual([...AD_CAMPAIGN_TYPE_VALUES].sort());
-        // The unique partial index on {company, campaignType, isDefault} would
-        // reject a second default, so a duplicate here fails the seed at runtime.
         expect(new Set(byType).size).toBe(byType.length);
     });
 

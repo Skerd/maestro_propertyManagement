@@ -143,19 +143,10 @@ softDeletePlugin(AdCampaignRecipientSchema);
 lifeCyclePlugin(AdCampaignRecipientSchema);
 applyAdCampaignRecipientIndexes(AdCampaignRecipientSchema);
 
-const AdCampaignRecipient = model<IAdCampaignRecipient>(
-    "AdCampaignRecipient",
-    AdCampaignRecipientSchema,
-    "adcampaignrecipients",
-);
+const AdCampaignRecipient = model<IAdCampaignRecipient>("AdCampaignRecipient", AdCampaignRecipientSchema, "adcampaignrecipients",);
 export default AdCampaignRecipient;
 
 normalizeSchemaPermissions(AdCampaignRecipient);
 
 addModelData(AdCampaignRecipient, adCampaignRecipientViews);
-validateSchemaDefAgainstMongoose(
-    AdCampaignRecipientSchema,
-    AdCampaignRecipientSchemaDef,
-    "AdCampaignRecipient",
-    ["claimedAt", "claimToken"],
-);
+validateSchemaDefAgainstMongoose(AdCampaignRecipientSchema, AdCampaignRecipientSchemaDef, "AdCampaignRecipient", ["claimedAt", "claimToken"]);

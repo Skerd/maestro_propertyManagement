@@ -9,13 +9,6 @@ export function applyAdCampaignTemplateIndexes(schema: Schema): void {
         {unique: true, partialFilterExpression: {deletedAt: null}},
     );
 
-    // At most one default per type per company. Partial on `isDefault: true` so
-    // the many non-default rows don't collide with each other.
-    schema.index(
-        {company: 1, campaignType: 1, isDefault: 1},
-        {unique: true, partialFilterExpression: {deletedAt: null, isDefault: true}},
-    );
-
     // The send-time lookup: type + locale, active rows only.
     schema.index({company: 1, campaignType: 1, locale: 1, active: 1});
 }

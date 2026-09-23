@@ -43,7 +43,6 @@ export async function createAdCampaignTemplates(
                 subject: seedRow.subject,
                 previewText: seedRow.previewText,
                 bodyHtml: sanitizeAdCampaignHtml(seedRow.bodyHtml),
-                isDefault: seedRow.isDefault,
                 active: seedRow.active,
                 company: company._id,
                 createdBy: company.createdBy,

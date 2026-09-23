@@ -366,7 +366,5 @@ export type AdCampaignTemplateSeedRow = {
     previewText: string;
     /** Email-safe HTML; only `AD_CAMPAIGN_PLACEHOLDERS` tokens. */
     bodyHtml: string;
-    /** At most one per campaign type — the unique partial index enforces it. */
-    isDefault: boolean;
     active: boolean;
 };

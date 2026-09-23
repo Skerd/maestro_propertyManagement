@@ -15,7 +15,6 @@ export function adCampaignTemplateToDTO(doc: IAdCampaignTemplate): AdCampaignTem
         subject:      doc.subject,
         previewText:  doc.previewText ?? undefined,
         bodyHtml:     doc.bodyHtml,
-        isDefault:    doc.isDefault ?? undefined,
         active:       doc.active ?? undefined,
         ...mapOwnershipToDTO(doc),
         ...mapSoftDeleteToDTO(doc),

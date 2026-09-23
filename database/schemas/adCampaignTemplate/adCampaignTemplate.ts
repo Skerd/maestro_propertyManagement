@@ -43,7 +43,6 @@ export interface IAdCampaignTemplate extends Document, IOwnershipPluginFields, I
     subject: string;
     previewText?: string;
     bodyHtml: string;
-    isDefault?: boolean;
     active?: boolean;
 }
 
@@ -56,8 +55,16 @@ const AdCampaignTemplateSchema = new Schema<IAdCampaignTemplate>(
             minlength: 1,
             maxlength: AD_CAMPAIGN_NAME_MAX,
         },
-        campaignType: {type: SchemaTypes.String, required: true, enum: AD_CAMPAIGN_TYPE_VALUES},
-        locale: {type: SchemaTypes.String, required: true, enum: AD_CAMPAIGN_LOCALE_VALUES},
+        campaignType: {
+            type: SchemaTypes.String,
+            required: true,
+            enum: AD_CAMPAIGN_TYPE_VALUES
+        },
+        locale: {
+            type: SchemaTypes.String,
+            required: true,
+            enum: AD_CAMPAIGN_LOCALE_VALUES
+        },
         subject: {
             type: SchemaTypes.String,
             required: true,
@@ -77,8 +84,11 @@ const AdCampaignTemplateSchema = new Schema<IAdCampaignTemplate>(
             minlength: 1,
             maxlength: AD_CAMPAIGN_BODY_MAX,
         },
-        isDefault: {type: SchemaTypes.Boolean, required: false, default: false},
-        active: {type: SchemaTypes.Boolean, required: false, default: true},
+        active: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: true
+        },
     },
     {accessMode: "loose"},
 );
@@ -89,18 +99,10 @@ softDeletePlugin(AdCampaignTemplateSchema);
 lifeCyclePlugin(AdCampaignTemplateSchema);
 applyAdCampaignTemplateIndexes(AdCampaignTemplateSchema);
 
-const AdCampaignTemplate = model<IAdCampaignTemplate>(
-    "AdCampaignTemplate",
-    AdCampaignTemplateSchema,
-    "adcampaigntemplates",
-);
+const AdCampaignTemplate = model<IAdCampaignTemplate>("AdCampaignTemplate", AdCampaignTemplateSchema, "adcampaigntemplates",);
 export default AdCampaignTemplate;
 
 normalizeSchemaPermissions(AdCampaignTemplate);
 
 addModelData(AdCampaignTemplate, adCampaignTemplateViews);
-validateSchemaDefAgainstMongoose(
-    AdCampaignTemplateSchema,
-    AdCampaignTemplateSchemaDef,
-    "AdCampaignTemplate",
-);
+validateSchemaDefAgainstMongoose(AdCampaignTemplateSchema, AdCampaignTemplateSchemaDef, "AdCampaignTemplate");

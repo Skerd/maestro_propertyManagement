@@ -5,7 +5,7 @@
  * fresh company starts with, so an operator can send a campaign on day one
  * instead of facing an empty template library and a blank HTML editor.
  *
- * All three are `en-US` and `isDefault`. The sender resolves a recipient's
+ * All three are `en-US`. The sender resolves a recipient's
  * locale through `adCampaignTemplateService.resolveForLocale`, which falls back
  * to the chosen row when no sibling exists in that language — so one locale is
  * a working default for every recipient, and a company adds translated siblings
@@ -75,7 +75,6 @@ export const adCampaignTemplatesSeed: readonly AdCampaignTemplateSeedRow[] = [
         subject: "A price update on {unitNumber} at {projectName}",
         previewText: "{unitNumber} is now {newPrice}.",
         bodyHtml: PRICE_CHANGE_BODY,
-        isDefault: true,
         active: true,
     },
     {
@@ -86,7 +85,6 @@ export const adCampaignTemplatesSeed: readonly AdCampaignTemplateSeedRow[] = [
         subject: "{offerTitle} — until {offerEndsAt}",
         previewText: "An offer for clients of {companyName}.",
         bodyHtml: OFFER_BODY,
-        isDefault: true,
         active: true,
     },
     {
@@ -97,7 +95,6 @@ export const adCampaignTemplatesSeed: readonly AdCampaignTemplateSeedRow[] = [
         subject: "Introducing {projectName}",
         previewText: "A new development from {companyName}.",
         bodyHtml: NEW_PROJECT_BODY,
-        isDefault: true,
         active: true,
     },
 ];

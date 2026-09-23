@@ -2,7 +2,6 @@ import {ObjectId} from "mongodb";
 import {BaseCrudService} from "@coreModule/database/services/baseCrudService";
 import type {
     AdCampaignLocale,
-    AdCampaignType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import AdCampaignTemplate, {IAdCampaignTemplate} from "./adCampaignTemplate";
 
@@ -45,16 +44,6 @@ export class AdCampaignTemplateService extends BaseCrudService<IAdCampaignTempla
         }).lean<IAdCampaignTemplate>();
 
         return sibling ?? chosen;
-    }
-
-    /** The company's default template for a type, used to prefill the campaign form. */
-    async findDefaultForType(company: ObjectId, campaignType: AdCampaignType): Promise<IAdCampaignTemplate | null> {
-        return AdCampaignTemplate.findOne({
-            company,
-            campaignType,
-            isDefault: true,
-            active: true,
-        }).lean<IAdCampaignTemplate>();
     }
 }
 

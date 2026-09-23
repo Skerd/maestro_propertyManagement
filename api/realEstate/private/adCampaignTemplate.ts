@@ -35,11 +35,16 @@ export const {router} = createCrudRouter({
     buildCreateData: (params: any) => {
         const data = buildCreateDataFromSchemaDef(AdCampaignTemplateSchemaDef)(params);
         if (typeof data.bodyHtml === "string") data.bodyHtml = sanitizeAdCampaignHtml(data.bodyHtml);
+        // `active` is owned by the activate/deactivate actions, not the forms.
+        // A new template is always live; retiring one is a deliberate, confirmed
+        // step, so neither form can set the flag even if a caller sends it.
+        data.active = true;
         return data;
     },
     buildUpdateData: (params: any, writeFields) => {
         const data = buildUpdateDataFromSchemaDef(AdCampaignTemplateSchemaDef)(params, writeFields);
         if (typeof data.bodyHtml === "string") data.bodyHtml = sanitizeAdCampaignHtml(data.bodyHtml);
+        delete data.active;
         return data;
     },
 });

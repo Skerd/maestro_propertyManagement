@@ -153,14 +153,6 @@ const createAdCampaignTemplateFormNode: ViewConfig["nodes"] = [
                             widgetProps: {options: localeOptions, className: "grow w-full"},
                         },
                     },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "active",
-                            widget: "#Switch",
-                            label: "form.activeLabel"
-                        },
-                    },
                 ],
             },
         ],
@@ -271,18 +263,6 @@ const editAdCampaignTemplateFormNode: ViewConfig["nodes"] = [
                         permissions: {
                             read: "locale",
                             write: "locale"
-                        }
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "active",
-                            widget: "#Switch",
-                            label: "form.activeLabel"
-                        },
-                        permissions: {
-                            read: "active",
-                            write: "active"
                         }
                     },
                 ],

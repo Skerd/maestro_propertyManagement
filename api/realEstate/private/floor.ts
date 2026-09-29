@@ -27,7 +27,7 @@ async function loadEffectivePricing(floor: any, { companyId, logger, languageCod
     const edifice: any = await edificeService.findOne(
         { _id: new ObjectId(String(edificeId)), company: companyId },
         { logger, languageCode },
-        [{ path: "saleCurrency", select: "symbol name" }],
+        [{ path: "saleCurrency", select: "symbol name abbreviation" }],
     );
     const { pricePerMeterSquared, verandaPricePerMeterSquared, source } = resolveEffectiveRates(floor, edifice);
     const currency = edifice?.saleCurrency;
@@ -35,7 +35,14 @@ async function loadEffectivePricing(floor: any, { companyId, logger, languageCod
         pricePerMeterSquared,
         verandaPricePerMeterSquared,
         source,
-        saleCurrency: currency?._id ? { _id: currency._id.toString(), symbol: currency.symbol, name: currency.name } : undefined,
+        saleCurrency: currency?._id
+            ? {
+                _id: currency._id.toString(),
+                symbol: currency.symbol,
+                name: currency.name,
+                abbreviation: currency.abbreviation,
+            }
+            : undefined,
     };
 }
 

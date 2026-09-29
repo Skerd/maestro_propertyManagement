@@ -1,20 +1,19 @@
 import type {Story} from "armonia/src/modules/propertyManagement/api/realEstate/private/story/story.dto";
 import type {IStory} from "../../../database/schemas/story/story";
-import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {EdificeSimple} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {StoryTypeSimple} from "armonia/src/modules/propertyManagement/dto/storyType.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {EdificeSimpleSnippet} from "@propertyManagement/database/schemas/edifice/edifice.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {StoryTypeSimpleSnippet} from "@propertyManagement/database/schemas/storyType/storyType.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-
-function mapUnitRef(ref: any): {_id: string; name: string; unitNumber?: string} | undefined {
-    if (!ref) return undefined;
-    return {
-        _id: ref._id?.toString(),
-        name: ref.name ?? "",
-        unitNumber: ref.unitNumber ?? undefined,
-    };
-}
 
 function toIso(value: unknown): string | undefined {
     if (!value) return undefined;
@@ -30,10 +29,10 @@ export function storyToDTO(doc: IStory): Story {
     return {
         _id: doc._id.toString(),
         name: doc.name,
-        project: mapPopulatedRef(doc.project)!,
-        storyType: mapPopulatedRef(doc.storyType),
-        edifice: mapPopulatedRef(doc.edifice),
-        unit: mapUnitRef(doc.unit),
+        project: mapSnippet<ProjectSimple>()(doc.project, ProjectSimpleSnippet)!,
+        storyType: mapSnippet<StoryTypeSimple>()(doc.storyType, StoryTypeSimpleSnippet),
+        edifice: mapSnippet<EdificeSimple>()(doc.edifice, EdificeSimpleSnippet),
+        unit: mapSnippet<UnitSimple>()(doc.unit, UnitSimpleSnippet),
         title: doc.title,
         content: doc.content,
         excerpt: doc.excerpt ?? undefined,

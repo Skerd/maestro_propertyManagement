@@ -9,12 +9,15 @@ import type {
 import {SalePaymentType} from "../../database/schemas/sale/sale";
 import {ReservationStatus} from "../../database/schemas/reservation/reservation";
 import {computePaymentPlanRemainingBalance} from "../../database/schemas/paymentPlan/paymentPlan";
-import {
-    decimalToNumber,
-    mapPopulatedRef,
-    mapPopulatedSimpleCurrency,
-    mapPopulatedSimpleUser,
-} from "@coreModule/utilities/mappers/common.mapper";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
+import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {decimalToNumber, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 
 const UNIT_POPULATE = [
     {
@@ -67,16 +70,6 @@ function mediaUploadDate(media: unknown): string | undefined {
     return m.createdAt ? new Date(m.createdAt).toISOString() : undefined;
 }
 
-function mapUserRef(user: unknown): {_id: string; name?: string; surname?: string} | undefined {
-    if (!user) return undefined;
-    const u = user as {_id?: {toString: () => string}; name?: string; surname?: string};
-    return {
-        _id: u._id?.toString?.() ?? String(user),
-        name: u.name,
-        surname: u.surname,
-    };
-}
-
 function mapUserContact(user: unknown): Pick<ClientRegistryRow, "name" | "surname" | "phone" | "email"> {
     if (!user) return {};
     const u = user as {
@@ -94,20 +87,13 @@ function mapUserContact(user: unknown): Pick<ClientRegistryRow, "name" | "surnam
 }
 
 function mapUnitLocation(unit: unknown): Pick<ContractRegistryRow, "project" | "unit"> {
-    const u = unit as {
-        _id?: {toString: () => string};
-        name?: string;
-        unitNumber?: string;
-        floor?: {edifice?: {project?: unknown; name?: string; _id?: unknown}; name?: string; _id?: unknown};
-    };
-    if (!u) return {};
+    if (!unit || typeof unit !== "object") return {};
+    const u = unit as {floor?: {edifice?: {project?: object}}};
     return {
-        unit: {
-            _id: u._id?.toString?.() ?? "",
-            name: u.name,
-            unitNumber: u.unitNumber,
-        },
-        project: mapPopulatedRef(u.floor?.edifice?.project),
+        unit: mapSnippet<UnitSimple>()(unit, UnitSimpleSnippet),
+        project: u.floor?.edifice?.project
+            ? mapSnippet<ProjectSimple>()(u.floor.edifice.project, ProjectSimpleSnippet)
+            : undefined,
     };
 }
 
@@ -178,13 +164,13 @@ export function reservationToContractRow(reservation: Record<string, unknown>): 
         sourceType: "reservation",
         sourceId: id,
         contractNumber: reservation.name as string | undefined,
-        client: mapUserRef(reservation.client),
+        client: mapSnippet<SimpleBlankUser>()(reservation.client as object | undefined, SimpleBlankUserSnippet),
         ...location,
         contractType: reservationContractType(),
         status: reservationContractStatus(reservation.status as string | undefined),
         signatureDate: toIsoDate(reservation.reservationDate),
         uploadDate: mediaUploadDate(contracts?.[0]),
-        agent: mapUserRef(reservation.reservedBy),
+        agent: mapSnippet<SimpleBlankUser>()(reservation.reservedBy as object | undefined, SimpleBlankUserSnippet),
         paymentStatus: reservationPaymentStatus(reservation as {paid?: boolean; depositAmount?: unknown}),
     };
 }
@@ -198,13 +184,13 @@ export function saleToContractRow(sale: Record<string, unknown>): ContractRegist
         sourceType: "sale",
         sourceId: id,
         contractNumber: sale.name as string | undefined,
-        client: mapUserRef(sale.buyer),
+        client: mapSnippet<SimpleBlankUser>()(sale.buyer as object | undefined, SimpleBlankUserSnippet),
         ...location,
         contractType: saleContractType(sale.paymentType as string | undefined),
         status: "sold",
         signatureDate: toIsoDate(sale.saleDate),
         uploadDate: mediaUploadDate(sale.purchaseContract),
-        agent: mapUserRef(sale.soldBy),
+        agent: mapSnippet<SimpleBlankUser>()(sale.soldBy as object | undefined, SimpleBlankUserSnippet),
         paymentStatus: salePaymentStatus(sale as {paymentType?: string; paymentPlan?: unknown}),
     };
 }
@@ -216,7 +202,7 @@ function computeClientMoney(
 ): {paid?: number; remaining?: number; unitValue?: number; currency?: ClientRegistryRow["currency"]} {
     if (status === "sold" && sale) {
         const finalPrice = decimalToNumber(sale.finalPrice as never);
-        const currency = mapPopulatedSimpleCurrency(sale.saleCurrency as never);
+        const currency = mapSnippet<CurrencySimple>()(sale.saleCurrency as object | undefined, CurrencySimpleSnippet);
         const paymentType = sale.paymentType as string | undefined;
 
         if (paymentType === SalePaymentType.CASH) {
@@ -252,7 +238,7 @@ function computeClientMoney(
                 ? parseFloat(String(reservation.depositAmount))
                 : 0;
         const paid = reservation.paid === true;
-        const currency = mapPopulatedSimpleCurrency(unit?.priceCurrency as never);
+        const currency = mapSnippet<CurrencySimple>()(unit?.priceCurrency as object | undefined, CurrencySimpleSnippet);
 
         let remaining: number | undefined;
         if (unitPrice != null && Number.isFinite(unitPrice)) {
@@ -305,7 +291,7 @@ export function buildClientRegistryRows(
             currency: money.currency,
             status: "reserved",
             bookingDate: toIsoDate(reservation.reservationDate),
-            agent: mapUserRef(reservation.reservedBy),
+            agent: mapSnippet<SimpleBlankUser>()(reservation.reservedBy as object | undefined, SimpleBlankUserSnippet),
             paid: money.paid,
             remaining: money.remaining,
             sourceType: "reservation",
@@ -345,7 +331,7 @@ export function buildClientRegistryRows(
             status: "sold",
             bookingDate: existing?.bookingDate ?? toIsoDate(linkedReservation?.reservationDate),
             contractDate: toIsoDate(sale.saleDate),
-            agent: mapUserRef(sale.soldBy),
+            agent: mapSnippet<SimpleBlankUser>()(sale.soldBy as object | undefined, SimpleBlankUserSnippet),
             paid: money.paid,
             remaining: money.remaining,
             sourceType: "sale",

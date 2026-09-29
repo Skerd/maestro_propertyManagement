@@ -1,28 +1,30 @@
 import type {MarketingPreference} from "armonia/src/modules/propertyManagement/api/realEstate/private/marketingPreference/marketingPreference.dto";
 import type {IMarketingPreference} from "../../../database/schemas/marketingPreference/marketingPreference";
-import {mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {SimpleUser} from "armonia/src/modules/core/dto/user.dto";
+import type {LeadSimple} from "armonia/src/modules/propertyManagement/dto/lead.dto";
+import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {LeadSimpleSnippet} from "@propertyManagement/database/schemas/lead/lead.snippets";
+import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO,
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-const iso = (d: Date | string | undefined | null) => (d instanceof Date ? d.toISOString() : d ?? undefined);
-
 export function marketingPreferenceToDTO(doc: IMarketingPreference): MarketingPreference {
     return {
         _id:               doc._id.toString(),
         email:             doc.email,
-        user:              doc.user ? mapPopulatedRef(doc.user) : undefined,
-        lead:              doc.lead ? mapPopulatedRef(doc.lead) : undefined,
+        user:              mapSnippet<SimpleUser>()(doc.user, SimpleUserSnippet),
+        lead:              mapSnippet<LeadSimple>()(doc.lead, LeadSimpleSnippet),
         // `!== false` so a row predating a flag reads as allowed, matching
         // `marketingPreferenceService.getState`.
         allowPriceChange:  doc.allowPriceChange !== false,
         allowOffers:       doc.allowOffers !== false,
         allowNewProjects:  doc.allowNewProjects !== false,
-        unsubscribedAllAt: iso(doc.unsubscribedAllAt),
+        unsubscribedAllAt: doc.unsubscribedAllAt ?? undefined,
         source:            doc.source ?? undefined,
-        lastChangedAt:     iso(doc.lastChangedAt),
+        lastChangedAt:     doc.lastChangedAt ?? undefined,
         ...mapOwnershipToDTO(doc),
         ...mapSoftDeleteToDTO(doc),
         ...mapLifeCycleToDTO(doc),

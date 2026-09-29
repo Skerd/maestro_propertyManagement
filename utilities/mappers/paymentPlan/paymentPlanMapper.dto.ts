@@ -4,28 +4,31 @@ import {
     PaymentPlanInstallment,
     RestructureHistoryEntry,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/paymentPlan.dto";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
+import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
+import type {SaleBlank} from "armonia/src/modules/propertyManagement/dto/sale.dto";
+import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {SaleBlankSnippet} from "@propertyManagement/database/schemas/sale/sale.snippets";
 import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-import {
-    decimalToNumber,
-    mapPopulatedRef,
-    mapPopulatedSimpleCurrency,
-} from "@coreModule/utilities/mappers/common.mapper";
+import {decimalToNumber, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 
-function mapPaymentPlanSaleRef(sale: unknown): ReturnType<typeof mapPopulatedRef> {
-    if (sale == null) return undefined;
-    if (typeof sale === "object" && sale !== null && "_id" in sale) {
-        return mapPopulatedRef(sale);
-    }
-    const id =
-        typeof sale === "object" && sale !== null && "toString" in sale
-            ? String(sale)
-            : typeof sale === "string"
-              ? sale
-              : undefined;
-    return id ? {_id: id, name: undefined as unknown as string} : undefined;
-}
-
-function mapInstallment(installment: any): PaymentPlanInstallment {
+function mapInstallment(installment: {
+    installmentNumber: number;
+    dueDate?: Date | string;
+    amount?: unknown;
+    principalAmount?: unknown;
+    interestAmount?: unknown;
+    status: string;
+    paidAmount?: unknown;
+    paidDate?: Date | string;
+    transactionId?: string;
+    notes?: string;
+    installmentReminderEmailAt3d?: Date | string;
+    installmentReminderEmailAt1d?: Date | string;
+    installmentReminderEmailAt0d?: Date | string;
+    installmentOverdueNoticeEmailAt?: Date | string;
+}): PaymentPlanInstallment {
     return {
         installmentNumber: installment.installmentNumber,
         dueDate: installment.dueDate ? new Date(installment.dueDate).toISOString() : new Date().toISOString(),
@@ -52,16 +55,16 @@ function mapInstallment(installment: any): PaymentPlanInstallment {
     };
 }
 
-export function paymentPlanToDTO(plan: IPaymentPlan | any): PaymentPlan {
+export function paymentPlanToDTO(plan: IPaymentPlan): PaymentPlan {
     const saleDoc =
         plan.sale && typeof plan.sale === "object" && plan.sale !== null && "_id" in plan.sale
-            ? plan.sale
+            ? plan.sale as {saleCurrency?: object}
             : undefined;
     return {
         _id: plan._id.toString(),
         name: plan.name,
-        sale: mapPaymentPlanSaleRef(plan.sale),
-        saleCurrency: mapPopulatedSimpleCurrency(saleDoc?.saleCurrency),
+        sale: mapSnippet<SaleBlank>()(plan.sale as object | undefined, SaleBlankSnippet)!,
+        saleCurrency: mapSnippet<CurrencySimple>()(saleDoc?.saleCurrency, CurrencySimpleSnippet),
         status: plan.status,
         totalAmount: decimalToNumber(plan.totalAmount),
         downPayment: decimalToNumber(plan.downPayment),
@@ -73,20 +76,28 @@ export function paymentPlanToDTO(plan: IPaymentPlan | any): PaymentPlan {
         interestRate: plan.interestRate,
         startDate: plan.startDate ? new Date(plan.startDate).toISOString() : new Date().toISOString(),
         endDate: plan.endDate ? new Date(plan.endDate).toISOString() : new Date().toISOString(),
-        installments: !!plan.installments ? plan.installments?.map(mapInstallment) : [],
+        installments: plan.installments ? plan.installments.map(mapInstallment) : [],
         gracePeriodDays: plan.gracePeriodDays,
         lateFeePercentage: plan.lateFeePercentage,
         notes: plan.notes,
         restructureHistory: Array.isArray(plan.restructureHistory) && plan.restructureHistory.length > 0
-            ? plan.restructureHistory.map((entry: any): RestructureHistoryEntry => ({
-                restructuredAt:              entry.restructuredAt ? new Date(entry.restructuredAt).toISOString() : new Date().toISOString(),
-                restructuredBy:              entry.restructuredBy ? {_id: (entry.restructuredBy as any)?._id?.toString() ?? entry.restructuredBy.toString(), name: (entry.restructuredBy as any)?.name, surname: (entry.restructuredBy as any)?.surname} : undefined,
-                reason:                      entry.reason,
-                previousNumberOfInstallments:entry.previousNumberOfInstallments,
-                previousStartDate:           entry.previousStartDate ? new Date(entry.previousStartDate).toISOString() : "",
-                previousEndDate:             entry.previousEndDate ? new Date(entry.previousEndDate).toISOString() : "",
-                previousInterestRate:        entry.previousInterestRate,
-                previousInstallments:        Array.isArray(entry.previousInstallments) ? entry.previousInstallments.map(mapInstallment) : [],
+            ? plan.restructureHistory.map((entry): RestructureHistoryEntry => ({
+                restructuredAt: entry.restructuredAt
+                    ? new Date(entry.restructuredAt).toISOString()
+                    : new Date().toISOString(),
+                restructuredBy: mapSnippet<SimpleBlankUser>()(entry.restructuredBy as object | undefined, SimpleBlankUserSnippet),
+                reason: entry.reason,
+                previousNumberOfInstallments: entry.previousNumberOfInstallments,
+                previousStartDate: entry.previousStartDate
+                    ? new Date(entry.previousStartDate).toISOString()
+                    : "",
+                previousEndDate: entry.previousEndDate
+                    ? new Date(entry.previousEndDate).toISOString()
+                    : "",
+                previousInterestRate: entry.previousInterestRate,
+                previousInstallments: Array.isArray(entry.previousInstallments)
+                    ? entry.previousInstallments.map(mapInstallment)
+                    : [],
             }))
             : undefined,
         ...mapSoftDeleteToDTO(plan),

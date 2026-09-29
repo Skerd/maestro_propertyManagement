@@ -1,11 +1,30 @@
 import {IUnit} from "../../../database/schemas/unit/unit";
 import {Unit, UnitStatistics} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.dto";
-import {
-    mapMedia,
-    mapPopulatedRef,
-    mapPopulatedSimpleCurrency,
-    mapPopulatedSimpleUser
-} from "@coreModule/utilities/mappers/common.mapper";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
+import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
+import type {EdificeSimple} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {FloorSimple} from "armonia/src/modules/propertyManagement/dto/floor.dto";
+import type {InspectionSimple} from "armonia/src/modules/propertyManagement/dto/inspection.dto";
+import type {ModificationRequestSimple} from "armonia/src/modules/propertyManagement/dto/modificationRequest.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {ReservationBlank} from "armonia/src/modules/propertyManagement/dto/reservation.dto";
+import type {SaleBlank} from "armonia/src/modules/propertyManagement/dto/sale.dto";
+import type {UnitCostSimple} from "armonia/src/modules/propertyManagement/dto/unitCost.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import type {UnitTypeSimple} from "armonia/src/modules/propertyManagement/dto/unitType.dto";
+import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {EdificeSimpleSnippet} from "@propertyManagement/database/schemas/edifice/edifice.snippets";
+import {FloorSimpleSnippet} from "@propertyManagement/database/schemas/floor/floor.snippets";
+import {InspectionSimpleSnippet} from "@propertyManagement/database/schemas/inspection/inspection.snippets";
+import {ModificationRequestSimpleSnippet} from "@propertyManagement/database/schemas/modificationRequest/modificationRequest.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {ReservationBlankSnippet} from "@propertyManagement/database/schemas/reservation/reservation.snippets";
+import {SaleBlankSnippet} from "@propertyManagement/database/schemas/sale/sale.snippets";
+import {UnitCostSimpleSnippet} from "@propertyManagement/database/schemas/unitCost/unitCost.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {UnitTypeSimpleSnippet} from "@propertyManagement/database/schemas/unitType/unitType.snippets";
+import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
@@ -22,15 +41,9 @@ export type UnitsToDtoOptions = {
 };
 
 export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
-    const unitTypeRef = mapPopulatedRef(unit.unitType);
     return {
         _id: unit._id.toString(),
-        unitType: unitTypeRef
-            ? {
-                ...unitTypeRef,
-                icon: unit.unitType.icon,
-            }
-            : undefined,
+        unitType: mapSnippet<UnitTypeSimple>()(unit.unitType, UnitTypeSimpleSnippet),
         unitNumber: unit.unitNumber,
         name: unit.name,
         area: unit.area,
@@ -38,7 +51,7 @@ export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
         netArea: unit.netArea,
         verandaArea: unit.verandaArea,
         price: unit.price ? parseFloat(unit.price.toString()) : undefined,
-        priceCurrency: mapPopulatedSimpleCurrency(unit.priceCurrency),
+        priceCurrency: mapSnippet<CurrencySimple>()(unit.priceCurrency, CurrencySimpleSnippet),
         isAvailable: unit.status === UnitStatus.AVAILABLE,
         hasBalcony: !!unit.hasBalcony,
         hasTerrace: !!unit.hasTerrace,
@@ -59,37 +72,40 @@ export function unitToDTO(unit: IUnit, options?: UnitToDtoOptions): Unit {
         polygonCoordinates: unit.polygonCoordinates,
         status: unit.status,
         unavailableNotes: unit.unavailableNotes,
-        connectedUnits: !!unit.connectedUnits ? unit.connectedUnits?.map((unit) => {
-            return {
-                _id: unit._id.toString(),
-                name: unit.name,
-                unitNumber: unit.unitNumber,
-                unitType: unit.unitType ? {
-                    _id: unit.unitType._id.toString,
-                    name: unit.unitType.name,
-                    icon: unit.unitType.icon
-                } : undefined,
-            };
-        }) : undefined,
-        inspections: !!unit.inspections ? unit.inspections.map((inspection) => mapPopulatedRef(inspection)) : undefined,
-        modificationRequests: !!unit.modificationRequests ?  unit.modificationRequests?.map((modificationRequest) => mapPopulatedRef(modificationRequest)): undefined,
-        costs: !!unit.costs ? unit.costs.map((c: any) => mapPopulatedRef(c)) : undefined,
-        reservation: mapPopulatedRef(unit.reservation),
-        sale: mapPopulatedRef(unit.sale),
+        connectedUnits: unit.connectedUnits
+            ?.map((connected) => mapSnippet<UnitSimple>()(connected, UnitSimpleSnippet))
+            .filter((connected): connected is UnitSimple => !!connected),
+        inspections: unit.inspections
+            ?.map((inspection) => mapSnippet<InspectionSimple>()(inspection, InspectionSimpleSnippet))
+            .filter((inspection): inspection is InspectionSimple => !!inspection) ?? [],
+        modificationRequests: unit.modificationRequests
+            ?.map((request) => mapSnippet<ModificationRequestSimple>()(request, ModificationRequestSimpleSnippet))
+            .filter((request): request is ModificationRequestSimple => !!request) ?? [],
+        costs: unit.costs
+            ?.map((cost) => mapSnippet<UnitCostSimple>()(cost, UnitCostSimpleSnippet))
+            .filter((cost): cost is UnitCostSimple => !!cost),
+        reservation: mapSnippet<ReservationBlank>()(unit.reservation, ReservationBlankSnippet),
+        sale: mapSnippet<SaleBlank>()(unit.sale, SaleBlankSnippet),
         saleCommissionRatePercent: unit.saleCommissionRatePercent,
         reservationCommissionRatePercent: unit.reservationCommissionRatePercent,
         priceHistory: Array.isArray(unit.priceHistory) && unit.priceHistory.length > 0
-            ? unit.priceHistory.map((entry: any) => ({
+            ? unit.priceHistory.map((entry) => ({
                 price: entry.price != null ? parseFloat(entry.price.toString()) : 0,
-                currency: mapPopulatedSimpleCurrency(entry.currency),
+                currency: mapSnippet<CurrencySimple>()(entry.currency, CurrencySimpleSnippet),
                 changedAt: entry.changedAt ? new Date(entry.changedAt).toISOString() : undefined,
-                changedBy: entry.changedBy ? mapPopulatedSimpleUser(entry.changedBy) : undefined,
+                changedBy: entry.changedBy
+                    ? mapSnippet<SimpleBlankUser>()(entry.changedBy, SimpleBlankUserSnippet)
+                    : undefined,
                 reason: entry.reason || undefined,
             }))
             : undefined,
-        project: unit?.floor?.edifice?.project ? mapPopulatedRef(unit.floor.edifice.project) : undefined,
-        edifice: unit?.floor?.edifice ? mapPopulatedRef(unit.floor.edifice) : undefined,
-        floor: unit.floor ? mapPopulatedRef(unit.floor) : undefined,
+        project: unit.floor?.edifice?.project
+            ? mapSnippet<ProjectSimple>()(unit.floor.edifice.project, ProjectSimpleSnippet)
+            : undefined,
+        edifice: unit.floor?.edifice
+            ? mapSnippet<EdificeSimple>()(unit.floor.edifice, EdificeSimpleSnippet)
+            : undefined,
+        floor: unit.floor ? mapSnippet<FloorSimple>()(unit.floor, FloorSimpleSnippet) : undefined,
         featuredOnHomepage: !!unit.featuredOnHomepage,
         featuredSortOrder: unit.featuredSortOrder ?? 0,
         priceVisibility: unit.priceVisibility ?? "inherit",
@@ -109,4 +125,3 @@ export function unitsToDTO(units: IUnit[] | any[], options?: UnitsToDtoOptions):
         return unitToDTO(unitObj, {statistics: stats});
     });
 }
-

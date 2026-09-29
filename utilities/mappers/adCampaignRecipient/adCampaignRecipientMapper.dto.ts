@@ -1,32 +1,36 @@
 import type {AdCampaignRecipient} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaignRecipient/adCampaignRecipient.dto";
 import type {IAdCampaignRecipient} from "../../../database/schemas/adCampaignRecipient/adCampaignRecipient";
-import {mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {SimpleUser} from "armonia/src/modules/core/dto/user.dto";
+import type {AdCampaignSimple} from "armonia/src/modules/propertyManagement/dto/adCampaign.dto";
+import type {LeadSimple} from "armonia/src/modules/propertyManagement/dto/lead.dto";
+import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {AdCampaignSimpleSnippet} from "@propertyManagement/database/schemas/adCampaign/adCampaign.snippets";
+import {LeadSimpleSnippet} from "@propertyManagement/database/schemas/lead/lead.snippets";
+import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO,
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-const iso = (d: Date | string | undefined | null) => (d instanceof Date ? d.toISOString() : d ?? undefined);
-
 export function adCampaignRecipientToDTO(doc: IAdCampaignRecipient): AdCampaignRecipient {
     return {
         _id:            doc._id.toString(),
-        campaign:       mapPopulatedRef(doc.campaign),
+        campaign:       mapSnippet<AdCampaignSimple>()(doc.campaign, AdCampaignSimpleSnippet)!,
         campaignType:   doc.campaignType,
         audienceKind:   doc.audienceKind,
-        user:           doc.user ? mapPopulatedRef(doc.user) : undefined,
-        lead:           doc.lead ? mapPopulatedRef(doc.lead) : undefined,
+        user:           mapSnippet<SimpleUser>()(doc.user, SimpleUserSnippet),
+        lead:           mapSnippet<LeadSimple>()(doc.lead, LeadSimpleSnippet),
         email:          doc.email,
         fullName:       doc.fullName ?? undefined,
         languageCode:   doc.languageCode ?? undefined,
         status:         doc.status,
         skipReason:     doc.skipReason ?? undefined,
         attempts:       doc.attempts ?? 0,
-        sentAt:         iso(doc.sentAt),
+        sentAt:         doc.sentAt ?? undefined,
         messageId:      doc.messageId ?? undefined,
         lastError:      doc.lastError ?? undefined,
-        unsubscribedAt: iso(doc.unsubscribedAt),
+        unsubscribedAt: doc.unsubscribedAt ?? undefined,
         ...mapOwnershipToDTO(doc),
         ...mapSoftDeleteToDTO(doc),
         ...mapLifeCycleToDTO(doc),

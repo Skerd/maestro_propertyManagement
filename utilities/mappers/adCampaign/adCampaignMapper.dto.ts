@@ -1,18 +1,30 @@
 import type {AdCampaign} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.dto";
 import type {IAdCampaign} from "../../../database/schemas/adCampaign/adCampaign";
-import {mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {SimpleUser} from "armonia/src/modules/core/dto/user.dto";
+import type {AdCampaignTemplateSimple} from "armonia/src/modules/propertyManagement/dto/adCampaignTemplate.dto";
+import type {LeadSimple} from "armonia/src/modules/propertyManagement/dto/lead.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {AdCampaignTemplateSimpleSnippet} from "@propertyManagement/database/schemas/adCampaignTemplate/adCampaignTemplate.snippets";
+import {LeadSimpleSnippet} from "@propertyManagement/database/schemas/lead/lead.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO,
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-const iso = (d: Date | string | undefined | null) => (d instanceof Date ? d.toISOString() : d ?? undefined);
-
-/** Populated ref arrays map one-by-one; an unpopulated ObjectId yields `{_id}`. */
-function mapRefs(list: unknown): any[] | undefined {
+function mapSnippetList<Wire extends object>(
+    list: unknown,
+    snippet: {readonly keys: Readonly<Record<string, unknown>>},
+): Wire[] | undefined {
     if (!Array.isArray(list) || list.length === 0) return undefined;
-    return list.map(item => mapPopulatedRef(item as any));
+    return list
+        .map((item) => mapSnippet<Wire>()(item, snippet))
+        .filter((item): item is Wire => !!item);
 }
 
 export function adCampaignToDTO(doc: IAdCampaign): AdCampaign {
@@ -23,22 +35,22 @@ export function adCampaignToDTO(doc: IAdCampaign): AdCampaign {
         campaignType:       doc.campaignType,
         status:             doc.status,
 
-        template:           mapPopulatedRef(doc.template),
+        template:           mapSnippet<AdCampaignTemplateSimple>()(doc.template, AdCampaignTemplateSimpleSnippet),
         subjectOverride:    doc.subjectOverride ?? undefined,
         bodyHtmlOverride:   doc.bodyHtmlOverride ?? undefined,
 
         audienceMode:       doc.audienceMode,
-        recipients:         mapRefs(doc.recipients),
-        leadRecipients:     mapRefs(doc.leadRecipients),
+        recipients:         mapSnippetList<SimpleUser>(doc.recipients, SimpleUserSnippet),
+        leadRecipients:     mapSnippetList<LeadSimple>(doc.leadRecipients, LeadSimpleSnippet),
         includeClientUsers: doc.includeClientUsers ?? undefined,
         includeLeads:       doc.includeLeads ?? undefined,
 
-        projects:           mapRefs(doc.projects),
-        units:              mapRefs(doc.units),
+        projects:           mapSnippetList<ProjectSimple>(doc.projects, ProjectSimpleSnippet),
+        units:              mapSnippetList<UnitSimple>(doc.units, UnitSimpleSnippet),
 
-        scheduledAt:        iso(doc.scheduledAt),
-        startedAt:          iso(doc.startedAt),
-        completedAt:        iso(doc.completedAt),
+        scheduledAt:        doc.scheduledAt ?? undefined,
+        startedAt:          doc.startedAt ?? undefined,
+        completedAt:        doc.completedAt ?? undefined,
 
         batchSize:          doc.batchSize ?? undefined,
         fromName:           doc.fromName ?? undefined,

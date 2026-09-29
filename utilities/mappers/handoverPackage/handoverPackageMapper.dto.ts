@@ -1,7 +1,15 @@
 import type {HandoverPackage, HandoverPackageItem} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.dto";
 import type {HandoverConfigScopeValue} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/handoverPackage.schema-def";
 import type {IHandoverPackage} from "../../../database/schemas/handoverPackage/handoverPackage";
-import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {EdificeSimple} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {FloorSimple} from "armonia/src/modules/propertyManagement/dto/floor.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {EdificeSimpleSnippet} from "@propertyManagement/database/schemas/edifice/edifice.snippets";
+import {FloorSimpleSnippet} from "@propertyManagement/database/schemas/floor/floor.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 function hasRef(value: unknown): boolean {
@@ -38,10 +46,10 @@ export function handoverPackageToDTO(doc: IHandoverPackage): HandoverPackage {
         description: doc.description ?? undefined,
         notes: doc.notes ?? undefined,
         scope: handoverPackageScope(doc),
-        project: mapPopulatedRef(doc.project)!,
-        edifice: mapPopulatedRef(doc.edifice),
-        floor: mapPopulatedRef(doc.floor),
-        unit: mapPopulatedRef(doc.unit),
+        project: mapSnippet<ProjectSimple>()(doc.project, ProjectSimpleSnippet)!,
+        edifice: mapSnippet<EdificeSimple>()(doc.edifice, EdificeSimpleSnippet),
+        floor: mapSnippet<FloorSimple>()(doc.floor, FloorSimpleSnippet),
+        unit: mapSnippet<UnitSimple>()(doc.unit, UnitSimpleSnippet),
         items,
         media: doc.media?.length ? doc.media.map(mapMedia) : undefined,
         ...mapOwnershipToDTO(doc),

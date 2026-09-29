@@ -5,11 +5,15 @@ import type {
     PaymentsHubStatus,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/paymentsHub/paymentsHub.constants";
 import type {RevenueByCurrency} from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/dashboard.form.response.type";
-import {
-    decimalToNumber,
-    mapPopulatedSimpleCurrency,
-    mapPopulatedSimpleUser,
-} from "@coreModule/utilities/mappers/common.mapper";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
+import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {decimalToNumber, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     isSettledRemaining,
     moneyNumber,
@@ -61,25 +65,15 @@ function toIso(value: unknown): string | undefined {
     return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
-function projectFromUnit(unit: any): {_id: string; name?: string} | undefined {
+function projectFromUnit(unit: {project?: object; floor?: {edifice?: {project?: object}}} | null | undefined) {
     const project = unit?.project ?? unit?.floor?.edifice?.project;
-    if (!project) return undefined;
-    return {_id: (project._id ?? project).toString(), name: project.name};
+    return mapSnippet<ProjectSimple>()(project as object | undefined, ProjectSimpleSnippet);
 }
 
-function mapUnit(unit: any): PaymentsHubRow["unit"] {
-    if (!unit) return undefined;
-    return {
-        _id: unit._id?.toString() ?? String(unit),
-        name: unit.name,
-        unitNumber: unit.unitNumber,
-    };
-}
-
-function mapClient(sale: any): PaymentsHubRow["client"] {
-    const buyer = mapPopulatedSimpleUser(sale?.buyer);
+function mapClient(sale: {buyer?: object; buyerCompany?: {_id?: unknown; name?: string} | unknown} | null | undefined): PaymentsHubRow["client"] {
+    const buyer = mapSnippet<SimpleBlankUser>()(sale?.buyer, SimpleBlankUserSnippet);
     if (buyer) return {_id: buyer._id, name: buyer.name, surname: buyer.surname};
-    const company = sale?.buyerCompany;
+    const company = sale?.buyerCompany as {_id?: {toString(): string} | string; name?: string} | undefined;
     if (company) {
         return {
             _id: (company._id ?? company).toString(),
@@ -152,9 +146,9 @@ export function planToHubRows(plan: Record<string, any>, now: Date): PaymentsHub
         planCode: plan.name as string | undefined,
         saleId: sale?._id ? sale._id.toString() : undefined,
         saleCode: sale?.name as string | undefined,
-        currency: mapPopulatedSimpleCurrency(sale?.saleCurrency),
+        currency: mapSnippet<CurrencySimple>()(sale?.saleCurrency as object | undefined, CurrencySimpleSnippet),
         client: mapClient(sale),
-        unit: mapUnit(sale?.unit),
+        unit: mapSnippet<UnitSimple>()(sale?.unit as object | undefined, UnitSimpleSnippet),
         project: projectFromUnit(sale?.unit),
     };
 

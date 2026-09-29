@@ -35,7 +35,7 @@ import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snipp
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {ReservationSnippet} from "../reservation/reservation.snippets";
-import {PaymentPlanSimpleSnippet} from "../paymentPlan/paymentPlan.snippts";
+import {PaymentPlanSimpleSnippet} from "../paymentPlan/paymentPlan.snippets";
 import {CompanyBlankSnippet} from "@coreModule/database/schemas/company/company.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 

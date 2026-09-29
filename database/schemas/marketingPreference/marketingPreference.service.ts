@@ -29,7 +29,7 @@ function toState(doc: IMarketingPreference): MarketingPreferenceState {
         allowPriceChange: doc.allowPriceChange !== false,
         allowOffers: doc.allowOffers !== false,
         allowNewProjects: doc.allowNewProjects !== false,
-        unsubscribedAllAt: doc.unsubscribedAllAt?.toISOString(),
+        unsubscribedAllAt: doc.unsubscribedAllAt ?? undefined,
     };
 }
 

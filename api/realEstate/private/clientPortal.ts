@@ -18,7 +18,13 @@ import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import {mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
+import type {EdificeBlank} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {EdificeSnippet} from "../../../database/schemas/edifice/edifice.snippets";
+import {ProjectSimpleSnippet} from "../../../database/schemas/project/project.snippets";
+import {UnitSimpleSnippet} from "../../../database/schemas/unit/unit.snippets";
 import {saleService} from "../../../database/schemas/sale/sale.service";
 import {reservationService} from "../../../database/schemas/reservation/reservation.service";
 import {ReservationStatus} from "../../../database/schemas/reservation/reservation";
@@ -388,8 +394,8 @@ async function clientPortalPortfolio(
         );
 
         constructionProgress = rows.map((row) => {
-            const project = mapPopulatedRef(row.project);
-            const edifice = mapPopulatedRef(row.edifice);
+            const project = mapSnippet<ProjectSimple>()(row.project as object | undefined, ProjectSimpleSnippet);
+            const edifice = mapSnippet<EdificeBlank>()(row.edifice as object | undefined, EdificeSnippet);
             return {
                 _id: row._id.toString(),
                 projectName: project?.name ?? "",
@@ -446,9 +452,9 @@ async function clientPortalProperties(
 
     const properties = sales.map((sale) => {
         const unit = sale.unit as PopulatedUnit | undefined;
-        const project = mapPopulatedRef(unit?.project);
-        const edifice = mapPopulatedRef(unit?.edifice);
-        const unitRef = mapPopulatedRef(unit);
+        const project = mapSnippet<ProjectSimple>()(unit?.project as object | undefined, ProjectSimpleSnippet);
+        const edifice = mapSnippet<EdificeBlank>()(unit?.edifice as object | undefined, EdificeSnippet);
+        const unitRef = mapSnippet<UnitSimple>()(unit as object | undefined, UnitSimpleSnippet);
         const currency = currencyFields(
             sale.saleCurrency as {_id?: unknown; symbol?: string; abbreviation?: string} | undefined,
         );
@@ -507,9 +513,9 @@ async function clientPortalReservations(
 
     const items = reservations.map((reservation) => {
         const unit = reservation.unit as PopulatedUnit | undefined;
-        const project = mapPopulatedRef(unit?.project);
-        const edifice = mapPopulatedRef(unit?.edifice);
-        const unitRef = mapPopulatedRef(unit);
+        const project = mapSnippet<ProjectSimple>()(unit?.project as object | undefined, ProjectSimpleSnippet);
+        const edifice = mapSnippet<EdificeBlank>()(unit?.edifice as object | undefined, EdificeSnippet);
+        const unitRef = mapSnippet<UnitSimple>()(unit as object | undefined, UnitSimpleSnippet);
         const deposit = reservation.depositAmount != null
             ? moneyNumber(reservation.depositAmount)
             : undefined;

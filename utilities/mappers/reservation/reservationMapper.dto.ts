@@ -1,37 +1,32 @@
 import {IReservation} from "../../../database/schemas/reservation/reservation";
 import {Reservation} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.dto";
+import type {CompanyBlank} from "armonia/src/modules/core/dto/company.dto";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
+import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
+import type {EdificeSimple} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {FloorSimple} from "armonia/src/modules/propertyManagement/dto/floor.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import type {UnitSale} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import {CompanyBlankSnippet} from "@coreModule/database/schemas/company/company.snippets";
+import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
+import {EdificeSimpleSnippet} from "@propertyManagement/database/schemas/edifice/edifice.snippets";
+import {FloorSimpleSnippet} from "@propertyManagement/database/schemas/floor/floor.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {UnitSaleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-import {
-    mapMedia,
-    mapPopulatedRef,
-    mapPopulatedSimpleCompany,
-    mapPopulatedSimpleCurrency,
-    mapPopulatedSimpleUser
-} from "@coreModule/utilities/mappers/common.mapper";
-
-function mapUnitRef(unit: any): Reservation["unit"] | undefined {
-    if (!unit) return undefined;
-    return {
-        _id: unit._id?.toString() || unit.toString(),
-        name: unit.name,
-        unitNumber: unit.unitNumber,
-        unitType: unit.unitType ? {
-            _id: unit.unitType._id?.toString() || unit.unitType.toString(),
-            name: unit.unitType.name,
-            icon: unit.unitType.icon
-        } : undefined,
-        price: unit.price != null ? parseFloat(unit.price.toString()) : undefined,
-        priceCurrency: unit.priceCurrency ? mapPopulatedSimpleCurrency(unit.priceCurrency) : undefined,
-    };
-}
+import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 
 function computeReservationFinancialFields(reservation: IReservation): Pick<Reservation, "remainingBalance" | "reservationFinancialPaymentState"> {
     const paid = reservation.paid === true;
-    const unit = reservation.unit as any;
+    const unit = reservation.unit as {
+        price?: {toString(): string} | number;
+        priceCurrency?: {_id?: {toString(): string}; toString?: () => string};
+    };
     const unitPrice =
         unit?.price != null && Number.isFinite(parseFloat(unit.price.toString()))
             ? parseFloat(unit.price.toString())
@@ -52,45 +47,49 @@ function computeReservationFinancialFields(reservation: IReservation): Pick<Rese
 
     let remainingBalance: number | undefined;
     if (unitPrice != null && Number.isFinite(unitPrice)) {
-        // if (paid) {
-        //     remainingBalance = 0;
-        // } else {
-            const unitCurId =
-                unit?.priceCurrency?._id?.toString() ??
-                (typeof unit?.priceCurrency === "object" ? unit?.priceCurrency?.toString?.() : undefined);
-            const depCur = reservation.depositCurrency as any;
-            const depCurId =
-                depCur && typeof depCur === "object" && depCur._id
-                    ? depCur._id.toString()
-                    : depCur?.toString?.();
+        const unitCurId =
+            unit?.priceCurrency?._id?.toString() ??
+            (typeof unit?.priceCurrency === "object" ? unit?.priceCurrency?.toString?.() : undefined);
+        const depCur = reservation.depositCurrency as {_id?: {toString(): string}; toString?: () => string} | undefined;
+        const depCurId =
+            depCur && typeof depCur === "object" && depCur._id
+                ? depCur._id.toString()
+                : depCur?.toString?.();
 
-            const sameCurrency = !depCurId || !unitCurId || depCurId === unitCurId;
+        const sameCurrency = !depCurId || !unitCurId || depCurId === unitCurId;
 
-            if (sameCurrency) {
-                remainingBalance = Math.max(0, unitPrice - deposit);
-            }
-        // }
+        if (sameCurrency) {
+            remainingBalance = Math.max(0, unitPrice - deposit);
+        }
     }
 
     return {remainingBalance, reservationFinancialPaymentState};
 }
 
 export function reservationToDTO(reservation: IReservation): Reservation {
+    const unit = reservation.unit as {floor?: {edifice?: {project?: object} & object} & object} | undefined;
     return {
         _id: reservation._id.toString(),
         name: reservation.name || undefined,
-        unit: mapUnitRef(reservation.unit) || { _id: reservation.unit?.toString() || '' },
-        project: mapPopulatedRef(reservation.unit?.floor?.edifice?.project),
-        edifice: mapPopulatedRef(reservation.unit?.floor?.edifice),
-        floor: mapPopulatedRef(reservation.unit?.floor),
-        reservedBy: mapPopulatedSimpleUser(reservation.reservedBy),
-        reservedByCompany: mapPopulatedSimpleCompany(reservation.reservedByCompany),
-        client: mapPopulatedSimpleUser(reservation.client),
+        unit: mapSnippet<UnitSale>()(reservation.unit, UnitSaleSnippet)
+            ?? {_id: String((reservation.unit as {_id?: {toString(): string}})?._id ?? reservation.unit)},
+        project: unit?.floor?.edifice?.project
+            ? mapSnippet<ProjectSimple>()(unit.floor.edifice.project, ProjectSimpleSnippet)
+            : undefined,
+        edifice: unit?.floor?.edifice
+            ? mapSnippet<EdificeSimple>()(unit.floor.edifice, EdificeSimpleSnippet)
+            : undefined,
+        floor: unit?.floor
+            ? mapSnippet<FloorSimple>()(unit.floor, FloorSimpleSnippet)
+            : undefined,
+        reservedBy: mapSnippet<SimpleBlankUser>()(reservation.reservedBy, SimpleBlankUserSnippet)!,
+        reservedByCompany: mapSnippet<CompanyBlank>()(reservation.reservedByCompany, CompanyBlankSnippet)!,
+        client: mapSnippet<SimpleBlankUser>()(reservation.client, SimpleBlankUserSnippet)!,
         reservationDate: reservation.reservationDate ? new Date(reservation.reservationDate).toISOString() : undefined,
         expirationDate: reservation.expirationDate ? new Date(reservation.expirationDate).toISOString() : undefined,
         reservationNotes: reservation.reservationNotes || undefined,
         depositAmount: reservation.depositAmount ? parseFloat(reservation.depositAmount.toString()) : undefined,
-        depositCurrency: mapPopulatedSimpleCurrency(reservation.depositCurrency),
+        depositCurrency: mapSnippet<CurrencySimple>()(reservation.depositCurrency, CurrencySimpleSnippet),
         isActive: reservation.isActive !== undefined ? reservation.isActive : true,
         cancelledAt: reservation.cancelledAt ? new Date(reservation.cancelledAt).toISOString() : undefined,
         cancellationReason: reservation.cancellationReason,

@@ -1,29 +1,31 @@
 import type {ConstructionProgress} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionProgress/constructionProgress.dto";
 import type {IConstructionProgress} from "../../../database/schemas/constructionProgress/constructionProgress";
-import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {EdificeSimple} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import {EdificeSimpleSnippet} from "@propertyManagement/database/schemas/edifice/edifice.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-const iso = (d: Date | string | undefined | null) => (d instanceof Date ? d.toISOString() : d ?? undefined);
-
 export function constructionProgressToDTO(doc: IConstructionProgress): ConstructionProgress {
     return {
         _id:                    doc._id.toString(),
         name:                   doc.name,
-        project:                mapPopulatedRef(doc.project),
-        edifice:                mapPopulatedRef(doc.edifice),
+        project:                mapSnippet<ProjectSimple>()(doc.project, ProjectSimpleSnippet)!,
+        edifice:                mapSnippet<EdificeSimple>()(doc.edifice, EdificeSimpleSnippet),
         phase:                  doc.phase,
         progressPercent:        doc.progressPercent,
-        updateDate:             iso(doc.updateDate) as string,
+        updateDate:             doc.updateDate,
         title:                  doc.title,
         description:            doc.description ?? undefined,
-        expectedCompletionDate: iso(doc.expectedCompletionDate),
+        expectedCompletionDate: doc.expectedCompletionDate ?? undefined,
         photos:                 doc.photos?.length ? doc.photos.map(mapMedia) : undefined,
         notifyClients:          doc.notifyClients ?? undefined,
-        clientsNotifiedAt:      iso(doc.clientsNotifiedAt),
+        clientsNotifiedAt:      doc.clientsNotifiedAt ?? undefined,
         clientsNotifiedCount:   doc.clientsNotifiedCount ?? undefined,
         ...mapOwnershipToDTO(doc),
         ...mapSoftDeleteToDTO(doc),

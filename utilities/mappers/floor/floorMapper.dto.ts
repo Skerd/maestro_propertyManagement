@@ -1,6 +1,10 @@
 import {IFloor} from "../../../database/schemas/floor/floor";
 import type {Floor, FloorStatistics} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.dto";
-import {mapMedia, mapPopulatedRef} from "@coreModule/utilities/mappers/common.mapper";
+import type {EdificeSimple} from "armonia/src/modules/propertyManagement/dto/edifice.dto";
+import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
+import {EdificeSimpleSnippet} from "@propertyManagement/database/schemas/edifice/edifice.snippets";
+import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
@@ -38,8 +42,10 @@ export function floorToDTO(floor: IFloor, options?: FloorToDtoOptions): Floor {
         priceVisibility: floor.priceVisibility ?? "inherit",
         pricePerMeterSquared: floor.pricePerMeterSquared,
         verandaPricePerMeterSquared: floor.verandaPricePerMeterSquared,
-        edifice: mapPopulatedRef(floor.edifice),
-        project: mapPopulatedRef(floor.edifice?.project),
+        edifice: mapSnippet<EdificeSimple>()(floor.edifice, EdificeSimpleSnippet),
+        project: floor.edifice?.project
+            ? mapSnippet<ProjectSimple>()(floor.edifice.project, ProjectSimpleSnippet)
+            : mapSnippet<ProjectSimple>()((floor as {project?: object}).project, ProjectSimpleSnippet),
         unitsCoordinates: options?.unitsCoordinates && options?.unitsCoordinates.length > 0 ? options?.unitsCoordinates : undefined,
         ...mapSoftDeleteToDTO(floor),
         ...mapOwnershipToDTO(floor),

@@ -1,8 +1,13 @@
-export const LeadSimpleSnippet = {
+import type {LeadSimple} from "armonia/src/modules/propertyManagement/dto/lead.dto";
+import type {ILead} from "@propertyManagement/database/schemas/lead/lead";
+import {defineSnippet} from "@coreModule/database/utilities/snippet";
+
+export const LeadSimpleSnippet = defineSnippet<ILead, LeadSimple>()({
     keys: {
-        name:      {},
+        _id: {},
+        name: {},
         firstName: {},
-        lastName:  {},
-        status:    {},
+        lastName: {},
+        status: {},
     },
-};
+});

@@ -1,5 +1,6 @@
 import {action} from "@coreModule/api/actionDecorator";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
+import {impersonateUserMW} from "@coreModule/utilities/middlewares/impersonation";
 import type {
     MarketingPreferenceState,
     MarketingPreferenceUpdateForm,
@@ -11,7 +12,8 @@ import {marketingPreferenceService, normalizeEmail} from "./marketingPreference.
  *
  * Client email *is* `User.username` — core `User` has no separate email field.
  * A user without one cannot have marketing preferences, because there is
- * nowhere to send them anything.
+ * nowhere to send them anything. `impersonateUserMW` swaps `userInfo` first
+ * when the `specificUser` header names someone else.
  */
 function ownEmail(params: Record<string, any>): string {
     const username = params.userInfo?.username;
@@ -23,14 +25,15 @@ function ownEmail(params: Record<string, any>): string {
 
 export class MarketingPreferenceActions {
     /**
-     * The caller's own marketing preferences for the active company.
+     * Marketing preferences for the active company.
      *
-     * Returns all-true defaults when no row exists, so the account page never
-     * has to special-case "never set anything".
+     * Subject is the caller, or the user named by `specificUser`. Returns
+     * all-true defaults when no row exists.
      */
     @action({
         auth: "private",
         rateLimit: {windowMs: 60000, max: 60},
+        middleware: [impersonateUserMW],
     })
     async me(params: Record<string, any>): Promise<MarketingPreferenceState> {
         const {logger, company} = params;
@@ -43,15 +46,15 @@ export class MarketingPreferenceActions {
     }
 
     /**
-     * Update the caller's own preferences.
+     * Update those preferences.
      *
-     * The subject is taken from the session, never from the body — otherwise
-     * any authenticated user could rewrite anyone else's consent.
+     * The address comes from `userInfo` after impersonation, never from the body.
      */
     @action({
         auth: "private",
         rateLimit: {windowMs: 60000, max: 30},
         transaction: true,
+        middleware: [impersonateUserMW],
     })
     async updateMe(params: Record<string, any>): Promise<MarketingPreferenceState> {
         const {logger, company, userInfo} = params;

@@ -1,7 +1,10 @@
 import {ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
+import {getModelCollectedData} from "@coreModule/database/collections";
+import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {updateHandoverItemsFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/handoverPackage/updateHandoverItems.form.validator";
+import Sale from "../sale/sale";
 import {saleService} from "../sale/sale.service";
 import {saleToDTO} from "@propertyManagement/utilities/mappers/sale/saleMapper.dto";
 import {
@@ -35,7 +38,15 @@ export class HandoverPackageActions {
             {$set: {handoverChecklistItems: nextItems}},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
-        const updated = await saleService.findById(sale._id, {session, logger, languageCode});
+        const readFields = SchemaGuard.sanitizeFields(
+            Sale,
+            getModelCollectedData("sales").readFields!,
+            "read",
+            actionUserCtx,
+            languageCode,
+        );
+        const populate = SchemaGuard.generatePopulate(readFields, Sale.schema);
+        const updated = await saleService.findById(sale._id, {session, logger, languageCode}, populate.populate);
         if (!updated) return saleToDTO(sale);
         const [dto] = await salesWithHandoverContext([updated], {company, session, logger, languageCode});
         logger.finish(`HandoverPackage.updateHandoverItems done`);

@@ -14,6 +14,7 @@ import {
     ISoftDeletePluginFields
 } from "@coreModule/database/types/plugin-fields";
 import {applyInspectionIndexes} from "./inspection.indexes";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {addModelData} from "@coreModule/database/collections";
 import {inspectionViews} from "./inspection.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
@@ -162,7 +163,8 @@ function findingItemSchemaDef() {
                 hideColumn: true,
                 visible: false,
                 filterable: false,
-                sortable: false
+                sortable: false,
+                cellType: COLUMN_TYPE.DATETIME,
             }
         },
         resolvedBy:{
@@ -303,6 +305,7 @@ const InspectionSchema = new Schema<IInspection>(
         completedAt: {
             type: SchemaTypes.Date,
             required: false,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         cancelledAt: {
             type: SchemaTypes.Date,
@@ -311,6 +314,7 @@ const InspectionSchema = new Schema<IInspection>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         cancellationReason: {
             type: SchemaTypes.String,

@@ -12,6 +12,7 @@ import {
     ISoftDeletePluginFields,
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {MarketingPreferenceSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/marketingPreference/marketingPreference.schema-def";
 import {
@@ -63,9 +64,9 @@ const MarketingPreferenceSchema = new Schema<IMarketingPreference>(
         allowPriceChange: {type: SchemaTypes.Boolean, required: false, default: true},
         allowOffers: {type: SchemaTypes.Boolean, required: false, default: true},
         allowNewProjects: {type: SchemaTypes.Boolean, required: false, default: true},
-        unsubscribedAllAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        unsubscribedAllAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
         source: {type: SchemaTypes.String, required: false, enum: MARKETING_PREFERENCE_SOURCE_VALUES},
-        lastChangedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        lastChangedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
     },
     {accessMode: "loose"},
 );

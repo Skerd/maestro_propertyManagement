@@ -14,6 +14,7 @@ import {
     ISoftDeletePluginFields,
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {AdCampaignRecipientSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaignRecipient/adCampaignRecipient.schema-def";
 import {
@@ -122,9 +123,9 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             permissions: SYSTEM_WRITE,
         },
         attempts: {type: SchemaTypes.Number, required: false, default: 0, min: 0, permissions: SYSTEM_WRITE},
-        claimedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        claimedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
         claimToken: {type: SchemaTypes.ObjectId, required: false, permissions: SYSTEM_WRITE},
-        sentAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        sentAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
         messageId: {type: SchemaTypes.String, required: false, trim: true, maxlength: 255, permissions: SYSTEM_WRITE},
         lastError: {
             type: SchemaTypes.String,
@@ -132,7 +133,7 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             maxlength: AD_CAMPAIGN_ERROR_MAX,
             permissions: SYSTEM_WRITE,
         },
-        unsubscribedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        unsubscribedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
     },
     {accessMode: "loose"},
 );

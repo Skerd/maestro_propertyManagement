@@ -15,6 +15,7 @@ import {
     ISoftDeletePluginFields
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {ConstructionProgressSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionProgress/constructionProgress.schema-def";
 import {
@@ -86,7 +87,7 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
             refAllowlist: MediaSimpleSnippet,
         },
         notifyClients: {type: SchemaTypes.Boolean, required: false, default: true},
-        clientsNotifiedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        clientsNotifiedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
         clientsNotifiedCount: {type: SchemaTypes.Number, required: false, permissions: SYSTEM_WRITE},
     },
     {accessMode: "loose"}

@@ -252,7 +252,8 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
         },
         reviewedAt: {
             type: SchemaTypes.Date,
-            required: false
+            required: false,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         media: {
             type: [{
@@ -496,7 +497,8 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
         },
         clientNotifiedAt: {
             type: SchemaTypes.Date,
-            required: false
+            required: false,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         notificationSent: {
             type: SchemaTypes.Boolean,
@@ -508,7 +510,8 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
             type: SchemaTypes.Date,
             required: true,
             default: Date.now,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         clientCostApproval: {
             type: getApprovalStageSchemaDefinition(),
@@ -535,7 +538,8 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
 
         completedAt: {
             type: SchemaTypes.Date,
-            required: false
+            required: false,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         cancelledAt: {
             type: SchemaTypes.Date,
@@ -547,7 +551,8 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                 others: {
                     write: "no-permission"
                 }
-            }
+            },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         cancellationReason: {
             type: SchemaTypes.String,

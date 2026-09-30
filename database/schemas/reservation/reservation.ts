@@ -21,6 +21,7 @@ import {applyReservationIndexes} from "./reservation.indexes";
 import {addModelData} from "@coreModule/database/collections";
 import {reservationViews} from "./reservation.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {ReservationSchemaDef, RESERVATION_LONG_TEXT_MAX, RESERVATION_SHORT_TEXT_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.schema-def";
 import {RESERVATION_SOURCE_VALUES, ReservationSource} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.constants";
 import {UnitSaleSnippet} from "../unit/unit.snippets";
@@ -227,6 +228,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         expirationReminderEmailAt3d: {
             type: SchemaTypes.Date,
@@ -235,6 +237,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         expirationReminderEmailAt1d: {
             type: SchemaTypes.Date,
@@ -243,6 +246,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         expirationReminderEmailAt0d: {
             type: SchemaTypes.Date,
@@ -251,6 +255,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         expiredAt: {
             type: SchemaTypes.Date,
@@ -259,6 +264,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         status: {
             type: SchemaTypes.String,
@@ -293,7 +299,8 @@ const ReservationSchema = new Schema<IReservation>(
                 others: {
                     write: "no-permission"
                 }
-            }
+            },
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
         },
         cancellationReason: {
             type: SchemaTypes.String,

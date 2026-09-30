@@ -18,6 +18,7 @@ import {
     ISoftDeletePluginFields,
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {AdCampaignSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.schema-def";
 import {
@@ -167,9 +168,9 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             default: [],
         },
 
-        scheduledAt: {type: SchemaTypes.Date, required: false},
-        startedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
-        completedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE},
+        scheduledAt: {type: SchemaTypes.Date, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
+        startedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
+        completedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
 
         batchSize: {
             type: SchemaTypes.Number,

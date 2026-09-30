@@ -1,5 +1,6 @@
 import {getProducerInstance} from "@coreModule/connections/connectToKafka";
 import {KAFKA} from "@coreModule/environment";
+import {PROPERTY_MANAGEMENT_KAFKA} from "@propertyManagement/environment";
 import {canPublish, publishWithRetry} from "@coreModule/kafka/kafkaProducer";
 import {getLogger} from "@coreModule/loggers/serverLog";
 import type {ReservationClientEmailEvent, SaleClientEmailEvent} from "@propertyManagement/kafka/types";
@@ -13,7 +14,7 @@ export async function publishReservationClientEmailEvent(params: ReservationClie
     }
 
     const producer = getProducerInstance();
-    const topic = KAFKA.TOPICS.RESERVATION_CLIENT_EMAIL;
+    const topic = PROPERTY_MANAGEMENT_KAFKA.TOPICS.RESERVATION_CLIENT_EMAIL;
     if (!producer || !topic) {
         logger.warn("Kafka producer or topic not available, skipping reservation client email event");
         return;
@@ -49,7 +50,7 @@ export async function publishSaleClientEmailEvent(params: SaleClientEmailEvent):
     }
 
     const producer = getProducerInstance();
-    const topic = KAFKA.TOPICS.SALE_CLIENT_EMAIL;
+    const topic = PROPERTY_MANAGEMENT_KAFKA.TOPICS.SALE_CLIENT_EMAIL;
     if (!producer || !topic) {
         logger.warn("Kafka producer or topic not available, skipping sale client email event");
         return;

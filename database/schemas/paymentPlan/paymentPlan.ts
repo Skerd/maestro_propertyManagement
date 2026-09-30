@@ -85,7 +85,7 @@ export interface IPaymentPlan extends Document, IOwnershipPluginFields, ISoftDel
     status: PaymentPlanStatus;       // Overall plan status
     totalAmount: Decimal128;         // Total amount to be paid
     downPayment: Decimal128;         // Initial down payment amount
-    downPaymentPaid: Boolean;        // if down payment has been fully paid
+    downPaymentPaid: boolean;        // if down payment has been fully paid
     downPaymentDate?: Date;          // When down payment was made
     remainingBalance: Decimal128;    // Remaining balance to be paid
     numberOfInstallments: number;    // Total number of installments

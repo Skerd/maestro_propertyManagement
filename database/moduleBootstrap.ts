@@ -1,3 +1,5 @@
+/** Must be the first import: `addModelData` snapshots REF_SELECT_REGISTRY while models load. */
+import {registerPropertyManagementRefSelects} from "armonia/src/modules/propertyManagement/database/filter/refSelect";
 import type {Model} from "mongoose";
 import Project from "@propertyManagement/database/schemas/project/project";
 import Edifice from "@propertyManagement/database/schemas/edifice/edifice";
@@ -29,6 +31,13 @@ import AdCampaignRecipient from "@propertyManagement/database/schemas/adCampaign
 import MarketingPreference from "@propertyManagement/database/schemas/marketingPreference/marketingPreference";
 import {realEstateDefaultRoles} from "@propertyManagement/database/schemas/role/realEstate.role.defaults";
 import {registerDefaultRoles} from "@coreModule/database/schemas/role/role.defaults";
+import {registerPublicMediaBackfillSource} from "@coreModule/utilities/media/publicMediaBackfillRegistry";
+import {registerPublicChatContext} from "@coreModule/database/schemas/channel/publicChatContext";
+import {ProjectSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.schema-def";
+import {EdificeSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.schema-def";
+import {FloorSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.schema-def";
+import {UnitSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
+import {StorySchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/story/story.schema-def";
 
 export const propertyManagementModels: Model<any>[] = [
     Project,
@@ -68,6 +77,40 @@ export async function dropPropertyManagementCollections(): Promise<void> {
 }
 
 registerDefaultRoles(realEstateDefaultRoles);
+registerPropertyManagementRefSelects();
+registerPublicChatContext({
+    tag: "propertyManagement",
+    populate: [
+        {path: "publicChat.lead", model: "Lead", select: "firstName lastName email"},
+        {path: "publicChat.context.project", model: "Project", select: "name"},
+        {path: "publicChat.context.unit", model: "Unit", select: "name unitNumber"},
+    ],
+});
+registerPublicMediaBackfillSource({
+    name: "Project",
+    schemaDef: ProjectSchemaDef,
+    loadModel: () => import("@propertyManagement/database/schemas/project/project").then((m) => m.default),
+});
+registerPublicMediaBackfillSource({
+    name: "Edifice",
+    schemaDef: EdificeSchemaDef,
+    loadModel: () => import("@propertyManagement/database/schemas/edifice/edifice").then((m) => m.default),
+});
+registerPublicMediaBackfillSource({
+    name: "Floor",
+    schemaDef: FloorSchemaDef,
+    loadModel: () => import("@propertyManagement/database/schemas/floor/floor").then((m) => m.default),
+});
+registerPublicMediaBackfillSource({
+    name: "Unit",
+    schemaDef: UnitSchemaDef,
+    loadModel: () => import("@propertyManagement/database/schemas/unit/unit").then((m) => m.default),
+});
+registerPublicMediaBackfillSource({
+    name: "Story",
+    schemaDef: StorySchemaDef,
+    loadModel: () => import("@propertyManagement/database/schemas/story/story").then((m) => m.default),
+});
 
 export const moduleBootstrap = {
     models: propertyManagementModels,

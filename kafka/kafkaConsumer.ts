@@ -1,4 +1,5 @@
 import {KAFKA} from "@coreModule/environment";
+import {PROPERTY_MANAGEMENT_KAFKA} from "@propertyManagement/environment";
 import {addKafkaTopicConsumer} from "@coreModule/kafka/kafkaConsumer";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import type {ReservationClientEmailEvent, SaleClientEmailEvent} from "./types";
@@ -43,16 +44,16 @@ export async function startRealEstateKafkaConsumers(parentLogger?: serverLogger)
         await addKafkaTopicConsumer(parentLogger, {
             registryKey: "reservationClientEmail",
             displayName: "Reservation client email",
-            groupId: KAFKA.CONSUMER_GROUP.RESERVATION_CLIENT_EMAIL,
-            topic: KAFKA.TOPICS.RESERVATION_CLIENT_EMAIL,
+            groupId: PROPERTY_MANAGEMENT_KAFKA.CONSUMER_GROUP.RESERVATION_CLIENT_EMAIL,
+            topic: PROPERTY_MANAGEMENT_KAFKA.TOPICS.RESERVATION_CLIENT_EMAIL,
             expectedEventType: "reservation_client_email",
             processEvent: (d) => processReservationClientEmailEvent(d as ReservationClientEmailEvent),
         });
         await addKafkaTopicConsumer(parentLogger, {
             registryKey: "saleClientEmail",
             displayName: "Sale client email",
-            groupId: KAFKA.CONSUMER_GROUP.SALE_CLIENT_EMAIL,
-            topic: KAFKA.TOPICS.SALE_CLIENT_EMAIL,
+            groupId: PROPERTY_MANAGEMENT_KAFKA.CONSUMER_GROUP.SALE_CLIENT_EMAIL,
+            topic: PROPERTY_MANAGEMENT_KAFKA.TOPICS.SALE_CLIENT_EMAIL,
             expectedEventType: "sale_client_email",
             processEvent: (d) => processSaleClientEmailEvent(d as SaleClientEmailEvent),
         });

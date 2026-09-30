@@ -77,6 +77,14 @@ function buildLeadCommercialFields(params: {
     };
 }
 
+function objectIdFromContextBag(value: ObjectId | string | undefined): ObjectId | undefined {
+    if (value == null) {
+        return undefined;
+    }
+    const hex = typeof value === "string" ? value : value.toString();
+    return ObjectId.isValid(hex) ? new ObjectId(hex) : undefined;
+}
+
 export async function capturePublicChatLead(
     params: CapturePublicChatLeadParams,
 ): Promise<CapturePublicChatLeadResult> {
@@ -89,6 +97,8 @@ export async function capturePublicChatLead(
     const lastName = spaceIndex > 0 ? trimmedName.slice(spaceIndex + 1).trim() : undefined;
 
     const context = channel.publicChat?.context;
+    const projectInterest = objectIdFromContextBag(context?.project);
+    const unitInterest = objectIdFromContextBag(context?.unit);
     const existingLeadId = channel.publicChat?.lead;
     const budgetCurrencyId = await resolveBudgetCurrencyId(companyId, budgetCurrency, opts);
     const commercial = buildLeadCommercialFields({note, budget, budgetCurrencyId});
@@ -121,8 +131,8 @@ export async function capturePublicChatLead(
             ...commercial,
             // Carry what they were browsing straight onto the lead, so the agent
             // sees the interest without reading the transcript.
-            ...(context?.project ? {projectInterest: context.project} : {}),
-            ...(context?.unit ? {unitInterest: context.unit} : {}),
+            ...(projectInterest ? {projectInterest} : {}),
+            ...(unitInterest ? {unitInterest} : {}),
             status: LeadStatus.NEW,
             source: LeadSource.CHAT,
             chat: channel._id,

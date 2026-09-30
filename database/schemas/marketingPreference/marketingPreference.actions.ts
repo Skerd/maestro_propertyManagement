@@ -6,7 +6,6 @@ import type {
     MarketingPreferenceUpdateForm,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/marketingPreference/marketingPreference.dto";
 import {marketingPreferenceService, normalizeEmail} from "./marketingPreference.service";
-
 /**
  * The authenticated person's own address.
  *
@@ -67,6 +66,9 @@ export class MarketingPreferenceActions {
             unsubscribeAll: params.unsubscribeAll,
         };
 
+        if (userInfo?.isBot) {
+            throw apiValidationException("bot_user_not_editable", null, null, params.languageCode);
+        }
         logger.start(`Updating marketing preferences for ${email}...`);
         const state = await marketingPreferenceService.applyUpdate({
             company: company._id,

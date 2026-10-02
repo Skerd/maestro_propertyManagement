@@ -4,6 +4,8 @@ import {
     AD_CAMPAIGN_BATCH_SIZE_MAX,
     AD_CAMPAIGN_BATCH_SIZE_MIN,
     AD_CAMPAIGN_BODY_MAX,
+    AD_CAMPAIGN_CTA_URL_MAX,
+    AD_CAMPAIGN_OFFER_TITLE_MAX,
     AD_CAMPAIGN_PLACEHOLDERS,
     AD_CAMPAIGN_SUBJECT_MAX,
     AD_CAMPAIGN_TITLE_MAX,
@@ -84,6 +86,65 @@ export const adCampaignSheetView: ViewConfig = {
                         card("scheduledAt", {icon: "#IconCalendarBolt", format: "datetime", type: "date"}),
                         card("startedAt", {icon: "#Play", format: "datetime", type: "date"}),
                         card("completedAt", {icon: "#CircleCheck", format: "datetime", type: "date"}),
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            props: {title: "content"},
+            permissions: {readAny: ["contentUnit", "contentProject", "offerTitle", "offerEndsAt", "ctaUrl", "subjectOverride", "bodyHtmlOverride", "fromName", "replyTo"]},
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 3},
+                    children: [
+                        card("contentUnit", {
+                            icon: "#Home",
+                            linkedRefPath: "contentUnit",
+                            parent: "contentUnit",
+                            valuePath: ["name", "unitNumber", "_id"],
+                            pickFirstTruthyValuePath: true,
+                        }),
+                        card("contentProject", {
+                            icon: "#Building",
+                            linkedRefPath: "contentProject",
+                            parent: "contentProject",
+                            valuePath: ["name", "_id"],
+                            pickFirstTruthyValuePath: true,
+                        }),
+                        card("offerTitle", {icon: "#Tag"}),
+                        card("offerEndsAt", {icon: "#IconCalendarBolt", format: "datetime", type: "date"}),
+                        card("ctaUrl", {icon: "#Link"}),
+                        card("fromName", {icon: "#User"}),
+                        card("replyTo", {icon: "#Mail"}),
+                        card("subjectOverride", {icon: "#Type"}),
+                    ],
+                },
+                {
+                    render: "#Field",
+                    permissions: {read: "bodyHtmlOverride"},
+                    field: {
+                        name: "bodyHtmlOverride",
+                        widget: "#EmailHtmlPreview",
+                        label: "bodyHtmlOverride",
+                        widgetProps: {readOnly: true, height: 420},
+                    },
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            props: {title: "audience"},
+            permissions: {readAny: ["audienceMode", "includeClientUsers", "includeLeads"]},
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 3},
+                    children: [
+                        card("audienceMode", {icon: "#Users", languageKeyCategory: "audienceModeEnum", type: "enum"}),
+                        card("includeClientUsers", {icon: "#User", type: "boolean"}),
+                        card("includeLeads", {icon: "#Users", type: "boolean"}),
                     ],
                 },
             ],
@@ -172,6 +233,124 @@ function formNodes(edit: boolean): ViewConfig["nodes"] {
                                 widgetProps: {withTime: true},
                             },
                         }, "scheduledAt", edit),
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#TitleWithCollapse",
+            props: {title: "content"},
+            children: [
+                {
+                    render: "#FormGrid",
+                    props: {columns: 1},
+                    children: [
+                        {
+                            render: "#FormWhenFieldValueIn",
+                            props: {
+                                watchField: "campaignType",
+                                whenValues: ["price_change"],
+                                clearFields: ["offerTitle", "offerEndsAt"],
+                            },
+                            children: [
+                                field({
+                                    render: "#Field",
+                                    field: {
+                                        name: "contentUnit",
+                                        widget: "#ApiSelect",
+                                        label: "form.contentUnitLabel",
+                                        placeholder: "form.contentUnitPlaceholder",
+                                        required: true,
+                                        widgetProps: {
+                                            apiUrl: "/api/realEstate/unit/select",
+                                            method: "POST",
+                                            className: "grow w-full",
+                                        },
+                                    },
+                                }, "contentUnit", edit),
+                            ],
+                        },
+                        {
+                            render: "#FormWhenFieldValueIn",
+                            props: {
+                                watchField: "campaignType",
+                                whenValues: ["offer"],
+                                clearFields: ["contentUnit"],
+                            },
+                            children: [
+                                field({
+                                    render: "#Field",
+                                    field: {
+                                        name: "offerTitle",
+                                        widget: "#Input",
+                                        label: "form.offerTitleLabel",
+                                        placeholder: "form.offerTitlePlaceholder",
+                                        required: true,
+                                        widgetProps: {maxLength: AD_CAMPAIGN_OFFER_TITLE_MAX},
+                                    },
+                                }, "offerTitle", edit),
+                                field({
+                                    render: "#Field",
+                                    field: {
+                                        name: "offerEndsAt",
+                                        widget: "#DateInput",
+                                        label: "form.offerEndsAtLabel",
+                                        placeholder: "form.offerEndsAtPlaceholder",
+                                        required: true,
+                                        widgetProps: {withTime: true},
+                                    },
+                                }, "offerEndsAt", edit),
+                                field({
+                                    render: "#Field",
+                                    field: {
+                                        name: "contentProject",
+                                        widget: "#ApiSelect",
+                                        label: "form.contentProjectLabel",
+                                        placeholder: "form.contentProjectPlaceholder",
+                                        widgetProps: {
+                                            apiUrl: "/api/realEstate/project/select",
+                                            method: "POST",
+                                            className: "grow w-full",
+                                        },
+                                    },
+                                }, "contentProject", edit),
+                            ],
+                        },
+                        {
+                            render: "#FormWhenFieldValueIn",
+                            props: {
+                                watchField: "campaignType",
+                                whenValues: ["new_project"],
+                                clearFields: ["contentUnit", "offerTitle", "offerEndsAt"],
+                            },
+                            children: [
+                                field({
+                                    render: "#Field",
+                                    field: {
+                                        name: "contentProject",
+                                        widget: "#ApiSelect",
+                                        label: "form.contentProjectLabel",
+                                        placeholder: "form.contentProjectPlaceholder",
+                                        required: true,
+                                        widgetProps: {
+                                            apiUrl: "/api/realEstate/project/select",
+                                            method: "POST",
+                                            className: "grow w-full",
+                                        },
+                                    },
+                                }, "contentProject", edit),
+                            ],
+                        },
+                        field({
+                            render: "#Field",
+                            field: {
+                                name: "ctaUrl",
+                                widget: "#Input",
+                                label: "form.ctaUrlLabel",
+                                placeholder: "form.ctaUrlPlaceholder",
+                                widgetProps: {type: "url", maxLength: AD_CAMPAIGN_CTA_URL_MAX},
+                            },
+                        }, "ctaUrl", edit),
                     ],
                 },
             ],

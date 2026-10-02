@@ -11,6 +11,7 @@ import {
 } from "@propertyManagement/database/schemas/marketingPreference/marketingPreference.service";
 import type {
     AdCampaignAudienceKind,
+    AdCampaignSkipReason,
     AdCampaignType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {findClientHoldings} from "./clientAudience";
@@ -25,12 +26,22 @@ export type AudienceCandidate = {
     audienceKind: AdCampaignAudienceKind;
     user?: ObjectId;
     lead?: ObjectId;
+    firstName?: string;
+    lastName?: string;
     fullName?: string;
     languageCode: string;
+    skipReason?: AdCampaignSkipReason;
 };
 
-type UserLite = {_id: ObjectId; username?: string; name?: string; surname?: string; fullName?: string};
-type LeadLite = {_id: ObjectId; email?: string; firstName?: string; lastName?: string};
+export type UserLite = {
+    _id: ObjectId;
+    username?: string;
+    name?: string;
+    surname?: string;
+    fullName?: string;
+    isActive?: boolean;
+};
+export type LeadLite = {_id: ObjectId; email?: string; firstName?: string; lastName?: string};
 
 /**
  * Recipient language.
@@ -49,44 +60,129 @@ function displayName(u: UserLite): string | undefined {
     return u.fullName || `${u.name ?? ""} ${u.surname ?? ""}`.trim() || undefined;
 }
 
+function userIdentity(u: UserLite): Pick<AudienceCandidate, "firstName" | "lastName" | "fullName"> {
+    const firstName = u.name?.trim() || undefined;
+    const lastName = u.surname?.trim() || undefined;
+    return {firstName, lastName, fullName: displayName(u)};
+}
+
+function skippedEmail(kind: "user" | "lead", id: ObjectId): string {
+    return `skipped.${kind}.${id.toString()}@invalid.example`;
+}
+
+function refIds(list: unknown): ObjectId[] {
+    if (!Array.isArray(list)) return [];
+    const ids: ObjectId[] = [];
+    for (const value of list) {
+        if (value instanceof ObjectId) {
+            ids.push(value);
+            continue;
+        }
+        if (value && typeof value === "object" && "_id" in value) {
+            const inner = (value as {_id: unknown})._id;
+            if (inner instanceof ObjectId) ids.push(inner);
+            else if (inner != null && ObjectId.isValid(String(inner))) ids.push(new ObjectId(String(inner)));
+            continue;
+        }
+        if (value != null && ObjectId.isValid(String(value))) ids.push(new ObjectId(String(value)));
+    }
+    return ids;
+}
+
+/** Restrict `all`-mode leads to the campaign's project/unit scope. */
+export function leadInterestFilter(projects: ObjectId[], units: ObjectId[]): Record<string, unknown> {
+    if (units.length === 1) return {unitInterest: units[0]};
+    if (units.length > 1) return {unitInterest: {$in: units}};
+    if (projects.length === 1) return {projectInterest: projects[0]};
+    if (projects.length > 1) return {projectInterest: {$in: projects}};
+    return {};
+}
+
+export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean}): AudienceCandidate | null {
+    const identity = userIdentity(u);
+    if (!u.username) {
+        if (!opts.recordInactive) return null;
+        return {
+            email: skippedEmail("user", u._id),
+            audienceKind: "user",
+            user: u._id,
+            ...identity,
+            languageCode: defaultLanguage(),
+            skipReason: "no_email",
+        };
+    }
+    if (u.isActive === false) {
+        if (!opts.recordInactive) return null;
+        return {
+            email: normalizeEmail(u.username),
+            audienceKind: "user",
+            user: u._id,
+            ...identity,
+            languageCode: defaultLanguage(),
+            skipReason: "inactive",
+        };
+    }
+    return {
+        email: normalizeEmail(u.username),
+        audienceKind: "user",
+        user: u._id,
+        ...identity,
+        languageCode: defaultLanguage(),
+    };
+}
+
 /** Client `User`s in scope, as campaign candidates. Email is `username`. */
 async function clientUserCandidates(campaign: IAdCampaign, company: ObjectId): Promise<AudienceCandidate[]> {
     const {holdings} = await findClientHoldings({
         company,
-        projects: (campaign.projects as unknown as ObjectId[]) ?? [],
-        units: (campaign.units as unknown as ObjectId[]) ?? [],
+        projects: refIds(campaign.projects),
+        units: refIds(campaign.units),
     });
     if (!holdings.size) return [];
 
     const users = await User.find({
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
         companies: company,
-        isActive: true,
     })
-        .select("_id username name surname fullName")
+        .select("_id username name surname fullName isActive")
         .lean<UserLite[]>();
 
     return users
-        .filter(u => !!u.username)
-        .map(u => ({
-            email: normalizeEmail(u.username!),
-            audienceKind: "user" as const,
-            user: u._id,
-            fullName: displayName(u),
-            languageCode: defaultLanguage(),
-        }));
+        .map(u => toUserCandidate(u, {recordInactive: true}))
+        .filter((c): c is AudienceCandidate => !!c);
 }
 
-function leadCandidates(leads: LeadLite[]): AudienceCandidate[] {
-    return leads
-        .filter(l => !!l.email && l.email.trim() !== "")
-        .map(l => ({
-            email: normalizeEmail(l.email!),
-            audienceKind: "lead" as const,
+export function leadCandidates(leads: LeadLite[], opts: {recordMissingEmail: boolean}): AudienceCandidate[] {
+    const out: AudienceCandidate[] = [];
+    for (const l of leads) {
+        const firstName = l.firstName?.trim() || undefined;
+        const lastName = l.lastName?.trim() || undefined;
+        const fullName = `${l.firstName ?? ""} ${l.lastName ?? ""}`.trim() || undefined;
+        if (!l.email || l.email.trim() === "") {
+            if (!opts.recordMissingEmail) continue;
+            out.push({
+                email: skippedEmail("lead", l._id),
+                audienceKind: "lead",
+                lead: l._id,
+                firstName,
+                lastName,
+                fullName,
+                languageCode: defaultLanguage(),
+                skipReason: "no_email",
+            });
+            continue;
+        }
+        out.push({
+            email: normalizeEmail(l.email),
+            audienceKind: "lead",
             lead: l._id,
-            fullName: `${l.firstName ?? ""} ${l.lastName ?? ""}`.trim() || undefined,
+            firstName,
+            lastName,
+            fullName,
             languageCode: defaultLanguage(),
-        }));
+        });
+    }
+    return out;
 }
 
 /**
@@ -109,20 +205,13 @@ export async function resolveAudienceCandidates(
             const users = await User.find({
                 _id: {$in: userIds},
                 companies: company,
-                isActive: true,
             })
-                .select("_id username name surname fullName")
+                .select("_id username name surname fullName isActive")
                 .lean<UserLite[]>();
             candidates.push(
                 ...users
-                    .filter(u => !!u.username)
-                    .map(u => ({
-                        email: normalizeEmail(u.username!),
-                        audienceKind: "user" as const,
-                        user: u._id,
-                        fullName: displayName(u),
-                        languageCode: defaultLanguage(),
-                    })),
+                    .map(u => toUserCandidate(u, {recordInactive: true}))
+                    .filter((c): c is AudienceCandidate => !!c),
             );
         }
 
@@ -130,7 +219,7 @@ export async function resolveAudienceCandidates(
             const leads = await Lead.find({_id: {$in: leadIds}, company})
                 .select("_id email firstName lastName")
                 .lean<LeadLite[]>();
-            candidates.push(...leadCandidates(leads));
+            candidates.push(...leadCandidates(leads, {recordMissingEmail: true}));
         }
 
         return candidates;
@@ -144,14 +233,16 @@ export async function resolveAudienceCandidates(
     if (campaign.includeLeads) {
         // Lost leads are excluded — mailing an offer to someone who has already
         // walked away is the fastest way to earn a spam complaint.
+        const projectIds = refIds(campaign.projects);
+        const unitIds = refIds(campaign.units);
         const leads = await Lead.find({
             company,
-            email: {$exists: true, $nin: [null, ""]},
             status: {$nin: [LeadStatus.LOST]},
+            ...leadInterestFilter(projectIds, unitIds),
         })
             .select("_id email firstName lastName")
             .lean<LeadLite[]>();
-        candidates.push(...leadCandidates(leads));
+        candidates.push(...leadCandidates(leads, {recordMissingEmail: true}));
     }
 
     return candidates;
@@ -238,7 +329,8 @@ export async function materializeAdCampaignRecipients(
         );
 
         const rows = candidates.map(c => {
-            const suppressed = blocked.has(c.email);
+            const skipped = !!c.skipReason;
+            const suppressed = !skipped && blocked.has(c.email);
             return {
                 company,
                 campaign: campaignId,
@@ -247,10 +339,12 @@ export async function materializeAdCampaignRecipients(
                 user: c.user,
                 lead: c.lead,
                 email: c.email,
+                firstName: c.firstName,
+                lastName: c.lastName,
                 fullName: c.fullName,
                 languageCode: c.languageCode,
-                status: suppressed ? "suppressed" : "pending",
-                skipReason: suppressed ? "opted_out" : undefined,
+                status: skipped ? "skipped" : suppressed ? "suppressed" : "pending",
+                skipReason: skipped ? c.skipReason : suppressed ? "opted_out" : undefined,
                 attempts: 0,
             };
         });

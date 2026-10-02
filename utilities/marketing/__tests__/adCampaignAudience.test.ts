@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {ObjectId} from "mongodb";
-import {dedupeByEmail, type AudienceCandidate} from "../adCampaignAudience";
+import {dedupeByEmail, leadCandidates, leadInterestFilter, toUserCandidate, type AudienceCandidate} from "../adCampaignAudience";
 
 const oid = () => new ObjectId();
 
@@ -72,5 +72,59 @@ describe("dedupeByEmail", () => {
 
     it("handles an empty audience", () => {
         expect(dedupeByEmail([])).toEqual([]);
+    });
+});
+
+describe("leadInterestFilter", () => {
+    it("scopes to a unit when units are set", () => {
+        const unit = oid();
+        expect(leadInterestFilter([oid()], [unit])).toEqual({unitInterest: unit});
+    });
+
+    it("uses $in when several units are in scope", () => {
+        const a = oid();
+        const b = oid();
+        expect(leadInterestFilter([oid()], [a, b])).toEqual({unitInterest: {$in: [a, b]}});
+    });
+
+    it("scopes to a project when only projects are set", () => {
+        const project = oid();
+        expect(leadInterestFilter([project], [])).toEqual({projectInterest: project});
+    });
+
+    it("is empty when the campaign has no inventory scope", () => {
+        expect(leadInterestFilter([], [])).toEqual({});
+    });
+});
+
+describe("skip reasons", () => {
+    it("writes no_email when a selected user has no username", () => {
+        const id = oid();
+        const row = toUserCandidate({_id: id}, {recordInactive: true});
+        expect(row?.skipReason).toBe("no_email");
+        expect(row?.email).toBe(`skipped.user.${id.toString()}@invalid.example`);
+    });
+
+    it("writes inactive when a selected user is deactivated", () => {
+        const row = toUserCandidate(
+            {_id: oid(), username: "ana@x.com", isActive: false, name: "Ana", surname: "Marku"},
+            {recordInactive: true},
+        );
+        expect(row?.skipReason).toBe("inactive");
+        expect(row?.email).toBe("ana@x.com");
+        expect(row?.firstName).toBe("Ana");
+        expect(row?.lastName).toBe("Marku");
+    });
+
+    it("writes no_email when a selected lead has no address", () => {
+        const id = oid();
+        const rows = leadCandidates(
+            [{_id: id, firstName: "Ana", lastName: "Marku"}],
+            {recordMissingEmail: true},
+        );
+        expect(rows).toHaveLength(1);
+        expect(rows[0].skipReason).toBe("no_email");
+        expect(rows[0].email).toBe(`skipped.lead.${id.toString()}@invalid.example`);
+        expect(rows[0].firstName).toBe("Ana");
     });
 });

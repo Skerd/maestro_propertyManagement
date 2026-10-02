@@ -15,6 +15,12 @@ import {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {sendAdCampaignMail, resolveRecipientLocale} from "@propertyManagement/utilities/emails/adCampaignNotifier";
 import {buildUnsubscribeUrls} from "@propertyManagement/utilities/marketing/unsubscribeLinks";
+import {
+    mergeCampaignTokens,
+    recipientIdentityTokens,
+    resolveCampaignContentTokens,
+} from "@propertyManagement/utilities/marketing/adCampaignTokens";
+import type {AdCampaignTokenValues} from "@propertyManagement/utilities/emails/adCampaignNotifier";
 import {adCampaignSendConfig, bulkSendBlockedReason, effectiveRecipient} from "./adCampaignConfig";
 
 export type SenderContext = {
@@ -111,6 +117,7 @@ async function sendBatch(
     batch: IAdCampaignRecipient[],
     session: PooledMailSession,
     ctx: SenderContext,
+    contentTokens: AdCampaignTokenValues,
 ): Promise<{sent: number; failed: number; suppressed: number}> {
     const config = adCampaignSendConfig();
     const counts = {sent: 0, failed: 0, suppressed: 0};
@@ -162,13 +169,15 @@ async function sendBatch(
                 languageCode: locale,
                 companyName,
                 fullName: row.fullName || row.email,
-                tokens: {
-                    firstName: (row.fullName ?? "").split(" ")[0] || undefined,
-                    fullName: row.fullName || undefined,
-                    email: row.email,
-                    companyName,
-                    campaignTitle: campaign.title,
-                },
+                tokens: mergeCampaignTokens(
+                    contentTokens,
+                    recipientIdentityTokens({
+                        firstName: row.firstName,
+                        lastName: row.lastName,
+                        fullName: row.fullName,
+                        email: row.email,
+                    }),
+                ),
                 unsubscribeUrl,
                 preferencesUrl,
                 oneClickUrl,
@@ -215,6 +224,13 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
     }
 
     const session = await createPooledMailSession(company);
+    const companyDoc = await Company.findById(company).select("name").lean<{name?: string}>();
+    const contentTokens = await resolveCampaignContentTokens({
+        campaign,
+        company,
+        languageCode: "en-US",
+        companyName: companyDoc?.name ?? "",
+    });
     try {
         while (true) {
             if (await shouldStop(campaignId, company, ctx)) {
@@ -225,7 +241,7 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
             const batch = await claimRecipientBatch(campaignId, company, batchSize);
             if (!batch.length) break;
 
-            const counts = await sendBatch(campaign, company, batch, session, ctx);
+            const counts = await sendBatch(campaign, company, batch, session, ctx, contentTokens);
             await AdCampaign.updateOne(
                 {_id: campaignId, company},
                 {

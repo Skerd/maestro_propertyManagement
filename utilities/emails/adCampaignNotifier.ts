@@ -189,6 +189,12 @@ export async function sendAdCampaignMail(input: SendAdCampaignInput): Promise<{m
     }
 
     const rendered = renderAdCampaignEmail(input);
+    const remaining = rendered.unresolvedPlaceholders.filter(
+        token => token !== "unsubscribeUrl" && token !== "preferencesUrl",
+    );
+    if (remaining.length > 0) {
+        throw new Error("ad_campaign_unresolved_placeholders");
+    }
 
     const mailOptions: Record<string, any> = {
         to: input.email,

@@ -27,7 +27,9 @@ import {
     AD_CAMPAIGN_BATCH_SIZE_MAX,
     AD_CAMPAIGN_BATCH_SIZE_MIN,
     AD_CAMPAIGN_BODY_MAX,
+    AD_CAMPAIGN_CTA_URL_MAX,
     AD_CAMPAIGN_ERROR_MAX,
+    AD_CAMPAIGN_OFFER_TITLE_MAX,
     AD_CAMPAIGN_NAME_MAX,
     AD_CAMPAIGN_STATUS_VALUES,
     AD_CAMPAIGN_SUBJECT_MAX,
@@ -39,6 +41,7 @@ import {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
+import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {AdCampaignTemplateSimpleSnippet} from "@propertyManagement/database/schemas/adCampaignTemplate/adCampaignTemplate.snippets";
 import {adCampaignViews} from "./adCampaign.views";
 import {applyAdCampaignIndexes} from "./adCampaign.indexes";
@@ -81,6 +84,12 @@ export interface IAdCampaign extends Document, IOwnershipPluginFields, ISoftDele
 
     projects: IProject[];
     units: IUnit[];
+
+    contentUnit?: IUnit;
+    contentProject?: IProject;
+    offerTitle?: string;
+    offerEndsAt?: Date;
+    ctaUrl?: string;
 
     scheduledAt?: Date;
     startedAt?: Date;
@@ -164,8 +173,34 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             default: [],
         },
         units: {
-            type: [{type: SchemaTypes.ObjectId, ref: "Unit"}],
+            type: [{type: SchemaTypes.ObjectId, ref: "Unit", refAllowlist: UnitSimpleSnippet}],
             default: [],
+        },
+
+        contentUnit: {
+            type: SchemaTypes.ObjectId,
+            ref: "Unit",
+            required: false,
+            refAllowlist: UnitSimpleSnippet,
+        },
+        contentProject: {
+            type: SchemaTypes.ObjectId,
+            ref: "Project",
+            required: false,
+            refAllowlist: ProjectSimpleSnippet,
+        },
+        offerTitle: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            maxlength: AD_CAMPAIGN_OFFER_TITLE_MAX,
+        },
+        offerEndsAt: {type: SchemaTypes.Date, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
+        ctaUrl: {
+            type: SchemaTypes.String,
+            required: false,
+            trim: true,
+            maxlength: AD_CAMPAIGN_CTA_URL_MAX,
         },
 
         scheduledAt: {type: SchemaTypes.Date, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},

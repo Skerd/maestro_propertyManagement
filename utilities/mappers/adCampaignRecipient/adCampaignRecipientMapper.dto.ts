@@ -22,6 +22,8 @@ export function adCampaignRecipientToDTO(doc: IAdCampaignRecipient): AdCampaignR
         user:           mapSnippet<SimpleUser>()(doc.user, SimpleUserSnippet),
         lead:           mapSnippet<LeadSimple>()(doc.lead, LeadSimpleSnippet),
         email:          doc.email,
+        firstName:      doc.firstName ?? undefined,
+        lastName:       doc.lastName ?? undefined,
         fullName:       doc.fullName ?? undefined,
         languageCode:   doc.languageCode ?? undefined,
         status:         doc.status,

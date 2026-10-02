@@ -15,6 +15,7 @@ import {
     AD_CAMPAIGN_PREVIEW_UNSUBSCRIBE_URL,
     adCampaignSampleTokens,
 } from "../../../utilities/marketing/adCampaignSampleTokens";
+import {resolveCampaignContentTokens} from "../../../utilities/marketing/adCampaignTokens";
 import {adCampaignTemplateToDTO} from "../../../utilities/mappers/adCampaignTemplate/adCampaignTemplateMapper.dto";
 import AdCampaign, {IAdCampaign} from "../adCampaign/adCampaign";
 import AdCampaignTemplate from "./adCampaignTemplate";
@@ -44,22 +45,53 @@ export class AdCampaignTemplateActions {
         let campaign: IAdCampaign | null = null;
         if (campaignId && ObjectId.isValid(String(campaignId))) {
             campaign = await AdCampaign.findOne({_id: new ObjectId(String(campaignId)), company: company._id})
-                .select("title campaignType")
                 .lean<IAdCampaign>();
         }
 
         const companyName = typeof company.name === "string" ? company.name : "";
+        const sample = adCampaignSampleTokens(campaignType, {
+            companyName,
+            campaignTitle: campaign?.title ?? "",
+        });
+        let live = sample;
+        if (campaign) {
+            try {
+                live = {
+                    ...sample,
+                    ...(await resolveCampaignContentTokens({
+                        campaign,
+                        company: company._id,
+                        languageCode: locale,
+                        companyName,
+                    })),
+                };
+            } catch {
+                // Preview still shows samples when live inventory is incomplete.
+            }
+        }
+
+        let html = typeof bodyHtml === "string" ? bodyHtml : "";
+        let renderedSubject = typeof subject === "string" ? subject : "";
+        let renderedPreview = typeof previewText === "string" ? previewText : undefined;
+        if (campaign && !html) {
+            const resolved = await adCampaignTemplateService.resolveForLocale({
+                company: company._id,
+                templateId: campaign.template as unknown as ObjectId,
+                locale,
+            });
+            html = campaign.bodyHtmlOverride || resolved?.bodyHtml || "";
+            if (!renderedSubject) renderedSubject = campaign.subjectOverride || resolved?.subject || "";
+            if (!renderedPreview) renderedPreview = resolved?.previewText;
+        }
+
         const rendered = renderAdCampaignEmail({
-            bodyHtml: typeof bodyHtml === "string" ? bodyHtml : "",
-            subject: typeof subject === "string" ? subject : "",
-            previewText: typeof previewText === "string" ? previewText : undefined,
+            bodyHtml: html,
+            subject: renderedSubject,
+            previewText: renderedPreview,
             languageCode: locale,
             companyName,
             fullName: "Ana Marku",
-            tokens: adCampaignSampleTokens(campaignType, {
-                companyName,
-                campaignTitle: campaign?.title ?? "",
-            }),
+            tokens: live,
             unsubscribeUrl: AD_CAMPAIGN_PREVIEW_UNSUBSCRIBE_URL,
             preferencesUrl: AD_CAMPAIGN_PREVIEW_PREFERENCES_URL,
         });

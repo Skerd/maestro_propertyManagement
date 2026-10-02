@@ -185,4 +185,14 @@ describe("sendAdCampaignMail", () => {
         expect(opts.fromName).toBe("Acme Sales");
         expect(opts.replyTo).toBe("sales@acme.example");
     });
+
+    it("refuses to send when known tokens would ship as braces", async () => {
+        await expect(sendAdCampaignMail({
+            ...base,
+            email: "a@b.com",
+            companyId: "c1",
+            bodyHtml: "<p>{offerTitle}</p>",
+        })).rejects.toThrow("ad_campaign_unresolved_placeholders");
+        expect(mocks.sendMail).not.toHaveBeenCalled();
+    });
 });

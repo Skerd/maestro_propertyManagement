@@ -53,6 +53,8 @@ export interface IAdCampaignRecipient extends Document, IOwnershipPluginFields, 
     user?: IUser;
     lead?: ILead;
     email: string;
+    firstName?: string;
+    lastName?: string;
     fullName?: string;
     languageCode?: string;
     status: AdCampaignRecipientStatus;
@@ -107,6 +109,8 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             maxlength: 320,
             permissions: SYSTEM_WRITE,
         },
+        firstName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE},
+        lastName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE},
         fullName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 200, permissions: SYSTEM_WRITE},
         languageCode: {type: SchemaTypes.String, required: false, trim: true, maxlength: 10, permissions: SYSTEM_WRITE},
         status: {

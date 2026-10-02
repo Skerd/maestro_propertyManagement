@@ -48,6 +48,12 @@ export function adCampaignToDTO(doc: IAdCampaign): AdCampaign {
         projects:           mapSnippetList<ProjectSimple>(doc.projects, ProjectSimpleSnippet),
         units:              mapSnippetList<UnitSimple>(doc.units, UnitSimpleSnippet),
 
+        contentUnit:        mapSnippet<UnitSimple>()(doc.contentUnit, UnitSimpleSnippet),
+        contentProject:     mapSnippet<ProjectSimple>()(doc.contentProject, ProjectSimpleSnippet),
+        offerTitle:         doc.offerTitle ?? undefined,
+        offerEndsAt:        doc.offerEndsAt ?? undefined,
+        ctaUrl:             doc.ctaUrl ?? undefined,
+
         scheduledAt:        doc.scheduledAt ?? undefined,
         startedAt:          doc.startedAt ?? undefined,
         completedAt:        doc.completedAt ?? undefined,

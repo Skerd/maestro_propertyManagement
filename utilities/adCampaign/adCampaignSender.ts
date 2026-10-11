@@ -47,7 +47,6 @@ export async function claimDueCampaign(company: ObjectId): Promise<IAdCampaign |
     return AdCampaign.findOneAndUpdate(
         {
             company,
-            deletedAt: null,
             $or: [
                 {status: "scheduled", scheduledAt: {$lte: now}},
                 {status: "sending"},
@@ -55,7 +54,7 @@ export async function claimDueCampaign(company: ObjectId): Promise<IAdCampaign |
         },
         {$set: {status: "sending", lastError: null}, $setOnInsert: {}},
         {new: true, sort: {scheduledAt: 1, createdAt: 1}},
-    ).lean<IAdCampaign>();
+    ).noDeleted().lean<IAdCampaign>();
 }
 
 /**
@@ -79,8 +78,7 @@ export async function claimRecipientBatch(
         campaign: campaignId,
         company,
         status: "pending",
-        deletedAt: null,
-    })
+    }).noDeleted()
         .sort({_id: 1})
         .limit(batchSize)
         .select("_id")
@@ -262,8 +260,7 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
             campaign: campaignId,
             company,
             status: {$in: ["pending", "queued"]},
-            deletedAt: null,
-        });
+        }).noDeleted();
         if (outstanding === 0) {
             await adCampaignService.finalize(campaignId, company, "completed");
             note(ctx, `Campaign ${campaignId} completed.`);

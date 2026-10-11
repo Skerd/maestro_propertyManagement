@@ -76,10 +76,9 @@ export async function waiveOpenRentalPayments(leaseId: ObjectId, ctx: Ctx): Prom
             lease: leaseId,
             company: company._id,
             status: {$in: [RentalPaymentStatus.PENDING, RentalPaymentStatus.OVERDUE, RentalPaymentStatus.PARTIALLY_PAID]},
-            deletedAt: null,
         },
         {$set: {status: RentalPaymentStatus.WAIVED}},
-        {session, logger, languageCode, auditUserId: actionUserCtx?.userId},
+        {withDeleted: false, session, logger, languageCode, auditUserId: actionUserCtx?.userId},
     );
 }
 

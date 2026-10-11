@@ -75,7 +75,6 @@ export async function runLeaseRentReminders(parentLogger?: serverLogger): Promis
 
     const baseFilter = {
         status: {$in: [...OPEN_RENT_STATUSES]},
-        deletedAt: null,
     };
     const populate = [
         {
@@ -95,7 +94,7 @@ export async function runLeaseRentReminders(parentLogger?: serverLogger): Promis
         const filter = lastId ? {...baseFilter, _id: {$gt: lastId}} : baseFilter;
         const payments = await rentalPaymentService.find(
             filter,
-            {logger, languageCode: lang, timeOperations: false},
+            {logger, languageCode: lang, timeOperations: false, withDeleted: false},
             populate,
             undefined,
             {_id: 1},

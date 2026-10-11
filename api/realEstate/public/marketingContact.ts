@@ -44,8 +44,8 @@ async function resolveLeadInterests(
 
     if (projectInterest) {
         const project = await projectService.findOne(
-            {_id: new ObjectId(projectInterest), company: companyId, deletedAt: null},
-            opts,
+            {_id: new ObjectId(projectInterest), company: companyId},
+            {...opts, withDeleted: false},
         );
         if (!project) {
             throw apiValidationException("project_not_found", "projectInterest", projectInterest, languageCode);
@@ -55,8 +55,8 @@ async function resolveLeadInterests(
 
     if (unitInterest) {
         const unit = await unitService.findOne(
-            {_id: new ObjectId(unitInterest), company: companyId, deletedAt: null},
-            opts,
+            {_id: new ObjectId(unitInterest), company: companyId},
+            {...opts, withDeleted: false},
         );
         if (!unit) {
             throw apiValidationException("unit_not_found", "unitInterest", unitInterest, languageCode);

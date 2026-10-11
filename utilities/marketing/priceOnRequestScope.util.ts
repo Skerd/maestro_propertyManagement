@@ -19,11 +19,11 @@ const EXPLICIT_VISIBILITY = {$in: ["hide", "show"]};
  * `{company, priceVisibility}` (+ the parent refs).
  */
 export async function loadPriceOnRequestScope(companyId: ObjectId): Promise<PriceOnRequestScope> {
-    const base = {company: companyId, deletedAt: null};
+    const base = {company: companyId};
 
     const projects = await projectService.find(
         {...base, priceVisibility: EXPLICIT_VISIBILITY},
-        {},
+        {withDeleted: false},
         undefined,
         "_id priceVisibility",
     );
@@ -37,7 +37,7 @@ export async function loadPriceOnRequestScope(companyId: ObjectId): Promise<Pric
                 ...(projectIds.length > 0 ? [{project: {$in: projectIds}}] : []),
             ],
         },
-        {},
+        {withDeleted: false},
         undefined,
         "_id project priceVisibility",
     );
@@ -52,7 +52,7 @@ export async function loadPriceOnRequestScope(companyId: ObjectId): Promise<Pric
                 ...(edificeIds.length > 0 ? [{edifice: {$in: edificeIds}}] : []),
             ],
         },
-        {},
+        {withDeleted: false},
         undefined,
         "_id edifice priceVisibility",
     );

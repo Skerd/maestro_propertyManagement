@@ -165,7 +165,7 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
     const {logger, company, project, edifice, floor, unit, sale, plan, languageCode} = params;
     const opts = {logger, languageCode, withDeleted: false as const};
 
-    const match: Record<string, unknown> = {company: company._id, deletedAt: null};
+    const match: Record<string, unknown> = {company: company._id};
     if (plan && ObjectId.isValid(plan)) match._id = new ObjectId(plan);
 
     const saleIds: ObjectId[] = [];
@@ -175,7 +175,7 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
     if (unitIds) {
         if (unitIds.length === 0) return {rows: [], truncated: false};
         const sales = await saleService.find(
-            {company: company._id, deletedAt: null, unit: {$in: unitIds}},
+            {company: company._id, unit: {$in: unitIds}},
             opts as Parameters<typeof saleService.find>[1],
             [],
             "_id",

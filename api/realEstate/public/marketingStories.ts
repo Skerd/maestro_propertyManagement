@@ -137,7 +137,6 @@ async function marketingStories(
     const company = await resolveMarketingCompany(origin, languageCode);
     const filter: Record<string, any> = {
         company: company._id,
-        deletedAt: null,
         published: true,
     };
 
@@ -149,15 +148,15 @@ async function marketingStories(
     const [stories, storyTypes, project] = await Promise.all([
         storyService.find(
             filter,
-            {logger, languageCode},
+            {withDeleted: false, logger, languageCode},
             ["mainImage", "imageGallery", "videoGallery", "project", "edifice", "unit", "storyType"],
             undefined,
             {sortOrder: 1, publishedAt: -1, createdAt: -1},
             Math.min(limit ?? DEFAULT_LIMIT, 50),
         ),
         storyTypeService.find(
-            {company: company._id, deletedAt: null},
-            {logger, languageCode},
+            {company: company._id},
+            {withDeleted: false, logger, languageCode},
             undefined,
             undefined,
             {sortOrder: 1, name: 1},
@@ -165,8 +164,8 @@ async function marketingStories(
         ),
         projectId
             ? projectService.findOne(
-                  {_id: new ObjectId(projectId), company: company._id, deletedAt: null},
-                  {logger, languageCode},
+                  {_id: new ObjectId(projectId), company: company._id},
+                  {withDeleted: false, logger, languageCode},
                   ["magazineFile"],
               )
             : Promise.resolve(null),
@@ -194,10 +193,9 @@ async function marketingStorySingle(
         {
             _id: new ObjectId(storyId),
             company: company._id,
-            deletedAt: null,
             published: true,
         },
-        {logger, languageCode},
+        {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery", "videoGallery", "project", "edifice", "unit", "storyType"],
     );
 

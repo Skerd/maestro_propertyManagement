@@ -132,14 +132,14 @@ router.post(
         const scopeType = resolveScopeType(edificeIds, floorIds, unitIds);
 
         // ── Build unit filter (progressive narrowing) ─────────────────────────────
-        const unitFilter: Record<string, any> = {company: companyId, deletedAt: null};
+        const unitFilter: Record<string, any> = {company: companyId};
         if (projectId) unitFilter.project = new ObjectId(projectId);
         if (edificeIds.length > 0) unitFilter.edifice = {$in: toObjectIds(edificeIds)};
         if (floorIds.length > 0)   unitFilter.floor   = {$in: toObjectIds(floorIds)};
         if (unitIds.length > 0)    unitFilter._id     = {$in: toObjectIds(unitIds)};
 
         const units = canReadUnits
-            ? await Unit.find(unitFilter)
+            ? await Unit.find(unitFilter).noDeleted()
                 .select("_id name unitNumber status price priceCurrency project")
                 .populate("priceCurrency", "symbol abbreviation")
                 .lean()
@@ -174,7 +174,7 @@ router.post(
 
         // ── Fetch sales for sold units ─────────────────────────────────────────────
         const sales = canReadSales && matchedUnitIds.length > 0
-            ? await Sale.find({unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null})
+            ? await Sale.find({unit: {$in: matchedUnitIds}, company: companyId}).noDeleted()
                 .select("unit finalPrice saleCurrency")
                 .populate("saleCurrency", "symbol")
                 .lean()
@@ -190,7 +190,7 @@ router.post(
 
         // ── Fetch active leases for rented units ──────────────────────────────────
         const leases = canReadLeases && matchedUnitIds.length > 0
-            ? await Lease.find({unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null, status: "active"})
+            ? await Lease.find({unit: {$in: matchedUnitIds}, company: companyId, status: "active"}).noDeleted()
                 .select("unit monthlyRent rentCurrency")
                 .populate("rentCurrency", "symbol")
                 .lean()

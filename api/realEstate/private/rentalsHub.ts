@@ -143,7 +143,6 @@ async function listLeases(
 
     const match: Record<string, unknown> = {
         company: companyId,
-        deletedAt: null,
     };
     if (unitIds) match.unit = {$in: unitIds};
     if (status) match.status = status;
@@ -181,7 +180,7 @@ async function listLeases(
         && canReadCollectedFields("rentalpayments", params.actionUserCtx, params.languageCode)
     ) {
         const payments = await rentalPaymentService.find(
-            {lease: {$in: pageIds}, company: companyId, deletedAt: null},
+            {lease: {$in: pageIds}, company: companyId},
             {logger, languageCode: params.languageCode, withDeleted: false},
         );
         const totals = totalsByLease(payments);
@@ -230,7 +229,6 @@ async function listRentalPayments(
 
     const match: Record<string, unknown> = {
         company: companyId,
-        deletedAt: null,
     };
     if (payment && ObjectId.isValid(payment)) match._id = new ObjectId(payment);
     if (unitIds) match.unit = {$in: unitIds};
@@ -352,7 +350,6 @@ async function listRentalPaymentsCalendar(
 
     const match: Record<string, unknown> = {
         company: company._id,
-        deletedAt: null,
     };
     if (unitIds) match.unit = {$in: unitIds};
 

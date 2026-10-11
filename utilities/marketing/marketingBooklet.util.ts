@@ -43,8 +43,8 @@ export async function buildUnitMarketingBookletPdf(
     const opts = {logger, languageCode};
 
     const unit = await unitService.findOneOrThrow(
-        {_id: unitId, company: companyId, deletedAt: null},
-        opts,
+        {_id: unitId, company: companyId},
+        {...opts, withDeleted: false},
         undefined,
         "marketingBooklet floor edifice project",
     );

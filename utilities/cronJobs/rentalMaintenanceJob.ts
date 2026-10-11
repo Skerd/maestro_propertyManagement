@@ -48,12 +48,11 @@ export async function runRentalMaintenance(parentLogger?: serverLogger): Promise
         while (true) {
             const filter: Record<string, unknown> = {
                 status: {$in: [...OPEN_RENT_STATUSES]},
-                deletedAt: null,
             };
             if (lastId) filter._id = {$gt: lastId};
             const payments = await rentalPaymentService.find(
                 filter,
-                {logger, languageCode, timeOperations: false},
+                {withDeleted: false, logger, languageCode, timeOperations: false},
                 [{path: "lease", select: "status lateFeePercentage gracePeriodDays company"}],
                 undefined,
                 {_id: 1},
@@ -103,12 +102,11 @@ export async function runRentalMaintenance(parentLogger?: serverLogger): Promise
             const filter: Record<string, unknown> = {
                 status: LeaseStatus.ACTIVE,
                 endDate: {$lt: todayStart},
-                deletedAt: null,
             };
             if (expireLast) filter._id = {$gt: expireLast};
             const leases = await leaseService.find(
                 filter,
-                {logger, languageCode, timeOperations: false},
+                {withDeleted: false, logger, languageCode, timeOperations: false},
                 [],
                 "_id unit company",
                 {_id: 1},

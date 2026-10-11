@@ -38,6 +38,7 @@ vi.mock("@propertyManagement/database/schemas/adCampaignRecipient/adCampaignReci
         find: (filter: any) => {
             let rows = db.rows.filter(r => matches(r, filter));
             const chain: any = {
+                noDeleted: () => chain,
                 sort: () => chain,
                 limit: (n: number) => { rows = rows.slice(0, n); return chain; },
                 select: () => chain,

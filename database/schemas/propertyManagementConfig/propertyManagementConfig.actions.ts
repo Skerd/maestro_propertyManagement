@@ -22,8 +22,8 @@ export class PropertyManagementConfigActions {
         logger.start(`Ensuring PropertyManagementConfig for company ${company._id}...`);
 
         const existing = await propertyManagementConfigService.findOne(
-            {company: company._id, deletedAt: null},
-            {session, logger, languageCode},
+            {company: company._id},
+            {withDeleted: false, session, logger, languageCode},
         );
         if (!existing) {
             SchemaGuard.checkModelPermission(PropertyManagementConfig, "create", actionUserCtx, languageCode);

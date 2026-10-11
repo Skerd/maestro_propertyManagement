@@ -39,8 +39,8 @@ async function marketingProjectSingle(params: MarketingProjectSingleParams): Pro
     const projectObjectId = new ObjectId(projectId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id, deletedAt: null},
-        {logger, languageCode},
+        {_id: projectObjectId, company: company._id},
+        {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery", "videoGallery"],
     );
 

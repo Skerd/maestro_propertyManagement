@@ -39,8 +39,8 @@ export class PropertyManagementConfigService extends BaseCrudService<
     ): Promise<IPropertyManagementConfig> {
         const companyObjectId = typeof companyId === "string" ? new ObjectId(companyId) : companyId;
         const existing = await this.findOne(
-            {company: companyObjectId, deletedAt: null},
-            options,
+            {company: companyObjectId},
+            {...options, withDeleted: false},
         );
         if (existing) return existing;
 
@@ -73,8 +73,8 @@ export class PropertyManagementConfigService extends BaseCrudService<
         } catch (err: unknown) {
             // Race: another request created the singleton — re-read.
             const raced = await this.findOne(
-                {company: companyObjectId, deletedAt: null},
-                options,
+                {company: companyObjectId},
+                {...options, withDeleted: false},
             );
             if (raced) return raced;
             throw err;
@@ -98,7 +98,7 @@ export class PropertyManagementConfigService extends BaseCrudService<
         options: CrudOptions = {},
     ): Promise<PropertyManagementNotificationRecipients> {
         const companyObjectId = typeof companyId === "string" ? new ObjectId(companyId) : companyId;
-        const doc = await this.findOne({company: companyObjectId, deletedAt: null}, options);
+        const doc = await this.findOne({company: companyObjectId}, {...options, withDeleted: false});
         return {
             notifyOnSales: idList(doc?.notifyOnSales),
             notifyOnReservations: idList(doc?.notifyOnReservations),

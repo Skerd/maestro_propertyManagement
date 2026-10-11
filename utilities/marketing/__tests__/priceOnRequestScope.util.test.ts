@@ -49,17 +49,18 @@ describe("loadPriceOnRequestScope", () => {
 
         const scope = await loadPriceOnRequestScope(companyId);
 
-        expect(mocks.projectFind.mock.calls[0][0]).toEqual({company: companyId, deletedAt: null, priceVisibility: EXPLICIT});
+        expect(mocks.projectFind.mock.calls[0][0]).toEqual({company: companyId, priceVisibility: EXPLICIT});
+        expect(mocks.projectFind.mock.calls[0][1]).toEqual({withDeleted: false});
         expect(mocks.edificeFind.mock.calls[0][0]).toEqual({
             company: companyId,
-            deletedAt: null,
             $or: [{priceVisibility: EXPLICIT}, {project: {$in: [projectId]}}],
         });
+        expect(mocks.edificeFind.mock.calls[0][1]).toEqual({withDeleted: false});
         expect(mocks.floorFind.mock.calls[0][0]).toEqual({
             company: companyId,
-            deletedAt: null,
             $or: [{priceVisibility: EXPLICIT}, {edifice: {$in: [inheritingEdifice, shownEdifice]}}],
         });
+        expect(mocks.floorFind.mock.calls[0][1]).toEqual({withDeleted: false});
 
         expect(scope.edificeDecisions.get(inheritingEdifice.toString())).toBe("hide");
         expect(scope.edificeDecisions.get(shownEdifice.toString())).toBe("show");

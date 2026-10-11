@@ -115,8 +115,8 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
             throw apiValidationException("lease_start_after_collected_rent", "", null, languageCode);
         }
         await rentalPaymentService.deleteMany(
-            {lease: current._id, company: company._id, deletedAt: null},
-            {session, logger, languageCode, auditUserId: actionUserCtx?.userId},
+            {lease: current._id, company: company._id},
+            {withDeleted: false, session, logger, languageCode, auditUserId: actionUserCtx?.userId},
         );
         const dueDates = buildMonthlyRentDueDates(startDate, endDate);
         await createPendingRows(current, dueDates, new Set(), ctx);
@@ -141,12 +141,11 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
                 {
                     lease: current._id,
                     company: company._id,
-                    deletedAt: null,
                     dueDate: {$gt: newEnd},
                     status: {$in: [RentalPaymentStatus.PENDING, RentalPaymentStatus.OVERDUE]},
                 },
                 {$set: {status: RentalPaymentStatus.WAIVED}},
-                {session, logger, languageCode, auditUserId: actionUserCtx?.userId},
+                {withDeleted: false, session, logger, languageCode, auditUserId: actionUserCtx?.userId},
             );
         } else {
             const dueDates = buildMonthlyRentDueDates(startDate, endDate);

@@ -39,8 +39,8 @@ async function marketingProjects(params: MarketingProjectsParams): Promise<Marke
     const companyId = company._id;
 
     const projects = await projectService.find(
-        {company: companyId, deletedAt: null},
-        {logger, languageCode},
+        {company: companyId},
+        {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery"],
     );
 

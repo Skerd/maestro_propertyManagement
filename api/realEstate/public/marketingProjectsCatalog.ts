@@ -46,8 +46,8 @@ async function marketingProjectsCatalog(
     const companyId = company._id;
 
     const projects = await projectService.find(
-        {company: companyId, deletedAt: null},
-        {logger, languageCode},
+        {company: companyId},
+        {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery", {path: "socialLinks.logo"}],
     );
 

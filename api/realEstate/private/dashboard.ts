@@ -729,8 +729,8 @@ async function getDashboardStats(
             opts
         ) : Promise.resolve(zero),
         access.rentalPayments ? rentalPaymentService.find(
-            {unit: {$in: companyUnitIds}, deletedAt: null},
-            opts,
+            {unit: {$in: companyUnitIds}},
+            {...opts, withDeleted: false},
             [
                 {path: "currency", select: "name symbol"},
                 {path: "unit", select: "name unitNumber"},

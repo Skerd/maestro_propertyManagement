@@ -52,8 +52,8 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
     const projectObjectId = new ObjectId(projectId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id, deletedAt: null},
-        {logger, languageCode},
+        {_id: projectObjectId, company: company._id},
+        {withDeleted: false, logger, languageCode},
     );
 
     if (!project) {
@@ -73,8 +73,7 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
         ? await inspectionService.find({
             unit: {$in: unitIds},
             scheduledDate: {$gte: rangeStart, $lte: rangeEnd},
-            deletedAt: null,
-        })
+        }, {withDeleted: false})
         : [];
 
     const bookedByDate = new Map<string, Set<string>>();

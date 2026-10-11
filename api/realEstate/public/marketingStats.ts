@@ -43,7 +43,7 @@ async function marketingStats(params: MarketingStatsParams): Promise<MarketingSt
     const priceScope = await loadPriceOnRequestScope(companyId);
 
     const [totalProjects, unitsByCurrencyAgg, coOwnersAgg] = await Promise.all([
-        projectService.count({company: companyId, deletedAt: null}, opts),
+        projectService.count({company: companyId}, {...opts, withDeleted: false}),
         unitService.aggregate(
             [
                 {$match: {company: companyId, deletedAt: null}},

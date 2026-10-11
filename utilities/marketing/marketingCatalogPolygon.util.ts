@@ -48,8 +48,8 @@ export async function loadMarketingCatalogPolygonData(
 
     if (projectIds.length > 0) {
         const edifices = await edificeService.find(
-            {project: {$in: projectIds}, company: companyId, deletedAt: null},
-            loggerOptions,
+            {project: {$in: projectIds}, company: companyId},
+            {...loggerOptions, withDeleted: false},
             null,
             "polygonCoordinates name project",
         );
@@ -68,8 +68,8 @@ export async function loadMarketingCatalogPolygonData(
 
     if (edificeIds.length > 0) {
         const floors = await floorService.find(
-            {edifice: {$in: edificeIds}, company: companyId, deletedAt: null},
-            loggerOptions,
+            {edifice: {$in: edificeIds}, company: companyId},
+            {...loggerOptions, withDeleted: false},
             null,
             "polygonCoordinates name edifice",
         );
@@ -88,8 +88,8 @@ export async function loadMarketingCatalogPolygonData(
 
     if (floorIds.length > 0) {
         const units = await unitService.find(
-            {floor: {$in: floorIds}, company: companyId, deletedAt: null},
-            loggerOptions,
+            {floor: {$in: floorIds}, company: companyId},
+            {...loggerOptions, withDeleted: false},
             null,
             "polygonCoordinates name floor",
         );

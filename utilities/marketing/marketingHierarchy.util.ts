@@ -62,16 +62,14 @@ export async function loadMarketingHierarchyForProjects(
     const edifices = await edificeService.find({
         project: {$in: projectIds},
         company: companyId,
-        deletedAt: null,
-    }, {}, edificePopulate);
+    }, {withDeleted: false}, edificePopulate);
 
     const edificeIds = edifices.map((edifice) => edifice._id);
     const floors = edificeIds.length > 0
         ? await floorService.find({
             edifice: {$in: edificeIds},
             company: companyId,
-            deletedAt: null,
-        }, {}, floorPopulate)
+        }, {withDeleted: false}, floorPopulate)
         : [];
 
     const floorIds = floors.map((floor) => floor._id);
@@ -79,8 +77,7 @@ export async function loadMarketingHierarchyForProjects(
         ? await unitService.find({
             floor: {$in: floorIds},
             company: companyId,
-            deletedAt: null,
-        }, {}, ["mainImage", "imageGallery", "videoGallery", "unitType", "priceCurrency", "priceHistory.currency"])
+        }, {withDeleted: false}, ["mainImage", "imageGallery", "videoGallery", "unitType", "priceCurrency", "priceHistory.currency"])
         : [];
 
     const floorsByEdifice = groupBy(floors, (floor) => objectIdToString((floor.edifice as any)?._id ?? floor.edifice));

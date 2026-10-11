@@ -71,8 +71,8 @@ async function resolveFallbackUnitFloorContext(
 
     const floorObjectId = floorId instanceof ObjectId ? floorId : new ObjectId(String(floorId));
     const floor = await floorService.findOne(
-        {_id: floorObjectId, company: companyId, deletedAt: null},
-        {logger, languageCode},
+        {_id: floorObjectId, company: companyId},
+        {withDeleted: false, logger, languageCode},
         ["imageGallery", "videoGallery"],
     );
 
@@ -88,13 +88,13 @@ async function resolveFallbackUnitFloorContext(
     const edificeObjectId = edificeId instanceof ObjectId ? edificeId : new ObjectId(String(edificeId));
     const [edifice, edificeFloors] = await Promise.all([
         edificeService.findOne(
-            {_id: edificeObjectId, company: companyId, deletedAt: null},
-            {logger, languageCode},
+            {_id: edificeObjectId, company: companyId},
+            {withDeleted: false, logger, languageCode},
             ["imageGallery", "videoGallery"],
         ),
         floorService.find(
-            {edifice: edificeObjectId, company: companyId, deletedAt: null},
-            {logger, languageCode},
+            {edifice: edificeObjectId, company: companyId},
+            {withDeleted: false, logger, languageCode},
         ),
     ]);
 
@@ -114,8 +114,8 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
     const unitObjectId = new ObjectId(unitId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id, deletedAt: null},
-        {logger, languageCode},
+        {_id: projectObjectId, company: company._id},
+        {withDeleted: false, logger, languageCode},
     );
 
     if (!project) {
@@ -129,8 +129,8 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
 
     if (!unit) {
         const fallbackUnit = await unitService.findOne(
-            {_id: unitObjectId, company: company._id, deletedAt: null},
-            {logger, languageCode},
+            {_id: unitObjectId, company: company._id},
+            {withDeleted: false, logger, languageCode},
             ["mainImage", "imageGallery", "videoGallery", "unitType", "priceCurrency", "priceHistory.currency", "floor"],
         );
         if (!fallbackUnit) {
@@ -179,16 +179,16 @@ async function marketingUnitBrochure(
     const unitObjectId = new ObjectId(unitId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id, deletedAt: null},
-        {logger, languageCode},
+        {_id: projectObjectId, company: company._id},
+        {withDeleted: false, logger, languageCode},
     );
     if (!project) {
         throw apiValidationException("project_not_found", "projectId", [projectId], languageCode);
     }
 
     const unit = await unitService.findOne(
-        {_id: unitObjectId, company: company._id, deletedAt: null},
-        {logger, languageCode},
+        {_id: unitObjectId, company: company._id},
+        {withDeleted: false, logger, languageCode},
     );
     if (!unit) {
         throw apiValidationException("unit_not_found", "unitId", [unitId], languageCode);

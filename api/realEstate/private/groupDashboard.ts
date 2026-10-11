@@ -55,7 +55,7 @@ router.post(
         );
         const companyId = company._id as ObjectId;
 
-        let branches = await Company.find({parentCompany: companyId, deletedAt: null})
+        let branches = await Company.find({parentCompany: companyId}).noDeleted()
             .select("_id name")
             .lean();
 
@@ -70,7 +70,7 @@ router.post(
             const parent = await Company.findById(parentId).select("name").lean();
             rootName = parent?.name ?? "";
             rootId = parentId;
-            branches = await Company.find({parentCompany: parentId, deletedAt: null})
+            branches = await Company.find({parentCompany: parentId}).noDeleted()
                 .select("_id name")
                 .lean();
         }

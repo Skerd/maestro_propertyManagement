@@ -41,10 +41,9 @@ async function marketingFeaturedProjects(
     const projects = await projectService.find(
         {
             company: companyId,
-            deletedAt: null,
             featuredOnHomepage: true,
         },
-        {logger, languageCode},
+        {withDeleted: false, logger, languageCode},
         ["mainImage"],
         undefined,
         {featuredSortOrder: 1, name: 1},

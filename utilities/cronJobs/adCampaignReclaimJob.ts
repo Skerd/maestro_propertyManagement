@@ -23,17 +23,17 @@ export async function runAdCampaignReclaimJob(ctx: CronHandlerContext): Promise<
     const cutoff = new Date(Date.now() - stuckAfterMinutes * 60_000);
 
     const reclaimed = await AdCampaignRecipient.updateMany(
-        {company, status: "queued", claimedAt: {$lt: cutoff}, deletedAt: null},
+        {company, status: "queued", claimedAt: {$lt: cutoff}},
         {$set: {status: "pending"}, $unset: {claimToken: "", claimedAt: ""}},
-    );
+    ).noDeleted();
     if (reclaimed.modifiedCount) {
         ctx.appendLog?.(`Reclaimed ${reclaimed.modifiedCount} stuck recipient row(s).`);
     }
 
     const stalled = await AdCampaign.updateMany(
-        {company, status: "materializing", updatedAt: {$lt: cutoff}, deletedAt: null},
+        {company, status: "materializing", updatedAt: {$lt: cutoff}},
         {$set: {status: "draft", lastError: "Materialization timed out and was reset."}},
-    );
+    ).noDeleted();
     if (stalled.modifiedCount) {
         ctx.appendLog?.(`Reset ${stalled.modifiedCount} stalled materialization(s).`);
     }
@@ -42,8 +42,7 @@ export async function runAdCampaignReclaimJob(ctx: CronHandlerContext): Promise<
         company,
         status: "sending",
         updatedAt: {$lt: cutoff},
-        deletedAt: null,
-    })
+    }).noDeleted()
         .select("_id")
         .lean<{_id: any}[]>();
 
@@ -52,8 +51,7 @@ export async function runAdCampaignReclaimJob(ctx: CronHandlerContext): Promise<
             campaign: campaign._id,
             company,
             status: {$in: ["pending", "queued"]},
-            deletedAt: null,
-        });
+        }).noDeleted();
         if (outstanding === 0) {
             await adCampaignService.finalize(campaign._id, company, "completed");
             ctx.appendLog?.(`Campaign ${campaign._id} had no work left; marked completed.`);

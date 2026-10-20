@@ -11,7 +11,7 @@ import {
 } from "./adCampaignSampleTokens";
 import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
 import {formatMoneyAmountForEmail, unitLocationForEmail} from "../emails/reservationEmailFormatting";
-import {currentYear} from "../emails/emailLayout";
+import {currentYear} from "@coreModule/utilities/emails/emailLayout";
 
 export class AdCampaignTokenError extends Error {
     constructor(readonly exceptionKey: string, readonly field?: string) {

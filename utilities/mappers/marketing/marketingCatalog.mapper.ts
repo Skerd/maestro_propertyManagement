@@ -10,8 +10,6 @@ import type {
     MarketingEdificePriceHistoryEntry,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjectCatalog/marketingProjectCatalogSingle.form.response.type";
 import {
-    marketingMediaUrl,
-    marketingMediaUrls,
     mapMarketingPriceCurrency,
 } from "./marketing.mapper";
 import {mapUnitTypeToPropertyTypeId} from "../../marketing/marketingPropertyType.util";
@@ -22,6 +20,7 @@ import {
     resolvePrimaryCity,
 } from "../../marketing/marketingCatalogHierarchy.util";
 import type {MarketingCatalogPolygonData} from "../../marketing/marketingCatalogPolygon.util";
+import {publicMediaUrl, publicMediaUrls} from "@coreModule/utilities/media/publicMediaUrl";
 
 function slugifyName(name: string): string {
     return name
@@ -83,7 +82,7 @@ function mapProjectSocialLinks(
             if (!name || !link) {
                 return null;
             }
-            const logo = marketingMediaUrl((item as {logo?: {_id?: unknown}}).logo as any);
+            const logo = publicMediaUrl((item as {logo?: {_id?: unknown}}).logo as any);
             return logo ? {name, link, logo} : {name, link};
         })
         .filter((item): item is MarketingSocialLink => item != null);
@@ -104,8 +103,8 @@ function buildCatalogBaseFields(
         slug: slugifyName(project.name),
         location: firstEdifice ? formatEdificeLocation(firstEdifice) : undefined,
         city,
-        mainImage: marketingMediaUrl(project.mainImage),
-        imageGallery: marketingMediaUrls(project.imageGallery),
+        mainImage: publicMediaUrl(project.mainImage),
+        imageGallery: publicMediaUrls(project.imageGallery),
         minSharePrice: stats.minPrice,
         maxSharePrice: stats.maxPrice,
         projectedYieldPercent: undefined,
@@ -157,7 +156,7 @@ export function mapMarketingUnitCatalogListItem(
         bathrooms: unit.numberOfBathrooms,
         price,
         priceOnRequest: isPriceOnRequestRedacted(unit) || undefined,
-        mainImage: marketingMediaUrl(unit.mainImage),
+        mainImage: publicMediaUrl(unit.mainImage),
         propertyType: mapUnitTypeToPropertyTypeId(unit.unitType),
         floorLabel: floor?.name,
         edificeId: edifice ? objectIdToString(edifice._id) : undefined,
@@ -242,11 +241,11 @@ export function mapMarketingProjectCatalogSingle(
             .filter((floor) => floor.mainImage)
             .map((floor) => ({
                 label: `${edifice.name} – ${floor.name}`,
-                url: marketingMediaUrl(floor.mainImage)!,
+                url: publicMediaUrl(floor.mainImage)!,
             }));
     }).filter((plan) => Boolean(plan.url));
 
-    const videoGallery = marketingMediaUrls(project.videoGallery);
+    const videoGallery = publicMediaUrls(project.videoGallery);
 
     return {
         _id: projectKey,
@@ -306,13 +305,13 @@ export function mapMarketingProjectCatalogSingle(
                       .filter(Boolean)
                 : undefined;
 
-            const imageGallery = marketingMediaUrls(edifice.imageGallery);
-            const videoGallery = marketingMediaUrls(edifice.videoGallery);
+            const imageGallery = publicMediaUrls(edifice.imageGallery);
+            const videoGallery = publicMediaUrls(edifice.videoGallery);
 
             return {
                 _id: edificeId,
                 name: edifice.name,
-                mainImage: marketingMediaUrl(edifice.mainImage),
+                mainImage: publicMediaUrl(edifice.mainImage),
                 imageGallery: imageGallery.length > 0 ? imageGallery : undefined,
                 videoGallery: videoGallery.length > 0 ? videoGallery : undefined,
                 location: formatEdificeLocation(edifice),
@@ -356,7 +355,7 @@ export function mapMarketingProjectCatalogSingle(
                     return {
                         _id: floorId,
                         name: floor.name,
-                        mainImage: marketingMediaUrl(floor.mainImage),
+                        mainImage: publicMediaUrl(floor.mainImage),
                         levelNumber: floor.levelNumber,
                         unitsCoordinates: mappedUnitsCoordinates,
                         units: floorUnits.map((unit) => mapMarketingUnitCatalogListItem(unit, floor, edifice)),

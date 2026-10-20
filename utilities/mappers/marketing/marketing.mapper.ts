@@ -14,8 +14,7 @@ import {isPriceOnRequestRedacted} from "../../marketing/priceOnRequest.util";
 import {
     MarketingProjectListItem
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjects/marketingProjects.form.response.type";
-
-const MEDIA_BASE = "/api/auxiliary/public/media/";
+import {publicMediaUrl, publicMediaUrls} from "@coreModule/utilities/media/publicMediaUrl";
 
 export type MarketingUnitSingleContext = {
     floor?: IFloor | any;
@@ -30,42 +29,13 @@ function uniqueMarketingMediaUrls(
     const seen = new Set<string>();
     const result: string[] = [];
     for (const list of mediaLists) {
-        for (const url of marketingMediaUrls(list)) {
+        for (const url of publicMediaUrls(list)) {
             if (seen.has(url)) continue;
             seen.add(url);
             result.push(url);
         }
     }
     return result;
-}
-
-export function marketingMediaUrl(
-    media: {_id?: ObjectId | string} | ObjectId | string | null | undefined,
-): string | undefined {
-    if (media == null || media === "") {
-        return undefined;
-    }
-    if (typeof media === "string") {
-        const id = media.trim();
-        return id ? `${MEDIA_BASE}${id}` : undefined;
-    }
-    if (typeof media === "object" && "_id" in media && (media as {_id?: unknown})._id != null) {
-        return `${MEDIA_BASE}${objectIdToString((media as {_id: ObjectId | string})._id)}`;
-    }
-    // Raw ObjectId (unpopulated ref)
-    const id = objectIdToString(media as ObjectId);
-    return id && id !== "[object Object]" ? `${MEDIA_BASE}${id}` : undefined;
-}
-
-export function marketingMediaUrls(
-    mediaList: Array<{_id?: ObjectId | string} | ObjectId | string | null | undefined> | undefined,
-): string[] {
-    if (!Array.isArray(mediaList)) {
-        return [];
-    }
-    return mediaList
-        .map((item) => marketingMediaUrl(item))
-        .filter((url): url is string => Boolean(url));
 }
 
 function mapUnitStatus(status: UnitStatus | string): MarketingUnitStatus {
@@ -141,8 +111,8 @@ export function mapMarketingProjectListItem(
         name: project.name,
         slug: slugifyName(project.name),
         location: firstEdifice ? formatEdificeLocation(firstEdifice) : undefined,
-        mainImage: marketingMediaUrl(project.mainImage),
-        imageGallery: marketingMediaUrls(project.imageGallery),
+        mainImage: publicMediaUrl(project.mainImage),
+        imageGallery: publicMediaUrls(project.imageGallery),
         minSharePrice: stats.minSharePrice,
         projectedYieldPercent: undefined,
         ownershipType: "co-ownership",
@@ -166,7 +136,7 @@ export function mapMarketingProjectSingle(
             .filter((floor) => floor.mainImage)
             .map((floor) => ({
                 label: `${edifice.name} – ${floor.name}`,
-                url: marketingMediaUrl(floor.mainImage)!,
+                url: publicMediaUrl(floor.mainImage)!,
             }));
     }).filter((plan) => Boolean(plan.url));
 
@@ -261,11 +231,11 @@ export function mapMarketingUnitSingle(
         priceOnRequest: isPriceOnRequestRedacted(unit) || undefined,
         sharePrice: price,
         projectedYield: undefined,
-        mainImage: marketingMediaUrl(unit.mainImage),
+        mainImage: publicMediaUrl(unit.mainImage),
         marketingBooklet:
-            marketingMediaUrl(unit.marketingBooklet)
-            ?? marketingMediaUrl(floor?.marketingBooklet)
-            ?? marketingMediaUrl(edifice?.marketingBooklet),
+            publicMediaUrl(unit.marketingBooklet)
+            ?? publicMediaUrl(floor?.marketingBooklet)
+            ?? publicMediaUrl(edifice?.marketingBooklet),
         // Unit media first, then floor, then edifice — deduped for the public gallery mosaic.
         imageGallery: uniqueMarketingMediaUrls(
             [unit.mainImage, ...(unit.imageGallery ?? [])],
@@ -286,7 +256,7 @@ export function mapMarketingUnitSingle(
         floorLevel: floorLevel != null ? floorLevel : undefined,
         totalFloorsInEdifice,
         propertyType: mapUnitTypeToPropertyTypeId(unit.unitType),
-        floorPlanImage: marketingMediaUrl(unit.mainImage),
+        floorPlanImage: publicMediaUrl(unit.mainImage),
         priceCurrency,
         unitTypeName: unit.unitType?.name ?? undefined,
         orientation: unit.orientation ?? undefined,

@@ -7,17 +7,8 @@ import {applyPlaceholders, loadEmailStrings} from "@coreModule/utilities/emails/
 import {sendMail} from "@coreModule/utilities/emails/mailDeliveryService";
 import type {SaleClientEmailEvent} from "../../kafka/types";
 import {tryLoadReservationContractForEmail} from "./reservationContractAttachment";
-import {
-    currentYear,
-    layoutStrings,
-    localized,
-    noteHtml,
-    pushRow,
-    pushUnitLocationRows,
-    scheduleTableHtml,
-    summaryCardHtml,
-    type SummaryRow,
-} from "./emailLayout";
+import {currentYear, layoutStrings, localized, noteHtml, pushRow, summaryCardHtml, type SummaryRow} from "@coreModule/utilities/emails/emailLayout";
+import {pushUnitLocationRows, scheduleTableHtml} from "./emailLayout";
 
 const fallbackLanguageCode = "en-US";
 

@@ -3,7 +3,7 @@ import * as path from "path";
 import {CLIENT_SIDE, CONSTANTS, EMAIL} from "@coreModule/environment";
 import {applyPlaceholders, loadEmailStrings} from "@coreModule/utilities/emails/emailLocale";
 import {sendMail} from "@coreModule/utilities/emails/mailDeliveryService";
-import {currentYear, escapeHtml, layoutStrings, localized, pushRow, summaryCardHtml, type SummaryRow} from "./emailLayout";
+import {currentYear, escapeHtml, layoutStrings, localized, pushRow, summaryCardHtml, type SummaryRow} from "@coreModule/utilities/emails/emailLayout";
 import type {InlineImageAttachment} from "./mediaImageAttachments";
 
 const LOCALES_ROOT = path.join(__dirname, "static", "locales");

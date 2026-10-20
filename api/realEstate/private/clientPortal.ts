@@ -37,7 +37,6 @@ import {
 import {notificationService} from "@coreModule/database/schemas/notification/notification.service";
 import {constructionProgressService} from "../../../database/schemas/constructionProgress/constructionProgress.service";
 import {moneyNumber} from "../../../utilities/lease/rentRemaining";
-import {marketingMediaUrl} from "../../../utilities/mappers/marketing/marketing.mapper";
 import {
     clientPortalOverviewFormSchema,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/clientPortal/clientPortalOverview.form.validator";
@@ -65,6 +64,7 @@ import {
 import type {
     ClientPortalReservationsFormResponseType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/clientPortal/clientPortalReservations.form.response.type";
+import {publicMediaUrl} from "@coreModule/utilities/media/publicMediaUrl";
 
 const router = Router();
 const OPEN_INSTALLMENT_STATUSES = new Set<string>([
@@ -459,7 +459,7 @@ async function clientPortalProperties(
             sale.saleCurrency as {_id?: unknown; symbol?: string; abbreviation?: string} | undefined,
         );
         const area = unitAreaSqm(unit);
-        const imageUrl = marketingMediaUrl(unit?.mainImage);
+        const imageUrl = publicMediaUrl(unit?.mainImage);
 
         return {
             _id: sale._id.toString(),

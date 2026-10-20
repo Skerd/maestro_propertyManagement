@@ -4,18 +4,8 @@ import {randomUUID} from "crypto";
 import {CLIENT_SIDE, CONSTANTS, EMAIL, clientHostFor} from "@coreModule/environment";
 import {applyPlaceholders, loadEmailStrings} from "@coreModule/utilities/emails/emailLocale";
 import {sendMail} from "@coreModule/utilities/emails/mailDeliveryService";
-import {
-    currentYear,
-    escapeHtml,
-    layoutStrings,
-    localized,
-    noteHtml,
-    pushRow,
-    pushUnitLocationRows,
-    scheduleTableHtml,
-    summaryCardHtml,
-    type SummaryRow,
-} from "./emailLayout";
+import {currentYear, escapeHtml, layoutStrings, localized, noteHtml, pushRow, summaryCardHtml, type SummaryRow} from "@coreModule/utilities/emails/emailLayout";
+import {pushUnitLocationRows, scheduleTableHtml} from "./emailLayout";
 import type {PaymentScheduleRowForEmail} from "./salePlanSummaryForEmail";
 
 const LOCALES_ROOT = path.join(__dirname, "static", "locales");

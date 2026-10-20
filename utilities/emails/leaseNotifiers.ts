@@ -6,15 +6,8 @@ import {CLIENT_SIDE, CONSTANTS, EMAIL} from "@coreModule/environment";
 import {applyPlaceholders, loadEmailStrings} from "@coreModule/utilities/emails/emailLocale";
 import {sendMail} from "@coreModule/utilities/emails/mailDeliveryService";
 import type {LeaseClientEmailEvent} from "../../kafka/types";
-import {
-    currentYear,
-    layoutStrings,
-    localized,
-    pushRow,
-    pushUnitLocationRows,
-    summaryCardHtml,
-    type SummaryRow,
-} from "./emailLayout";
+import {currentYear, layoutStrings, localized, pushRow, summaryCardHtml, type SummaryRow} from "@coreModule/utilities/emails/emailLayout";
+import {pushUnitLocationRows} from "./emailLayout";
 
 const fallbackLanguageCode = "en-US";
 

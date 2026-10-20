@@ -7,7 +7,7 @@ import {
     AD_CAMPAIGN_PLACEHOLDER_PATTERN,
     type AdCampaignPlaceholder,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
-import {currentYear, escapeHtml, localized} from "./emailLayout";
+import {currentYear, escapeHtml, localized} from "@coreModule/utilities/emails/emailLayout";
 import {sanitizeAdCampaignHtml} from "./adCampaignHtmlSanitizer";
 
 const LOCALES_ROOT = path.join(__dirname, "static", "locales");

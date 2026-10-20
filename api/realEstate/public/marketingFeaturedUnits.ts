@@ -12,14 +12,11 @@ import {
     MarketingFeaturedUnitsFormResponseType
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingFeaturedUnits/marketingFeaturedUnits.form.response.type";
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
-import {
-    marketingMediaUrl,
-    marketingMediaUrls,
-} from "../../../utilities/mappers/marketing/marketing.mapper";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import {mapUnitTypeToPropertyTypeId} from "../../../utilities/marketing/marketingPropertyType.util";
 import {isUnitPriceOnRequest} from "../../../utilities/marketing/priceOnRequest.util";
 import {loadPriceOnRequestScope} from "../../../utilities/marketing/priceOnRequestScope.util";
+import {publicMediaUrl, publicMediaUrls} from "@coreModule/utilities/media/publicMediaUrl";
 
 const FEATURED_LIMIT = 12;
 
@@ -102,8 +99,8 @@ async function marketingFeaturedUnits(
             bathrooms: unit.numberOfBathrooms,
             price,
             priceOnRequest: priceOnRequest || undefined,
-            mainImage: marketingMediaUrl(unit.mainImage),
-            imageGallery: marketingMediaUrls(unit.imageGallery),
+            mainImage: publicMediaUrl(unit.mainImage),
+            imageGallery: publicMediaUrls(unit.imageGallery),
             propertyType: mapUnitTypeToPropertyTypeId(unit.unitType),
             hasSeaView: !!unit.hasSeaView,
             hasCityView: !!unit.hasCityView,

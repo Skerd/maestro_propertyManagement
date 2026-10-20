@@ -25,10 +25,7 @@ import type {
     MarketingStorySingleFormResponseType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingStories/marketingStorySingle.form.response.type";
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
-import {
-    marketingMediaUrl,
-    marketingMediaUrls,
-} from "../../../utilities/mappers/marketing/marketing.mapper";
+import {publicMediaUrl, publicMediaUrls} from "@coreModule/utilities/media/publicMediaUrl";
 
 const DEFAULT_LIMIT = 24;
 
@@ -72,9 +69,9 @@ function mapStory(story: any): MarketingStoryItem {
         title: story.title,
         content: story.content,
         excerpt,
-        mainImage: marketingMediaUrl(story.mainImage),
-        imageGallery: marketingMediaUrls(story.imageGallery),
-        videoGallery: marketingMediaUrls(story.videoGallery),
+        mainImage: publicMediaUrl(story.mainImage),
+        imageGallery: publicMediaUrls(story.imageGallery),
+        videoGallery: publicMediaUrls(story.videoGallery),
         publishedAt: toIso(story.publishedAt),
         sortOrder: story.sortOrder ?? 0,
         projectId: story.project ? objectIdToString(story.project._id ?? story.project) : undefined,
@@ -103,7 +100,7 @@ function mapMagazine(project: any): MarketingMagazine | undefined {
     const title = typeof project.magazineTitle === "string" ? project.magazineTitle.trim() : "";
     const description =
         typeof project.magazineDescription === "string" ? project.magazineDescription.trim() : "";
-    const fileUrl = marketingMediaUrl(project.magazineFile);
+    const fileUrl = publicMediaUrl(project.magazineFile);
     if (!title && !description && !fileUrl) return undefined;
     return {
         title: title || undefined,

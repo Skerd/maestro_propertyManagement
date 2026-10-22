@@ -1,6 +1,5 @@
 import type {ClientSession} from "mongodb";
 import {ObjectId} from "mongodb";
-import {isKafkaConnected} from "@coreModule/connections/connectToKafka";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import type {ReservationClientEmailEvent} from "../../../kafka/types";
 import {publishReservationClientEmailEvent} from "../../../kafka/kafkaProducer";
@@ -11,7 +10,7 @@ export type DispatchReservationClientEmailInput = Omit<ReservationClientEmailEve
 };
 
 /**
- * Loads client user (email = username), then publishes to Kafka or sends via SMTP (same split as User activation / invitation).
+ * Loads client user (email = username), then publishes to Kafka, or sends via SMTP when Kafka is unavailable or the publish fails.
  * @returns true if an email was published/sent; false if skipped (e.g. missing client email).
  */
 export async function dispatchReservationClientEmail(input: DispatchReservationClientEmailInput, opts?: { session?: ClientSession }): Promise<boolean> {
@@ -32,9 +31,7 @@ export async function dispatchReservationClientEmail(input: DispatchReservationC
         ...rest,
     };
 
-    if (isKafkaConnected()) {
-        await publishReservationClientEmailEvent(event);
-    } else {
+    if (!(await publishReservationClientEmailEvent(event))) {
         await sendReservationClientMail(event);
     }
     return true;

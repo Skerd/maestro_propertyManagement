@@ -49,6 +49,11 @@ export async function startRealEstateKafkaConsumers(parentLogger?: serverLogger)
             expectedEventType: "reservation_client_email",
             processEvent: (d) => processReservationClientEmailEvent(d as ReservationClientEmailEvent),
         });
+    } catch (err: any) {
+        umbrellaLog.err(`Reservation client email consumer failed: ${err?.message}`);
+    }
+
+    try {
         await addKafkaTopicConsumer(parentLogger, {
             registryKey: "saleClientEmail",
             displayName: "Sale client email",
@@ -58,7 +63,7 @@ export async function startRealEstateKafkaConsumers(parentLogger?: serverLogger)
             processEvent: (d) => processSaleClientEmailEvent(d as SaleClientEmailEvent),
         });
     } catch (err: any) {
-        umbrellaLog.err(`Reservation client email consumer failed: ${err?.message}`);
+        umbrellaLog.err(`Sale client email consumer failed: ${err?.message}`);
     }
 
     umbrellaLog.finish("Real estate Kafka consumers startup pass complete");

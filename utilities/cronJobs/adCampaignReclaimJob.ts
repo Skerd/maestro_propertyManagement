@@ -18,7 +18,7 @@ import {adCampaignSendConfig} from "@propertyManagement/utilities/adCampaign/adC
  * recomputes its numbers from the rows.
  */
 export async function runAdCampaignReclaimJob(ctx: CronHandlerContext): Promise<void> {
-    const company = ctx.company as any;
+    const company = ctx.company;
     const {stuckAfterMinutes} = adCampaignSendConfig();
     const cutoff = new Date(Date.now() - stuckAfterMinutes * 60_000);
 

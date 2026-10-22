@@ -5,7 +5,6 @@
  * Stamps `rentReminderEmailAt*` / `rentOverdueNoticeEmailAt` only after a successful send.
  */
 
-import {CronJob} from "cron";
 import {ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
@@ -29,7 +28,6 @@ import {
 
 const BATCH_SIZE = 200;
 
-let rentReminderJob: CronJob | null = null;
 
 type ReminderPhase = "3" | "1" | "0";
 
@@ -69,11 +67,12 @@ function companyFromLease(lease: {
     return {companyId, companyName};
 }
 
-export async function runLeaseRentReminders(parentLogger?: serverLogger): Promise<void> {
+export async function runLeaseRentReminders(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const logger = getLogger("lease_rent_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
 
     const baseFilter = {
+        company,
         status: {$in: [...OPEN_RENT_STATUSES]},
     };
     const populate = [
@@ -209,29 +208,5 @@ export async function runLeaseRentReminders(parentLogger?: serverLogger): Promis
         }
 
         if (payments.length < BATCH_SIZE) break;
-    }
-}
-
-export function startLeaseRentReminderJob(parentLogger?: serverLogger): void {
-    const log = getLogger("lease_rent_reminder_cron", parentLogger);
-    if (rentReminderJob !== null) {
-        return;
-    }
-    rentReminderJob = new CronJob(
-        "0 14 8 * * *",
-        () => {
-            void runLeaseRentReminders(parentLogger);
-        },
-        null,
-        true,
-        "UTC",
-    );
-    log.debug("Lease rent reminder job scheduled (cron: 0 14 8 * * * UTC)");
-}
-
-export function stopLeaseRentReminderJob(): void {
-    if (rentReminderJob) {
-        rentReminderJob.stop();
-        rentReminderJob = null;
     }
 }

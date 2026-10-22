@@ -11,9 +11,8 @@ export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
         code: "propertyManagement.reservationExpirationReminder",
         handler: async ctx => {
-            await runReservationExpirationReminders(ctx.logger);
+            await runReservationExpirationReminders(ctx.company, ctx.logger);
         },
-        version: "1",
         defaultJob: {
             name: "Reservation expiration reminder",
             cronExpression: "0 10 8 * * *",
@@ -24,9 +23,8 @@ export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
         code: "propertyManagement.paymentPlanInstallmentReminder",
         handler: async ctx => {
-            await runPaymentPlanInstallmentReminders(ctx.logger);
+            await runPaymentPlanInstallmentReminders(ctx.company, ctx.logger);
         },
-        version: "1",
         defaultJob: {
             name: "Payment plan installment reminder",
             cronExpression: "0 12 8 * * *",
@@ -37,9 +35,8 @@ export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
         code: "propertyManagement.modificationRequestSla",
         handler: async ctx => {
-            await runModificationRequestSlaEscalations(ctx.logger);
+            await runModificationRequestSlaEscalations(ctx.company, ctx.logger);
         },
-        version: "1",
         defaultJob: {
             name: "Modification request SLA escalation",
             cronExpression: "0 20 8 * * *",
@@ -50,9 +47,8 @@ export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
         code: "propertyManagement.rentalMaintenance",
         handler: async ctx => {
-            await runRentalMaintenance(ctx.logger);
+            await runRentalMaintenance(ctx.company, ctx.logger);
         },
-        version: "1",
         defaultJob: {
             name: "Rental payment overdue and lease expiry",
             cronExpression: "0 15 8 * * *",
@@ -63,9 +59,8 @@ export function registerPropertyManagementCronHandlers(): void {
     registerCronHandler({
         code: "propertyManagement.leaseRentReminder",
         handler: async ctx => {
-            await runLeaseRentReminders(ctx.logger);
+            await runLeaseRentReminders(ctx.company, ctx.logger);
         },
-        version: "1",
         defaultJob: {
             name: "Lease rent reminder",
             cronExpression: "0 14 8 * * *",
@@ -82,7 +77,6 @@ export function registerPropertyManagementCronHandlers(): void {
         handler: async ctx => {
             await runAdCampaignDispatchJob(ctx);
         },
-        version: "1",
         defaultJob: {
             name: "Ad campaign dispatch",
             cronExpression: "0 * * * * *",
@@ -97,7 +91,6 @@ export function registerPropertyManagementCronHandlers(): void {
         handler: async ctx => {
             await runAdCampaignReclaimJob(ctx);
         },
-        version: "1",
         defaultJob: {
             name: "Ad campaign stuck-row reclaim",
             cronExpression: "0 */10 * * * *",

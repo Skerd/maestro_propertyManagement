@@ -36,7 +36,7 @@ function utcGraceEnd(dueDate: Date, gracePeriodDays: number): Date {
     ));
 }
 
-export async function runRentalMaintenance(parentLogger?: serverLogger): Promise<void> {
+export async function runRentalMaintenance(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const logger = getLogger("rentalMaintenanceJob", parentLogger);
     logger.start("Running rental maintenance...");
     const languageCode = lang();
@@ -47,6 +47,7 @@ export async function runRentalMaintenance(parentLogger?: serverLogger): Promise
         let overdueCount = 0;
         while (true) {
             const filter: Record<string, unknown> = {
+                company,
                 status: {$in: [...OPEN_RENT_STATUSES]},
             };
             if (lastId) filter._id = {$gt: lastId};
@@ -100,6 +101,7 @@ export async function runRentalMaintenance(parentLogger?: serverLogger): Promise
         const todayStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()));
         while (true) {
             const filter: Record<string, unknown> = {
+                company,
                 status: LeaseStatus.ACTIVE,
                 endDate: {$lt: todayStart},
             };

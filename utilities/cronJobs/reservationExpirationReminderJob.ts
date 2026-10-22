@@ -6,7 +6,6 @@
  * @module utilities/timing/reservationExpirationReminderJob
  */
 
-import {CronJob} from "cron";
 import {ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
@@ -27,7 +26,6 @@ import {
 
 const BATCH_SIZE = 200;
 
-let reminderJob: CronJob | null = null;
 
 type ReminderPhase = "3" | "1" | "0";
 
@@ -55,12 +53,13 @@ function endOfUtcCalendarDayForExpiration(d: Date): number {
  * Marks unpaid active reservations as expired the first time we observe them past
  * the expiration day's end (UTC), so the sheet can show an "expired" milestone.
  */
-export async function runReservationExpiredStamp(parentLogger?: serverLogger): Promise<void> {
+export async function runReservationExpiredStamp(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const logger = getLogger("reservation_expired_stamp", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
     const now = Date.now();
 
     const baseFilter: Record<string, unknown> = {
+        company,
         isActive: true,
         paid: false,
         expirationDate: {$exists: true, $ne: null},
@@ -110,7 +109,7 @@ export async function runReservationExpiredStamp(parentLogger?: serverLogger): P
     }
 }
 
-export async function runReservationExpirationReminders(parentLogger?: serverLogger): Promise<void> {
+export async function runReservationExpirationReminders(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const logger = getLogger("reservation_expiration_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
 
@@ -118,6 +117,7 @@ export async function runReservationExpirationReminders(parentLogger?: serverLog
         const {start, end} = utcExpirationDayBounds(daysUntilExpiration);
 
         const baseFilter: Record<string, unknown> = {
+            company,
             isActive: true,
             paid: false,
             expirationDate: {$gte: start, $lte: end},
@@ -207,32 +207,5 @@ export async function runReservationExpirationReminders(parentLogger?: serverLog
         }
     }
 
-    await runReservationExpiredStamp(parentLogger);
-}
-
-/**
- * Idempotent: starts a single daily cron (08:10 UTC).
- */
-export function startReservationExpirationReminderJob(parentLogger?: serverLogger): void {
-    const log = getLogger("reservation_expiration_reminder_cron", parentLogger);
-    if (reminderJob !== null) {
-        return;
-    }
-    reminderJob = new CronJob(
-        "0 10 8 * * *",
-        () => {
-            void runReservationExpirationReminders(parentLogger);
-        },
-        null,
-        true,
-        "UTC"
-    );
-    log.debug("Reservation expiration reminder job scheduled (cron: 0 10 8 * * * UTC)");
-}
-
-export function stopReservationExpirationReminderJob(): void {
-    if (reminderJob) {
-        reminderJob.stop();
-        reminderJob = null;
-    }
+    await runReservationExpiredStamp(company, parentLogger);
 }

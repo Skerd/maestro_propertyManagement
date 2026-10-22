@@ -7,7 +7,6 @@
  * @module utilities/cronJobs/modificationRequestSlaJob
  */
 
-import {CronJob} from "cron";
 import {ObjectId} from "mongodb";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
@@ -17,7 +16,6 @@ import {ModificationRequestStatus} from "../../database/schemas/modificationRequ
 
 const BATCH_SIZE = 200;
 
-let slaJob: CronJob | null = null;
 
 const PENDING_STAGES = [
     ModificationRequestStatus.PENDING_ARCHITECT,
@@ -30,12 +28,13 @@ const PENDING_STAGES = [
     ModificationRequestStatus.PENDING_DELIVERY,
 ];
 
-export async function runModificationRequestSlaEscalations(parentLogger?: serverLogger): Promise<void> {
+export async function runModificationRequestSlaEscalations(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const log = getLogger("modification_request_sla_cron", parentLogger);
     log.start("Checking modification request SLA breaches...");
 
     const now = new Date();
     const baseFilter = {
+        company,
         status: {$in: PENDING_STAGES},
         stageDueDate: {$lt: now},
         deletedAt: {$exists: false},
@@ -59,7 +58,7 @@ export async function runModificationRequestSlaEscalations(parentLogger?: server
                 0,
             );
         } catch (e: unknown) {
-            log.error(`Failed to fetch overdue modification requests: ${e instanceof Error ? e.message : String(e)}`);
+            log.err(`Failed to fetch overdue modification requests: ${e instanceof Error ? e.message : String(e)}`);
             break;
         }
 
@@ -86,7 +85,7 @@ export async function runModificationRequestSlaEscalations(parentLogger?: server
                 });
                 totalEscalated++;
             } catch (e: unknown) {
-                log.error(`Failed to emit SLA breach for modification request ${req._id}: ${e instanceof Error ? e.message : String(e)}`);
+                log.err(`Failed to emit SLA breach for modification request ${req._id}: ${e instanceof Error ? e.message : String(e)}`);
             }
         }
 
@@ -94,28 +93,4 @@ export async function runModificationRequestSlaEscalations(parentLogger?: server
     }
 
     log.finish(`Modification request SLA check complete. Escalated ${totalEscalated} request(s).`);
-}
-
-/**
- * Idempotent: starts a single daily cron (08:14 UTC).
- */
-export function startModificationRequestSlaJob(parentLogger?: serverLogger): void {
-    const log = getLogger("modification_request_sla_cron", parentLogger);
-    if (slaJob !== null) return;
-
-    slaJob = new CronJob(
-        "0 14 8 * * *",
-        () => { void runModificationRequestSlaEscalations(parentLogger); },
-        null,
-        true,
-        "UTC",
-    );
-    log.debug("Modification request SLA job scheduled (cron: 0 14 8 * * * UTC)");
-}
-
-export function stopModificationRequestSlaJob(): void {
-    if (slaJob) {
-        slaJob.stop();
-        slaJob = null;
-    }
 }

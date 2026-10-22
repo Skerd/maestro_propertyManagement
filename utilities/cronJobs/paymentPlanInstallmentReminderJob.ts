@@ -5,7 +5,6 @@
  * Stamps `installmentReminderEmailAt*` / `installmentOverdueNoticeEmailAt` on each installment subdocument.
  */
 
-import {CronJob} from "cron";
 import {Decimal128, ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
@@ -29,7 +28,6 @@ import {
 
 const BATCH_SIZE = 200;
 
-let installmentReminderJob: CronJob | null = null;
 
 type ReminderPhase = "3" | "1" | "0";
 
@@ -152,11 +150,11 @@ function buildDispatchPayload(params: {
     };
 }
 
-export async function runPaymentPlanInstallmentReminders(parentLogger?: serverLogger): Promise<void> {
+export async function runPaymentPlanInstallmentReminders(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const logger = getLogger("payment_plan_installment_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
 
-    const baseFilter = {status: PaymentPlanStatus.ACTIVE};
+    const baseFilter = {company, status: PaymentPlanStatus.ACTIVE};
     const populate = [
         {path: "company", select: "name"},
         {
@@ -266,15 +264,15 @@ export async function runPaymentPlanInstallmentReminders(parentLogger?: serverLo
         if (plans.length < BATCH_SIZE) break;
     }
 
-    await runPaymentPlanInstallmentOverdueMarkings(parentLogger);
+    await runPaymentPlanInstallmentOverdueMarkings(company, parentLogger);
 }
 
-async function runPaymentPlanInstallmentOverdueMarkings(parentLogger?: serverLogger): Promise<void> {
+async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
     const logger = getLogger("payment_plan_installment_overdue_marking", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
     const now = Date.now();
 
-    const baseFilter = {status: PaymentPlanStatus.ACTIVE};
+    const baseFilter = {company, status: PaymentPlanStatus.ACTIVE};
 
     let lastId: ObjectId | undefined;
     while (true) {
@@ -344,29 +342,5 @@ async function runPaymentPlanInstallmentOverdueMarkings(parentLogger?: serverLog
         }
 
         if (plans.length < BATCH_SIZE) break;
-    }
-}
-
-export function startPaymentPlanInstallmentReminderJob(parentLogger?: serverLogger): void {
-    const log = getLogger("payment_plan_installment_reminder_cron", parentLogger);
-    if (installmentReminderJob !== null) {
-        return;
-    }
-    installmentReminderJob = new CronJob(
-        "0 12 8 * * *",
-        () => {
-            void runPaymentPlanInstallmentReminders(parentLogger);
-        },
-        null,
-        true,
-        "UTC"
-    );
-    log.debug("Payment plan installment reminder job scheduled (cron: 0 12 8 * * * UTC)");
-}
-
-export function stopPaymentPlanInstallmentReminderJob(): void {
-    if (installmentReminderJob) {
-        installmentReminderJob.stop();
-        installmentReminderJob = null;
     }
 }

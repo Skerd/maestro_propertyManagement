@@ -9,9 +9,9 @@ import {runAdCampaignDispatch} from "@propertyManagement/utilities/adCampaign/ad
  */
 export async function runAdCampaignDispatchJob(ctx: CronHandlerContext): Promise<void> {
     await runAdCampaignDispatch({
-        company: ctx.company as any,
+        company: ctx.company,
         logger: ctx.logger as any,
-        signal: ctx.signal as any,
+        signal: ctx.signal,
         appendLog: ctx.appendLog,
     });
 }

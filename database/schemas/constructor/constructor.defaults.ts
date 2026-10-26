@@ -91,7 +91,7 @@ export async function createConstructors(parentLogger: serverLogger, company: IC
 
     try {
         for (const constructorData of defaultConstructors) {
-            let existingConstructor = await Constructor.findOne({vat: constructorData.vat});
+            let existingConstructor = await Constructor.findOne({vat: constructorData.vat, company: company._id});
 
             if (!existingConstructor) {
                 const newConstructor = new Constructor({

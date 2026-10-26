@@ -167,7 +167,6 @@ const ConstructorSchema: Schema = new Schema(
         vat: {
             type: SchemaTypes.String,
             required: true,
-            unique: true,
             trim: true,
             minlength: 1,
             maxlength: CONSTRUCTOR_VAT_MAX,

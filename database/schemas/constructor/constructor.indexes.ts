@@ -6,7 +6,7 @@ import {Schema} from "mongoose";
  */
 export function applyConstructorIndexes(ConstructorSchema: Schema): void {
     ConstructorSchema.index({ company: 1, createdAt: -1 });
-    ConstructorSchema.index({ vat: 1 });
+    ConstructorSchema.index({ company: 1, vat: 1 }, { unique: true });
     ConstructorSchema.index({ name: 1 });
     ConstructorSchema.index({ email: 1 });
     ConstructorSchema.index({ company: 1, name: 1 });

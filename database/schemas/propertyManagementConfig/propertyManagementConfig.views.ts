@@ -36,6 +36,16 @@ export const propertyManagementConfigSheetView: ViewConfig = {
                                 widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "requiresHandoverPackageForHandover"},
                             },
                         },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "listedOnPortal"},
+                            field: {
+                                name: "listedOnPortal",
+                                widget: "#DisplayCard",
+                                label: "listedOnPortal",
+                                widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "listedOnPortal"},
+                            },
+                        },
                     ],
                 },
             ],
@@ -108,6 +118,14 @@ const propertyManagementConfigCreateFormNode: ViewConfig["nodes"] = [
                             label: "form.requiresHandoverPackageForHandoverLabel",
                         },
                     },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "listedOnPortal",
+                            widget: "#Switch",
+                            label: "form.listedOnPortalLabel",
+                        },
+                    },
                 ],
             },
         ],
@@ -139,6 +157,14 @@ const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
                             widget: "#Switch",
                             label: "form.requiresHandoverPackageForHandoverLabel",
                         }, permissions: {read: "requiresHandoverPackageForHandover", write: "requiresHandoverPackageForHandover"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "listedOnPortal",
+                            widget: "#Switch",
+                            label: "form.listedOnPortalLabel",
+                        }, permissions: {read: "listedOnPortal", write: "listedOnPortal"},
                     },
                 ],
             },

@@ -13,11 +13,10 @@ export function applyUnitTypeIndexes(UnitTypeSchema: Schema): void {
     // For filtering by group (already has inline index, but compound for better performance)
     UnitTypeSchema.index({ group: 1, createdAt: -1 });
     
-    // For finding unit types by name (already unique, but explicit index for clarity)
-    UnitTypeSchema.index({ name: 1 });
+    // Names and slugs are unique per company (types are seeded per company)
+    UnitTypeSchema.index({ company: 1, name: 1 }, { unique: true });
     
-    // For finding unit types by slug (already unique, but explicit index for clarity)
-    UnitTypeSchema.index({ slug: 1 });
+    UnitTypeSchema.index({ company: 1, slug: 1 }, { unique: true });
     
     // Compound index for category + group queries
     UnitTypeSchema.index({ category: 1, group: 1 });

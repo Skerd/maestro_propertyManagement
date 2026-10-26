@@ -38,7 +38,6 @@ const UnitTypeSchema = new Schema<IUnitType>(
         name: {
             type: SchemaTypes.String,
             required: true,
-            unique: true,
             trim: true,
             minlength: 1,
             maxlength: UNIT_TYPE_SHORT_TEXT_MAX,
@@ -46,7 +45,6 @@ const UnitTypeSchema = new Schema<IUnitType>(
         slug: {
             type: SchemaTypes.String,
             required: true,
-            unique: true,
             lowercase: true,
             trim: true,
             minlength: 1,

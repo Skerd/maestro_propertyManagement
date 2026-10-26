@@ -4,7 +4,7 @@ import {IHandoverPackage} from "./handoverPackage";
 const notDeleted = {deletedAt: null};
 
 export function applyHandoverPackageIndexes(schema: Schema<IHandoverPackage>): void {
-    schema.index({name: 1}, {unique: true});
+    schema.index({company: 1, name: 1}, {unique: true});
     schema.index({company: 1, project: 1});
     schema.index(
         {company: 1, project: 1},

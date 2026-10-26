@@ -10,6 +10,7 @@ import {Schema} from "mongoose";
 export function applyProjectIndexes(ProjectSchema: Schema): void {
     // POST /project — company-scoped table, default sort createdAt desc
     ProjectSchema.index({ company: 1, deletedAt: 1, createdAt: -1 });
+    ProjectSchema.index({ company: 1, name: 1 }, { unique: true });
 
     // POST /project/select — company + sort { name: 1 }
     ProjectSchema.index({ company: 1, deletedAt: 1, name: 1 });

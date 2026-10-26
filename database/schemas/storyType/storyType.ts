@@ -32,7 +32,6 @@ const StoryTypeSchema = new Schema<IStoryType>(
         name: {
             type: SchemaTypes.String,
             required: true,
-            unique: true,
             trim: true,
             minlength: 1,
             maxlength: STORY_TYPE_NAME_MAX,
@@ -45,7 +44,6 @@ const StoryTypeSchema = new Schema<IStoryType>(
         slug: {
             type: SchemaTypes.String,
             required: true,
-            unique: true,
             lowercase: true,
             trim: true,
             minlength: 1,

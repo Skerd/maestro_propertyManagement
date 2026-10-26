@@ -4,7 +4,7 @@ import {Schema} from "mongoose";
  * Optimized indexes for inspection queries.
  */
 export function applyInspectionIndexes(InspectionSchema: Schema): void {
-    InspectionSchema.index({ name: 1 }, { unique: true });
+    InspectionSchema.index({company: 1, name: 1}, {unique: true});
     InspectionSchema.index({ unit: 1, inspectionDate: -1 });
     InspectionSchema.index({ inspectedBy: 1, status: 1 });
     InspectionSchema.index({ status: 1, scheduledDate: 1 });

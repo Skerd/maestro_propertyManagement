@@ -29,6 +29,8 @@ export async function createPropertyManagementConfig(
         const payload = {
             requiresSaleApproval: row.requiresSaleApproval,
             requiresHandoverPackageForHandover: row.requiresHandoverPackageForHandover,
+            // Only the demo seeds this config; demo companies are listed on the portal.
+            listedOnPortal: true,
             company: company._id,
             createdBy: company.createdBy,
         };

@@ -17,6 +17,7 @@ export function propertyManagementConfigToDTO(doc: IPropertyManagementConfig): P
         _id: doc._id.toString(),
         requiresSaleApproval: !!doc.requiresSaleApproval,
         requiresHandoverPackageForHandover: !!doc.requiresHandoverPackageForHandover,
+        listedOnPortal: !!doc.listedOnPortal,
         notifyOnSales: mapNotifyUsers(doc.notifyOnSales),
         notifyOnReservations: mapNotifyUsers(doc.notifyOnReservations),
         ...mapOwnershipToDTO(doc),

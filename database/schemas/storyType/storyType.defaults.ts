@@ -37,7 +37,7 @@ export async function createStoryTypes(
             };
 
             const existing =
-                (await StoryType.findById(storyTypeId)) ?? (await StoryType.findOne({slug: row.slug}));
+                (await StoryType.findById(storyTypeId)) ?? (await StoryType.findOne({slug: row.slug, company: company._id}));
             if (existing) {
                 existing.set(payload);
                 await existing.save();

@@ -15,6 +15,8 @@ import {applyPropertyManagementConfigIndexes} from "./propertyManagementConfig.i
 export interface IPropertyManagementConfig extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
     requiresSaleApproval?: boolean;
     requiresHandoverPackageForHandover?: boolean;
+    /** The company opts in to having its projects listed on the central portal. */
+    listedOnPortal?: boolean;
     notifyOnSales?: ObjectId[];
     notifyOnReservations?: ObjectId[];
     [key: string]: any;
@@ -28,6 +30,11 @@ const PropertyManagementConfigSchema = new Schema<IPropertyManagementConfig>(
             default: false
         },
         requiresHandoverPackageForHandover: {
+            type: SchemaTypes.Boolean,
+            required: false,
+            default: false
+        },
+        listedOnPortal: {
             type: SchemaTypes.Boolean,
             required: false,
             default: false

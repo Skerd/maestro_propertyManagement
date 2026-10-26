@@ -57,7 +57,6 @@ const ProjectSchema = new Schema<IProject>(
         name: {
             type: SchemaTypes.String,
             required: true,
-            unique: true,
             trim: true,
             minlength: 1,
             maxlength: PROJECT_SHORT_TEXT_MAX,

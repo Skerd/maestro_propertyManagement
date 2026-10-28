@@ -15,10 +15,12 @@ export const projectsSeed: readonly ProjectSeedRow[] = [
         "reservationCommissionRatePercent": "2",
         "featuredOnHomepage": true,
         "featuredSortOrder": 0,
+        "magazineTitle": "A tower for the Tirana skyline",
+        "magazineDescription": "Garda Tower is 33 floors in the centre of Tirana. A mineral exoskeleton wraps a curved glass volume, so the building reads as one piece from the boulevard.",
         "socialLinks": [
             {
-                "name": "123",
-                "link": "https://asdasd.com"
+                "name": "Instagram",
+                "link": "https://www.instagram.com/gardatower"
             }
         ],
         "mainImageId": "6a50370bd2892db79d54d9fe"
@@ -26,15 +28,15 @@ export const projectsSeed: readonly ProjectSeedRow[] = [
     {
         "id": "6a7c47d1aed7415e48c8fce4",
         "name": "Dyeus",
-        "description": "Dyeus",
+        "description": "Dyeus is a mid-rise residence on the east side of Tirana, planned as a quieter alternative to the tower projects in the centre. The building keeps a mineral façade, deep balconies, and apartments sized for families who want to stay in the city.",
         "featuredOnHomepage": false,
         "featuredSortOrder": 0,
-        "magazineTitle": "Ttile 123123",
-        "magazineDescription": "lsdakj lasdlkfj asldjflaskdf jlksadj",
+        "magazineTitle": "A quieter address in Tirana",
+        "magazineDescription": "Dyeus trades tower height for wider balconies and apartments laid out for families. The façade is mineral, the courtyard is planted, and the street stays residential.",
         "socialLinks": [
             {
-                "name": "123",
-                "link": "https://123123123.com"
+                "name": "Instagram",
+                "link": "https://www.instagram.com/dyeusresidence"
             }
         ],
         "mainImageId": "6a7c47d1aed7415e48c8fcd6"
@@ -47,12 +49,12 @@ export const projectsSeed: readonly ProjectSeedRow[] = [
         "reservationCommissionRatePercent": "2",
         "featuredOnHomepage": true,
         "featuredSortOrder": 1,
-        "magazineTitle": "dsfasdf",
-        "magazineDescription": "asdfsadfsadfasdfasdf",
+        "magazineTitle": "Life on the Riviera",
+        "magazineDescription": "Aria Residence sits above Dhërmi, with stone, glass, and a view that stays on the Ionian. Fewer homes, a closed garden, and a short walk to the water.",
         "socialLinks": [
             {
-                "name": "123",
-                "link": "https://asdasd.com"
+                "name": "Instagram",
+                "link": "https://www.instagram.com/ariaresidence"
             }
         ],
         "mainImageId": "6a4f94ae99511ee1e0efb77c"

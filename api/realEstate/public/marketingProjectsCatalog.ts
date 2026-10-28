@@ -3,7 +3,6 @@ import authMW, {NotAuthenticatedMWType} from "@coreModule/utilities/middlewares/
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import {projectService} from "../../../database/schemas/project/project.service";
 import {
     marketingProjectsCatalogFormSchema,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjectsCatalog/marketingProjectsCatalog.form.validator";
@@ -15,14 +14,8 @@ import type {
     MarketingPropertyTypeId,
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingProjectsCatalog/marketingProjectsCatalog.shared.types";
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
-import {loadMarketingCatalogHierarchy} from "../../../utilities/marketing/marketingCatalogHierarchy.util";
-import {
-    applyCatalogProjectFilters,
-    buildCatalogFilterOptions,
-    CatalogProjectFilterParams,
-} from "../../../utilities/marketing/marketingCatalogFilters.util";
-import {mapMarketingProjectCatalogListItem} from "../../../utilities/mappers/marketing/marketingCatalog.mapper";
-import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {CatalogProjectFilterParams} from "../../../utilities/marketing/marketingCatalogFilters.util";
+import {loadMarketingProjectsCatalog} from "../../../utilities/marketing/marketingProjectsCatalog.util";
 
 const router = Router();
 
@@ -43,30 +36,6 @@ async function marketingProjectsCatalog(
     logger.start("Loading marketing projects catalog...");
 
     const company = await resolveMarketingCompany(origin, languageCode);
-    const companyId = company._id;
-
-    const projects = await projectService.find(
-        {company: companyId},
-        {withDeleted: false, logger, languageCode},
-        ["mainImage", "imageGallery", {path: "socialLinks.logo"}],
-    );
-
-    const projectIds = projects.map((project) => project._id);
-    const hierarchy = await loadMarketingCatalogHierarchy(projectIds, companyId);
-
-    const unitsByProjectString = new Map<string, typeof hierarchy.units>();
-    for (const [projectKey, units] of hierarchy.unitsByProject.entries()) {
-        unitsByProjectString.set(projectKey, units);
-    }
-
-    const mapped = projects.map((project) => {
-        const projectKey = objectIdToString(project._id);
-        const edifices = hierarchy.edificesByProject.get(projectKey) ?? [];
-        const units = hierarchy.unitsByProject.get(projectKey) ?? [];
-        return mapMarketingProjectCatalogListItem(project, edifices, units, hierarchy.floorsByEdifice);
-    });
-
-    const filterOptions = buildCatalogFilterOptions(mapped);
 
     const filterParams: CatalogProjectFilterParams = {
         search: params.search,
@@ -80,7 +49,7 @@ async function marketingProjectsCatalog(
         priceMax: params.priceMax,
     };
 
-    const filtered = applyCatalogProjectFilters(mapped, unitsByProjectString, filterParams);
+    const {projects: filtered, filterOptions} = await loadMarketingProjectsCatalog(company._id, filterParams, {languageCode, logger});
 
     logger.finish(`Loaded ${filtered.length} marketing catalog projects`);
     return {

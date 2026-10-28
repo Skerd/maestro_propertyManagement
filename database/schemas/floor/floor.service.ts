@@ -22,6 +22,7 @@ export type FloorUnitCoordinateRow = {
     polygonCoordinates: {x: number; y: number}[];
     _id: string;
     name: string;
+    status?: string;
 };
 
 type FloorListingAggregateRows = {
@@ -386,7 +387,7 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
             {floor: {$in: floorIds}},
             {logger, languageCode},
             null,
-            "polygonCoordinates name floor"
+            "polygonCoordinates name floor status"
         );
         for (const u of units as any[]) {
             const fid = u.floor?._id != null ? u.floor._id.toString() : u.floor?.toString?.();
@@ -396,6 +397,7 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
                 polygonCoordinates: u.polygonCoordinates?.map((point: {x: number; y: number}) => ({x: point.x, y: point.y})) || [],
                 _id: u._id.toString(),
                 name: u.name,
+                ...(typeof u.status === "string" ? {status: u.status} : {}),
             });
         }
         return byFloor;

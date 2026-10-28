@@ -351,12 +351,28 @@ export function mapMarketingProjectCatalogSingle(
                     const mappedUnitsCoordinates = unitsCoordinates && unitsCoordinates.length > 0
                         ? unitsCoordinates
                         : undefined;
+                    const floorImages = publicMediaUrls(floor.imageGallery);
+                    const floorVideos = publicMediaUrls(floor.videoGallery);
+                    const sharedSpaces = Array.isArray(floor.sharedSpaces)
+                        ? floor.sharedSpaces.filter((item: string) => typeof item === "string" && item.trim())
+                        : undefined;
+                    const hideFloorPrice = isPriceOnRequestRedacted(edifice);
 
                     return {
                         _id: floorId,
                         name: floor.name,
                         mainImage: publicMediaUrl(floor.mainImage),
+                        imageGallery: floorImages.length > 0 ? floorImages : undefined,
+                        videoGallery: floorVideos.length > 0 ? floorVideos : undefined,
                         levelNumber: floor.levelNumber,
+                        description: floor.description || undefined,
+                        areaSqm: floor.area ?? undefined,
+                        sharedSpaces: sharedSpaces && sharedSpaces.length > 0 ? sharedSpaces : undefined,
+                        isAccessible: floor.isAccessible || undefined,
+                        hasEmergencyExit: floor.hasEmergencyExit || undefined,
+                        pricePerSqm: hideFloorPrice ? undefined : (floor.pricePerMeterSquared ?? undefined),
+                        verandaPricePerSqm: hideFloorPrice ? undefined : (floor.verandaPricePerMeterSquared ?? undefined),
+                        priceOnRequest: hideFloorPrice || undefined,
                         unitsCoordinates: mappedUnitsCoordinates,
                         units: floorUnits.map((unit) => mapMarketingUnitCatalogListItem(unit, floor, edifice)),
                     };

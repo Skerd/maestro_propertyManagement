@@ -11,7 +11,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3f9",
         "firstName": "Elena",
         "lastName": "Krasniqi",
-        "email": "elena.krniqi@example.com",
+        "email": "elena.krasniqi@example.com",
         "phone": "+355 69 222 3344",
         "status": "contacted",
         "source": "referral",
@@ -30,7 +30,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -69,7 +69,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -108,7 +108,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -147,7 +147,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -186,7 +186,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -225,7 +225,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -264,7 +264,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -303,7 +303,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "activityLog": [
             {
                 "action": "created",
-                "notes": "Lead captured from demo seed",
+                "notes": "Enquiry received from the project website.",
                 "performedBy": {
                     "$user": "echo@echo.com"
                 },
@@ -321,103 +321,109 @@ export const leadsSeed: readonly LeadSeedRow[] = [
     },
     {
         "id": "6a71d5acef08a95eca6c3910",
-        "firstName": "Plan Verify",
-        "email": "plan.verify@example.com",
-        "phone": "+355691112233",
+        "firstName": "Dritan",
+        "lastName": "Hoxha",
+        "email": "dritan.hoxha@example.com",
+        "phone": "+355 69 411 2201",
         "status": "new",
         "source": "website",
-        "notes": "Footer contact API verify",
+        "notes": "Asked for the Garda Tower brochure and a Saturday visit.",
         "activityLog": []
     },
     {
         "id": "6a71d771d54e4c588cfa2673",
-        "firstName": "UI Verify",
-        "email": "ui.verify@example.com",
+        "firstName": "Mira",
+        "lastName": "Shehu",
+        "email": "mira.shehu@example.com",
         "status": "new",
         "source": "website",
-        "notes": "Confirm form wiring",
+        "notes": "Wants a two-bedroom at Aria Residence for summer use.",
         "activityLog": []
     },
     {
         "id": "6a71d7d2d54e4c588cfa293a",
-        "firstName": "123",
-        "email": "123@12312.com",
-        "phone": "12312312",
+        "firstName": "Klodian",
+        "lastName": "Meta",
+        "email": "klodian.meta@example.com",
+        "phone": "+355 69 411 2203",
         "status": "new",
         "source": "website",
-        "notes": "123",
+        "notes": "Comparing payment plans on a one-bedroom in Garda Tower.",
         "activityLog": []
     },
     {
         "id": "6a71d8434b8dde9c802d8ce4",
-        "firstName": "Ada",
-        "lastName": "Lovelace",
-        "email": "ada@example.com",
-        "phone": "+355691112233",
+        "firstName": "Arta",
+        "lastName": "Dervishi",
+        "email": "arta.dervishi@example.com",
+        "phone": "+355 69 411 2204",
         "status": "new",
         "source": "website",
-        "notes": "Hello from footer",
+        "notes": "Sent from the footer form. Looking for a sea-view apartment in Dhërmi.",
         "activityLog": []
     },
     {
         "id": "6a71efdf174e83b559b59e4f",
-        "firstName": "aa",
-        "lastName": "aa",
-        "email": "aa@aa.com",
-        "phone": "aaa",
+        "firstName": "Endrit",
+        "lastName": "Kola",
+        "email": "endrit.kola@example.com",
+        "phone": "+355 69 411 2205",
         "status": "new",
         "source": "website",
         "interest": "investments",
-        "notes": "asdasdasd",
+        "notes": "Investor asking about bulk purchase of three units at Dyeus.",
         "activityLog": []
     },
     {
         "id": "6a75dbf12e2050557c35b86b",
-        "firstName": "Dyeus",
-        "lastName": "TestLead",
-        "email": "dyeus.testlead@example.com",
-        "phone": "+355000000",
+        "firstName": "Jonida",
+        "lastName": "Prifti",
+        "email": "jonida.prifti@example.com",
+        "phone": "+355 69 411 2206",
         "status": "new",
         "source": "website",
         "interest": "reservation",
-        "notes": "Smoke test from dyeus contact form wiring",
+        "notes": "Wants to reserve a Dyeus apartment facing the courtyard.",
         "activityLog": []
     },
     {
         "id": "6a79a4c1bea18fc43a61be23",
-        "firstName": "123",
-        "lastName": "123",
-        "email": "123@123.com",
-        "phone": "123",
+        "firstName": "Besnik",
+        "lastName": "Leka",
+        "email": "besnik.leka@example.com",
+        "phone": "+355 69 411 2207",
         "status": "new",
         "source": "website",
         "interest": "reservation",
         "projectInterest": "6a4f94ae99511ee1e0efb78a",
         "unitInterest": "6a5018e588c85ab828431bd5",
-        "notes": "Enquiry for unit A2-01 Floor 2",
+        "notes": "Enquiry for unit A2-01 on floor 2 at Aria Residence.",
         "activityLog": []
     },
     {
         "id": "6a7e32a5f5ff1360699ac214",
-        "firstName": "123123aaaa",
-        "email": "123123@123123123123123123.com",
-        "phone": "123123123123123123123123",
+        "firstName": "Sara",
+        "lastName": "Berisha",
+        "email": "sara.berisha@example.com",
+        "phone": "+355 69 411 2208",
         "status": "new",
         "source": "chat",
+        "notes": "Asked in chat which units at Aria Residence are still available.",
         "activityLog": []
     },
     {
         "id": "6a7e40a8eaed17d8d684e733",
-        "firstName": "sadfa",
-        "email": "asdf@asdasd.com",
-        "phone": "asdf",
+        "firstName": "Ilir",
+        "lastName": "Gjoni",
+        "email": "ilir.gjoni@example.com",
+        "phone": "+355 69 411 2209",
         "status": "new",
         "source": "chat",
-        "budget": "123123",
+        "budget": "350000",
         "budgetCurrency": {
             "$currency": "EUR"
         },
-        "notes": "sdfasdf",
+        "notes": "Budget of 350,000 euro for a two-bedroom with a sea view.",
         "activityLog": []
     }
 ];

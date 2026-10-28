@@ -10,6 +10,8 @@ export type MarketingPolygonItem = {
     _id: string;
     name: string;
     polygonCoordinates: MarketingPolygonCoordinate[];
+    /** Public unit status. Buildings and floors omit it. */
+    status?: "available" | "reserved" | "sold" | "unavailable";
 };
 
 export type MarketingCatalogPolygonData = {
@@ -31,6 +33,23 @@ function toPolygonItem(entity: {_id: ObjectId | string; name?: string; polygonCo
         name: entity.name ?? "",
         polygonCoordinates: mapPolygonPoints(entity.polygonCoordinates),
     };
+}
+
+/** Same buckets the public catalog uses for a unit chip. Rented reads as unavailable. */
+function publicUnitStatus(status: unknown): MarketingPolygonItem["status"] | undefined {
+    switch (status) {
+        case "available_unit":
+            return "available";
+        case "reserved_unit":
+            return "reserved";
+        case "sold_unit":
+            return "sold";
+        case "unavailable_unit":
+        case "rented_unit":
+            return "unavailable";
+        default:
+            return undefined;
+    }
 }
 
 export async function loadMarketingCatalogPolygonData(
@@ -91,12 +110,13 @@ export async function loadMarketingCatalogPolygonData(
             {floor: {$in: floorIds}, company: companyId},
             {...loggerOptions, withDeleted: false},
             null,
-            "polygonCoordinates name floor",
+            "polygonCoordinates name floor status",
         );
 
         for (const unit of units as any[]) {
             const floorId = objectIdToString((unit.floor as any)?._id ?? unit.floor);
-            const item = toPolygonItem(unit);
+            const status = publicUnitStatus(unit.status);
+            const item = {...toPolygonItem(unit), ...(status ? {status} : {})};
             if (item.polygonCoordinates.length === 0) {
                 continue;
             }

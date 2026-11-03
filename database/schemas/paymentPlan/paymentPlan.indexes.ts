@@ -7,8 +7,7 @@ import {Schema} from "mongoose";
  * Supports queries by sale, status, dates, and installment tracking.
  */
 export function applyPaymentPlanIndexes(PaymentPlanSchema: Schema): void {
-    // Primary query pattern - payment plans by sale (already unique, but explicit index for clarity)
-    PaymentPlanSchema.index({ sale: 1 });
+    // sale: `unique` on the field already indexes it; a second declaration of the same key conflicts
     
     // For filtering by status (already has inline index, but compound for better performance)
     PaymentPlanSchema.index({ status: 1, createdAt: -1 });

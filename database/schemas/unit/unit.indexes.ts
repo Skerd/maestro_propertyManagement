@@ -35,11 +35,8 @@ export function applyUnitIndexes(UnitSchema: Schema): void {
     UnitSchema.index({ project: 1, unitType: 1, createdAt: -1 });
     UnitSchema.index({ company: 1, status: 1, createdAt: -1 });
     
-    // For reservation queries
-    UnitSchema.index({ reservation: 1 });
-    
-    // For sale queries
-    UnitSchema.index({ sale: 1 });
+    // reservation, sale: `unique` + `sparse` on the fields already index them; a second
+    // declaration of the same key conflicts
     
     // For status + reservation compound queries
     UnitSchema.index({ status: 1, reservation: 1 });

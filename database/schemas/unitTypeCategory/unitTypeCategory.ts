@@ -34,7 +34,7 @@ const UnitTypeCategorySchema = new Schema<IUnitTypeCategory>(
             dynamicTableConfiguration: {
                 filterable: true,
                 sortable: true,
-                cellType: COLUMN_TYPE.TEXT,
+                cellType: COLUMN_TYPE.STRING,
             },
         },
     },

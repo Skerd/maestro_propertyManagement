@@ -45,7 +45,7 @@ async function marketingProjectSingle(params: MarketingProjectSingleParams): Pro
     );
 
     if (!project) {
-        throw apiValidationException("project_not_found", "projectId", projectId, languageCode);
+        throw apiValidationException("project_not_found", "projectId", [projectId], languageCode);
     }
 
     const hierarchy = await loadMarketingHierarchyForProject(projectObjectId, company._id);

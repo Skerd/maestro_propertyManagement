@@ -1,3 +1,4 @@
+import type {HydratedDocument, Model} from "mongoose";
 import {ObjectId} from "mongodb";
 import Constructor from "@propertyManagement/database/schemas/constructor/constructor";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
@@ -94,14 +95,14 @@ export function almir(ctx: WorkflowCtx): ObjectId | undefined {
  * company) on every workflow schema, and the pre-validate hook only mints a
  * date-suffixed code when name is empty — so we always set it.
  */
-export async function upsertByName<T extends {name?: string; set: (p: object) => void; save: () => Promise<unknown>}>(
-    Model: {findOne: (q: object) => Promise<T | null>; create: (p: object) => Promise<T>},
+export async function upsertByName<T extends {name?: string}>(
+    Model: Model<T>,
     company: ICompany,
     name: string,
     payload: Record<string, unknown>,
     logger: serverLogger,
     label: string,
-): Promise<T | null> {
+): Promise<HydratedDocument<T> | null> {
     try {
         const body = {
             ...payload,

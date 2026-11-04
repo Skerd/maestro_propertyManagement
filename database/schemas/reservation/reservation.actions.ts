@@ -1,3 +1,4 @@
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {Decimal128, ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
@@ -231,10 +232,7 @@ export class ReservationActions {
 
         const unitRef = reservation.unit as {unitNumber?: string | number; name?: string; _id?: ObjectId} | undefined;
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
-        const unitId =
-            unitRef && typeof unitRef === "object" && unitRef._id
-                ? unitRef._id
-                : (reservation.unit as ObjectId);
+        const unitId = nestedEntityToRef(reservation.unit);
 
         const exp = reservation.expirationDate ? new Date(reservation.expirationDate) : undefined;
         const expIso = exp ? exp.toISOString() : undefined;

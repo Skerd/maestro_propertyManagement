@@ -1,3 +1,4 @@
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {ObjectId} from "mongodb";
 import {buildCreateDataFromSchemaDef, buildUpdateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
 import {InspectionSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
@@ -235,7 +236,7 @@ export const {router} = createCrudRouter({
         const {session, logger, languageCode, actionUserCtx} = params;
 
         await unitService.updateByIdOrThrow(
-            created.unit,
+            nestedEntityToRef(created.unit),
             {$push: {inspections: created._id}},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId, auditAction: "create"},
         );

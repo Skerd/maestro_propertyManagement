@@ -30,7 +30,7 @@ export async function tryLoadReservationContractForEmail(
         }
 
         const gridfs = getGridFSStorage(languageCode, "media");
-        const fileId = media.fileId instanceof ObjectId ? media.fileId : new ObjectId(media.fileId.toString());
+        const fileId = new ObjectId(String(media.fileId));
         const buffer = await gridfs.getFileBuffer(fileId);
 
         if (!buffer.length || buffer.length > MAX_CONTRACT_ATTACHMENT_BYTES) {

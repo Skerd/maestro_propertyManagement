@@ -57,7 +57,7 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
     );
 
     if (!project) {
-        throw apiValidationException("project_not_found", "projectId", projectId, languageCode);
+        throw apiValidationException("project_not_found", "projectId", [projectId], languageCode);
     }
 
     const hierarchy = await loadMarketingHierarchyForProject(projectObjectId, company._id);

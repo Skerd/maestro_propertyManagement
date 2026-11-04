@@ -27,7 +27,8 @@ import {
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
-export function computeUnitCostSubtotal(doc: IUnitCost): number {
+/** Reads only each row's amount and price, so hydrated and lean unit costs both qualify. */
+export function computeUnitCostSubtotal(doc: {expenditureItems?: {amount?: unknown; pricePerUnit?: unknown}[]}): number {
     const items = doc.expenditureItems || [];
     let sum = 0;
     for (const row of items) {

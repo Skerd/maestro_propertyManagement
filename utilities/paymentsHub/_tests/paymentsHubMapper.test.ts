@@ -222,12 +222,13 @@ describe("planToHubRows — down payment", () => {
 });
 
 describe("currency buckets", () => {
+    const NAMES: Record<string, string> = {eur: "Euro", chf: "Swiss franc"};
     const rowIn = (currencyId: string, symbol: string): PaymentsHubRow => ({
         _id: `${currencyId}:installment:1`,
         kind: "installment",
         status: "pending",
         planId: "plan",
-        currency: {_id: currencyId, symbol},
+        currency: {_id: currencyId, name: NAMES[currencyId] ?? currencyId, symbol, abbreviation: currencyId.toUpperCase()},
     });
 
     it("keeps each currency in its own total and rounds to 2 decimals", () => {
@@ -237,8 +238,8 @@ describe("currency buckets", () => {
         addToBuckets(map, rowIn("chf", "CHF"), 250);
 
         expect(bucketsToRevenue(map)).toEqual([
-            {currencyId: "eur", currencyName: undefined, currencySymbol: "€", value: 1000.11},
-            {currencyId: "chf", currencyName: undefined, currencySymbol: "CHF", value: 250},
+            {currencyId: "eur", currencyName: "Euro", currencySymbol: "€", value: 1000.11},
+            {currencyId: "chf", currencyName: "Swiss franc", currencySymbol: "CHF", value: 250},
         ]);
     });
 

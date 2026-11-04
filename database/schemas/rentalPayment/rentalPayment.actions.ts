@@ -99,7 +99,7 @@ export class RentalPaymentActions {
             notes,
             media: fileIds,
         });
-        if (!applied.ok) {
+        if (applied.ok === false) {
             throw apiValidationException(
                 applied.reason === "not_open" ? "rental_payment_already_paid" : "rental_payment_overpay",
                 "",

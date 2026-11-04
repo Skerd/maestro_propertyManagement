@@ -119,7 +119,7 @@ async function unitIdsForProject(
         10_000,
         0,
     );
-    return units.map((u: {_id: ObjectId}) => u._id);
+    return units.map((u) => u._id);
 }
 
 async function erpExportHandler(
@@ -330,7 +330,7 @@ async function erpExportHandler(
             .populate("currency", "abbreviation symbol")
             .lean();
 
-        result.unitCosts = (ucDocs as Record<string, unknown>[]).map((uc): ErpUnitCostRow => {
+        result.unitCosts = ucDocs.map((uc): ErpUnitCostRow => {
             const unit = uc.unit as {name?: string; unitNumber?: string} | undefined;
             const project = uc.project as {name?: string} | undefined;
             const currency = uc.currency as {abbreviation?: string; symbol?: string} | undefined;

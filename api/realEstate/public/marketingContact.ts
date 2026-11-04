@@ -48,7 +48,7 @@ async function resolveLeadInterests(
             {...opts, withDeleted: false},
         );
         if (!project) {
-            throw apiValidationException("project_not_found", "projectInterest", projectInterest, languageCode);
+            throw apiValidationException("project_not_found", "projectInterest", [projectInterest], languageCode);
         }
         projectId = project._id as ObjectId;
     }
@@ -59,13 +59,13 @@ async function resolveLeadInterests(
             {...opts, withDeleted: false},
         );
         if (!unit) {
-            throw apiValidationException("unit_not_found", "unitInterest", unitInterest, languageCode);
+            throw apiValidationException("unit_not_found", "unitInterest", [unitInterest], languageCode);
         }
         unitId = unit._id as ObjectId;
 
         const unitProjectId = (unit.project as any)?._id ?? unit.project;
         if (projectId && unitProjectId && objectIdToString(unitProjectId) !== objectIdToString(projectId)) {
-            throw apiValidationException("unit_not_in_project", "unitInterest", unitInterest, languageCode);
+            throw apiValidationException("unit_not_in_project", "unitInterest", [unitInterest], languageCode);
         }
         if (!projectId && unitProjectId) {
             projectId = unitProjectId instanceof ObjectId ? unitProjectId : new ObjectId(String(unitProjectId));

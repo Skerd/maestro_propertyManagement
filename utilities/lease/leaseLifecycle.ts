@@ -1,4 +1,5 @@
 import {ObjectId} from "mongodb";
+import type {ICompany} from "@coreModule/database/schemas/company/company";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {LeaseStatus} from "../../database/schemas/lease/lease";
 import {leaseService} from "../../database/schemas/lease/lease.service";
@@ -12,7 +13,8 @@ type Ctx = {
     logger: any;
     languageCode: string;
     actionUserCtx?: {userId?: any};
-    company: {_id: ObjectId};
+    /** Only `_id` is read, so cron jobs can pass a bare `{_id}`. */
+    company: Pick<ICompany, "_id">;
 };
 
 export async function assertUnitRentable(unitId: ObjectId, ctx: Ctx): Promise<void> {

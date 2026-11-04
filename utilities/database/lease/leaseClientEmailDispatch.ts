@@ -14,6 +14,7 @@ import {
     isSettledRemaining,
     remainingNumber,
     remainingScaled,
+    type RentMoneyRow,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {
     isPastExpirationUtcEndOfDay,
@@ -124,18 +125,14 @@ function idOf(ref: NamedId): string | undefined {
 
 export function buildLeaseRentEmailPayload(params: {
     lease: {
-        _id: ObjectId | string;
+        _id?: ObjectId | string;
         name?: string;
         tenant?: NamedId;
         company?: {_id?: ObjectId | string; name?: string} | ObjectId | string;
         unit?: unknown;
     };
-    payment: {
+    payment: RentMoneyRow & {
         dueDate: Date;
-        amount?: unknown;
-        paidAmount?: unknown;
-        lateFeeAmount?: unknown;
-        status?: string | null;
         currency?: {_id?: unknown; symbol?: string} | null;
         unit?: unknown;
     };

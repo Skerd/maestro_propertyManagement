@@ -40,13 +40,8 @@ export const {router} = createCrudRouter({
         if (unitRaw) filter.unit = new ObjectId(String(unitRaw));
         return filter;
     },
-    buildCreateData: async ({fileIds, ...params}: Record<string, unknown>) => {
-        const {company, session, logger, languageCode} = params as {
-            company: {_id: ObjectId};
-            session?: unknown;
-            logger: unknown;
-            languageCode: string;
-        };
+    buildCreateData: async ({fileIds, ...params}) => {
+        const {company, session, logger, languageCode} = params;
         const data = buildCreateDataFromSchemaDef(HandoverPackageSchemaDef)(params);
         const scope = await resolveAndFillHandoverPackageScope(data, company._id, {session, logger, languageCode});
         await assertHandoverPackageScopeAvailable(company._id, scope, {session, logger, languageCode});

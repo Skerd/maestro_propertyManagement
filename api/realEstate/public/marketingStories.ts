@@ -197,7 +197,7 @@ async function marketingStorySingle(
     );
 
     if (!story) {
-        throw apiValidationException("story_not_found", "storyId", storyId, languageCode);
+        throw apiValidationException("story_not_found", "storyId", [storyId], languageCode);
     }
 
     logger.finish(`Loaded marketing story ${storyId}`);

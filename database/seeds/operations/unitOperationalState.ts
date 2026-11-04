@@ -24,6 +24,7 @@
  * arrays on each unit from the documents that point at it.
  */
 
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {ObjectId} from "mongodb";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
@@ -96,14 +97,14 @@ export async function applyUnitOperationalState(
             const unit = unitIds.get(id);
             if (unit) claim(unit, {status: UnitStatus.UNAVAILABLE});
         }
-        for (const lease of activeLeases as {unit: ObjectId}[]) {
-            claim(lease.unit, {status: UnitStatus.RENTED});
+        for (const lease of activeLeases) {
+            claim(nestedEntityToRef(lease.unit), {status: UnitStatus.RENTED});
         }
-        for (const sale of sales as {_id: ObjectId; unit: ObjectId}[]) {
-            claim(sale.unit, {status: UnitStatus.SOLD, sale: sale._id});
+        for (const sale of sales) {
+            claim(nestedEntityToRef(sale.unit), {status: UnitStatus.SOLD, sale: sale._id});
         }
-        for (const reservation of activeReservations as {_id: ObjectId; unit: ObjectId}[]) {
-            claim(reservation.unit, {status: UnitStatus.RESERVED, reservation: reservation._id});
+        for (const reservation of activeReservations) {
+            claim(nestedEntityToRef(reservation.unit), {status: UnitStatus.RESERVED, reservation: reservation._id});
         }
 
         const [inspectionsByUnit, modificationsByUnit, costsByUnit] = await Promise.all([

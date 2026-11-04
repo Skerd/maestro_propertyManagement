@@ -40,7 +40,7 @@ export async function loadInlineImageAttachments(mediaIds: unknown[], opts: Load
             if (media.sizeInBytes && total + media.sizeInBytes > budget) continue;
 
             const gridfs = getGridFSStorage(opts.languageCode, "media");
-            const fileId = media.fileId instanceof ObjectId ? media.fileId : new ObjectId(media.fileId.toString());
+            const fileId = new ObjectId(String(media.fileId));
             const buffer = await gridfs.getFileBuffer(fileId);
             if (!buffer.length || total + buffer.length > budget) continue;
 

@@ -56,7 +56,8 @@ function mapHandoverChecklistItem(item: ISaleHandoverChecklistItem): SaleHandove
         importance: item.importance as SaleHandoverChecklistItem["importance"],
         completed: !!item.completed,
         completedAt: item.completedAt ? new Date(item.completedAt).toISOString() : undefined,
-        completedBy: mapSnippet<SimpleBlankUser>()(item.completedBy, SimpleBlankUserSnippet),
+        // Populated user or bare ObjectId (both objects); a plain string id has nothing to project.
+        completedBy: typeof item.completedBy === "object" ? mapSnippet<SimpleBlankUser>()(item.completedBy, SimpleBlankUserSnippet) : undefined,
         retained: !!item.retained,
     };
 }

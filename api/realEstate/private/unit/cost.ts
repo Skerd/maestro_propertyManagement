@@ -1,3 +1,4 @@
+import type {ICompany} from "@coreModule/database/schemas/company/company";
 import {Decimal128, ObjectId} from "mongodb";
 import {ClientSession} from "mongoose";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
@@ -110,7 +111,7 @@ function buildExpenditureItems(
 
 async function resolveCreateUnitCostScope(
     body: {unit?: string; floor?: string; edifice?: string; project?: string},
-    company: {_id: ObjectId},
+    company: ICompany,
     session: ClientSession | undefined,
     logger: any,
     languageCode: string,

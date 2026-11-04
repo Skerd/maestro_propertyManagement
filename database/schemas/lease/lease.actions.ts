@@ -203,7 +203,7 @@ export class LeaseActions {
             })),
             decimal128FromNumber(paidAmount),
         );
-        if (!plan.ok) {
+        if (plan.ok === false) {
             throw apiValidationException(
                 plan.reason === "no_open_due" ? "rental_payment_no_open_due" : "rental_payment_exceeds_open_due",
                 "",

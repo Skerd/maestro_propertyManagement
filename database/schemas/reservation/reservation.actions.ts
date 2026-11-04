@@ -123,11 +123,6 @@ export class ReservationActions {
         const {logger, languageCode, _id, actionUserCtx, company} = params;
 
         logger.start(`Resending staff notifications for reservation: ${_id}`);
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("reservation_not_found", "", null, languageCode);
-        }
 
         const reservation = await reservationService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
@@ -183,12 +178,6 @@ export class ReservationActions {
             params as Record<string, any> & ManualReservationClientEmailForm;
 
         logger.start(`Manual reservation client email: ${action} for ${_id}`);
-
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("reservation_not_found", "", null, languageCode);
-        }
 
         const reservation = await reservationService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
@@ -389,27 +378,13 @@ export class ReservationActions {
             {session, logger, languageCode},
         );
 
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("reservation_not_found", "", null, languageCode);
-        }
-
-        let canAddCancellationReason = true;
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {cancellationReason: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            canAddCancellationReason = false;
-        }
-
+        // The cancel permission (D14) covers what cancelling writes, the reason included.
         const updateData: Record<string, unknown> = {
             isActive: false,
             cancelledAt: new Date(),
             status: ReservationStatus.CANCELLED,
+            cancellationReason,
         };
-        if (canAddCancellationReason) {
-            updateData.cancellationReason = cancellationReason;
-        }
 
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
@@ -488,12 +463,6 @@ export class ReservationActions {
             throw apiValidationException("unit_not_available_for_reactivation", "", null, languageCode);
         }
 
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("reservation_not_found", "", null, languageCode);
-        }
-
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
             {
@@ -557,12 +526,6 @@ export class ReservationActions {
             {session, logger, languageCode},
             [{path: "depositCurrency", select: "symbol name"}],
         );
-
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("reservation_not_found", "", null, languageCode);
-        }
 
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
@@ -695,12 +658,6 @@ export class ReservationActions {
                 null,
                 languageCode,
             );
-        }
-
-        try {
-            SchemaGuard.sanitizeFields(Reservation, {isActive: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("reservation_not_found", "", null, languageCode);
         }
 
         await reservationService.updateByIdOrThrow(

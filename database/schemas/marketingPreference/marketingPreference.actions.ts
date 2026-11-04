@@ -33,6 +33,7 @@ export class MarketingPreferenceActions {
         auth: "private",
         rateLimit: {windowMs: 60000, max: 60},
         middleware: [impersonateUserMW],
+        selfService: true,
     })
     async me(params: Record<string, any>): Promise<MarketingPreferenceState> {
         const {logger, company} = params;
@@ -54,6 +55,7 @@ export class MarketingPreferenceActions {
         rateLimit: {windowMs: 60000, max: 30},
         transaction: true,
         middleware: [impersonateUserMW],
+        selfService: true,
     })
     async updateMe(params: Record<string, any>): Promise<MarketingPreferenceState> {
         const {logger, company, userInfo} = params;

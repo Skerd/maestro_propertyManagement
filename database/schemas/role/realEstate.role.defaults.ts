@@ -27,10 +27,10 @@ const campaignOwn = ["Adcampaigns", "Adcampaigntemplates", "Marketingpreferences
 const campaignRead = ["Adcampaignrecipients"];
 
 const leadOwn = ["Leads"];
-const salesAgentOwn = ["Reservations", "Sales", "Signaturerequests"];
+const salesAgentOwn = ["Reservations", "Sales"];
 const collectionsOwn = ["Paymentplans"];
 const commissionOwn = ["Commissions"];
-const contractsOwn = ["Signaturerequests", "Sales", "Leases"];
+const contractsOwn = ["Sales", "Leases"];
 const salesManagerOwn = unique([
     ...leadOwn,
     ...salesAgentOwn,
@@ -150,7 +150,7 @@ export const realEstateDefaultRoles: DefaultRoleDefinition[] = [
     reRole(
         "Contracts Officer",
         "re_contracts_officer",
-        "Works the contracts & clients hub: sales, leases, and signature requests.",
+        "Works the contracts & clients hub: sales and leases.",
         contractsOwn,
         [...INV, "Reservations", ...DASH],
     ),

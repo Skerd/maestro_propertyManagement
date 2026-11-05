@@ -332,7 +332,7 @@ const rentalPaymentCreateFormNodes: ViewConfig["nodes"] = [
                             widget:      "#DateInput",
                             label:       "form.dueDateLabel",
                             required:    true,
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         },
                     },
                     {
@@ -441,7 +441,7 @@ const rentalPaymentEditFormNodes: ViewConfig["nodes"] = [
                             widget:      "#DateInput",
                             label:       "form.dueDateLabel",
                             required:    true,
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         }, permissions: {read: "dueDate", write: "dueDate"},
                     },
                     {

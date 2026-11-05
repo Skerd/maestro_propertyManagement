@@ -375,7 +375,7 @@ const paymentPlanCreateFormNode: ViewConfig["nodes"] = [
                                                     label: "form.downPaymentDateLabel",
                                                     placeholder: "form.downPaymentDatePlaceholder",
                                                     required: true,
-                                                    widgetProps: { valueFormat: "yyyy-MM-dd" },
+                                                    widgetProps: { valueFormat: "YYYY-MM-DD" },
                                                 },
                                             },
                                         ],
@@ -403,7 +403,7 @@ const paymentPlanCreateFormNode: ViewConfig["nodes"] = [
                             label: "form.startDateLabel",
                             placeholder: "form.startDatePlaceholder",
                             required: true,
-                            widgetProps: { valueFormat: "yyyy-MM-dd", disabled: true },
+                            widgetProps: { valueFormat: "YYYY-MM-DD", disabled: true },
                         },
                     },
                     {
@@ -415,7 +415,7 @@ const paymentPlanCreateFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.endDatePlaceholder",
                             required: true,
                             widgetProps: {
-                                valueFormat: "yyyy-MM-dd",
+                                valueFormat: "YYYY-MM-DD",
                                 minDateField: "startDate",
                                 minDateExclusive: true,
                             },

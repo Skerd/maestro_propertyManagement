@@ -128,7 +128,7 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.purchaseDateLabel",
                             required: true,
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         },
                     },
                     {
@@ -178,7 +178,7 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             name: "paymentDate",
                             widget: "#DateInput",
                             label: "form.paymentDateLabel",
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         },
                     },
                     {
@@ -458,7 +458,7 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.purchaseDateLabel",
                             required: true,
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         }, permissions: {read: "purchaseDate", write: "purchaseDate"},
                     },
                     {
@@ -508,7 +508,7 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             name: "paymentDate",
                             widget: "#DateInput",
                             label: "form.paymentDateLabel",
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         }, permissions: {read: "paymentDate", write: "paymentDate"},
                     },
                     {

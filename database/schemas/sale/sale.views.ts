@@ -781,7 +781,7 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.saleDateLabel",
                             required: true,
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                     {

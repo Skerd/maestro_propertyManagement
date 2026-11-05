@@ -343,7 +343,7 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.startDatePlaceholder",
                             required:    true,
                             widgetProps: {
-                                valueFormat: "yyyy-MM-dd",
+                                valueFormat: "YYYY-MM-DD",
                                 maxDateField: "endDate",
                                 maxDateExclusive: true,
                             },
@@ -358,7 +358,7 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.endDatePlaceholder",
                             required:    true,
                             widgetProps: {
-                                valueFormat: "yyyy-MM-dd",
+                                valueFormat: "YYYY-MM-DD",
                                 minDateField: "startDate",
                                 minDateExclusive: true,
                             },
@@ -538,7 +538,7 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.startDatePlaceholder",
                             required:    true,
                             widgetProps: {
-                                valueFormat: "yyyy-MM-dd",
+                                valueFormat: "YYYY-MM-DD",
                                 maxDateField: "endDate",
                                 maxDateExclusive: true,
                             },
@@ -553,7 +553,7 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.endDatePlaceholder",
                             required:    true,
                             widgetProps: {
-                                valueFormat: "yyyy-MM-dd",
+                                valueFormat: "YYYY-MM-DD",
                                 minDateField: "startDate",
                                 minDateExclusive: true,
                             },

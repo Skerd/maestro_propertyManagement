@@ -636,7 +636,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             label: "form.reservationDateLabel",
                             placeholder: "form.reservationDatePlaceholder",
                             required: true,
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                     {
@@ -647,7 +647,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             label: "form.expirationDateLabel",
                             placeholder: "form.expirationDatePlaceholder",
                             required: true,
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                 ],

@@ -355,7 +355,7 @@ const constructorCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.insuranceExpiryLabel",
                             placeholder: "form.insuranceExpiryPlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                     {
@@ -658,7 +658,7 @@ const constructorEditFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.insuranceExpiryLabel",
                             placeholder: "form.insuranceExpiryPlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         }, permissions: {read: "insuranceExpiry", write: "insuranceExpiry"},
                     },
                     {

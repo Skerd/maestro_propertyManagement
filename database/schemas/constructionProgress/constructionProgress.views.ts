@@ -189,7 +189,7 @@ function formNodes(edit: boolean): ViewConfig["nodes"] {
                 label: "form.updateDateLabel",
                 placeholder: "form.updateDatePlaceholder",
                 required: true,
-                widgetProps: {valueFormat: "yyyy-MM-dd"},
+                widgetProps: {valueFormat: "YYYY-MM-DD"},
             },
         }, "updateDate", edit),
         field({
@@ -199,7 +199,7 @@ function formNodes(edit: boolean): ViewConfig["nodes"] {
                 widget: "#DateInput",
                 label: "form.expectedCompletionDateLabel",
                 placeholder: "form.expectedCompletionDatePlaceholder",
-                widgetProps: {valueFormat: "yyyy-MM-dd"},
+                widgetProps: {valueFormat: "YYYY-MM-DD"},
             },
         }, "expectedCompletionDate", edit),
         field({

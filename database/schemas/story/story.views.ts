@@ -337,7 +337,7 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.publishedAtLabel",
                             placeholder: "form.publishedAtPlaceholder",
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         },
                     },
                 ]
@@ -578,7 +578,7 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.publishedAtLabel",
                             placeholder: "form.publishedAtPlaceholder",
-                            widgetProps: {valueFormat: "yyyy-MM-dd"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
                         }, permissions: {read: "publishedAt", write: "publishedAt"},
                     },
                 ]

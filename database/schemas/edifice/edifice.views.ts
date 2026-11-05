@@ -1301,7 +1301,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.constructionStartDateLabel",
                             placeholder: "form.constructionStartDatePlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                     {
@@ -1311,7 +1311,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.expectedCompletionDateLabel",
                             placeholder: "form.expectedCompletionDatePlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                     {
@@ -1321,7 +1321,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.actualCompletionDateLabel",
                             placeholder: "form.actualCompletionDatePlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
                     },
                     {
@@ -1983,7 +1983,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.constructionStartDateLabel",
                             placeholder: "form.constructionStartDatePlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         }, permissions: {read: "constructionStartDate", write: "constructionStartDate"},
                     },
                     {
@@ -1993,7 +1993,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.expectedCompletionDateLabel",
                             placeholder: "form.expectedCompletionDatePlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         }, permissions: {read: "expectedCompletionDate", write: "expectedCompletionDate"},
                     },
                     {
@@ -2003,7 +2003,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.actualCompletionDateLabel",
                             placeholder: "form.actualCompletionDatePlaceholder",
-                            widgetProps: { valueFormat: "yyyy-MM-dd" },
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         }, permissions: {read: "actualCompletionDate", write: "actualCompletionDate"},
                     },
                     {

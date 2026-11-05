@@ -59,6 +59,7 @@ import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils
 import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import authMW from "@coreModule/utilities/middlewares/authMW";
 import {salesWithHandoverContext} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
+import {addMoney} from "armonia/src/modules/core/helpers/money";
 
 export const basePath = "/api/realEstate/unit/sale";
 
@@ -325,7 +326,7 @@ const {router} = createCrudRouter({
                 notes:             row.notes || "",
             }));
 
-            const totalInstallmentAmount = allocation.installments.reduce((sum, r) => sum + r.amount, 0);
+            const totalInstallmentAmount = addMoney(...allocation.installments.map((r) => r.amount));
 
             const planDateFromForm = (v: unknown): Date | null => {
                 const p = parseIsoDatePrefix(v);

@@ -1,8 +1,9 @@
 import {Decimal128, ObjectId} from "mongodb";
+import {fromMinor, minorToNumber, percentOfMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
 
-/** Internal scale: 3 decimal places. Remaining ≤ 0.005 is settled. */
+/** Internal scale: 3 decimal places (armonia's money helper at 3 decimals, D35). Remaining ≤ 0.005 is settled. */
 const SCALE = 3;
-const SCALE_FACTOR = 1000n;
 export const SETTLE_THRESHOLD_SCALED = 5n;
 
 export const OPEN_RENT_STATUSES = ["pending", "overdue", "partially_paid"] as const;
@@ -55,11 +56,11 @@ export function isOpenRentStatus(status: string | null | undefined): status is O
 
 export function moneyToScaled(value: Decimal128 | string | number | null | undefined): bigint {
     if (value == null) return 0n;
-    if (typeof value === "number") {
-        if (!Number.isFinite(value)) return 0n;
-        return parseDecimalStringToScaled(value.toFixed(SCALE));
-    }
-    return parseDecimalStringToScaled(typeof value === "string" ? value : value.toString());
+    if (typeof value === "number" && !Number.isFinite(value)) return 0n;
+    const text = String(value).trim();
+    // Stored amounts may be empty or a Decimal128 NaN: they count as nothing, as they always have.
+    if (text === "" || text === "NaN") return 0n;
+    return toMinor(text, SCALE);
 }
 
 export function decimal128FromNumber(n: number): Decimal128 {
@@ -67,7 +68,12 @@ export function decimal128FromNumber(n: number): Decimal128 {
 }
 
 export function scaledToDecimal128(scaled: bigint): Decimal128 {
-    return Decimal128.fromString(scaledToFixedString(scaled, SCALE));
+    return decimal128FromMinor(scaled, SCALE);
+}
+
+/** A 3-decimal amount as a cent-rounded number for DTOs, rounded once. */
+function scaledToNumber(scaled: bigint): number {
+    return minorToNumber(toMinor(fromMinor(scaled, SCALE)));
 }
 
 export function isSettledRemaining(remainingScaled: bigint): boolean {
@@ -84,15 +90,13 @@ export function remainingScaled(row: RentMoneyRow): bigint {
 export function remainingNumber(row: RentMoneyRow): number {
     const rem = remainingScaled(row);
     if (isSettledRemaining(rem)) return 0;
-    const cents = (rem + 5n) / 10n;
-    return Number(scaledToFixedString(cents, 2));
+    return scaledToNumber(rem);
 }
 
 export function moneyNumber(value: Decimal128 | string | number | null | undefined): number {
     const scaled = moneyToScaled(value);
     if (scaled === 0n) return 0;
-    const cents = (scaled + 5n) / 10n;
-    return Number(scaledToFixedString(cents, 2));
+    return scaledToNumber(scaled);
 }
 
 export function paidAmountNumber(row: RentMoneyRow): number | undefined {
@@ -111,9 +115,7 @@ export function hasCollectedCash(row: RentMoneyRow): boolean {
 }
 
 export function lateFeeFromPercentage(amount: Decimal128 | string | number, percentage: number): Decimal128 {
-    const pct = moneyToScaled(percentage);
-    const fee = (moneyToScaled(amount) * pct) / (100n * SCALE_FACTOR);
-    return scaledToDecimal128(fee);
+    return scaledToDecimal128(percentOfMinor(moneyToScaled(amount), percentage));
 }
 
 export function sliceFitsRemaining(row: RentMoneyRow, slice: Decimal128 | string | number): boolean {
@@ -218,56 +220,4 @@ function mediaItemToObjectId(item: unknown): ObjectId {
         return new ObjectId(String(item._id));
     }
     return new ObjectId(String(item));
-}
-
-function parseDecimalStringToScaled(raw: string): bigint {
-    const trimmed = raw.trim();
-    if (trimmed === "" || trimmed === "NaN") return 0n;
-
-    let s = trimmed;
-    const expMatch = /^([+-]?\d+(?:\.\d+)?)[eE]([+-]?\d+)$/.exec(s);
-    if (expMatch) {
-        s = expandScientific(expMatch[1], Number(expMatch[2]));
-    }
-
-    const neg = s.startsWith("-");
-    const unsigned = neg || s.startsWith("+") ? s.slice(1) : s;
-    const [wholePart, fracPart = ""] = unsigned.split(".");
-    const whole = wholePart === "" ? 0n : BigInt(wholePart);
-    const extra = fracPart.slice(SCALE);
-    let frac = BigInt((fracPart + "000").slice(0, SCALE));
-    if (extra.length > 0 && extra.charCodeAt(0) >= 53) {
-        frac += 1n;
-    }
-    let scaled = whole * SCALE_FACTOR + frac;
-    if (frac >= SCALE_FACTOR) {
-        scaled = (whole + 1n) * SCALE_FACTOR + (frac - SCALE_FACTOR);
-    }
-    return neg ? -scaled : scaled;
-}
-
-function expandScientific(coeff: string, exp: number): string {
-    const neg = coeff.startsWith("-");
-    const unsigned = neg || coeff.startsWith("+") ? coeff.slice(1) : coeff;
-    const [w, f = ""] = unsigned.split(".");
-    const digits = `${w}${f}`;
-    const point = w.length + exp;
-    let out: string;
-    if (point <= 0) {
-        out = `0.${"0".repeat(-point)}${digits}`;
-    } else if (point >= digits.length) {
-        out = digits + "0".repeat(point - digits.length);
-    } else {
-        out = `${digits.slice(0, point)}.${digits.slice(point)}`;
-    }
-    return neg ? `-${out}` : out;
-}
-
-function scaledToFixedString(scaled: bigint, fractionDigits: number): string {
-    const neg = scaled < 0n;
-    const abs = neg ? -scaled : scaled;
-    const factor = 10n ** BigInt(fractionDigits);
-    const whole = abs / factor;
-    const frac = abs % factor;
-    return `${neg ? "-" : ""}${whole}.${frac.toString().padStart(fractionDigits, "0")}`;
 }

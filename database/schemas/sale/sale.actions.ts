@@ -57,6 +57,7 @@ import {currencyService} from "@coreModule/database/schemas/currency/currency.se
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import {notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
 import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
+import {addMoney} from "armonia/src/modules/core/helpers/money";
 
 function finalPriceDisplayForEmail(
     finalPrice: number | Decimal128 | undefined,
@@ -728,7 +729,7 @@ export class SaleActions {
             notes:             row.notes || "",
         }));
 
-        const totalInstallmentAmount = allocation.installments.reduce((sum, r) => sum + r.amount, 0);
+        const totalInstallmentAmount = addMoney(...allocation.installments.map((r) => r.amount));
         const newRemainingBalance = computePaymentPlanRemainingBalance({
             totalAmount:     existingPlan.totalAmount,
             downPayment:     existingPlan.downPayment,

@@ -47,7 +47,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
 
     const companyId = company._id;
     const dateFilter = {createdAt: {$gte: from, $lte: to}};
-    const baseMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: {$exists: false}};
+    const baseMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: null};
 
     const agentObjectIds = (agentIds ?? [])
         .filter((id) => ObjectId.isValid(id))
@@ -86,7 +86,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
         : [];
 
     // 2. Aggregate reservations by reservedBy (remove unit filter — reservations may not have unit)
-    const resMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: {$exists: false}};
+    const resMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: null};
     if (agentObjectIds.length > 0) {
         resMatch.reservedBy = {$in: agentObjectIds};
     }
@@ -102,7 +102,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
         : [];
 
     // 3. Aggregate commissions by agent
-    const commMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: {$exists: false}};
+    const commMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: null};
     if (agentObjectIds.length > 0) {
         commMatch.agent = {$in: agentObjectIds};
     }

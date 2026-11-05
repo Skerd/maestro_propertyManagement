@@ -10,8 +10,7 @@
  * so a plain find would return whole plans and force the model to count nested
  * rows itself — it would get the arithmetic wrong. Instead the plan array is
  * unwound in the database, filtered there, and both the sample rows and the
- * totals come back from one pipeline. `deletedAt: null` is applied by hand
- * because `aggregate` bypasses the soft-delete query plugin.
+ * totals come back from one pipeline.
  *
  * SECURITY: arguments are untrusted LLM output — re-validated with Zod, and both
  * the pipeline and every enrichment query are hard-scoped to `ctx.companyId`.

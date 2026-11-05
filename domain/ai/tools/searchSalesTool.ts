@@ -99,8 +99,6 @@ const parameters = {
 
 /**
  * Sum final prices across the FULL filtered set, grouped by sale currency.
- * `aggregate` bypasses the soft-delete query plugin, so `deletedAt: null` is
- * added by hand — the same caveat the project/building rollups carry.
  */
 async function rollUpRevenue(
     query: Record<string, unknown>,

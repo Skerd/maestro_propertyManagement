@@ -40,11 +40,11 @@ import {
     limitParameter,
     listResult,
     resolveUnitId,
-    roundMoney,
     toAmount,
     toNumber,
     userDisplayName
 } from "./assistantToolHelpers";
+import {roundToCurrency, subtractMoney} from "armonia/src/modules/core/helpers/money";
 
 const INSTALLMENT_STATUS_VALUES = Object.values(InstallmentStatus) as string[];
 const PLAN_STATUS_VALUES = Object.values(PaymentPlanStatus) as string[];
@@ -202,8 +202,8 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
         };
     });
 
-    const amountDue = roundMoney(toAmount(totals.amountDue));
-    const amountPaid = roundMoney(toAmount(totals.amountPaid));
+    const amountDue = roundToCurrency(toAmount(totals.amountDue));
+    const amountPaid = roundToCurrency(toAmount(totals.amountPaid));
 
     return {
         // Totals span every matching instalment, not just the rows below.
@@ -213,7 +213,7 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
         totals: {
             amountDue,
             amountPaid,
-            outstanding: roundMoney(amountDue - amountPaid)
+            outstanding: subtractMoney(amountDue, amountPaid)
         },
         note: "Amounts are summed across all matching instalments and are NOT currency-converted; " +
             "each payment plan carries its own sale currency.",

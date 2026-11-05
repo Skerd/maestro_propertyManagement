@@ -29,7 +29,8 @@ import {leaseService} from "@propertyManagement/database/schemas/lease/lease.ser
 import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
 import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
 import {InstallmentStatus} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan";
-import {companyObjectId, companyScope, roundMoney, toAmount} from "./assistantToolHelpers";
+import {companyObjectId, companyScope, toAmount} from "./assistantToolHelpers";
+import {roundToCurrency, subtractMoney} from "armonia/src/modules/core/helpers/money";
 
 /** Default reporting window for the "recent activity" figures. */
 const DEFAULT_WINDOW_DAYS = 30;
@@ -93,7 +94,7 @@ async function salesInWindow(
         count: rows.reduce((sum, row) => sum + (row.count ?? 0), 0),
         revenue: rows.map((row) => ({
             currency: row.currency?.[0]?.abbreviation ?? row.currency?.[0]?.symbol ?? null,
-            amount: roundMoney(toAmount(row.amount))
+            amount: roundToCurrency(toAmount(row.amount))
         }))
     };
 }
@@ -127,7 +128,7 @@ async function installmentArrears(ctx: AssistantToolContext): Promise<{count: nu
     const row = rows[0] ?? {count: 0, due: 0, paid: 0};
     return {
         count: row.count ?? 0,
-        outstanding: roundMoney(toAmount(row.due) - toAmount(row.paid))
+        outstanding: subtractMoney(toAmount(row.due), toAmount(row.paid))
     };
 }
 

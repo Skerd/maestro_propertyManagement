@@ -38,11 +38,11 @@ import {
     resolveUnitId,
     resolveUnitIdsForEdifice,
     resolveUnitIdsForProject,
-    roundMoney,
     toAmount,
     toNumber,
     userDisplayName
 } from "./assistantToolHelpers";
+import {roundToCurrency} from "armonia/src/modules/core/helpers/money";
 
 const PAYMENT_TYPE_VALUES = Object.values(SalePaymentType) as string[];
 const APPROVAL_STATUS_VALUES = Object.values(SaleApprovalStatus) as string[];
@@ -115,7 +115,7 @@ async function rollUpRevenue(
 
     return rows.map((row) => ({
         currency: row.currency?.[0]?.abbreviation ?? row.currency?.[0]?.symbol ?? null,
-        amount: roundMoney(toAmount(row.amount)),
+        amount: roundToCurrency(toAmount(row.amount)),
         sales: row.sales ?? 0
     }));
 }

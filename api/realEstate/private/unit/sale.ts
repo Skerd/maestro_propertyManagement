@@ -54,7 +54,8 @@ import {saleFormSchema} from "armonia/src/modules/propertyManagement/api/realEst
 import {SaleActions} from "../../../../database/schemas/sale/sale.actions";
 import type {PaymentPlan as PaymentPlanData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/paymentPlan/paymentPlan.dto";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
-import {afterCommit, notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
+import {notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
+import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import authMW from "@coreModule/utilities/middlewares/authMW";
 import {salesWithHandoverContext} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
@@ -536,44 +537,49 @@ const {router} = createCrudRouter({
             }));
         } catch { /* best-effort */ }
 
-        try {
-            const emailed = await dispatchSaleClientEmail(emailPayload, {session});
-            if (emailed) {
-                await saleService.updateByIdOrThrow(
-                    created._id,
-                    {$set: {saleConfirmationEmailSentAt: new Date()}},
-                    {session, logger, languageCode, auditUserId: actionUserCtx.userId},
-                );
+        // The buyer hears about the sale once it is saved (D06): sent after the commit, then stamped.
+        await runAfterCommit(session, async () => {
+            try {
+                const emailed = await dispatchSaleClientEmail(emailPayload);
+                if (emailed) {
+                    await saleService.updateByIdOrThrow(
+                        created._id,
+                        {$set: {saleConfirmationEmailSentAt: new Date()}},
+                        {logger, languageCode, auditUserId: actionUserCtx.userId},
+                    );
+                }
+            } catch (err: unknown) {
+                logger.debug(`Sale created client email skipped or failed: ${err instanceof Error ? err.message : String(err)}`);
             }
-        } catch (err: unknown) {
-            logger.debug(`Sale created client email skipped or failed: ${err instanceof Error ? err.message : String(err)}`);
-        }
+        });
 
         // Staff watchers (Sales & handover → Notify on sales)
-        afterCommit(session, () => notifySalesWatchers({
-            companyId: company._id,
-            companyName: company.name ?? "",
-            languageCode: lang,
-            saleId: created._id.toString(),
-            saleCode: created.name,
-            pendingApproval: !!requiresApproval,
-            finalPriceDisplay: finalDisp,
-            unitPriceDisplay: emailPayload.unitPriceDisplay,
-            localDiscountDisplay: emailPayload.localDiscountDisplay,
-            downPaymentDisplay: emailPayload.downPaymentDisplay,
-            downPaymentPaid: emailPayload.downPaymentPaid,
-            numberOfInstallments: emailPayload.numberOfInstallments,
-            paymentSchedule: emailPayload.paymentSchedule,
-            paymentType: paymentTypeStr,
-            buyerId: buyer ? String(buyer) : undefined,
-            soldById: soldBy ? String(soldBy) : undefined,
-            unitId: unitSnapshot._id.toString(),
-            unitNumber: emailPayload.unitNumber,
-            unitDisplayName: unitSnapshot.name,
-            projectName: unitSnapshot.projectName,
-            edificeName: unitSnapshot.edificeName,
-            floorName: unitSnapshot.floorName,
-        }));
+        await runAfterCommit(session, async () => {
+            void notifySalesWatchers({
+                companyId: company._id,
+                companyName: company.name ?? "",
+                languageCode: lang,
+                saleId: created._id.toString(),
+                saleCode: created.name,
+                pendingApproval: !!requiresApproval,
+                finalPriceDisplay: finalDisp,
+                unitPriceDisplay: emailPayload.unitPriceDisplay,
+                localDiscountDisplay: emailPayload.localDiscountDisplay,
+                downPaymentDisplay: emailPayload.downPaymentDisplay,
+                downPaymentPaid: emailPayload.downPaymentPaid,
+                numberOfInstallments: emailPayload.numberOfInstallments,
+                paymentSchedule: emailPayload.paymentSchedule,
+                paymentType: paymentTypeStr,
+                buyerId: buyer ? String(buyer) : undefined,
+                soldById: soldBy ? String(soldBy) : undefined,
+                unitId: unitSnapshot._id.toString(),
+                unitNumber: emailPayload.unitNumber,
+                unitDisplayName: unitSnapshot.name,
+                projectName: unitSnapshot.projectName,
+                edificeName: unitSnapshot.edificeName,
+                floorName: unitSnapshot.floorName,
+            });
+        });
     },
 
     // ── Update ─────────────────────────────────────────────────────────────

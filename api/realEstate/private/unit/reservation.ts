@@ -41,7 +41,8 @@ import {
 import {CommissionSourceType, CommissionStatus} from "../../../../database/schemas/commission/commission";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
-import {afterCommit, notifyReservationWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
+import {notifyReservationWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
+import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 
 const mediaUpload = mediaUploadMW({
     fields: {reservationContract: 10, additionalDocuments: 10},
@@ -243,56 +244,60 @@ export const {router} = createCrudRouter({
             ? (reservationContract as string[]).filter(Boolean)[0]
             : (reservationContract != null && String(reservationContract).trim() !== "" ? String(reservationContract) : undefined);
         const expIso = expirationDate ? new Date(expirationDate).toISOString() : undefined;
-        try {
-            const emailed = await dispatchReservationClientEmail(
-                {
-                    clientUserId: client,
-                    kind: "created",
-                    languageCode: languageCode ?? "en-US",
-                    companyId: company._id.toString(),
-                    companyName: company.name ?? "",
-                    reservationId: created._id.toString(),
-                    reservationCode: (created as any).name,
-                    unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,
-                    unitDisplayName: foundUnit.name,
-                    ...unitLocationForEmail(foundUnit),
-                    unitPriceDisplay,
-                    reservationDepositDisplay,
-                    depositSummary: reservationDepositDisplay,
-                    reservationContractMediaId: reservationContractId,
-                    expirationDateIso: expIso,
-                    expirationDateFormatted: formatReservationExpirationForEmail(expIso, languageCode ?? "en-US"),
-                },
-                {session},
-            );
-            if (emailed) {
-                await reservationService.updateByIdOrThrow(
-                    created._id,
-                    {$set: {confirmationEmailSentAt: new Date()}},
-                    {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        // The client hears about the reservation once it is saved (D06): sent after the commit, then stamped.
+        await runAfterCommit(session, async () => {
+            try {
+                const emailed = await dispatchReservationClientEmail(
+                    {
+                        clientUserId: client,
+                        kind: "created",
+                        languageCode: languageCode ?? "en-US",
+                        companyId: company._id.toString(),
+                        companyName: company.name ?? "",
+                        reservationId: created._id.toString(),
+                        reservationCode: (created as any).name,
+                        unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,
+                        unitDisplayName: foundUnit.name,
+                        ...unitLocationForEmail(foundUnit),
+                        unitPriceDisplay,
+                        reservationDepositDisplay,
+                        depositSummary: reservationDepositDisplay,
+                        reservationContractMediaId: reservationContractId,
+                        expirationDateIso: expIso,
+                        expirationDateFormatted: formatReservationExpirationForEmail(expIso, languageCode ?? "en-US"),
+                    },
                 );
+                if (emailed) {
+                    await reservationService.updateByIdOrThrow(
+                        created._id,
+                        {$set: {confirmationEmailSentAt: new Date()}},
+                        {logger, languageCode, auditUserId: actionUserCtx.userId},
+                    );
+                }
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
+                logger.debug(`Reservation created client email skipped or failed: ${msg}`);
             }
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err);
-            logger.debug(`Reservation created client email skipped or failed: ${msg}`);
-        }
+        });
 
         // Staff watchers (Sales & handover → Notify on reservations)
-        afterCommit(session, () => notifyReservationWatchers({
-            companyId: company._id,
-            companyName: company.name ?? "",
-            languageCode: languageCode ?? "en-US",
-            reservationId: created._id.toString(),
-            reservationCode: (created as any).name,
-            clientId: client ? String(client) : undefined,
-            depositDisplay: reservationDepositDisplay,
-            expirationDateFormatted: formatReservationExpirationForEmail(expIso, languageCode ?? "en-US"),
-            createdById: actionUserCtx?.userId ? String(actionUserCtx.userId) : undefined,
-            unitId: foundUnit._id.toString(),
-            unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,
-            unitDisplayName: foundUnit.name,
-            ...unitLocationForEmail(foundUnit),
-        }));
+        await runAfterCommit(session, async () => {
+            void notifyReservationWatchers({
+                companyId: company._id,
+                companyName: company.name ?? "",
+                languageCode: languageCode ?? "en-US",
+                reservationId: created._id.toString(),
+                reservationCode: (created as any).name,
+                clientId: client ? String(client) : undefined,
+                depositDisplay: reservationDepositDisplay,
+                expirationDateFormatted: formatReservationExpirationForEmail(expIso, languageCode ?? "en-US"),
+                createdById: actionUserCtx?.userId ? String(actionUserCtx.userId) : undefined,
+                unitId: foundUnit._id.toString(),
+                unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,
+                unitDisplayName: foundUnit.name,
+                ...unitLocationForEmail(foundUnit),
+            });
+        });
     },
     beforeDelete: async (params, doc) => {
         const reservation = doc as IReservation;

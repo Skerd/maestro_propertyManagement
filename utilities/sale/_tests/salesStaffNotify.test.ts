@@ -1,4 +1,3 @@
-import {EventEmitter} from "events";
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import {ObjectId} from "mongodb";
 
@@ -30,7 +29,7 @@ vi.mock("@propertyManagement/database/schemas/propertyManagementConfig/propertyM
 }));
 vi.mock("@propertyManagement/utilities/emails/staffAlertNotifiers", () => ({sendSalesStaffAlertMail: mocks.sendMail}));
 
-import {afterCommit, notifyReservationWatchers, notifySalesWatchers} from "../salesStaffNotify";
+import {notifyReservationWatchers, notifySalesWatchers} from "../salesStaffNotify";
 
 const companyId = new ObjectId();
 const otherCompany = new ObjectId();
@@ -136,31 +135,3 @@ describe("notifyReservationWatchers", () => {
     });
 });
 
-describe("afterCommit", () => {
-    function fakeSession(committed: boolean) {
-        return Object.assign(new EventEmitter(), {transaction: {isCommitted: committed}}) as any;
-    }
-
-    it("runs only after the session ends with a committed transaction", () => {
-        const fn = vi.fn().mockResolvedValue(undefined);
-        const session = fakeSession(true);
-        afterCommit(session, fn);
-        expect(fn).not.toHaveBeenCalled();
-        session.emit("ended", session);
-        expect(fn).toHaveBeenCalledTimes(1);
-    });
-
-    it("skips when the transaction was rolled back", () => {
-        const fn = vi.fn().mockResolvedValue(undefined);
-        const session = fakeSession(false);
-        afterCommit(session, fn);
-        session.emit("ended", session);
-        expect(fn).not.toHaveBeenCalled();
-    });
-
-    it("runs immediately without a session", () => {
-        const fn = vi.fn().mockResolvedValue(undefined);
-        afterCommit(undefined, fn);
-        expect(fn).toHaveBeenCalledTimes(1);
-    });
-});

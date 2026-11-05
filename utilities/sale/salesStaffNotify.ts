@@ -1,4 +1,4 @@
-import {ObjectId, type ClientSession} from "mongodb";
+import {ObjectId} from "mongodb";
 import User from "@coreModule/database/schemas/user/user";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
@@ -11,19 +11,8 @@ import type {PaymentScheduleRowForEmail} from "@propertyManagement/utilities/ema
  * Sales & handover → Notifications (PropertyManagementConfig.notifyOnSales / notifyOnReservations).
  *
  * Best-effort: never throws, so a failing alert cannot break the sale or reservation.
- * Callers schedule them with `afterCommit`, so a rolled-back request alerts nobody.
+ * Callers schedule them with core `runAfterCommit`, so a rolled-back request alerts nobody.
  */
-
-/** Runs `fn` once `session` has ended with a committed transaction (immediately when there is no session). */
-export function afterCommit(session: ClientSession | undefined | null, fn: () => Promise<unknown>): void {
-    if (!session) {
-        void fn();
-        return;
-    }
-    session.once("ended", () => {
-        if (session.transaction?.isCommitted) void fn();
-    });
-}
 
 type UnitContext = {
     unitId: string;

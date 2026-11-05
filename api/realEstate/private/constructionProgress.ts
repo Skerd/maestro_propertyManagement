@@ -15,7 +15,7 @@ import {constructionProgressToDTO, constructionProgressesToDTO} from "../../../u
 import {constructionProgressesToSelect} from "../../../utilities/mappers/constructionProgress/constructionProgressMapper.select";
 import {findLatestConstructionProgress, isConstructionAdvance} from "../../../utilities/constructionProgress/constructionProgressAdvance";
 import {notifyConstructionProgressClients} from "../../../utilities/constructionProgress/notifyConstructionProgressClients";
-import {afterCommit} from "../../../utilities/sale/salesStaffNotify";
+import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 
 const uploadMW = mediaUploadMW({maxFiles: 20, maxFileSize: 50 * 1024 * 1024});
 const dateTransform = (v: unknown) => new Date(v as string);
@@ -99,7 +99,9 @@ export const {router} = createCrudRouter({
 
         if (report.notifyClients !== false && isConstructionAdvance(previous, report)) {
             const id = report._id as ObjectId;
-            afterCommit(session, () => notifyConstructionProgressClients(id, {languageCode: languageCode ?? "en-US"}));
+            await runAfterCommit(session, async () => {
+                void notifyConstructionProgressClients(id, {languageCode: languageCode ?? "en-US"});
+            });
         }
     },
 });

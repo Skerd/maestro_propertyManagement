@@ -1,5 +1,6 @@
 import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {Decimal128, ObjectId} from "mongodb";
+import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
@@ -589,27 +590,29 @@ export class ReservationActions {
             paySym,
             payLang,
         );
-        void dispatchReservationClientEmail(
-            {
-                clientUserId: payClientId,
-                kind: "paid",
-                languageCode: payLang,
-                companyId: company._id.toString(),
-                companyName: company.name ?? "",
-                reservationId: existingReservation._id.toString(),
-                reservationCode: existingReservation.name,
-                unitNumber: payUnit?.unitNumber != null ? String(payUnit.unitNumber) : undefined,
-                unitDisplayName: payUnit?.name,
-                ...unitLocationForEmail(payUnit),
-                unitPriceDisplay: payUnitPriceDisplay,
-                reservationDepositDisplay: payDepositDisplay,
-                depositSummary: payDepositDisplay,
-                expirationDateIso: payExpIso,
-                expirationDateFormatted: formatReservationExpirationForEmail(payExpIso, payLang),
-            },
-            {session},
-        ).catch((err: Error) => {
-            logger.debug(`Reservation paid client email skipped or failed: ${err.message}`);
+        // Sent once the payment is saved (D06), without holding up the response.
+        await runAfterCommit(session, async () => {
+            void dispatchReservationClientEmail(
+                {
+                    clientUserId: payClientId,
+                    kind: "paid",
+                    languageCode: payLang,
+                    companyId: company._id.toString(),
+                    companyName: company.name ?? "",
+                    reservationId: existingReservation._id.toString(),
+                    reservationCode: existingReservation.name,
+                    unitNumber: payUnit?.unitNumber != null ? String(payUnit.unitNumber) : undefined,
+                    unitDisplayName: payUnit?.name,
+                    ...unitLocationForEmail(payUnit),
+                    unitPriceDisplay: payUnitPriceDisplay,
+                    reservationDepositDisplay: payDepositDisplay,
+                    depositSummary: payDepositDisplay,
+                    expirationDateIso: payExpIso,
+                    expirationDateFormatted: formatReservationExpirationForEmail(payExpIso, payLang),
+                },
+            ).catch((err: Error) => {
+                logger.debug(`Reservation paid client email skipped or failed: ${err.message}`);
+            });
         });
 
         logger.finish(`Successfully payed reservation in full: ${_id}`);

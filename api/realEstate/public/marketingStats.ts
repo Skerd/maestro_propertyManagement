@@ -76,7 +76,8 @@ async function marketingStats(params: MarketingStatsParams): Promise<MarketingSt
                         localField: "_id",
                         foreignField: "unit",
                         pipeline: [
-                            {$match: {buyer: {$ne: null}}},
+                            // The soft-delete hook filters only the outer pipeline (DB-04).
+                            {$match: {buyer: {$ne: null}, deletedAt: null}},
                             {$project: {buyer: 1}},
                         ],
                         as: "sales",

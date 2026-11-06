@@ -373,8 +373,10 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
                     as: "edificeInfo",
                     pipeline: [
                         {
+                            // The soft-delete hook filters only the outer pipeline (DB-04).
                             $match: {
-                                project: { $in: projectIds }
+                                project: { $in: projectIds },
+                                deletedAt: null
                             }
                         },
                         {

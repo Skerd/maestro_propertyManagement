@@ -1,5 +1,5 @@
 import {afterAll, beforeAll, describe, expect, it, vi} from "vitest";
-import {MongoMemoryReplSet} from "mongodb-memory-server";
+import {connectTestDatabase, disconnectTestDatabase} from "@coreModule/_tests/testDatabase";
 import mongoose from "mongoose";
 import {ObjectId} from "mongodb";
 import request from "supertest";
@@ -29,7 +29,6 @@ import MarketingPreference from "@propertyManagement/database/schemas/marketingP
 import AdCampaignRecipient from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient";
 import Reservation from "@propertyManagement/database/schemas/reservation/reservation";
 
-let replSet: MongoMemoryReplSet;
 const company = new ObjectId();
 const accountId = new ObjectId();
 const EMAIL = "ada@example.com";
@@ -39,8 +38,7 @@ const ids = {lead: new ObjectId(), otherLead: new ObjectId(), preference: new Ob
 const raw = <T>(fn: () => Promise<T>) => asCrossTenant("test reads raw collections", fn);
 
 beforeAll(async () => {
-    replSet = await MongoMemoryReplSet.create({replSet: {count: 1, storageEngine: "wiredTiger"}});
-    await mongoose.connect(replSet.getUri());
+    await connectTestDatabase();
     // Every module's eraser (and so its models) first, then every index: a collection or index created while the
     // erasure's transaction is open aborts it.
     await loadPersonErasers();
@@ -60,8 +58,7 @@ beforeAll(async () => {
 }, 120000);
 
 afterAll(async () => {
-    await mongoose.disconnect();
-    await replSet.stop();
+    await disconnectTestDatabase();
 });
 
 describe("person erasure in real estate (D57)", {timeout: 60000}, () => {

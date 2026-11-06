@@ -35,14 +35,16 @@ function targetUnitsLookupStage(companyId: ObjectId, unitIds: ObjectId[]) {
             },
             pipeline: [
                 {
+                    // Joined collections are not filtered by the soft-delete hook (DB-04).
                     $match: {
                         _id: {$in: unitIds},
                         company: companyId,
+                        deletedAt: null,
                     },
                 },
-                {$lookup: {from: "floors", localField: "floor", foreignField: "_id", as: "__fl"}},
+                {$lookup: {from: "floors", localField: "floor", foreignField: "_id", pipeline: [{$match: {deletedAt: null}}], as: "__fl"}},
                 {$unwind: "$__fl"},
-                {$lookup: {from: "edifices", localField: "__fl.edifice", foreignField: "_id", as: "__ed"}},
+                {$lookup: {from: "edifices", localField: "__fl.edifice", foreignField: "_id", pipeline: [{$match: {deletedAt: null}}], as: "__ed"}},
                 {$unwind: "$__ed"},
                 {
                     $match: {

@@ -297,6 +297,8 @@ export class UnitService extends BaseCrudService<IUnit, typeof Unit> {
                     from: 'paymentplans',
                     localField: 'paymentPlan',
                     foreignField: '_id',
+                    // The soft-delete hook filters only the outer pipeline (DB-04).
+                    pipeline: [{$match: {deletedAt: null}}],
                     as: 'ppDoc',
                 },
             },
@@ -451,6 +453,8 @@ export class UnitService extends BaseCrudService<IUnit, typeof Unit> {
                     from: 'paymentplans',
                     localField: 'paymentPlan',
                     foreignField: '_id',
+                    // The soft-delete hook filters only the outer pipeline (DB-04).
+                    pipeline: [{$match: {deletedAt: null}}],
                     as: 'ppArr',
                 },
             },

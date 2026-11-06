@@ -146,7 +146,7 @@ async function erpExportHandler(
 
     const companyId = company._id as ObjectId;
     const {from, to} = parseDateRange(dateFrom, dateTo);
-    const baseMatch = {company: companyId, deletedAt: {$exists: false}};
+    const baseMatch = {company: companyId, deletedAt: null};
 
     let projectUnitIds: ObjectId[] | null = null;
     if (projectId && ObjectId.isValid(projectId)) {

@@ -37,7 +37,7 @@ export async function runModificationRequestSlaEscalations(company: ObjectId, pa
         company,
         status: {$in: PENDING_STAGES},
         stageDueDate: {$lt: now},
-        deletedAt: {$exists: false},
+        deletedAt: null,
     };
     const select = "_id name title status stageDueDate requestedBy company";
 

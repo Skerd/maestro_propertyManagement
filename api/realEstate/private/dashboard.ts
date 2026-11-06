@@ -636,7 +636,8 @@ async function getDashboardStats(
                               "installments.dueDate": { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
                           },
                       },
-                      { $lookup: { from: "sales", localField: "sale", foreignField: "_id", as: "saleDoc" } },
+                      // A deleted sale's installments are not due; its unit is shown even when deleted (DB-04).
+                      { $lookup: { from: "sales", localField: "sale", foreignField: "_id", pipeline: [{ $match: { deletedAt: null } }], as: "saleDoc" } },
                       { $unwind: "$saleDoc" },
                       { $lookup: { from: "units", localField: "saleDoc.unit", foreignField: "_id", as: "unitDoc" } },
                       { $unwind: "$unitDoc" },

@@ -5,7 +5,7 @@ const db = vi.hoisted(() => ({units: [] as any[], sales: [] as any[], reservatio
 
 const same = (a: unknown, b: unknown) => String(a) === String(b);
 const inList = (v: unknown, list: unknown[]) => list.some(x => same(x, v));
-const chain = (rows: any[]) => ({select: () => ({lean: async () => rows})});
+const chain = (rows: any[]) => ({select: () => ({lean: async () => rows, exec: async () => rows})});
 
 vi.mock("@propertyManagement/database/schemas/unit/unit", () => ({
     default: {find: (f: any) => chain(db.units.filter(u => same(u.project, f.project) && (!f.edifice || same(u.edifice, f.edifice))))},

@@ -1,7 +1,6 @@
 import {ObjectId} from 'mongodb';
-import {z} from 'zod';
+import {generateMarketingBookletFormSchema} from 'armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/generateMarketingBooklet.form.validator';
 import {action} from '@coreModule/api/actionDecorator';
-import SchemaGuard from '@coreModule/database/security/schemaGuard';
 import {apiValidationException} from 'armonia/src/modules/core/helpers/exceptions';
 import {validateSingleForm} from 'armonia/src/modules/core/utilities/zod/shared.validator';
 import {markUnavailableFormSchema} from 'armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/markUnavailable.form.validator';
@@ -12,16 +11,12 @@ import Unit from './unit';
 import {unitService} from './unit.service';
 import {buildUnitMarketingBookletPdf} from '../../../utilities/marketing/marketingBooklet.util';
 
-function generateMarketingBookletSchema() {
-    return z.object({unitId: z.string().min(1)});
-}
-
 export class UnitActions {
 
     @action({
         auth: "private",
         rateLimit: {windowMs: 60000, max: 20},
-        schema: (_lang, _form) => generateMarketingBookletSchema(),
+        schema: generateMarketingBookletFormSchema,
     })
     async generateMarketingBooklet(params: any, _queryParams: any, _req: any, res: any): Promise<void> {
         const {unitId, company, logger, languageCode} = params;
@@ -61,12 +56,6 @@ export class UnitActions {
 
         logger.start(`Marking unit unavailable: ${_id}...`);
 
-        try {
-            SchemaGuard.sanitizeFields(Unit, {status: {}, unavailableNotes: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("unit_not_found", "", null, languageCode);
-        }
-
         const unit = await unitService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
             {session, logger, languageCode},
@@ -97,12 +86,6 @@ export class UnitActions {
         const {logger, languageCode, session, _id, actionUserCtx, company} = params;
 
         logger.start(`Marking unit available: ${_id}...`);
-
-        try {
-            SchemaGuard.sanitizeFields(Unit, {status: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("unit_not_found", "", null, languageCode);
-        }
 
         const unit = await unitService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},

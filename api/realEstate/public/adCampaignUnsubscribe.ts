@@ -9,8 +9,6 @@ import {
     validateUnsubscribeToken,
     type UnsubscribeTokenPayload,
 } from "@coreModule/utilities/security/unsubscribeToken";
-import Company from "@coreModule/database/schemas/company/company";
-import User from "@coreModule/database/schemas/user/user";
 import {
     adCampaignUnsubscribeFormSchema,
     adCampaignUnsubscribeReadFormSchema,
@@ -19,9 +17,11 @@ import {
 import type {AdCampaignUnsubscribeResponse} from "armonia/src/modules/propertyManagement/api/realEstate/public/adCampaignUnsubscribe/adCampaignUnsubscribe.dto";
 import type {AdCampaignType} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {marketingPreferenceService} from "../../../database/schemas/marketingPreference/marketingPreference.service";
-import Lead from "../../../database/schemas/lead/lead";
-import AdCampaignRecipient from "../../../database/schemas/adCampaignRecipient/adCampaignRecipient";
 
+import {adCampaignRecipientService} from "../../../database/schemas/adCampaignRecipient/adCampaignRecipient.service";
+import {userService} from "@coreModule/database/schemas/user/user.service";
+import {companyService} from "@coreModule/database/schemas/company/company.service";
+import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 const router = Router();
 
 /**
@@ -49,7 +49,7 @@ type UpdateBody = TokenBody & {
 
 async function resolveContext(payload: UnsubscribeTokenPayload, languageCode: string) {
     const companyId = new ObjectId(payload.companyId);
-    const company = await Company.findById(companyId).select("name").lean<{_id: ObjectId; name?: string}>();
+    const company = await companyService.findById(companyId, {}, undefined, "name");
     if (!company) {
         throw apiValidationException("company_not_found", "token", null, languageCode);
     }
@@ -58,8 +58,8 @@ async function resolveContext(payload: UnsubscribeTokenPayload, languageCode: st
     // whoever this address belongs to. Their absence is not an error — a lead
     // may have been deleted, or the address may belong to neither any more.
     const [user, lead] = await Promise.all([
-        User.findOne({username: payload.email, companies: companyId}).select("_id").lean<{_id: ObjectId}>(),
-        Lead.findOne({email: payload.email, company: companyId}).select("_id").lean<{_id: ObjectId}>(),
+        userService.findOne({username: payload.email, companies: companyId}, {}, undefined, "_id"),
+        leadService.findIdLean({email: payload.email, company: companyId}),
     ]);
 
     return {companyId, companyName: company.name ?? "", user: user?._id ?? null, lead: lead?._id ?? null};
@@ -68,10 +68,7 @@ async function resolveContext(payload: UnsubscribeTokenPayload, languageCode: st
 /** Record on the delivery row that this recipient used the link. */
 async function stampRecipient(payload: UnsubscribeTokenPayload, companyId: ObjectId): Promise<void> {
     if (!payload.campaignId) return;
-    await AdCampaignRecipient.updateOne(
-        {campaign: new ObjectId(payload.campaignId), company: companyId, email: payload.email},
-        {$set: {unsubscribedAt: new Date()}},
-    );
+    await adCampaignRecipientService.updateOne({campaign: new ObjectId(payload.campaignId), company: companyId, email: payload.email}, {$set: {unsubscribedAt: new Date()}});
 }
 
 async function respond(

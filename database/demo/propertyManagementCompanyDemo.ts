@@ -93,7 +93,6 @@ export async function seedPropertyManagementDemoData(
         logger.finish("Finished seeding property management demo data!");
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.log(e);
         logger.err(`Error seeding property management demo data: ${message}`);
         logger.fail("Failed to seed property management demo data!");
     }

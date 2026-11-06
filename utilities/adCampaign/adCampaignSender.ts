@@ -1,9 +1,8 @@
 import {ObjectId} from "mongodb";
 import {createPooledMailSession, type PooledMailSession} from "@coreModule/utilities/emails/mailDeliveryService";
 import {mapWithConcurrency} from "@coreModule/utilities/helpers/mapWithConcurrency";
-import Company from "@coreModule/database/schemas/company/company";
-import AdCampaign, {IAdCampaign} from "@propertyManagement/database/schemas/adCampaign/adCampaign";
-import AdCampaignRecipient, {IAdCampaignRecipient} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient";
+import {IAdCampaign} from "@propertyManagement/database/schemas/adCampaign/adCampaign";
+import {IAdCampaignRecipient} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient";
 import {adCampaignService} from "@propertyManagement/database/schemas/adCampaign/adCampaign.service";
 import {adCampaignTemplateService} from "@propertyManagement/database/schemas/adCampaignTemplate/adCampaignTemplate.service";
 import {marketingPreferenceService} from "@propertyManagement/database/schemas/marketingPreference/marketingPreference.service";
@@ -23,6 +22,8 @@ import {
 import type {AdCampaignTokenValues} from "@propertyManagement/utilities/emails/adCampaignNotifier";
 import {adCampaignSendConfig, bulkSendBlockedReason, effectiveRecipient} from "./adCampaignConfig";
 
+import {adCampaignRecipientService} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service";
+import {companyService} from "@coreModule/database/schemas/company/company.service";
 export type SenderContext = {
     company: ObjectId;
     logger?: {info?: (m: string) => void; warn?: (m: string) => void; err?: (m: string) => void};
@@ -44,17 +45,7 @@ function note(ctx: SenderContext, line: string): void {
  */
 export async function claimDueCampaign(company: ObjectId): Promise<IAdCampaign | null> {
     const now = new Date();
-    return AdCampaign.findOneAndUpdate(
-        {
-            company,
-            $or: [
-                {status: "scheduled", scheduledAt: {$lte: now}},
-                {status: "sending"},
-            ],
-        },
-        {$set: {status: "sending", lastError: null}, $setOnInsert: {}},
-        {new: true, sort: {scheduledAt: 1, createdAt: 1}},
-    ).noDeleted().lean<IAdCampaign>();
+    return adCampaignService.claimDue(company, now);
 }
 
 /**
@@ -74,31 +65,24 @@ export async function claimRecipientBatch(
     company: ObjectId,
     batchSize: number,
 ): Promise<IAdCampaignRecipient[]> {
-    const candidates = await AdCampaignRecipient.find({
+    const candidates = await adCampaignRecipientService.findPendingIds({
         campaign: campaignId,
         company,
         status: "pending",
-    }).noDeleted()
-        .sort({_id: 1})
-        .limit(batchSize)
-        .select("_id")
-        .lean<{_id: ObjectId}[]>();
+    }, batchSize);
 
     if (!candidates.length) return [];
 
     const claimToken = new ObjectId();
-    await AdCampaignRecipient.updateMany(
-        {_id: {$in: candidates.map(c => c._id)}, status: "pending"},
-        {$set: {status: "queued", claimedAt: new Date(), claimToken}, $inc: {attempts: 1}},
-    );
+    await adCampaignRecipientService.updateMany({_id: {$in: candidates.map(c => c._id)}, status: "pending"}, {$set: {status: "queued", claimedAt: new Date(), claimToken}, $inc: {attempts: 1}});
 
-    return AdCampaignRecipient.find({claimToken}).lean<IAdCampaignRecipient[]>();
+    return adCampaignRecipientService.findByClaimTokenLean(claimToken);
 }
 
 /** Whether the campaign should stop mid-drain (paused, cancelled, or shutting down). */
 async function shouldStop(campaignId: ObjectId, company: ObjectId, ctx: SenderContext): Promise<boolean> {
     if (ctx.signal?.aborted) return true;
-    const current = await AdCampaign.findOne({_id: campaignId, company}).select("status").lean<{status: string}>();
+    const current = await adCampaignService.findStatusLean({_id: campaignId, company});
     return !current || current.status !== "sending";
 }
 
@@ -129,15 +113,12 @@ async function sendBatch(
         batch.map(r => r.email),
     );
 
-    const companyDoc = await Company.findById(company).select("name").lean<{name?: string}>();
+    const companyDoc = await companyService.findById(company, {}, undefined, "name");
     const companyName = companyDoc?.name ?? "";
 
     await mapWithConcurrency(batch, config.concurrency, async (row) => {
         if (!marketingPreferenceService.isAllowed(states.get(row.email), campaign.campaignType)) {
-            await AdCampaignRecipient.updateOne(
-                {_id: row._id},
-                {$set: {status: "suppressed", skipReason: "opted_out"}, $unset: {claimToken: "", claimedAt: ""}},
-            );
+            await adCampaignRecipientService.updateOne({_id: row._id}, {$set: {status: "suppressed", skipReason: "opted_out"}, $unset: {claimToken: "", claimedAt: ""}});
             counts.suppressed++;
             return;
         }
@@ -184,25 +165,19 @@ async function sendBatch(
                 send: session.send,
             });
 
-            await AdCampaignRecipient.updateOne(
-                {_id: row._id},
-                {
+            await adCampaignRecipientService.updateOne({_id: row._id}, {
                     $set: {status: "sent", sentAt: new Date(), messageId, lastError: null},
                     $unset: {claimToken: "", claimedAt: ""},
-                },
-            );
+                });
             counts.sent++;
         }
         catch (err: any) {
             const message = String(err?.message ?? err).slice(0, AD_CAMPAIGN_ERROR_MAX);
             const exhausted = (row.attempts ?? 1) >= AD_CAMPAIGN_MAX_ATTEMPTS;
-            await AdCampaignRecipient.updateOne(
-                {_id: row._id},
-                {
+            await adCampaignRecipientService.updateOne({_id: row._id}, {
                     $set: {status: exhausted ? "failed" : "pending", lastError: message},
                     $unset: {claimToken: "", claimedAt: ""},
-                },
-            );
+                });
             if (exhausted) counts.failed++;
             ctx.logger?.warn?.(`Campaign ${campaign._id} failed for ${row.email}: ${message}`);
         }
@@ -218,11 +193,11 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
     const batchSize = campaign.batchSize || AD_CAMPAIGN_BATCH_SIZE_DEFAULT;
 
     if (!campaign.startedAt) {
-        await AdCampaign.updateOne({_id: campaignId, company}, {$set: {startedAt: new Date()}});
+        await adCampaignService.updateOne({_id: campaignId, company}, {$set: {startedAt: new Date()}});
     }
 
     const session = await createPooledMailSession(company);
-    const companyDoc = await Company.findById(company).select("name").lean<{name?: string}>();
+    const companyDoc = await companyService.findById(company, {}, undefined, "name");
     const contentTokens = await resolveCampaignContentTokens({
         campaign,
         company,
@@ -240,27 +215,24 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
             if (!batch.length) break;
 
             const counts = await sendBatch(campaign, company, batch, session, ctx, contentTokens);
-            await AdCampaign.updateOne(
-                {_id: campaignId, company},
-                {
+            await adCampaignService.updateOne({_id: campaignId, company}, {
                     $inc: {
                         "stats.sent": counts.sent,
                         "stats.failed": counts.failed,
                         "stats.skipped": counts.suppressed,
                         "stats.pending": -(counts.sent + counts.failed + counts.suppressed),
                     },
-                },
-            );
+                });
             note(ctx, `Campaign ${campaignId}: batch of ${batch.length} → ${counts.sent} sent, ${counts.failed} failed, ${counts.suppressed} suppressed`);
         }
 
         // Only complete once nothing is in flight — a row still `queued` belongs
         // to another worker, or to one that died and the reclaim cron will free.
-        const outstanding = await AdCampaignRecipient.countDocuments({
+        const outstanding = await adCampaignRecipientService.count({
             campaign: campaignId,
             company,
             status: {$in: ["pending", "queued"]},
-        }).noDeleted();
+        }, {withDeleted: false});
         if (outstanding === 0) {
             await adCampaignService.finalize(campaignId, company, "completed");
             note(ctx, `Campaign ${campaignId} completed.`);

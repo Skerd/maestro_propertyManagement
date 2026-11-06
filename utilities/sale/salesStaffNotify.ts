@@ -1,10 +1,13 @@
 import {ObjectId} from "mongodb";
-import User from "@coreModule/database/schemas/user/user";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {propertyManagementConfigService} from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig.service";
 import {sendSalesStaffAlertMail} from "@propertyManagement/utilities/emails/staffAlertNotifiers";
 import type {PaymentScheduleRowForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
+import {getLogger} from "@coreModule/loggers/serverLog";
+import {userService} from "@coreModule/database/schemas/user/user.service";
+
+const logger = getLogger("sales_staff_notify");
 
 /**
  * Staff alerts for new sales / reservations, addressed to the users configured under
@@ -69,16 +72,14 @@ function toObjectIds(ids: (string | undefined)[]): ObjectId[] {
 async function activeCompanyUsers(companyId: ObjectId, ids: string[]): Promise<UserLite[]> {
     const oids = toObjectIds(ids);
     if (!oids.length) return [];
-    return await User.find({_id: {$in: oids}, companies: companyId, isActive: true})
-        .select("_id username name surname fullName")
-        .lean<UserLite[]>();
+    return await userService.find({_id: {$in: oids}, companies: companyId, isActive: true}, {}, undefined, "_id username name surname fullName");
 }
 
 async function namesById(ids: (string | undefined)[]): Promise<Map<string, string>> {
     const oids = toObjectIds(ids);
     const out = new Map<string, string>();
     if (!oids.length) return out;
-    const users = await User.find({_id: {$in: oids}}).select("_id username name surname fullName").lean<UserLite[]>();
+    const users = await userService.find({_id: {$in: oids}}, {}, undefined, "_id username name surname fullName");
     for (const u of users) {
         const name = displayName(u);
         if (name) out.set(u._id.toString(), name);
@@ -91,7 +92,7 @@ async function emailEach(recipients: UserLite[], send: (r: UserLite) => Promise<
         recipients
             .filter(r => !!r.username)
             .map(r => send(r).catch((e: unknown) => {
-                console.error(`Failed to send ${label} staff alert email to ${r._id}:`, e);
+                logger.err(`Failed to send ${label} staff alert email to ${r._id}:`, e);
             })),
     );
 }
@@ -152,7 +153,7 @@ export async function notifySalesWatchers(input: NotifySalesWatchersInput): Prom
         }), "sale");
         return recipients.length;
     } catch (e) {
-        console.error("Failed to notify sales watchers:", e);
+        logger.err("Failed to notify sales watchers:", e);
         return 0;
     }
 }
@@ -205,7 +206,7 @@ export async function notifyReservationWatchers(input: NotifyReservationWatchers
         }), "reservation");
         return recipients.length;
     } catch (e) {
-        console.error("Failed to notify reservation watchers:", e);
+        logger.err("Failed to notify reservation watchers:", e);
         return 0;
     }
 }

@@ -9,7 +9,6 @@ import {ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {rentalPaymentService} from "../../database/schemas/rentalPayment/rentalPayment.service";
-import RentalPayment from "../../database/schemas/rentalPayment/rentalPayment";
 import {LeaseStatus} from "../../database/schemas/lease/lease";
 import {
     buildLeaseRentEmailPayload,
@@ -167,7 +166,7 @@ export async function runLeaseRentReminders(company: ObjectId, parentLogger?: se
                         logger.warn(`Rent reminder skipped (no email) payment ${payment._id}`);
                         continue;
                     }
-                    await RentalPayment.updateOne({_id: payment._id}, {$set: {[field]: new Date()}});
+                    await rentalPaymentService.updateOne({_id: payment._id}, {$set: {[field]: new Date()}});
                 } catch (e: unknown) {
                     const msg = e instanceof Error ? e.message : String(e);
                     logger.err(`Rent reminder failed payment ${payment._id}: ${msg}`);
@@ -195,10 +194,7 @@ export async function runLeaseRentReminders(company: ObjectId, parentLogger?: se
                 try {
                     const emailed = await dispatchLeaseClientEmail(payload);
                     if (emailed) {
-                        await RentalPayment.updateOne(
-                            {_id: payment._id},
-                            {$set: {rentOverdueNoticeEmailAt: new Date()}},
-                        );
+                        await rentalPaymentService.updateOne({_id: payment._id}, {$set: {rentOverdueNoticeEmailAt: new Date()}});
                     }
                 } catch (e: unknown) {
                     const msg = e instanceof Error ? e.message : String(e);

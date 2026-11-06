@@ -32,7 +32,6 @@ export class CommissionActions {
 
         logger.start(`Marking commission paid: ${_id}...`);
 
-        SchemaGuard.sanitizeFields(Commission, {status: {}}, "write", actionUserCtx, languageCode);
 
         const existing = await commissionService.findOneOrThrow(
             {
@@ -99,7 +98,6 @@ export class CommissionActions {
             {session, logger, languageCode}
         );
 
-        SchemaGuard.sanitizeFields(Commission, {status: {}}, "write", actionUserCtx, languageCode);
 
         await commissionService.updateByIdOrThrow(
             existing._id,
@@ -129,7 +127,6 @@ export class CommissionActions {
             params as Record<string, any> & SingleForm;
 
         logger.start(`Requesting approval for commission: ${_id}...`);
-        SchemaGuard.sanitizeFields(Commission, {status: {}}, "write", actionUserCtx, languageCode);
 
         const existing = await commissionService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id, status: CommissionStatus.PENDING},
@@ -175,7 +172,6 @@ export class CommissionActions {
             params as Record<string, any> & ApproveCommissionPaymentForm;
 
         logger.start(`Commission payment decision "${decision}" for: ${_id}...`);
-        SchemaGuard.sanitizeFields(Commission, {status: {}}, "write", actionUserCtx, languageCode);
 
         const existing = await commissionService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id, status: CommissionStatus.PENDING_APPROVAL},
@@ -226,7 +222,6 @@ export class CommissionActions {
             params as Record<string, any> & SetCommissionSplitsForm;
 
         logger.start(`Setting commission splits for: ${_id}...`);
-        SchemaGuard.sanitizeFields(Commission, {status: {}}, "write", actionUserCtx, languageCode);
 
         const existing = await commissionService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},

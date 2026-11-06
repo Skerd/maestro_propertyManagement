@@ -12,17 +12,20 @@ import {Router} from "express";
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
-import Company from "@coreModule/database/schemas/company/company";
-import Unit, {UnitStatus} from "../../../database/schemas/unit/unit";
-import Sale from "../../../database/schemas/sale/sale";
-import Commission, {CommissionStatus} from "../../../database/schemas/commission/commission";
-import Lease, {LeaseStatus} from "../../../database/schemas/lease/lease";
+import {UnitStatus} from "../../../database/schemas/unit/unit";
+import {CommissionStatus} from "../../../database/schemas/commission/commission";
+import {LeaseStatus} from "../../../database/schemas/lease/lease";
 import type {GroupDashboardResponse, BranchKpi} from "armonia/src/modules/propertyManagement/api/realEstate/private/groupDashboard/groupDashboard.response.type";
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 
+import {unitService} from "../../../database/schemas/unit/unit.service";
+import {saleService} from "../../../database/schemas/sale/sale.service";
+import {commissionService} from "../../../database/schemas/commission/commission.service";
+import {leaseService} from "../../../database/schemas/lease/lease.service";
+import {companyService} from "@coreModule/database/schemas/company/company.service";
 export const basePath = "/api/realEstate/groupDashboard";
 export const router = Router();
 
@@ -55,9 +58,7 @@ router.post(
         );
         const companyId = company._id as ObjectId;
 
-        let branches = await Company.find({parentCompany: companyId}).noDeleted()
-            .select("_id name")
-            .lean();
+        let branches = await companyService.find({parentCompany: companyId}, {withDeleted: false}, undefined, "_id name");
 
         let rootId = companyId;
         let rootName = (company.name as string) ?? "";
@@ -67,12 +68,10 @@ router.post(
             const parentId = typeof company.parentCompany === "object"
                 ? company.parentCompany._id as ObjectId
                 : company.parentCompany as ObjectId;
-            const parent = await Company.findById(parentId).select("name").lean();
+            const parent = await companyService.findById(parentId, {}, undefined, "name");
             rootName = parent?.name ?? "";
             rootId = parentId;
-            branches = await Company.find({parentCompany: parentId}).noDeleted()
-                .select("_id name")
-                .lean();
+            branches = await companyService.find({parentCompany: parentId}, {withDeleted: false}, undefined, "_id name");
         }
 
         const branchIds: ObjectId[] = [
@@ -87,7 +86,7 @@ router.post(
 
         const emptyAgg: never[] = [];
         const [unitAgg, saleAgg, commAgg, leaseAgg] = await Promise.all([
-            canReadUnits ? Unit.aggregate([
+            canReadUnits ? unitService.aggregate([
                 {$match: {company: {$in: branchIds}, deletedAt: null}},
                 {$group: {
                     _id: "$company",
@@ -97,14 +96,14 @@ router.post(
                     rented: {$sum: {$cond: [{$eq: ["$status", UnitStatus.RENTED]}, 1, 0]}},
                 }},
             ]) : Promise.resolve(emptyAgg),
-            canReadSales ? Sale.aggregate([
+            canReadSales ? saleService.aggregate([
                 {$match: {company: {$in: branchIds}, deletedAt: null}},
                 {$group: {
                     _id: "$company",
                     revenue: {$sum: {$toDouble: {$ifNull: ["$finalPrice", 0]}}},
                 }},
             ]) : Promise.resolve(emptyAgg),
-            canReadCommissions ? Commission.aggregate([
+            canReadCommissions ? commissionService.aggregate([
                 {$match: {
                     company: {$in: branchIds},
                     deletedAt: null,
@@ -115,7 +114,7 @@ router.post(
                     amount: {$sum: {$toDouble: {$ifNull: ["$amount", 0]}}},
                 }},
             ]) : Promise.resolve(emptyAgg),
-            canReadLeases ? Lease.aggregate([
+            canReadLeases ? leaseService.aggregate([
                 {$match: {
                     company: {$in: branchIds},
                     deletedAt: null,

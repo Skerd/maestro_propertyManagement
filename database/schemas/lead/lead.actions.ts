@@ -2,7 +2,6 @@ import {ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
-import {schemaSanitizer} from "@coreModule/utilities/middlewares/schemaSanitizerMW";
 import type {TransactionRequiredParams} from "@coreModule/utilities/middlewares/transactionUtils";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {addLeadActivityFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lead/addLeadActivity.form.validator";
@@ -71,7 +70,6 @@ export class LeadActions {
         auth:        "private",
         rateLimit:   {windowMs: 60000, max: 60},
         transaction: true,
-        middleware:  [schemaSanitizer({model: "leads", requiredModes: ["write"]})], // TODO check this, it need to check for activity keys, not whole schema
         schema:      addLeadActivityFormSchema,
     })
     async addActivity(

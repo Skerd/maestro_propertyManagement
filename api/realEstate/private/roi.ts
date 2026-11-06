@@ -14,8 +14,6 @@ import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/aut
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import Unit from "../../../database/schemas/unit/unit";
 import UnitCost from "../../../database/schemas/unitCost/unitCost";
-import Sale from "../../../database/schemas/sale/sale";
-import Lease from "../../../database/schemas/lease/lease";
 import Project from "../../../database/schemas/project/project";
 import Edifice from "../../../database/schemas/edifice/edifice";
 import Floor from "../../../database/schemas/floor/floor";
@@ -31,6 +29,13 @@ import {
     canReadCollectedFields,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 
+import {unitCostService} from "../../../database/schemas/unitCost/unitCost.service";
+import {projectService} from "@propertyManagement/database/schemas/project/project.service";
+import {floorService} from "@propertyManagement/database/schemas/floor/floor.service";
+import {edificeService} from "@propertyManagement/database/schemas/edifice/edifice.service";
+import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
+import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
 export const basePath = "/api/realEstate/roi";
 export const router   = Router();
 
@@ -60,9 +65,7 @@ async function resolveScopeLabel(
     let projectName = "";
 
     if (projectId && ObjectId.isValid(projectId)) {
-        const proj = await Project.findOne({_id: new ObjectId(projectId), company: companyId})
-            .select("name")
-            .lean() as {name?: string} | null;
+        const proj = await projectService.findNameLean({_id: new ObjectId(projectId), company: companyId}) as {name?: string} | null;
         projectName = proj?.name ?? "";
     }
 
@@ -74,9 +77,7 @@ async function resolveScopeLabel(
     }
 
     if (scopeType === "floor") {
-        const floors = await Floor.find({_id: {$in: toObjectIds(floorIds)}, company: companyId})
-            .select("name")
-            .lean() as {name?: string}[];
+        const floors = await floorService.findNamesLean({_id: {$in: toObjectIds(floorIds)}, company: companyId}) as {name?: string}[];
         if (floors.length === 1) {
             return {scopeType, scopeLabel: floors[0].name ?? "Floor", projectName};
         }
@@ -84,9 +85,7 @@ async function resolveScopeLabel(
     }
 
     if (scopeType === "edifice") {
-        const edifices = await Edifice.find({_id: {$in: toObjectIds(edificeIds)}, company: companyId})
-            .select("name")
-            .lean() as {name?: string}[];
+        const edifices = await edificeService.findNamesLean({_id: {$in: toObjectIds(edificeIds)}, company: companyId}) as {name?: string}[];
         if (edifices.length === 1) {
             return {scopeType, scopeLabel: edifices[0].name ?? "Edifice", projectName};
         }
@@ -139,16 +138,13 @@ router.post(
         if (unitIds.length > 0)    unitFilter._id     = {$in: toObjectIds(unitIds)};
 
         const units = canReadUnits
-            ? await Unit.find(unitFilter).noDeleted()
-                .select("_id name unitNumber status price priceCurrency project")
-                .populate("priceCurrency", "symbol abbreviation")
-                .lean()
+            ? await unitService.findForRoi(unitFilter)
             : [];
 
         const matchedUnitIds = units.map((u: any) => u._id);
 
         // ── Aggregate costs per unit ──────────────────────────────────────────────
-        const costAgg = canReadUnitCosts && matchedUnitIds.length > 0 ? await UnitCost.aggregate([
+        const costAgg = canReadUnitCosts && matchedUnitIds.length > 0 ? await unitCostService.aggregate([
             {$match: {unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null}},
             {$unwind: {path: "$expenditureItems", preserveNullAndEmptyArrays: true}},
             {
@@ -174,10 +170,7 @@ router.post(
 
         // ── Fetch sales for sold units ─────────────────────────────────────────────
         const sales = canReadSales && matchedUnitIds.length > 0
-            ? await Sale.find({unit: {$in: matchedUnitIds}, company: companyId}).noDeleted()
-                .select("unit finalPrice saleCurrency")
-                .populate("saleCurrency", "symbol")
-                .lean()
+            ? await saleService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId})
             : [];
         const saleByUnit: Record<string, {price: number; symbol?: string}> = {};
         for (const sale of sales as any[]) {
@@ -190,10 +183,7 @@ router.post(
 
         // ── Fetch active leases for rented units ──────────────────────────────────
         const leases = canReadLeases && matchedUnitIds.length > 0
-            ? await Lease.find({unit: {$in: matchedUnitIds}, company: companyId, status: "active"}).noDeleted()
-                .select("unit monthlyRent rentCurrency")
-                .populate("rentCurrency", "symbol")
-                .lean()
+            ? await leaseService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId, status: "active"})
             : [];
         const rentByUnit: Record<string, {monthly: number; symbol?: string}> = {};
         for (const lease of leases as any[]) {

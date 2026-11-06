@@ -1,5 +1,7 @@
 import {Document, model, Schema, SchemaTypes} from "mongoose";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
+import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
 
 export interface IDashboardCache extends Document {
     cacheKey: string;
@@ -17,6 +19,9 @@ const DashboardCacheSchema = new Schema<IDashboardCache>(
     },
     {timestamps: false},
 );
+
+ownershipPlugin(DashboardCacheSchema);
+lifeCyclePlugin(DashboardCacheSchema);
 
 const DashboardCache = model<IDashboardCache>("DashboardCache", DashboardCacheSchema);
 normalizeSchemaPermissions(DashboardCache);

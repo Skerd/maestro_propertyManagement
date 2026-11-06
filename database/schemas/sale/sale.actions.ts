@@ -105,7 +105,6 @@ export class SaleActions {
         const {logger, languageCode, session, _id, decision, notes, actionUserCtx, company} = params;
 
         logger.start(`Sale approval decision "${decision}" for sale: ${_id}...`);
-        // SchemaGuard.checkModelPermission(Sale, "update", actionUserCtx, languageCode); //TODO check this too !important
 
         const sale = await saleService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
@@ -195,12 +194,6 @@ export class SaleActions {
         const {logger, languageCode, _id, actionUserCtx, company} = params;
 
         logger.start(`Resending staff notifications for sale: ${_id}`);
-        try {
-            SchemaGuard.sanitizeFields(Sale, {buyer: {}}, "read", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("sale_not_found", "", null, languageCode);
-        }
-
         const sale = await saleService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
             {logger, languageCode},
@@ -272,12 +265,6 @@ export class SaleActions {
             params as Record<string, any> & ManualSaleClientEmailForm;
 
         logger.start(`Manual sale client email: ${action} for ${_id}`);
-
-        try {
-            SchemaGuard.sanitizeFields(Sale, {buyer: {}}, "read", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("sale_not_found", "", null, languageCode);
-        }
 
         const sale = await saleService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
@@ -461,7 +448,6 @@ export class SaleActions {
         const {logger, languageCode, session, _id, installmentNumber, paidAmount, transactionId, notes, actionUserCtx, company} = params;
 
         logger.start(`Recording payment for installment ${installmentNumber} of payment plan: ${_id}...`);
-        SchemaGuard.sanitizeFields(PaymentPlan, {installments: {keys: {status: {}}}}, "write", actionUserCtx, languageCode);
 
         const existingPlan = await paymentPlanService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
@@ -596,7 +582,6 @@ export class SaleActions {
         const {logger, languageCode, session, _id, actionUserCtx, company} = params;
 
         logger.start(`Recording down payment for payment plan: ${_id}...`);
-        SchemaGuard.sanitizeFields(PaymentPlan, {downPaymentPaid: {}, downPaymentDate: {}}, "write", actionUserCtx, languageCode);
 
         const existingPlan = await paymentPlanService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
@@ -687,7 +672,6 @@ export class SaleActions {
         const {logger, languageCode, session, _id, installments: newSchedule, startDate, endDate, interestRate, reason, actionUserCtx, company} = params;
 
         logger.start(`Restructuring payment plan: ${_id}...`);
-        // SchemaGuard.checkModelPermission(PaymentPlan, "write", actionUserCtx, languageCode); //TODO check this too !important
 
         const existingPlan = await paymentPlanService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id, status: PaymentPlanStatus.ACTIVE},
@@ -784,12 +768,6 @@ export class SaleActions {
         } = params;
 
         logger.start(`Recording title transfer for sale: ${_id}...`);
-
-        try {
-            SchemaGuard.sanitizeFields(Sale, {titleTransferDate: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("sale_not_found", "", null, languageCode);
-        }
 
         const sale = await saleService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},

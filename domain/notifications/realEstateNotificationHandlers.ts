@@ -5,6 +5,9 @@ import {createAndPushNotification} from "@coreModule/domain/notifications/notifi
 import {NotificationCategory} from "armonia/src/modules/core/api/user/private/notifications/notifications.enum";
 import {NotificationImportance} from "@coreModule/database/schemas/notification/notification";
 import {CONSTANTS} from "@coreModule/environment";
+import {getLogger} from "@coreModule/loggers/serverLog";
+
+const logger = getLogger("realEstate_notifications");
 
 function langOpts(event: NotificationEvent) {
     return {
@@ -51,7 +54,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_CREATED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_CREATED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -81,7 +84,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_CANCELLED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_CANCELLED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -110,7 +113,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_REINSTATED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_REINSTATED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -144,7 +147,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_PAID notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_PAID notification for ${receiverId}:`, e);
             }
         }
     });
@@ -173,7 +176,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_PAYMENT_REVERSED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_PAYMENT_REVERSED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -206,7 +209,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_EXPIRATION_REMINDER notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_EXPIRATION_REMINDER notification for ${receiverId}:`, e);
             }
         }
     });
@@ -247,7 +250,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create SALE_CREATED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create SALE_CREATED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -285,7 +288,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create CONSTRUCTION_PROGRESS_UPDATE notification for ${receiverId}:`, e);
+                logger.err(`Failed to create CONSTRUCTION_PROGRESS_UPDATE notification for ${receiverId}:`, e);
             }
         }
     });
@@ -320,7 +323,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create RESERVATION_CREATED_STAFF notification for ${receiverId}:`, e);
+                logger.err(`Failed to create RESERVATION_CREATED_STAFF notification for ${receiverId}:`, e);
             }
         }
     });
@@ -355,7 +358,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create SALE_CREATED_STAFF notification for ${receiverId}:`, e);
+                logger.err(`Failed to create SALE_CREATED_STAFF notification for ${receiverId}:`, e);
             }
         }
     });
@@ -391,7 +394,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create PAYMENT_PLAN_DOWN_PAYMENT_PAID notification for ${receiverId}:`, e);
+                logger.err(`Failed to create PAYMENT_PLAN_DOWN_PAYMENT_PAID notification for ${receiverId}:`, e);
             }
         }
     });
@@ -427,7 +430,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create PAYMENT_PLAN_INSTALLMENT_PAID notification for ${receiverId}:`, e);
+                logger.err(`Failed to create PAYMENT_PLAN_INSTALLMENT_PAID notification for ${receiverId}:`, e);
             }
         }
     });
@@ -460,7 +463,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create PAYMENT_PLAN_COMPLETED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create PAYMENT_PLAN_COMPLETED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -489,7 +492,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create PAYMENT_PLAN_DEFAULTED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create PAYMENT_PLAN_DEFAULTED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -522,7 +525,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create MODIFICATION_REQUEST_CREATED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create MODIFICATION_REQUEST_CREATED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -554,7 +557,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create MODIFICATION_REQUEST_APPROVED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create MODIFICATION_REQUEST_APPROVED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -587,7 +590,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create MODIFICATION_REQUEST_REJECTED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create MODIFICATION_REQUEST_REJECTED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -616,7 +619,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create MODIFICATION_REQUEST_CANCELLED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create MODIFICATION_REQUEST_CANCELLED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -650,7 +653,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create MODIFICATION_REQUEST_FINANCE_ADDED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create MODIFICATION_REQUEST_FINANCE_ADDED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -678,7 +681,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create MODIFICATION_REQUEST_DELIVERED notification for ${receiverId}:`, e);
+                logger.err(`Failed to create MODIFICATION_REQUEST_DELIVERED notification for ${receiverId}:`, e);
             }
         }
     });
@@ -715,7 +718,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                 );
             }
             catch (e) {
-                console.error(`Failed to create COMMISSION_PAID notification for ${receiverId}:`, e);
+                logger.err(`Failed to create COMMISSION_PAID notification for ${receiverId}:`, e);
             }
         }
     });
@@ -753,7 +756,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                         opts
                     );
                 } catch (e) {
-                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
                 }
             }
         });
@@ -794,7 +797,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                         opts
                     );
                 } catch (e) {
-                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
                 }
             }
         });
@@ -832,7 +835,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                         opts
                     );
                 } catch (e) {
-                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
                 }
             }
         });
@@ -869,7 +872,7 @@ export function registerRealEstateNotificationEventHandlers(): void {
                         opts
                     );
                 } catch (e) {
-                    console.error(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
                 }
             }
         });

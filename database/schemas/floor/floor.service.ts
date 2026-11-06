@@ -17,6 +17,7 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/edifice/edifice.dto";
 import type {FloorStatistics} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.dto";
 import type {UnitStatistics} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.dto";
+import type {FilterQuery} from "mongoose";
 
 export type FloorUnitCoordinateRow = {
     polygonCoordinates: {x: number; y: number}[];
@@ -450,6 +451,13 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
             result[key] = FloorService.sanitizeFloorStatistics(merged, actionUserCtx, languageCode);
         }
         return result;
+    }
+
+    /** The matching floors' names, as plain objects. */
+    findNamesLean(filter: FilterQuery<IFloor>) {
+        return this.model.find(filter)
+            .select("name")
+            .lean();
     }
 }
 

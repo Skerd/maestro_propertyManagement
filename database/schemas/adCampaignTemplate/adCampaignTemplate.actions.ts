@@ -1,7 +1,5 @@
 import {ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
-import SchemaGuard from "@coreModule/database/security/schemaGuard";
-import {getModelCollectedData} from "@coreModule/database/collections";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import {previewAdCampaignTemplateFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaignTemplate/previewAdCampaignTemplate.form.validator";
@@ -142,17 +140,6 @@ export class AdCampaignTemplateActions {
 
 async function setActiveState(params: Record<string, any>, active: boolean): Promise<AdCampaignTemplateDto> {
     const {logger, languageCode, session, company, actionUserCtx, _id} = params;
-
-    const writeFields = SchemaGuard.sanitizeFields(
-        AdCampaignTemplate,
-        getModelCollectedData("adcampaigntemplates").writeFields!,
-        "write",
-        actionUserCtx,
-        languageCode,
-    );
-    if (!writeFields.active) {
-        throw apiValidationException("user_permissions_not_sufficient", "", null, languageCode);
-    }
 
     const existing = await adCampaignTemplateService.findOneOrThrow(
         {_id: new ObjectId(String(_id)), company: company._id},

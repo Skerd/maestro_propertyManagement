@@ -21,6 +21,7 @@ import {COLLECTED_DATA} from "@coreModule/database/collections";
 import Floor from "../floor/floor";
 import Unit from "../unit/unit";
 import Project, {IProject} from "./project";
+import type {FilterQuery} from "mongoose";
 
 interface ProjectStatsCurrencyAccum {
     currencyId: string;
@@ -551,6 +552,23 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
         }
 
         return statisticsByProjectId;
+    }
+
+    /** A project's name, as a plain object. */
+    findNameLean(filter: FilterQuery<IProject>) {
+        return this.model.findOne(filter)
+            .select("name")
+            .lean();
+    }
+
+    /** The matching projects' names, as plain objects. */
+    findNamesLean(filter: FilterQuery<IProject>) {
+        return this.model.find(filter).select("name").lean<{name?: string}[]>();
+    }
+
+    /** A live project's name, as a plain object. */
+    findLiveNameLean(filter: FilterQuery<IProject>) {
+        return this.model.findOne(filter).noDeleted().select("name").lean();
     }
 }
 

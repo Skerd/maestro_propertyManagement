@@ -1,7 +1,8 @@
 import {ObjectId} from "mongodb";
-import Unit from "@propertyManagement/database/schemas/unit/unit";
-import Sale, {SaleApprovalStatus} from "@propertyManagement/database/schemas/sale/sale";
-import Reservation from "@propertyManagement/database/schemas/reservation/reservation";
+import {SaleApprovalStatus} from "@propertyManagement/database/schemas/sale/sale";
+import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
+import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
 
 export type ClientRelation = "buyer" | "reservation";
 
@@ -42,7 +43,7 @@ export async function findClientHoldings(scope: {
     }
     if (scope.edifice) unitFilter.edifice = scope.edifice;
 
-    const units = await Unit.find(unitFilter).select("_id unitNumber name sale").lean<UnitLite[]>();
+    const units = await unitService.findAudienceUnitsLean(unitFilter);
     if (!units.length) return {holdings: new Map(), unitById: new Map()};
 
     const unitById = new Map(units.map(u => [u._id.toString(), u]));
@@ -50,21 +51,19 @@ export async function findClientHoldings(scope: {
 
     const [sales, reservations] = await Promise.all([
         saleIds.length
-            ? Sale.find({
+            ? saleService.findBuyersLean({
                   company: scope.company,
                   _id: {$in: saleIds},
                   buyer: {$ne: null},
                   approvalStatus: {$ne: SaleApprovalStatus.REJECTED},
-              }).select("unit buyer").lean<{unit: ObjectId; buyer: ObjectId}[]>()
+              })
             : Promise.resolve([]),
-        Reservation.find({
+        reservationService.findClientsLean({
             company: scope.company,
             unit: {$in: units.map(u => u._id)},
             isActive: true,
             client: {$ne: null},
-        })
-            .select("unit client")
-            .lean<{unit: ObjectId; client: ObjectId}[]>(),
+        }),
     ]);
 
     const holdings = new Map<string, Map<string, ClientRelation>>();

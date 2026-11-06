@@ -5,11 +5,13 @@ import Commission, {
     CommissionStatus
 } from "../../../database/schemas/commission/commission";
 import {commissionService} from "../../../database/schemas/commission/commission.service";
-import Reservation, {IReservation} from "../../../database/schemas/reservation/reservation";
+import {IReservation} from "../../../database/schemas/reservation/reservation";
 import {UserContext} from "@coreModule/utilities/types/types";
 import {serverLogger} from "@coreModule/loggers/serverLog";
 import {resolveCommissionRatePercent} from "./resolveCommissionRate";
-import Sale, {ISale} from "../../../database/schemas/sale/sale";
+import {ISale} from "../../../database/schemas/sale/sale";
+import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
+import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 
 type VoidPendingCommissionParams = {
     sourceId: ObjectId,
@@ -31,7 +33,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
     let baseCurrency =  undefined;
     let baseAgent = undefined;
     if( sourceType === CommissionSourceType.RESERVATION ) {
-        foundModel = await Reservation.findOne({_id: sourceId, company: companyId}).session(session).exec();
+        foundModel = await reservationService.findOneInSession({_id: sourceId, company: companyId}, session);
         if (!foundModel.depositAmount || !foundModel.depositCurrency || !foundModel.reservedBy) {
             return;
         }
@@ -42,7 +44,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
         }
     }
     else{
-        foundModel = await Sale.findOne({_id: sourceId, company: companyId}).session(session).exec();
+        foundModel = await saleService.findOneInSession({_id: sourceId, company: companyId}, session);
         if( !foundModel.finalPrice || !foundModel.saleCurrency || !foundModel.soldBy) {
             return;
         }
@@ -56,11 +58,11 @@ export async function recordCommission({sourceId, sourceType, companyId, session
         return;
     }
 
-    const existing = await Commission.findOne({
+    const existing = await commissionService.findOne({
         company: companyId,
         sourceType: sourceType,
         sourceId: sourceId
-    }).session(session);
+    }, {session: session});
 
     if (existing) {
         if (existing.status === CommissionStatus.VOIDED) {
@@ -114,12 +116,12 @@ export async function voidPendingCommission({sourceId, sourceType, companyId, se
     if (!sourceId) {
         return;
     }
-    const doc = await Commission.findOne({
+    const doc = await commissionService.findOne({
         company: companyId,
         sourceType: sourceType,
         sourceId: sourceId,
         status: {$in: [CommissionStatus.PENDING, CommissionStatus.PENDING_APPROVAL, CommissionStatus.APPROVED]},
-    }).session(session);
+    }, {session: session});
     if (!!doc) {
         doc.status = CommissionStatus.VOIDED;
         doc.voidedAt = new Date();

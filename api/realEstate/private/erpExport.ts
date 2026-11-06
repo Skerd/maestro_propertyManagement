@@ -5,11 +5,6 @@ import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import Sale from "../../../database/schemas/sale/sale";
-import Commission from "../../../database/schemas/commission/commission";
-import PaymentPlan from "../../../database/schemas/paymentPlan/paymentPlan";
-import RentalPayment from "../../../database/schemas/rentalPayment/rentalPayment";
-import UnitCost from "../../../database/schemas/unitCost/unitCost";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {computeUnitCostSubtotal} from "../../../utilities/mappers/unitCost/unitCostMapper.dto";
 import {erpExportFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.form.validator";
@@ -31,6 +26,11 @@ import {
     getErpExportDatasetSectionLabel,
     getErpExportExportedAtLabel,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/erpExport/erpExport.columnLabels";
+import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
+import {commissionService} from "@propertyManagement/database/schemas/commission/commission.service";
+import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
+import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
+import {unitCostService} from "@propertyManagement/database/schemas/unitCost/unitCost.service";
 
 export const basePath = "/api/realEstate/erpExport";
 
@@ -167,12 +167,7 @@ async function erpExportHandler(
             saleFilter.unit = {$in: projectUnitIds};
         }
 
-        const saleDocs = await Sale.find(saleFilter)
-            .select("name unit buyer saleDate finalPrice saleCurrency paymentType approvalStatus")
-            .populate("unit", "name unitNumber")
-            .populate("buyer", "name surname")
-            .populate("saleCurrency", "abbreviation symbol")
-            .lean();
+        const saleDocs = await saleService.findForErpExport(saleFilter);
 
         result.sales = (saleDocs as Record<string, unknown>[]).map((s): ErpSaleRow => {
             const buyer = s.buyer as {name?: string; surname?: string} | undefined;
@@ -201,12 +196,7 @@ async function erpExportHandler(
             ...dateFilter("createdAt", from, to),
         };
 
-        const commDocs = await Commission.find(commFilter)
-            .select("name agent amount currency status sale createdAt")
-            .populate("agent", "name surname")
-            .populate("currency", "abbreviation symbol")
-            .populate("sale", "name")
-            .lean();
+        const commDocs = await commissionService.findForErpExport(commFilter);
 
         result.commissions = (commDocs as Record<string, unknown>[]).map((c): ErpCommissionRow => {
             const agent = c.agent as {name?: string; surname?: string} | undefined;
@@ -233,23 +223,14 @@ async function erpExportHandler(
         const ppFilter: Record<string, unknown> = {...baseMatch};
 
         if (projectUnitIds) {
-            const saleIds = await Sale.find({
+            const saleIds = await saleService.findIdsLean({
                 ...baseMatch,
                 unit: {$in: projectUnitIds},
-            })
-                .select("_id")
-                .lean();
+            });
             ppFilter.sale = {$in: saleIds.map((s) => s._id)};
         }
 
-        const ppDocs = await PaymentPlan.find(ppFilter)
-            .select("name installments sale")
-            .populate({
-                path: "sale",
-                select: "name saleCurrency",
-                populate: {path: "saleCurrency", select: "abbreviation symbol"},
-            })
-            .lean();
+        const ppDocs = await paymentPlanService.findForErpExport(ppFilter);
 
         const rows: ErpPaymentPlanRow[] = [];
         for (const pp of ppDocs as Record<string, unknown>[]) {
@@ -288,12 +269,7 @@ async function erpExportHandler(
             ...dateFilter("dueDate", from, to),
         };
 
-        const rpDocs = await RentalPayment.find(rpFilter)
-            .select("name lease unit dueDate amount paidAmount currency status")
-            .populate("lease", "name")
-            .populate("unit", "name unitNumber")
-            .populate("currency", "abbreviation symbol")
-            .lean();
+        const rpDocs = await rentalPaymentService.findForErpExport(rpFilter);
 
         result.rentalPayments = (rpDocs as Record<string, unknown>[]).map((rp): ErpRentalPaymentRow => {
             const lease = rp.lease as {name?: string} | undefined;
@@ -323,12 +299,7 @@ async function erpExportHandler(
             ucFilter.project = new ObjectId(projectId);
         }
 
-        const ucDocs = await UnitCost.find(ucFilter)
-            .select("name unit project purchaseDate expenditureItems currency verificationStatus paymentStatus")
-            .populate("unit", "name unitNumber")
-            .populate("project", "name")
-            .populate("currency", "abbreviation symbol")
-            .lean();
+        const ucDocs = await unitCostService.findForErpExport(ucFilter);
 
         result.unitCosts = ucDocs.map((uc): ErpUnitCostRow => {
             const unit = uc.unit as {name?: string; unitNumber?: string} | undefined;

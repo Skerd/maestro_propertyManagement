@@ -9,7 +9,6 @@ import {Decimal128, ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {paymentPlanService} from "../../database/schemas/paymentPlan/paymentPlan.service";
-import PaymentPlan from "../../database/schemas/paymentPlan/paymentPlan";
 import {PaymentPlanStatus, InstallmentStatus} from "../../database/schemas/paymentPlan/paymentPlan";
 import {
     type DispatchSaleClientEmailInput,
@@ -62,11 +61,7 @@ type InstallmentLike = {
 };
 
 async function stampInstallmentField(planId: ObjectId, installmentNumber: number, field: string): Promise<void> {
-    await PaymentPlan.updateOne(
-        {_id: planId},
-        {$set: {[`installments.$[i].${field}`]: new Date()}},
-        {arrayFilters: [{"i.installmentNumber": installmentNumber}]}
-    );
+    await paymentPlanService.updateInstallments({_id: planId}, {$set: {[`installments.$[i].${field}`]: new Date()}}, [{"i.installmentNumber": installmentNumber}]);
 }
 
 function installmentEmailEligible(status: InstallmentStatus): boolean {
@@ -329,11 +324,7 @@ async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, paren
                 }
 
                 try {
-                    await PaymentPlan.updateOne(
-                        {_id: plan._id},
-                        {$set: updateFields},
-                        {arrayFilters: [{"i.installmentNumber": inst.installmentNumber, "i.status": {$in: [InstallmentStatus.PENDING, InstallmentStatus.PARTIALLY_PAID]}}]}
-                    );
+                    await paymentPlanService.updateInstallments({_id: plan._id}, {$set: updateFields}, [{"i.installmentNumber": inst.installmentNumber, "i.status": {$in: [InstallmentStatus.PENDING, InstallmentStatus.PARTIALLY_PAID]}}]);
                 } catch (e: unknown) {
                     const msg = e instanceof Error ? e.message : String(e);
                     logger.err(`Installment overdue marking failed plan ${plan._id} #${inst.installmentNumber}: ${msg}`);

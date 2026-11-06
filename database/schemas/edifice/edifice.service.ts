@@ -19,6 +19,7 @@ import SchemaGuard from '@coreModule/database/security/schemaGuard';
 import Floor from '../floor/floor';
 import Unit from '../unit/unit';
 import {COLLECTED_DATA} from '@coreModule/database/collections';
+import type {FilterQuery} from "mongoose";
 
 export type EdificeFloorCoordinateRow = {
     polygonCoordinates: {x: number; y: number}[];
@@ -578,6 +579,13 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
             result[key] = EdificeService.sanitizeStatistics(merged, actionUserCtx, languageCode);
         }
         return result;
+    }
+
+    /** The matching buildings' names, as plain objects. */
+    findNamesLean(filter: FilterQuery<IEdifice>) {
+        return this.model.find(filter)
+            .select("name")
+            .lean();
     }
 }
 

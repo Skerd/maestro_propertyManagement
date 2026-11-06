@@ -46,7 +46,6 @@ export async function createPropertyManagementConfig(
         logger.finish("Finished creating property management configuration!");
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.log(e);
         logger.err(`Error creating property management configuration: ${message}`);
         logger.fail("Failed to create property management configuration!");
     }

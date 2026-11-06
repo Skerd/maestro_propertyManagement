@@ -25,9 +25,6 @@ export class PropertyManagementConfigActions {
             {company: company._id},
             {withDeleted: false, session, logger, languageCode},
         );
-        if (!existing) {
-            SchemaGuard.checkModelPermission(PropertyManagementConfig, "create", actionUserCtx, languageCode);
-        }
 
         const doc = await propertyManagementConfigService.getOrCreateForCompany(company._id, {
             session,

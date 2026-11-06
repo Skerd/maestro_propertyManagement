@@ -4,7 +4,8 @@ import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
-import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {ILifeCyclePluginFields, IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {SimpleUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
@@ -12,7 +13,7 @@ import {PropertyManagementConfigSchemaDef} from "armonia/src/modules/propertyMan
 import {propertyManagementConfigViews} from "./propertyManagementConfig.views";
 import {applyPropertyManagementConfigIndexes} from "./propertyManagementConfig.indexes";
 
-export interface IPropertyManagementConfig extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
+export interface IPropertyManagementConfig extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     requiresSaleApproval?: boolean;
     requiresHandoverPackageForHandover?: boolean;
     /** The company opts in to having its projects listed on the central portal. */
@@ -62,6 +63,7 @@ const PropertyManagementConfigSchema = new Schema<IPropertyManagementConfig>(
 ownershipPlugin(PropertyManagementConfigSchema);
 auditPlugin(PropertyManagementConfigSchema);
 softDeletePlugin(PropertyManagementConfigSchema);
+lifeCyclePlugin(PropertyManagementConfigSchema);
 applyPropertyManagementConfigIndexes(PropertyManagementConfigSchema);
 
 const PropertyManagementConfig = model<IPropertyManagementConfig>(

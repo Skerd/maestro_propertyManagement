@@ -4,8 +4,8 @@ import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import Sale, {SalePaymentType} from "../../../database/schemas/sale/sale";
-import Reservation, {ReservationStatus} from "../../../database/schemas/reservation/reservation";
+import {SalePaymentType} from "../../../database/schemas/sale/sale";
+import {ReservationStatus} from "../../../database/schemas/reservation/reservation";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {
     clientsListFormSchema,
@@ -27,6 +27,8 @@ import {
     assertAnyCollectedRead,
     canReadCollectedFields,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
+import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
+import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 
 export const basePath = "/api/realEstate/contractsHub";
 
@@ -164,9 +166,7 @@ async function listContracts(
         if (unitIds) reservationMatch.unit = {$in: unitIds};
         if (status) reservationMatch.status = status;
 
-        const reservations = await Reservation.find(reservationMatch)
-            .populate(CONTRACTS_HUB_RESERVATION_POPULATE)
-            .lean();
+        const reservations = await reservationService.findForContractsHub(reservationMatch);
 
         for (const doc of reservations) {
             const row = reservationToContractRow(doc as Record<string, unknown>);
@@ -192,9 +192,7 @@ async function listContracts(
         if (contractType === "cash_sale") saleMatch.paymentType = SalePaymentType.CASH;
         if (contractType === "payment_plan_sale") saleMatch.paymentType = SalePaymentType.PAYMENT_PLAN;
 
-        const sales = await Sale.find(saleMatch)
-            .populate(CONTRACTS_HUB_SALE_POPULATE)
-            .lean();
+        const sales = await saleService.findForContractsHub(saleMatch);
 
         for (const doc of sales) {
             const row = saleToContractRow(doc as Record<string, unknown>);
@@ -259,15 +257,13 @@ async function listClients(
 
     const [sales, reservations] = await Promise.all([
         canReadSales
-            ? Sale.find(baseMatch).populate(CONTRACTS_HUB_SALE_POPULATE).lean()
+            ? saleService.findForContractsHub(baseMatch)
             : Promise.resolve([]),
         canReadReservations
-            ? Reservation.find({
+            ? reservationService.findForContractsHub({
                 ...baseMatch,
                 status: {$in: [ReservationStatus.ACTIVE, ReservationStatus.EXPIRED]},
             })
-                .populate(CONTRACTS_HUB_RESERVATION_POPULATE)
-                .lean()
             : Promise.resolve([]),
     ]);
 

@@ -147,7 +147,6 @@ export async function createUnits(
             unitsPerFloor.set(String(floor), (unitsPerFloor.get(String(floor)) ?? 0) + 1);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
-            console.log(e);
             logger.err(`Error creating unit "${row.unitNumber}": ${message}`);
         }
     }

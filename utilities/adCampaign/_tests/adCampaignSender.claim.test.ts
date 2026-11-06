@@ -33,19 +33,12 @@ function matches(row: any, filter: any): boolean {
     return true;
 }
 
-vi.mock("@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient", () => ({
-    default: {
-        find: (filter: any) => {
-            let rows = db.rows.filter(r => matches(r, filter));
-            const chain: any = {
-                noDeleted: () => chain,
-                sort: () => chain,
-                limit: (n: number) => { rows = rows.slice(0, n); return chain; },
-                select: () => chain,
-                lean: async () => rows.map(r => ({...r})),
-            };
-            return chain;
-        },
+vi.mock("@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service", () => ({
+    adCampaignRecipientService: {
+        findPendingIds: async (filter: any, batchSize: number) =>
+            db.rows.filter(r => matches(r, filter)).slice(0, batchSize).map(r => ({_id: r._id})),
+        findByClaimTokenLean: async (claimToken: unknown) =>
+            db.rows.filter(r => matches(r, {claimToken})).map(r => ({...r})),
         updateMany: async (filter: any, update: any) => {
             let modifiedCount = 0;
             for (const row of db.rows) {
@@ -56,18 +49,17 @@ vi.mock("@propertyManagement/database/schemas/adCampaignRecipient/adCampaignReci
                 }
                 modifiedCount++;
             }
-            return {modifiedCount};
+            return {matchedCount: modifiedCount, modifiedCount};
         },
-        countDocuments: async (filter: any) => db.rows.filter(r => matches(r, filter)).length,
-        updateOne: async () => ({modifiedCount: 1}),
+        count: async (filter: any) => db.rows.filter(r => matches(r, filter)).length,
+        updateOne: async () => ({matchedCount: 1, modifiedCount: 1}),
     },
 }));
 
 // Heavy collaborators the module imports at load time but this test never uses.
 vi.mock("@coreModule/utilities/emails/mailDeliveryService", () => ({createPooledMailSession: vi.fn()}));
-vi.mock("@coreModule/database/schemas/company/company", () => ({default: {findById: vi.fn()}}));
-vi.mock("@propertyManagement/database/schemas/adCampaign/adCampaign", () => ({default: {findOneAndUpdate: vi.fn(), findOne: vi.fn(), updateOne: vi.fn()}}));
-vi.mock("@propertyManagement/database/schemas/adCampaign/adCampaign.service", () => ({adCampaignService: {finalize: vi.fn(), recomputeStats: vi.fn()}}));
+vi.mock("@coreModule/database/schemas/company/company.service", () => ({companyService: {findById: vi.fn()}}));
+vi.mock("@propertyManagement/database/schemas/adCampaign/adCampaign.service", () => ({adCampaignService: {finalize: vi.fn(), recomputeStats: vi.fn(), claimDue: vi.fn(), findStatusLean: vi.fn(), updateOne: vi.fn()}}));
 vi.mock("@propertyManagement/database/schemas/adCampaignTemplate/adCampaignTemplate.service", () => ({adCampaignTemplateService: {resolveForLocale: vi.fn()}}));
 vi.mock("@propertyManagement/database/schemas/marketingPreference/marketingPreference.service", () => ({marketingPreferenceService: {getStatesForEmails: vi.fn(), isAllowed: vi.fn()}}));
 vi.mock("@propertyManagement/utilities/emails/adCampaignNotifier", () => ({sendAdCampaignMail: vi.fn(), resolveRecipientLocale: vi.fn()}));

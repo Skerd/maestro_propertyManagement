@@ -1,5 +1,5 @@
 import {ObjectId} from "mongodb";
-import {z} from "zod";
+import {noCreateCommissionFormSchema, noEditCommissionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/commission/noWriteCommission.form.validator";
 import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
 import {commissionService} from "../../../database/schemas/commission/commission.service";
 import Commission from "../../../database/schemas/commission/commission";
@@ -92,8 +92,8 @@ export const {router} = createCrudRouter({
     service: commissionService,
     listSchema: commissionFormSchema,
     extraListFilter: commissionExtraListFilter,
-    createSchema: () => z.looseObject({}),
-    editSchema: () => z.looseObject({_id: z.string()}),
+    createSchema: noCreateCommissionFormSchema,
+    editSchema: noEditCommissionFormSchema,
     toDTO: commissionToDTO,
     toDTOArray: commissionsToDTO,
     toSelect: () => [],

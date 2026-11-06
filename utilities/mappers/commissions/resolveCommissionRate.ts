@@ -1,6 +1,6 @@
 import {ClientSession} from "mongoose";
 import {ObjectId} from "mongodb";
-import Unit from "../../../database/schemas/unit/unit";
+import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
 
 export type CommissionRateChannel = "sale" | "reservation";
 
@@ -44,16 +44,7 @@ function pickRate(unitDoc: any, projectDoc: any, channel: CommissionRateChannel)
 
 export async function resolveCommissionRatePercent(params: { unitId: ObjectId; companyId: ObjectId; channel: CommissionRateChannel; session?: ClientSession; }): Promise<number> {
     const {unitId, companyId, channel, session} = params;
-    const unit = await Unit.findOne({_id: unitId, company: companyId})
-        .populate({
-            path: "floor",
-            populate: {
-                path: "edifice",
-                populate: {path: "project"}
-            }
-        })
-        .session(session ?? null)
-        .exec();
+    const unit = await unitService.findWithProjectChain({_id: unitId, company: companyId}, session);
 
 
     if (!unit) {

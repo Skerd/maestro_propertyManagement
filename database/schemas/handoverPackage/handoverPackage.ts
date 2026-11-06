@@ -5,7 +5,8 @@ import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
-import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {ILifeCyclePluginFields, IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {
@@ -24,7 +25,7 @@ import {applyHandoverPackageIndexes} from "./handoverPackage.indexes";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 
-export interface IHandoverPackage extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
+export interface IHandoverPackage extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name: string;
     title: string;
     [key: string]: any;
@@ -67,6 +68,7 @@ HandoverPackageSchema.pre("validate", function (next) {
 ownershipPlugin(HandoverPackageSchema);
 auditPlugin(HandoverPackageSchema);
 softDeletePlugin(HandoverPackageSchema);
+lifeCyclePlugin(HandoverPackageSchema);
 applyHandoverPackageIndexes(HandoverPackageSchema);
 
 const HandoverPackage = model<IHandoverPackage>("HandoverPackage", HandoverPackageSchema, "handoverpackages");

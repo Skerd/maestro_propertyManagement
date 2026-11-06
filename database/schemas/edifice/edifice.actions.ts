@@ -5,7 +5,6 @@ import {apiValidationException} from 'armonia/src/modules/core/helpers/exception
 import {mongooseInstance} from '@coreModule/connections/connectToMongoDb';
 import {GridFSStorage} from '@coreModule/utilities/gridfs/gridfsStorage';
 import {getModelCollectedData} from '@coreModule/database/collections';
-import SchemaGuard from '@coreModule/database/security/schemaGuard';
 import {mediaService} from '@coreModule/database/schemas/media/media.service';
 import {currencyService} from '@coreModule/database/schemas/currency/currency.service';
 import {floorService} from '../floor/floor.service';
@@ -179,15 +178,6 @@ export class EdificeActions {
 
         const edificeId = _id;
         logger.start(`Generating floors and units from PDF brochure for edifice: ${edificeId}...`);
-
-        const {writeFields} = getModelCollectedData("edifices");
-        const edificeWriteFields = SchemaGuard.sanitizeFields(Edifice, writeFields!, "write", actionUserCtx, languageCode);
-        if (!edificeWriteFields || Object.keys(edificeWriteFields).length === 0) {
-            throw apiValidationException("insufficient_permissions", "", null, languageCode);
-        }
-
-        SchemaGuard.checkModelPermission(Floor, "create", actionUserCtx, languageCode);
-        SchemaGuard.checkModelPermission(Unit, "create", actionUserCtx, languageCode);
 
         const foundEdifice = await edificeService.findOneOrThrow(
             {_id: new ObjectId(edificeId), company: company._id},

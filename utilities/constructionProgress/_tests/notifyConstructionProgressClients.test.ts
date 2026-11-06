@@ -10,14 +10,14 @@ const mocks = vi.hoisted(() => ({
     stamp: vi.fn(),
 }));
 
-vi.mock("@propertyManagement/database/schemas/constructionProgress/constructionProgress", () => ({
-    default: {
-        findById: () => ({populate: () => ({lean: async () => mocks.progress})}),
+vi.mock("@propertyManagement/database/schemas/constructionProgress/constructionProgress.service", () => ({
+    constructionProgressService: {
+        findWithProjectAndEdificeLean: async () => mocks.progress,
         updateOne: mocks.stamp,
     },
 }));
-vi.mock("@coreModule/database/schemas/company/company", () => ({
-    default: {findById: () => ({select: () => ({lean: async () => ({name: "Acme"})})})},
+vi.mock("@coreModule/database/schemas/company/company.service", () => ({
+    companyService: {findById: async () => ({name: "Acme"})},
 }));
 vi.mock("@coreModule/domain/notifications/notificationEventBus", () => ({emitNotificationEvent: mocks.emit}));
 vi.mock("../constructionProgressRecipients", () => ({findConstructionProgressRecipients: mocks.recipients}));

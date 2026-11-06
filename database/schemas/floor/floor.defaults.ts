@@ -75,7 +75,6 @@ export async function createFloors(
             created.set(row.id, floorId);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
-            console.log(e);
             logger.err(`Error creating floor "${row.name}": ${message}`);
         }
     }

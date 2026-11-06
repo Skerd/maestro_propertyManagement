@@ -27,6 +27,7 @@ import {
     UnitStatistics
 } from 'armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.dto';
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import type {ClientSession, FilterQuery} from "mongoose";
 
 // SchemaGuard read shape for reservation deposit fields (matches floor/edifice listing stat sanitization).
 const RESERVATION_DEPOSIT_READ_SHAPE = {
@@ -1010,6 +1011,55 @@ export class UnitService extends BaseCrudService<IUnit, typeof Unit> {
             result[key] = out;
         }
         return result;
+    }
+
+    /** Units with their price and currency, for the ROI report. */
+    findForRoi(filter: FilterQuery<IUnit>) {
+        return this.model.find(filter).noDeleted()
+            .select("_id name unitNumber status price priceCurrency project")
+            .populate("priceCurrency", "symbol abbreviation")
+            .lean();
+    }
+
+    /** A unit with its floor, building and project populated. */
+    findWithProjectChain(filter: FilterQuery<IUnit>, session: ClientSession | null | undefined) {
+        return this.model.findOne(filter)
+            .populate({
+                path: "floor",
+                populate: {
+                    path: "edifice",
+                    populate: {path: "project"},
+                },
+            })
+            .session(session ?? null)
+            .exec();
+    }
+
+    /** The matching units' names and numbers, as plain objects. */
+    findLabelsLean(filter: FilterQuery<IUnit>) {
+        return this.model.find(filter).select("name unitNumber").lean<{name?: string; unitNumber?: string}[]>();
+    }
+
+    /** A unit with what a price-change campaign shows (price, history, currency symbol, project name), as a plain object. */
+    findPriceChangeLean(filter: FilterQuery<IUnit>) {
+        return this.model.findOne(filter)
+            .select("unitNumber name price priceHistory priceCurrency project")
+            .populate("project", "name")
+            .populate("priceCurrency", "symbol")
+            .lean<{
+                _id: ObjectId;
+                unitNumber?: string;
+                name?: string;
+                price?: unknown;
+                priceHistory?: {price?: unknown}[];
+                priceCurrency?: {symbol?: string};
+                project?: {_id?: ObjectId; name?: string} | ObjectId;
+            }>();
+    }
+
+    /** Units with their number, name and sale, for a client audience. */
+    findAudienceUnitsLean(filter: FilterQuery<IUnit>) {
+        return this.model.find(filter).select("_id unitNumber name sale").lean<{_id: ObjectId; unitNumber?: string | number; name?: string; sale?: ObjectId | null}[]>();
     }
 }
 

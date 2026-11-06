@@ -6,6 +6,7 @@ import {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import AdCampaignRecipient from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient";
 import AdCampaign, {IAdCampaign, IAdCampaignStats} from "./adCampaign";
+import type {ClientSession, FilterQuery} from "mongoose";
 
 /** Statuses a campaign may be edited or re-queued from. */
 const EDITABLE_STATUSES: readonly AdCampaignStatus[] = ["draft", "scheduled", "paused", "failed"];
@@ -71,6 +72,38 @@ export class AdCampaignService extends BaseCrudService<IAdCampaign, typeof AdCam
                 $unset: {claimToken: ""},
             },
         );
+    }
+
+    /** Marks the next due campaign of the company as sending and returns it (scheduled first), as a plain object. */
+    claimDue(company: ObjectId, now: Date) {
+        return this.model.findOneAndUpdate(
+            {
+                company,
+                $or: [
+                    {status: "scheduled", scheduledAt: {$lte: now}},
+                    {status: "sending"},
+                ],
+            },
+            {$set: {status: "sending", lastError: null}, $setOnInsert: {}},
+            {new: true, sort: {scheduledAt: 1, createdAt: 1}},
+        ).noDeleted().lean<IAdCampaign>();
+    }
+
+    /** A campaign's status, as a plain object. */
+    findStatusLean(filter: FilterQuery<IAdCampaign>) {
+        return this.model.findOne(filter).select("status").lean<{status: string}>();
+    }
+
+    /** The matching campaign, as a plain object. */
+    findOneLean(filter: FilterQuery<IAdCampaign>, session?: ClientSession) {
+        return this.model.findOne(filter).session(session ?? null).lean<IAdCampaign>();
+    }
+
+    /** The ids of the matching campaigns, as plain objects. */
+    findIdsLean(filter: FilterQuery<IAdCampaign>) {
+        return this.model.find(filter).noDeleted()
+            .select("_id")
+            .lean<{_id: any}[]>();
     }
 }
 

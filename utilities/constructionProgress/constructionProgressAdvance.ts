@@ -1,7 +1,8 @@
 import type {ClientSession} from "mongodb";
 import {ObjectId} from "mongodb";
 import {constructionPhaseIndex} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructionProgress/constructionProgress.constants";
-import ConstructionProgress, {type IConstructionProgress} from "@propertyManagement/database/schemas/constructionProgress/constructionProgress";
+import {type IConstructionProgress} from "@propertyManagement/database/schemas/constructionProgress/constructionProgress";
+import {constructionProgressService} from "@propertyManagement/database/schemas/constructionProgress/constructionProgress.service";
 
 type ProgressLike = Pick<IConstructionProgress, "phase" | "progressPercent">;
 
@@ -13,9 +14,7 @@ export async function findLatestConstructionProgress(
     const filter: Record<string, unknown> = {company: scope.company, project: scope.project};
     if (scope.edifice) filter.edifice = scope.edifice;
     if (opts.excludeId) filter._id = {$ne: opts.excludeId};
-    return ConstructionProgress.findOne(filter)
-        .sort({updateDate: -1, createdAt: -1})
-        .session(opts.session ?? null);
+    return constructionProgressService.findLatest(filter, opts.session);
 }
 
 /** True when `next` moved the works forward: a later phase, or a higher % in the same phase. */

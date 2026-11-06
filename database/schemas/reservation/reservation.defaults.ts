@@ -85,7 +85,6 @@ export async function createReservations(
             created.set(row.id, reservationId);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
-            console.log(e);
             logger.err(`Error creating reservation ${row.id}: ${message}`);
         }
     }

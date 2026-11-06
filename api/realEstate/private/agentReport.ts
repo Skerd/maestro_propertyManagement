@@ -5,8 +5,8 @@ import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/aut
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
 import Sale, {SalePaymentType} from "../../../database/schemas/sale/sale";
-import Commission, {CommissionStatus} from "../../../database/schemas/commission/commission";
-import Reservation, {ReservationStatus} from "../../../database/schemas/reservation/reservation";
+import {CommissionStatus} from "../../../database/schemas/commission/commission";
+import {ReservationStatus} from "../../../database/schemas/reservation/reservation";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {agentReportFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/agentReport/agentReport.form.validator";
 import type {AgentReportResponseType, AgentReportEntry} from "armonia/src/modules/propertyManagement/api/realEstate/private/agentReport/agentReport.response.type";
@@ -16,6 +16,9 @@ import {
     canReadCollectedFields,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 
+import {saleService} from "../../../database/schemas/sale/sale.service";
+import {reservationService} from "../../../database/schemas/reservation/reservation.service";
+import {commissionService} from "../../../database/schemas/commission/commission.service";
 export const basePath = "/api/realEstate/agentReport";
 
 const router = Router();
@@ -74,7 +77,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
 
     // 1. Aggregate sales by soldBy
     const salesAgg: {_id: ObjectId; total: number; cash: number; pp: number}[] = canReadSales
-        ? await Sale.aggregate([
+        ? await saleService.aggregate([
             {$match: baseMatch},
             {$group: {
                 _id:   "$soldBy",
@@ -91,7 +94,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
         resMatch.reservedBy = {$in: agentObjectIds};
     }
     const resAgg: {_id: ObjectId; total: number; converted: number}[] = canReadReservations
-        ? await Reservation.aggregate([
+        ? await reservationService.aggregate([
             {$match: resMatch},
             {$group: {
                 _id:       "$reservedBy",
@@ -107,7 +110,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
         commMatch.agent = {$in: agentObjectIds};
     }
     const commAgg: {_id: ObjectId; paidTotal: number; pendingTotal: number; avgRate: number}[] = canReadCommissions
-        ? await Commission.aggregate([
+        ? await commissionService.aggregate([
             {$match: commMatch},
             {$group: {
                 _id:          "$agent",

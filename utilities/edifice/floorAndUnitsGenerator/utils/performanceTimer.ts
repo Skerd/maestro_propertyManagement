@@ -1,3 +1,7 @@
+import {getLogger} from "@coreModule/loggers/serverLog";
+
+const logger = getLogger("performance_timer");
+
 // Timer utility for performance measurement
 export class PerformanceTimer {
     private timings: Map<string, number[]> = new Map();
@@ -15,7 +19,7 @@ export class PerformanceTimer {
     end(label: string): number {
         const startTime = this.startTimes.get(label);
         if (startTime === undefined) {
-            console.warn(`Timer: No start time found for "${label}"`);
+            logger.warn(`Timer: No start time found for "${label}"`);
             return 0;
         }
         const duration = performance.now() - startTime;

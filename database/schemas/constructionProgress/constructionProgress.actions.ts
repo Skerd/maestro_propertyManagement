@@ -1,6 +1,5 @@
 import {ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
-import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import ConstructionProgress from "./constructionProgress";
@@ -22,12 +21,6 @@ export class ConstructionProgressActions {
         const {logger, languageCode, _id, actionUserCtx, company} = params;
 
         logger.start(`Resending client notifications for construction progress: ${_id}`);
-        try {
-            SchemaGuard.sanitizeFields(ConstructionProgress, {notifyClients: {}}, "write", actionUserCtx, languageCode);
-        } catch {
-            throw apiValidationException("construction_progress_not_found", "", null, languageCode);
-        }
-
         const progress = await constructionProgressService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
             {logger, languageCode},

@@ -1,5 +1,5 @@
 import {Decimal128, ObjectId} from "mongodb";
-import {z} from "zod";
+import {noEditReservationFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/noEditReservation.form.validator";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
 import {buildCreateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
@@ -99,7 +99,7 @@ export const {router} = createCrudRouter({
     listSchema: reservationFormSchema,
     extraListFilter: reservationExtraListFilter,
     createSchema: createReservationFormSchema,
-    editSchema: () => z.looseObject({_id: z.string()}),
+    editSchema: noEditReservationFormSchema,
     toDTO: (r) => reservationToDTO(r),
     toDTOArray: (rs) => reservationsToDTO(rs),
     toSelect: reservationsToSelect,

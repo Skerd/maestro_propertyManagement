@@ -76,7 +76,6 @@ export async function createStories(
             created.set(row.id, storyId);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
-            console.log(e);
             logger.err(`Error creating story "${row.name}": ${message}`);
         }
     }

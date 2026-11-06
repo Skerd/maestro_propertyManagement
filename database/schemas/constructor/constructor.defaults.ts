@@ -115,7 +115,6 @@ export async function createConstructors(parentLogger: serverLogger, company: IC
 
         logger.finish(`Finished creating constructors!`);
     } catch (e: any) {
-        console.log(e);
         logger.err(`Error creating constructors: ${e.message}`);
         logger.fail("Failed to create constructors!");
     }

@@ -152,7 +152,6 @@ export async function applyUnitOperationalState(
         logger.finish("Finished applying unit statuses and back-references!", unitIds.size);
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.log(e);
         logger.err(`Error applying unit operational state: ${message}`);
         logger.fail("Failed to apply unit statuses and back-references!");
     }

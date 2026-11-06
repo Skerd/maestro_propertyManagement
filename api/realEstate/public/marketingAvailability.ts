@@ -33,12 +33,12 @@ router.post(
     asyncHandler(marketingAvailability),
 );
 
-function parseMonth(month: string): {year: number; monthIndex: number; daysInMonth: number} {
+function parseMonth(month: string, languageCode: string): {year: number; monthIndex: number; daysInMonth: number} {
     const [yearStr, monthStr] = month.split("-");
     const year = Number(yearStr);
     const monthIndex = Number(monthStr) - 1;
     if (!year || monthIndex < 0 || monthIndex > 11) {
-        throw new Error("Invalid month");
+        throw apiValidationException("field_value_invalid", "month", [month], languageCode, ["month"]);
     }
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
     return {year, monthIndex, daysInMonth};
@@ -65,7 +65,7 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
     const totalSlots = availableUnits.length;
     const unitIds = availableUnits.map((unit) => unit._id);
 
-    const {year, monthIndex, daysInMonth} = parseMonth(month);
+    const {year, monthIndex, daysInMonth} = parseMonth(month, languageCode);
     const rangeStart = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0));
     const rangeEnd = new Date(Date.UTC(year, monthIndex, daysInMonth, 23, 59, 59));
 

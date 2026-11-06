@@ -51,7 +51,7 @@ import {DashboardFormType} from "armonia/src/modules/propertyManagement/api/real
 import {
     dashboardFormSchema
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/dashboard.form.validator";
-import DashboardCache from "../../../database/schemas/dashboardCache/dashboardCache";
+import {dashboardCacheService} from "../../../database/schemas/dashboardCache/dashboardCache.service";
 import {unitCostService} from "../../../database/schemas/unitCost/unitCost.service";
 import {rentalPaymentService} from "../../../database/schemas/rentalPayment/rentalPayment.service";
 import {RentalPaymentStatus} from "../../../database/schemas/rentalPayment/rentalPayment";
@@ -292,7 +292,7 @@ async function getDashboardStats(
     // Cache check — return pre-computed result if still fresh (< 5 min old)
     const cacheKey = buildDashboardCacheKey(company._id.toString(), {projectId, edificeId, period, from, to, recentSalesLimit});
     try {
-        const cached = await DashboardCache.findOne({cacheKey}).lean();
+        const cached = await dashboardCacheService.findByKey(cacheKey);
         if (cached && cached.computedAt && Date.now() - new Date(cached.computedAt).getTime() < DASHBOARD_CACHE_TTL_MS) {
             logger.finish("Dashboard stats served from cache.");
             const cachedResult = cached.result as {
@@ -1009,10 +1009,9 @@ async function getDashboardStats(
         .slice(0, 50);
 
     if (access.all) {
-        DashboardCache.findOneAndUpdate(
+        dashboardCacheService.store(
             {cacheKey},
             {$set: {company: company._id, result: {rawSummary: summary, revenueByPeriod, salesByPeriod, recentSales, paymentAlerts}, computedAt: new Date()}},
-            {upsert: true, new: true},
         ).catch(() => { /* cache write failure is non-fatal */ });
     }
 

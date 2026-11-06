@@ -1,7 +1,5 @@
 import {ObjectId} from "mongodb";
 import {clientHostFor} from "@coreModule/environment";
-import Unit from "@propertyManagement/database/schemas/unit/unit";
-import Project from "@propertyManagement/database/schemas/project/project";
 import type {IAdCampaign} from "@propertyManagement/database/schemas/adCampaign/adCampaign";
 import type {AdCampaignTokenValues} from "../emails/adCampaignNotifier";
 import {renderAdCampaignEmail} from "../emails/adCampaignNotifier";
@@ -12,6 +10,8 @@ import {
 import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
 import {formatMoneyAmountForEmail, unitLocationForEmail} from "../emails/reservationEmailFormatting";
 import {currentYear} from "@coreModule/utilities/emails/emailLayout";
+import {projectService} from "@propertyManagement/database/schemas/project/project.service";
+import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
 
 export class AdCampaignTokenError extends Error {
     constructor(readonly exceptionKey: string, readonly field?: string) {
@@ -118,10 +118,10 @@ async function scopeNames(
     const unitIds = asIdList(campaign.units);
     const [projects, units] = await Promise.all([
         projectIds.length
-            ? Project.find({_id: {$in: projectIds}, company}).select("name").lean<{name?: string}[]>()
+            ? projectService.findNamesLean({_id: {$in: projectIds}, company})
             : Promise.resolve([]),
         unitIds.length
-            ? Unit.find({_id: {$in: unitIds}, company}).select("name unitNumber").lean<{name?: string; unitNumber?: string}[]>()
+            ? unitService.findLabelsLean({_id: {$in: unitIds}, company})
             : Promise.resolve([]),
     ]);
     const projectNames = projects.map(p => p.name).filter((n): n is string => !!n).join(", ") || undefined;
@@ -160,19 +160,7 @@ export async function resolveCampaignContentTokens(input: {
         const unitId = asObjectId(campaign.contentUnit);
         if (!unitId) throw new AdCampaignTokenError("ad_campaign_content_unit_required", "contentUnit");
 
-        const unit = await Unit.findOne({_id: unitId, company})
-            .select("unitNumber name price priceHistory priceCurrency project")
-            .populate("project", "name")
-            .populate("priceCurrency", "symbol")
-            .lean<{
-                _id: ObjectId;
-                unitNumber?: string;
-                name?: string;
-                price?: unknown;
-                priceHistory?: PriceHistoryEntry[];
-                priceCurrency?: {symbol?: string};
-                project?: {_id?: ObjectId; name?: string} | ObjectId;
-            }>();
+        const unit = await unitService.findPriceChangeLean({_id: unitId, company});
         if (!unit) throw new AdCampaignTokenError("ad_campaign_content_unit_required", "contentUnit");
 
         const newPrice = moneyAmount(unit.price);
@@ -204,7 +192,7 @@ export async function resolveCampaignContentTokens(input: {
 
         const projectId = asObjectId(campaign.contentProject);
         if (projectId) {
-            const project = await Project.findOne({_id: projectId, company}).select("name").lean<{name?: string}>();
+            const project = await projectService.findNameLean({_id: projectId, company});
             if (project?.name) tokens.projectName = project.name;
             tokens.ctaUrl = overrideCta || buildOpenProjectCtaUrl(projectId.toString());
         } else {
@@ -216,7 +204,7 @@ export async function resolveCampaignContentTokens(input: {
     // new_project
     const projectId = asObjectId(campaign.contentProject);
     if (!projectId) throw new AdCampaignTokenError("ad_campaign_content_project_required", "contentProject");
-    const project = await Project.findOne({_id: projectId, company}).select("name").lean<{name?: string}>();
+    const project = await projectService.findNameLean({_id: projectId, company});
     if (!project) throw new AdCampaignTokenError("ad_campaign_content_project_required", "contentProject");
     tokens.projectName = project.name;
     tokens.ctaUrl = overrideCta || buildOpenProjectCtaUrl(projectId.toString());

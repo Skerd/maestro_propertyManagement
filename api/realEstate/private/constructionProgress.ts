@@ -10,13 +10,13 @@ import {validateTableForm} from "armonia/src/modules/core/utilities/zod/shared.v
 import ConstructionProgress, {type IConstructionProgress} from "../../../database/schemas/constructionProgress/constructionProgress";
 import {constructionProgressService} from "../../../database/schemas/constructionProgress/constructionProgress.service";
 import {ConstructionProgressActions} from "../../../database/schemas/constructionProgress/constructionProgress.actions";
-import Edifice from "../../../database/schemas/edifice/edifice";
 import {constructionProgressToDTO, constructionProgressesToDTO} from "../../../utilities/mappers/constructionProgress/constructionProgressMapper.dto";
 import {constructionProgressesToSelect} from "../../../utilities/mappers/constructionProgress/constructionProgressMapper.select";
 import {findLatestConstructionProgress, isConstructionAdvance} from "../../../utilities/constructionProgress/constructionProgressAdvance";
 import {notifyConstructionProgressClients} from "../../../utilities/constructionProgress/notifyConstructionProgressClients";
 import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 
+import {edificeService} from "../../../database/schemas/edifice/edifice.service";
 const uploadMW = mediaUploadMW({maxFiles: 20, maxFileSize: 50 * 1024 * 1024});
 const dateTransform = (v: unknown) => new Date(v as string);
 const optionalDateTransform = (v: unknown) => (v ? new Date(v as string) : undefined);
@@ -34,11 +34,11 @@ const validId = (v: unknown) => v != null && v !== "" && ObjectId.isValid(String
 /** The optional building must belong to the report's project. */
 async function assertEdificeInProject(params: any, project: unknown, edifice: unknown): Promise<void> {
     if (!validId(edifice)) return;
-    const found = await Edifice.findOne({
+    const found = await edificeService.findOne({
         _id: new ObjectId(String(edifice)),
         project: new ObjectId(String(project)),
         company: params.company._id,
-    }).select("_id").session(params.session ?? null);
+    }, {session: params.session ?? undefined}, undefined, "_id");
     if (!found) throw apiValidationException("edifice_not_found", "", null, params.languageCode);
 }
 
@@ -73,7 +73,7 @@ export const {router} = createCrudRouter({
     buildUpdateData: async (params: any, writeFields) => {
         const {fileIds, photos, ...rest} = params;
         if (rest.project !== undefined || rest.edifice !== undefined) {
-            const current = await ConstructionProgress.findById(rest._id).select("project").session(params.session ?? null);
+            const current = await constructionProgressService.findById(rest._id, {session: params.session ?? undefined}, undefined, "project");
             await assertEdificeInProject(params, rest.project ?? current?.project, rest.edifice);
         }
         const data = buildUpdateDataFromSchemaDef(ConstructionProgressSchemaDef, {

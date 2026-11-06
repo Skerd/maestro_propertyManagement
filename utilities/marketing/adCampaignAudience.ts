@@ -1,7 +1,7 @@
 import {ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import User from "@coreModule/database/schemas/user/user";
-import Lead, {LeadStatus} from "@propertyManagement/database/schemas/lead/lead";
+import {LeadStatus} from "@propertyManagement/database/schemas/lead/lead";
 import AdCampaign, {IAdCampaign} from "@propertyManagement/database/schemas/adCampaign/adCampaign";
 import AdCampaignRecipient from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient";
 import {adCampaignService} from "@propertyManagement/database/schemas/adCampaign/adCampaign.service";
@@ -15,6 +15,9 @@ import type {
     AdCampaignType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {findClientHoldings} from "./clientAudience";
+import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
+import {adCampaignRecipientService} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service";
+import {userService} from "@coreModule/database/schemas/user/user.service";
 
 /** How many addresses to check preferences for in one query. */
 const PREFERENCE_LOOKUP_CHUNK = 1000;
@@ -140,12 +143,10 @@ async function clientUserCandidates(campaign: IAdCampaign, company: ObjectId): P
     });
     if (!holdings.size) return [];
 
-    const users = await User.find({
+    const users = await userService.find({
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
         companies: company,
-    })
-        .select("_id username name surname fullName isActive")
-        .lean<UserLite[]>();
+    }, {}, undefined, "_id username name surname fullName isActive");
 
     return users
         .map(u => toUserCandidate(u, {recordInactive: true}))
@@ -202,12 +203,10 @@ export async function resolveAudienceCandidates(
         const leadIds = (campaign.leadRecipients as unknown as ObjectId[]) ?? [];
 
         if (userIds.length) {
-            const users = await User.find({
+            const users = await userService.find({
                 _id: {$in: userIds},
                 companies: company,
-            })
-                .select("_id username name surname fullName isActive")
-                .lean<UserLite[]>();
+            }, {}, undefined, "_id username name surname fullName isActive");
             candidates.push(
                 ...users
                     .map(u => toUserCandidate(u, {recordInactive: true}))
@@ -216,9 +215,7 @@ export async function resolveAudienceCandidates(
         }
 
         if (leadIds.length) {
-            const leads = await Lead.find({_id: {$in: leadIds}, company})
-                .select("_id email firstName lastName")
-                .lean<LeadLite[]>();
+            const leads = await leadService.findContactsLean({_id: {$in: leadIds}, company});
             candidates.push(...leadCandidates(leads, {recordMissingEmail: true}));
         }
 
@@ -235,13 +232,11 @@ export async function resolveAudienceCandidates(
         // walked away is the fastest way to earn a spam complaint.
         const projectIds = refIds(campaign.projects);
         const unitIds = refIds(campaign.units);
-        const leads = await Lead.find({
+        const leads = await leadService.findContactsLean({
             company,
             status: {$nin: [LeadStatus.LOST]},
             ...leadInterestFilter(projectIds, unitIds),
-        })
-            .select("_id email firstName lastName")
-            .lean<LeadLite[]>();
+        });
         candidates.push(...leadCandidates(leads, {recordMissingEmail: true}));
     }
 
@@ -315,10 +310,10 @@ export async function materializeAdCampaignRecipients(
     company: ObjectId,
     logger?: {info?: (m: string) => void},
 ): Promise<MaterializeResult> {
-    const campaign = await AdCampaign.findOne({_id: campaignId, company}).lean<IAdCampaign>();
+    const campaign = await adCampaignService.findOneLean({_id: campaignId, company});
     if (!campaign) throw new Error(`AdCampaign ${campaignId.toString()} not found`);
 
-    await AdCampaign.updateOne({_id: campaignId, company}, {$set: {status: "materializing", lastError: null}});
+    await adCampaignService.updateOne({_id: campaignId, company}, {$set: {status: "materializing", lastError: null}});
 
     try {
         const candidates = dedupeByEmail(await resolveAudienceCandidates(campaign, company));
@@ -352,7 +347,7 @@ export async function materializeAdCampaignRecipients(
         for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
             const chunk = rows.slice(i, i + INSERT_CHUNK);
             try {
-                await AdCampaignRecipient.insertMany(chunk, {ordered: false});
+                await adCampaignRecipientService.insertSkippingDuplicates(chunk);
             }
             catch (err: any) {
                 // Duplicate-key errors are the point of the unique index: they

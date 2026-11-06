@@ -196,7 +196,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
         }
         catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            console.warn(`Text extraction summary skipped for page ${result.pageNumber}: ${message}`);
+            logger.warn(`Text extraction summary skipped for page ${result.pageNumber}: ${message}`);
         }
     }
 
@@ -348,7 +348,7 @@ export const processPdfForFloorsAndUnits = async (inputPath: string, outputRoot:
         fs.writeFileSync(summaryPath, JSON.stringify(ocrSummary, null, 2), 'utf-8');
     });
 
-    console.log(timer.getSummary());
+    logger.debug(timer.getSummary());
     logger.finish("Finished automatically generate floors and units!");
     return ocrSummary;
 };

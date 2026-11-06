@@ -20,9 +20,7 @@ const optionalDateTransform = (v: unknown) => (v ? new Date(v as string) : undef
  * half another, with no record of which got what.
  */
 async function assertEditable(params: any): Promise<void> {
-    const current = await AdCampaign.findOne({_id: params._id, company: params.company._id})
-        .select("status")
-        .session(params.session ?? null);
+    const current = await adCampaignService.findOne({_id: params._id, company: params.company._id}, {session: params.session ?? undefined}, undefined, "status");
     if (!current) return;
     if (!adCampaignService.isEditable(current.status)) {
         throw apiValidationException("ad_campaign_not_editable", "status", null, params.languageCode);

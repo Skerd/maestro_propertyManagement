@@ -1,4 +1,5 @@
 import {Decimal128, ObjectId} from 'mongodb';
+import {bulkUpdateUnitPriceFormSchema, bulkUpdateUnitStatusFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unitBulk.form.validator";
 import {buildCreateDataFromSchemaDef, buildUpdateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
 import {UnitSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
 import {mediaUploadMW} from '@coreModule/utilities/middlewares/mediaUploadMW';
@@ -348,7 +349,6 @@ export const basePath = '/api/realEstate/unit';
 
 // ── PATCH /bulk/updatePrice ───────────────────────────────────────────────────
 
-import {z} from "zod";
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import {transactionHandler} from "@coreModule/utilities/middlewares/transactionHandler";
 import {TransactionRequiredParams} from "@coreModule/utilities/middlewares/transactionUtils";
@@ -360,12 +360,7 @@ router.patch(
     "/bulk/updatePrice",
     authMW("private"),
     rateLimiter({windowMs: 60000, max: 10}),
-    validateFormZod(() => z.object({
-        unitIds:       z.array(z.string().min(1)).min(1).max(500),
-        price:         z.number().min(0),
-        priceCurrency: z.string().min(1),
-        reason:        z.string().optional(),
-    })),
+    validateFormZod(bulkUpdateUnitPriceFormSchema),
     transactionHandler(),
     asyncHandler(bulkUpdateUnitPrice),
 );
@@ -389,9 +384,7 @@ async function bulkUpdateUnitPrice(params: BulkUpdatePriceParams): Promise<{upda
     const newPrice = Decimal128.fromString(String(price));
     const newCurrencyId = new ObjectId(priceCurrency);
 
-    const result = await Unit.updateMany(
-        {_id: {$in: unitObjectIds}, company: company._id},
-        {
+    const result = await unitService.updateMany({_id: {$in: unitObjectIds}, company: company._id}, {
             $set: {price: newPrice, priceCurrency: newCurrencyId, priceManuallyEdited: true},
             $push: {
                 priceHistory: {
@@ -402,9 +395,7 @@ async function bulkUpdateUnitPrice(params: BulkUpdatePriceParams): Promise<{upda
                     reason:    reason?.trim() || "Bulk price update",
                 },
             },
-        },
-        {session},
-    );
+        }, {session: session});
 
     logger.finish(`Bulk price update complete: ${result.modifiedCount} units updated`);
     return {updatedCount: result.modifiedCount};
@@ -416,10 +407,7 @@ router.patch(
     "/bulk/updateStatus",
     authMW("private"),
     rateLimiter({windowMs: 60000, max: 10}),
-    validateFormZod(() => z.object({
-        unitIds: z.array(z.string().min(1)).min(1).max(500),
-        status:  z.enum([UnitStatus.AVAILABLE, UnitStatus.UNAVAILABLE]),
-    })),
+    validateFormZod(bulkUpdateUnitStatusFormSchema),
     transactionHandler(),
     asyncHandler(bulkUpdateUnitStatus),
 );
@@ -439,19 +427,15 @@ async function bulkUpdateUnitStatus(params: BulkUpdateStatusParams): Promise<{up
     const unitObjectIds = unitIds.map(id => new ObjectId(id));
 
     // Only update units currently in AVAILABLE or UNAVAILABLE — skip SOLD/RESERVED
-    const result = await Unit.updateMany(
-        {
+    const result = await unitService.updateMany({
             _id:     {$in: unitObjectIds},
             company: company._id,
             status:  {$in: [UnitStatus.AVAILABLE, UnitStatus.UNAVAILABLE]},
-        },
-        {
+        }, {
             ...(status === UnitStatus.AVAILABLE
                 ? {$set: {status}, $unset: {unavailableNotes: ""}}
                 : {$set: {status}}),
-        },
-        {session},
-    );
+        }, {session: session});
 
     const skippedCount = unitIds.length - result.matchedCount;
     logger.finish(`Bulk status update complete: ${result.modifiedCount} updated, ${skippedCount} skipped (sold/reserved)`);
@@ -492,8 +476,8 @@ router.post(
         }
 
         const [reservations, sales] = await Promise.all([
-            Reservation.find({unit: {$in: unitIds}, company: company._id}).select("unit reservationDate expirationDate cancelledAt expiredAt status name").lean(),
-            Sale.find({unit: {$in: unitIds}, company: company._id}).select("unit saleDate name status").lean(),
+            reservationService.findUnitHistoryLean({unit: {$in: unitIds}, company: company._id}),
+            saleService.findUnitHistoryLean({unit: {$in: unitIds}, company: company._id}),
         ]);
 
         const resByUnit   = new Map<string, any[]>();

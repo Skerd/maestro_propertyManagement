@@ -19,7 +19,7 @@ vi.mock("@coreModule/database/schemas/user/user", () => ({
                 ids.includes(String(u._id))
                 && (query.companies == null || u.companies.some(c => String(c) === String(query.companies)))
                 && (query.isActive == null || u.isActive === query.isActive));
-            return {select: () => ({lean: async () => rows})};
+            return {select: () => ({lean: async () => rows, exec: async () => rows})};
         },
     },
 }));

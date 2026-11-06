@@ -5,7 +5,8 @@ import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
 import softDeletePlugin from "@coreModule/database/plugins/softDeletePlugin";
-import {IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
+import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {ILifeCyclePluginFields, IOwnershipPluginFields, ISoftDeletePluginFields} from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {
@@ -20,7 +21,7 @@ import {
 import {inspectionChecklistTemplateViews} from "./inspectionChecklistTemplate.views";
 import {applyInspectionChecklistTemplateIndexes} from "./inspectionChecklistTemplate.indexes";
 
-export interface IInspectionChecklistTemplate extends Document, IOwnershipPluginFields, ISoftDeletePluginFields {
+export interface IInspectionChecklistTemplate extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name: string;
     title: string;
     status?: string;
@@ -75,6 +76,7 @@ InspectionChecklistTemplateSchema.pre("validate", function (next) {
 ownershipPlugin(InspectionChecklistTemplateSchema);
 auditPlugin(InspectionChecklistTemplateSchema);
 softDeletePlugin(InspectionChecklistTemplateSchema);
+lifeCyclePlugin(InspectionChecklistTemplateSchema);
 applyInspectionChecklistTemplateIndexes(InspectionChecklistTemplateSchema);
 
 const InspectionChecklistTemplate = model<IInspectionChecklistTemplate>("InspectionChecklistTemplate", InspectionChecklistTemplateSchema, "inspectionchecklisttemplates");

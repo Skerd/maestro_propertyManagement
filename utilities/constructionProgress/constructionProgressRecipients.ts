@@ -1,6 +1,6 @@
 import {ObjectId} from "mongodb";
-import User from "@coreModule/database/schemas/user/user";
 import {findClientHoldings, type ClientRelation} from "@propertyManagement/utilities/marketing/clientAudience";
+import {userService} from "@coreModule/database/schemas/user/user.service";
 
 export type RecipientUnit = {unitId: string; unitNumber?: string; unitName?: string; relation: ClientRelation};
 
@@ -33,13 +33,11 @@ export async function findConstructionProgressRecipients(scope: {
     });
     if (!holdings.size) return [];
 
-    const users = await User.find({
+    const users = await userService.find({
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
         companies: scope.company,
         isActive: true,
-    })
-        .select("_id username name surname fullName")
-        .lean<UserLite[]>();
+    }, {}, undefined, "_id username name surname fullName");
 
     return users
         .filter(u => !!u.username)

@@ -12,7 +12,7 @@ import {emitNotificationEvent} from "@coreModule/domain/notifications/notificati
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {reservationService} from "../../database/schemas/reservation/reservation.service";
-import Unit, {UnitStatus} from "../../database/schemas/unit/unit";
+import {UnitStatus} from "../../database/schemas/unit/unit";
 import {ReservationStatus} from "../../database/schemas/reservation/reservation";
 import {
     dispatchReservationClientEmail,
@@ -24,6 +24,7 @@ import {
     unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 
+import {unitService} from "../../database/schemas/unit/unit.service";
 const BATCH_SIZE = 200;
 
 
@@ -95,10 +96,7 @@ export async function runReservationExpiredStamp(company: ObjectId, parentLogger
                     {$set: {expiredAt: new Date(), status: ReservationStatus.EXPIRED}},
                     {logger, languageCode: lang, timeOperations: false}
                 );
-                await Unit.updateOne(
-                    {_id: res.unit, status: UnitStatus.RESERVED, reservation: res._id},
-                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: "", unavailableNotes: ""}}
-                );
+                await unitService.updateOne({_id: res.unit, status: UnitStatus.RESERVED, reservation: res._id}, {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: "", unavailableNotes: ""}});
             } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : String(e);
                 logger.err(`Reservation expired stamp failed for ${res._id?.toString?.()}: ${msg}`);

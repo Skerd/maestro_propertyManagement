@@ -33,7 +33,7 @@ export function constructorToDTO(constructor: IConstructor, edifices?: IEdifice[
         })) : undefined,
         partyType: constructor.partyType,
         trades: constructor.trades,
-        insuranceExpiry: constructor.insuranceExpiry instanceof Date ? constructor.insuranceExpiry.toISOString() : (constructor as any).insuranceExpiry ?? undefined,
+        insuranceExpiry: constructor.insuranceExpiry?.toISOString(),
         performanceScore: constructor.performanceScore,
         preferredLanguage: constructor.preferredLanguage,
         ...mapSoftDeleteToDTO(constructor),

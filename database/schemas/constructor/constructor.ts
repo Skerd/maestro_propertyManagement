@@ -18,10 +18,10 @@ import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperator
 import {addModelData} from "@coreModule/database/collections";
 import {constructorViews} from "./constructor.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
+import {SUPPORTED_LOCALES, type SupportedLocale} from "armonia/src/modules/core/constants";
 import {
     ConstructorSchemaDef,
     constructorPartyTypeValues,
-    constructorLanguageValues,
     CONSTRUCTOR_LONG_TEXT_MAX,
     CONSTRUCTOR_PHONE_MAX,
     CONSTRUCTOR_POSTAL_CODE_MAX,
@@ -58,7 +58,7 @@ export interface IConstructor extends Document, IOwnershipPluginFields, ISoftDel
     trades?: string;
     insuranceExpiry?: Date;
     performanceScore?: number;
-    preferredLanguage?: (typeof constructorLanguageValues)[number];
+    preferredLanguage?: SupportedLocale;
 }
 
 const ConstructorSchema: Schema = new Schema(
@@ -196,7 +196,7 @@ const ConstructorSchema: Schema = new Schema(
         },
         preferredLanguage: {
             type: SchemaTypes.String,
-            enum: [...constructorLanguageValues],
+            enum: [...SUPPORTED_LOCALES],
             required: false,
         },
     },

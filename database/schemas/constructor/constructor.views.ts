@@ -121,6 +121,17 @@ export const constructorSheetView: ViewConfig = {
                                 widgetProps: { icon: "#Star", type: "number" },
                             },
                         },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "preferredLanguage",
+                            permissions: { read: "preferredLanguage" },
+                            field: {
+                                name: "preferredLanguage",
+                                widget: "#DisplayCard",
+                                label: "preferredLanguage",
+                                widgetProps: { icon: "#IconLanguage", languageKeyCategory: "languageValues", type: "enum" },
+                            },
+                        },
                     ],
                 },
                 {
@@ -366,6 +377,25 @@ const constructorCreateFormNode: ViewConfig["nodes"] = [
                             label: "form.performanceScoreLabel",
                             placeholder: "form.performanceScorePlaceholder",
                             widgetProps: { type: "number", min: 0, max: 100, step: "0.01" },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "preferredLanguage",
+                            widget: "#SimpleSelect",
+                            label: "form.preferredLanguageLabel",
+                            placeholder: "form.preferredLanguagePlaceholder",
+                            widgetProps: {
+                                options: [
+                                    { value: "it-IT", label: "form.language.it-IT" },
+                                    { value: "en-US", label: "form.language.en-US" },
+                                    { value: "de-CH", label: "form.language.de-CH" },
+                                    { value: "fr-FR", label: "form.language.fr-FR" },
+                                    { value: "sq-AL", label: "form.language.sq-AL" },
+                                ],
+                                className: "grow w-full",
+                            },
                         },
                     },
                     {
@@ -670,6 +700,25 @@ const constructorEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.performanceScorePlaceholder",
                             widgetProps: { type: "number", min: 0, max: 100, step: "0.01" },
                         }, permissions: {read: "performanceScore", write: "performanceScore"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "preferredLanguage",
+                            widget: "#SimpleSelect",
+                            label: "form.preferredLanguageLabel",
+                            placeholder: "form.preferredLanguagePlaceholder",
+                            widgetProps: {
+                                options: [
+                                    { value: "it-IT", label: "form.language.it-IT" },
+                                    { value: "en-US", label: "form.language.en-US" },
+                                    { value: "de-CH", label: "form.language.de-CH" },
+                                    { value: "fr-FR", label: "form.language.fr-FR" },
+                                    { value: "sq-AL", label: "form.language.sq-AL" },
+                                ],
+                                className: "grow w-full",
+                            },
+                        }, permissions: {read: "preferredLanguage", write: "preferredLanguage"},
                     },
                     {
                         render: "div",

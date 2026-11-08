@@ -21,6 +21,7 @@ import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/v
 import {
     ConstructorSchemaDef,
     constructorPartyTypeValues,
+    constructorLanguageValues,
     CONSTRUCTOR_LONG_TEXT_MAX,
     CONSTRUCTOR_PHONE_MAX,
     CONSTRUCTOR_POSTAL_CODE_MAX,
@@ -57,6 +58,7 @@ export interface IConstructor extends Document, IOwnershipPluginFields, ISoftDel
     trades?: string;
     insuranceExpiry?: Date;
     performanceScore?: number;
+    preferredLanguage?: (typeof constructorLanguageValues)[number];
 }
 
 const ConstructorSchema: Schema = new Schema(
@@ -191,6 +193,11 @@ const ConstructorSchema: Schema = new Schema(
             required: false,
             min: 0,
             max: 100,
+        },
+        preferredLanguage: {
+            type: SchemaTypes.String,
+            enum: [...constructorLanguageValues],
+            required: false,
         },
     },
     {

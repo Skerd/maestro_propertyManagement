@@ -35,6 +35,7 @@ export function constructorToDTO(constructor: IConstructor, edifices?: IEdifice[
         trades: constructor.trades,
         insuranceExpiry: constructor.insuranceExpiry instanceof Date ? constructor.insuranceExpiry.toISOString() : (constructor as any).insuranceExpiry ?? undefined,
         performanceScore: constructor.performanceScore,
+        preferredLanguage: constructor.preferredLanguage,
         ...mapSoftDeleteToDTO(constructor),
         ...mapOwnershipToDTO(constructor),
         ...mapLifeCycleToDTO(constructor),

@@ -1,9 +1,10 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
-import {AD_CAMPAIGN_BODY_MAX, AD_CAMPAIGN_LOCALE_VALUES, AD_CAMPAIGN_NAME_MAX, AD_CAMPAIGN_PLACEHOLDERS, AD_CAMPAIGN_SUBJECT_MAX, AD_CAMPAIGN_TYPE_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
+import {SUPPORTED_LOCALES} from "armonia/src/modules/core/constants";
+import {AD_CAMPAIGN_BODY_MAX, AD_CAMPAIGN_NAME_MAX, AD_CAMPAIGN_PLACEHOLDERS, AD_CAMPAIGN_SUBJECT_MAX, AD_CAMPAIGN_TYPE_VALUES} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
 const campaignTypeOptions = AD_CAMPAIGN_TYPE_VALUES.map(value => ({value, label: `form.campaignType.${value}`}));
-const localeOptions = AD_CAMPAIGN_LOCALE_VALUES.map(value => ({value, label: `form.locale.${value}`}));
+const localeOptions = SUPPORTED_LOCALES.map(value => ({value, label: `form.locale.${value}`}));
 
 export const adCampaignTemplateSheetView: ViewConfig = {
     model: "adcampaigntemplates",

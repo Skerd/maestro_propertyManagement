@@ -10,7 +10,6 @@ import {
     AD_CAMPAIGN_ERROR_MAX,
     AD_CAMPAIGN_MAX_ATTEMPTS,
     AD_CAMPAIGN_BATCH_SIZE_DEFAULT,
-    type AdCampaignLocale,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {sendAdCampaignMail, resolveRecipientLocale} from "@propertyManagement/utilities/emails/adCampaignNotifier";
 import {buildUnsubscribeUrls} from "@propertyManagement/utilities/marketing/unsubscribeLinks";
@@ -124,7 +123,7 @@ async function sendBatch(
         }
 
         try {
-            const locale = resolveRecipientLocale(row.languageCode) as AdCampaignLocale;
+            const locale = resolveRecipientLocale(row.languageCode);
             const template = await adCampaignTemplateService.resolveForLocale({
                 company,
                 templateId: campaign.template as unknown as ObjectId,

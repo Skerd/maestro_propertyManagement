@@ -14,10 +14,8 @@
  *    the single exception of `Story.mainImage`, which the schema requires.
  */
 
-import type {
-    AdCampaignLocale,
-    AdCampaignType,
-} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
+import type {AdCampaignType} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 
 export type UserRef = {$user: string};
 export type CurrencyRef = {$currency: string};
@@ -361,7 +359,7 @@ export type AdCampaignTemplateSeedRow = {
     // From the shared enums, not re-declared: a new campaign type or locale
     // should widen this automatically rather than silently not fit.
     campaignType: AdCampaignType;
-    locale: AdCampaignLocale;
+    locale: SupportedLocale;
     subject: string;
     previewText: string;
     /** Email-safe HTML; only `AD_CAMPAIGN_PLACEHOLDERS` tokens. */

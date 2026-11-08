@@ -4,7 +4,6 @@ import {action} from "@coreModule/api/actionDecorator";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import type {AdCampaign as AdCampaignDto} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.dto";
-import type {AdCampaignLocale} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {materializeAdCampaignRecipients} from "@propertyManagement/utilities/marketing/adCampaignAudience";
 import {bulkSendBlockedReason, adCampaignSendConfig, effectiveRecipient} from "@propertyManagement/utilities/adCampaign/adCampaignConfig";
 import {
@@ -65,7 +64,7 @@ async function assertCampaignContentReady(
             languageCode,
             companyName,
         });
-        const locale = resolveRecipientLocale(languageCode) as AdCampaignLocale;
+        const locale = resolveRecipientLocale(languageCode);
         const template = await adCampaignTemplateService.resolveForLocale({
             company: company._id,
             templateId: campaign.template as unknown as ObjectId,
@@ -229,7 +228,7 @@ export class AdCampaignActions {
             rethrowTokenError(err, languageCode);
         }
 
-        const locale = resolveRecipientLocale(languageCode) as AdCampaignLocale;
+        const locale = resolveRecipientLocale(languageCode);
         const template = await adCampaignTemplateService.resolveForLocale({
             company: company._id,
             templateId: campaign.template as unknown as ObjectId,

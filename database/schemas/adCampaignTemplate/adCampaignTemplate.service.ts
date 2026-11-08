@@ -1,8 +1,6 @@
 import {ObjectId} from "mongodb";
 import {BaseCrudService} from "@coreModule/database/services/baseCrudService";
-import type {
-    AdCampaignLocale,
-} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
 import AdCampaignTemplate, {IAdCampaignTemplate} from "./adCampaignTemplate";
 
 export class AdCampaignTemplateService extends BaseCrudService<IAdCampaignTemplate, typeof AdCampaignTemplate> {
@@ -24,7 +22,7 @@ export class AdCampaignTemplateService extends BaseCrudService<IAdCampaignTempla
     async resolveForLocale(params: {
         company: ObjectId;
         templateId: ObjectId;
-        locale: AdCampaignLocale;
+        locale: SupportedLocale;
     }): Promise<IAdCampaignTemplate | null> {
         const chosen = await AdCampaignTemplate.findOne({
             _id: params.templateId,

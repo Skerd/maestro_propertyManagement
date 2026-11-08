@@ -12,13 +12,12 @@ import {
 import {addModelData} from "@coreModule/database/collections";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {AdCampaignTemplateSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaignTemplate/adCampaignTemplate.schema-def";
+import {SUPPORTED_LOCALES, type SupportedLocale} from "armonia/src/modules/core/constants";
 import {
     AD_CAMPAIGN_BODY_MAX,
-    AD_CAMPAIGN_LOCALE_VALUES,
     AD_CAMPAIGN_NAME_MAX,
     AD_CAMPAIGN_SUBJECT_MAX,
     AD_CAMPAIGN_TYPE_VALUES,
-    type AdCampaignLocale,
     type AdCampaignType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {adCampaignTemplateViews} from "./adCampaignTemplate.views";
@@ -39,7 +38,7 @@ import {applyAdCampaignTemplateIndexes} from "./adCampaignTemplate.indexes";
 export interface IAdCampaignTemplate extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
     name: string;
     campaignType: AdCampaignType;
-    locale: AdCampaignLocale;
+    locale: SupportedLocale;
     subject: string;
     previewText?: string;
     bodyHtml: string;
@@ -63,7 +62,7 @@ const AdCampaignTemplateSchema = new Schema<IAdCampaignTemplate>(
         locale: {
             type: SchemaTypes.String,
             required: true,
-            enum: AD_CAMPAIGN_LOCALE_VALUES
+            enum: SUPPORTED_LOCALES
         },
         subject: {
             type: SchemaTypes.String,

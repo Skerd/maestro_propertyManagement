@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {CLIENT_SIDE, CONSTANTS, EMAIL} from "@coreModule/environment";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
 import {applyPlaceholders, loadEmailStrings, resolveEmailLocaleTag} from "@coreModule/utilities/emails/emailLocale";
 import {sendMail} from "@coreModule/utilities/emails/mailDeliveryService";
 import {
@@ -229,6 +230,6 @@ export async function sendAdCampaignMail(input: SendAdCampaignInput): Promise<{m
 }
 
 /** Recipient locale, narrowed to a locale the email templates actually have. */
-export function resolveRecipientLocale(languageCode: string | undefined): string {
+export function resolveRecipientLocale(languageCode: string | undefined): SupportedLocale {
     return resolveEmailLocaleTag(languageCode || CONSTANTS.DEFAULT_LANGUAGE || "en-US");
 }

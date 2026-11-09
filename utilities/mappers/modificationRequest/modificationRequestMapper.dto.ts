@@ -13,7 +13,7 @@ import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.sni
 import {InspectionSimpleSnippet} from "@propertyManagement/database/schemas/inspection/inspection.snippets";
 import {UnitSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 function mapApprovalStage(stage: {
     decision: string;
@@ -163,6 +163,7 @@ export function modificationRequestToDTO(request: IModificationRequest): Modific
         cancellationReason: request.cancellationReason,
         ...mapSoftDeleteToDTO(request),
         ...mapOwnershipToDTO(request),
+        ...mapLifeCycleToDTO(request),
     };
 }
 

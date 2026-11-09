@@ -1,4 +1,5 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import {SUPPORTED_LOCALES} from "armonia/src/modules/core/constants";
 import {
     CONSTRUCTOR_LONG_TEXT_MAX,
     CONSTRUCTOR_PHONE_MAX,
@@ -9,6 +10,8 @@ import {
     CONSTRUCTOR_VAT_MAX,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
+
+const preferredLanguageOptions = SUPPORTED_LOCALES.map(value => ({value, label: `form.language.${value}`}));
 
 export const constructorSheetView: ViewConfig = {
     model: "constructors",
@@ -387,13 +390,7 @@ const constructorCreateFormNode: ViewConfig["nodes"] = [
                             label: "form.preferredLanguageLabel",
                             placeholder: "form.preferredLanguagePlaceholder",
                             widgetProps: {
-                                options: [
-                                    { value: "it-IT", label: "form.language.it-IT" },
-                                    { value: "en-US", label: "form.language.en-US" },
-                                    { value: "de-CH", label: "form.language.de-CH" },
-                                    { value: "fr-FR", label: "form.language.fr-FR" },
-                                    { value: "sq-AL", label: "form.language.sq-AL" },
-                                ],
+                                options: preferredLanguageOptions,
                                 className: "grow w-full",
                             },
                         },
@@ -709,13 +706,7 @@ const constructorEditFormNode: ViewConfig["nodes"] = [
                             label: "form.preferredLanguageLabel",
                             placeholder: "form.preferredLanguagePlaceholder",
                             widgetProps: {
-                                options: [
-                                    { value: "it-IT", label: "form.language.it-IT" },
-                                    { value: "en-US", label: "form.language.en-US" },
-                                    { value: "de-CH", label: "form.language.de-CH" },
-                                    { value: "fr-FR", label: "form.language.fr-FR" },
-                                    { value: "sq-AL", label: "form.language.sq-AL" },
-                                ],
+                                options: preferredLanguageOptions,
                                 className: "grow w-full",
                             },
                         }, permissions: {read: "preferredLanguage", write: "preferredLanguage"},

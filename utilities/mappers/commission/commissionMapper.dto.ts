@@ -10,7 +10,7 @@ import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.sni
 import {ReservationBlankSnippet} from "@propertyManagement/database/schemas/reservation/reservation.snippets";
 import {SaleBlankSnippet} from "@propertyManagement/database/schemas/sale/sale.snippets";
 import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {decimalToNumber, mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 
 export function commissionToDTO(doc: ICommission): Commission {
@@ -45,6 +45,7 @@ export function commissionToDTO(doc: ICommission): Commission {
             : undefined,
         unit: mapSnippet<UnitSimple>()(reservation?.unit ?? sale?.unit, UnitSimpleSnippet),
         ...mapOwnershipToDTO(doc),
+        ...mapLifeCycleToDTO(doc),
         ...mapSoftDeleteToDTO(doc),
     };
 }

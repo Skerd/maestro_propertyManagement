@@ -2,7 +2,7 @@ import type {PropertyManagementConfig} from "armonia/src/modules/propertyManagem
 import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
 import type {IPropertyManagementConfig} from "../../../database/schemas/propertyManagementConfig/propertyManagementConfig";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
-import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 
 function mapNotifyUsers(refs: unknown): SimpleBlankUser[] {
@@ -21,6 +21,8 @@ export function propertyManagementConfigToDTO(doc: IPropertyManagementConfig): P
         notifyOnSales: mapNotifyUsers(doc.notifyOnSales),
         notifyOnReservations: mapNotifyUsers(doc.notifyOnReservations),
         ...mapOwnershipToDTO(doc),
+        ...mapLifeCycleToDTO(doc),
+        ...mapSoftDeleteToDTO(doc),
     };
 }
 

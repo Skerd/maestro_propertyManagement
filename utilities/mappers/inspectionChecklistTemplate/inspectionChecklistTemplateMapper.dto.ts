@@ -1,6 +1,6 @@
 import type {InspectionChecklistTemplate, InspectionChecklistTemplateItem} from "armonia/src/modules/propertyManagement/api/realEstate/private/inspectionChecklistTemplate/inspectionChecklistTemplate.dto";
 import type {IInspectionChecklistTemplate} from "../../../database/schemas/inspectionChecklistTemplate/inspectionChecklistTemplate";
-import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 function mapItem(item: {
     _id?: {toString(): string};
@@ -32,6 +32,8 @@ export function inspectionChecklistTemplateToDTO(doc: IInspectionChecklistTempla
         stage: doc.stage ?? undefined,
         items,
         ...mapOwnershipToDTO(doc),
+        ...mapLifeCycleToDTO(doc),
+        ...mapSoftDeleteToDTO(doc),
     };
 }
 

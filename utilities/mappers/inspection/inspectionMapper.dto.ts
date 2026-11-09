@@ -9,7 +9,7 @@ import {InspectionChecklistTemplateSimpleSnippet} from "@propertyManagement/data
 import {InspectionSimpleSnippet} from "@propertyManagement/database/schemas/inspection/inspection.snippets";
 import {UnitSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
-import {mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {isInspectionChecklistComplete} from "../../inspectionChecklist/inspectionChecklist.sync";
 
 const FINDINGS_KEYS = [
@@ -88,7 +88,8 @@ export function inspectionToDTO(inspection: IInspection): Inspection {
             : [],
         checklistComplete: isInspectionChecklistComplete(inspection.checklistItems ?? []),
         ...mapSoftDeleteToDTO(inspection),
-        ...mapOwnershipToDTO(inspection)
+        ...mapOwnershipToDTO(inspection),
+        ...mapLifeCycleToDTO(inspection),
     };
 }
 

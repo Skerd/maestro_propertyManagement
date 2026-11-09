@@ -10,7 +10,7 @@ import {FloorSimpleSnippet} from "@propertyManagement/database/schemas/floor/flo
 import {ProjectSimpleSnippet} from "@propertyManagement/database/schemas/project/project.snippets";
 import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
-import {mapOwnershipToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 function hasRef(value: unknown): boolean {
     if (value == null) return false;
@@ -53,6 +53,8 @@ export function handoverPackageToDTO(doc: IHandoverPackage): HandoverPackage {
         items,
         media: doc.media?.length ? doc.media.map(mapMedia) : undefined,
         ...mapOwnershipToDTO(doc),
+        ...mapLifeCycleToDTO(doc),
+        ...mapSoftDeleteToDTO(doc),
     };
 }
 

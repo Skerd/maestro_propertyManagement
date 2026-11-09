@@ -7,7 +7,7 @@ import {Schema} from "mongoose";
  * Supports queries by unit, payment type, buyer, and sale date.
  */
 export function applySaleIndexes(SaleSchema: Schema): void {
-    // Primary query pattern - sales by unit (already unique, but explicit index for clarity)
+    // Primary query pattern - sales by unit
     SaleSchema.index({ unit: 1 });
     
     // For filtering by payment type (already has inline index, but compound for better performance)

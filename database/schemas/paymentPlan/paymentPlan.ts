@@ -277,13 +277,11 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
         },
         startDate: {
             type: SchemaTypes.Date,
-            required: true,
-            index: true
+            required: true
         },
         endDate: {
             type: SchemaTypes.Date,
-            required: true,
-            index: true
+            required: true
         },
         installments: {
             type: [{

@@ -153,7 +153,6 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.ObjectId,
             ref: 'Unit',
             required: true,
-            index: true,
             // unique: true, // One sale per unit,
             refAllowlist: UnitSnippet
         },

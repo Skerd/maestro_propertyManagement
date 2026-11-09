@@ -288,14 +288,12 @@ const InspectionSchema = new Schema<IInspection>(
             type: SchemaTypes.ObjectId,
             ref: "Inspection",
             required: false,
-            index: true,
             refAllowlist: InspectionSimpleSnippet,
         },
         followedUpByInspection: {
             type: SchemaTypes.ObjectId,
             ref: "Inspection",
             required: false,
-            index: true,
             refAllowlist: InspectionSimpleSnippet,
             permissions: {
                 self: {write: "no-permission"},

@@ -12,11 +12,6 @@ import {recordRentPaymentFormSchema} from "armonia/src/modules/propertyManagemen
 import {sendRentReminderFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/sendRentReminder.form.validator";
 import type {Lease as LeaseData} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.dto";
 import {leaseToDTO} from "@propertyManagement/utilities/mappers/lease/leaseMapper.dto";
-import {
-    releaseUnitIfRented,
-    unitIdFromLease,
-    waiveOpenRentalPayments,
-} from "@propertyManagement/utilities/lease/leaseLifecycle";
 import {resyncLeaseSchedule} from "@propertyManagement/utilities/lease/leaseScheduleResync";
 import {
     applyRentalPaymentSlice,
@@ -27,6 +22,7 @@ import {
 import {rentalPaymentService} from "../rentalPayment/rentalPayment.service";
 import Lease, {LeaseStatus} from "./lease";
 import {leaseService} from "./lease.service";
+import {endLease} from "./lease.helper";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 import {RENTAL_PAYMENT_RECEIPT_MEDIA_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {
@@ -82,25 +78,16 @@ export class LeaseActions {
             throw apiValidationException("lease_not_active", "", null, languageCode);
         }
 
-        const endedAt: string = terminationDate || localDateOf(new Date(), companyTimeZone(company));
-        await leaseService.updateByIdOrThrow(
-            existing._id,
+        const reason = terminationReason != null ? String(terminationReason).trim() : "";
+        await endLease(
+            existing,
             {
-                $set: {
-                    status: LeaseStatus.TERMINATED,
-                    terminationDate: endedAt,
-                    ...(terminationReason != null && terminationReason !== ""
-                        ? {terminationReason: String(terminationReason).trim()}
-                        : {}),
-                },
+                status: LeaseStatus.TERMINATED,
+                terminationDate: terminationDate || localDateOf(new Date(), companyTimeZone(company)),
+                terminationReason: reason || undefined,
             },
-            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+            {session, logger, languageCode, actionUserCtx, companyId: company._id},
         );
-
-        const ctx = {session, logger, languageCode, actionUserCtx, company};
-        await waiveOpenRentalPayments(existing._id, ctx);
-        const unitId = unitIdFromLease(existing);
-        if (unitId) await releaseUnitIfRented(unitId, ctx);
 
         const returnData = await returnLeaseDto(existing._id, params);
         logger.finish(`Terminated lease ${_id}`);

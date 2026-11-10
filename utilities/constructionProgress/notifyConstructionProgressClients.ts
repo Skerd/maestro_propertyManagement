@@ -1,5 +1,6 @@
 import {ObjectId} from "mongodb";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {filterUnmutedReceivers} from "@coreModule/domain/notifications/notificationDomainService";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {formatReservationExpirationForEmail} from "@propertyManagement/utilities/database/reservation/reservationClientEmailDispatch";
 import {loadInlineImageAttachments} from "@propertyManagement/utilities/emails/mediaImageAttachments";
@@ -64,11 +65,14 @@ export async function notifyConstructionProgressClients(
             },
         });
 
+        // A client who turned these updates off (D117) gets neither the notice nor the email.
+        const emailed = new Set(await filterUnmutedReceivers(recipients.map(r => r.userId), company, NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE));
+
         // Load photos once and reuse the buffers for every recipient.
         const photos = await loadInlineImageAttachments(progress.photos ?? [], {languageCode: lang, cidPrefix: "site"});
 
         await Promise.all(
-            recipients.map(r =>
+            recipients.filter(r => emailed.has(r.userId)).map(r =>
                 sendConstructionProgressClientMail({
                     email: r.email,
                     fullName: r.fullName,

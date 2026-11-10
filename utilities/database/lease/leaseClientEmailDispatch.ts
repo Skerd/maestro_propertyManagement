@@ -16,11 +16,8 @@ import {
     remainingScaled,
     type RentMoneyRow,
 } from "@propertyManagement/utilities/lease/rentRemaining";
-import {
-    calendarDaysUntil,
-    companyToday,
-    isCalendarDayOver,
-} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {calendarDaysUntil, isCalendarDayOver} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import type {RentReminderKind} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/sendRentReminder.form.validator";
 
 export type DispatchLeaseClientEmailInput = Omit<
@@ -203,7 +200,7 @@ export async function sendManualRentReminder(params: {
     }
 
     const due = payment.dueDate;
-    const today = await companyToday(companyId, {session});
+    const today = await companyTodayOf(companyId, {session});
     assertRentReminderKindAllowed(kind, due, today, languageCode);
 
     const dispatchKind = reminderKindToDispatch(kind);

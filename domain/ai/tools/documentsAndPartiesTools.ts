@@ -24,7 +24,6 @@ import {
     calendarDayArg,
     calendarDayRange,
     companyScope,
-    companyToday,
     findOptions,
     limitArg,
     limitParameter,
@@ -32,6 +31,7 @@ import {
     regexClause,
     shortText,
 } from "./assistantToolHelpers";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 
 const PARTY_TYPE_VALUES = [...constructorPartyTypeValues];
 
@@ -86,7 +86,7 @@ async function executeContractors(rawArgs: unknown, ctx: AssistantToolContext): 
 
     const limit = args.limit ?? DEFAULT_RESULTS;
 
-    const today = await companyToday(ctx);
+    const today = await companyTodayOf(ctx.companyId);
     const contractors = await constructorService.find(
         query,
         findOptions(ctx),

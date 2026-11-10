@@ -27,13 +27,10 @@ import {
     UNIT_EMAIL_SELECT,
     unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
-import {
-    calendarDaysUntil,
-    companyToday,
-    isCalendarDayOver,
-} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {calendarDaysUntil, isCalendarDayOver} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
-import {recordCommission, voidPendingCommission} from "../../../utilities/mappers/commissions/commission";
+import {recordCommission, voidPendingCommission} from "../commission/commission.helper";
 import {CommissionSourceType, CommissionStatus} from "../commission/commission";
 import {commissionService} from "../commission/commission.service";
 import {unitService} from "../unit/unit.service";
@@ -226,7 +223,7 @@ export class ReservationActions {
         const unitRef = reservation.unit as {unitNumber?: string | number; name?: string; _id?: ObjectId} | undefined;
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
 
-        const today = await companyToday(company._id);
+        const today = await companyTodayOf(company._id);
         const exp: string | undefined = reservation.expirationDate || undefined;
         const expIso = exp;
         const lang = languageCode ?? "en-US";
@@ -259,6 +256,10 @@ export class ReservationActions {
 
         switch (action) {
             case "send_confirmation":
+                // Only a reservation that still holds the unit is confirmed: not an expired or converted one (TD-B149).
+                if (reservation.status !== ReservationStatus.ACTIVE || (exp && isCalendarDayOver(exp, today))) {
+                    throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
+                }
                 payload = {
                     ...base,
                     kind: "created",

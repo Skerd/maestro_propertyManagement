@@ -29,8 +29,8 @@ beforeEach(() => asCompany(() => clearDatabase()));
 type Row = {amount: string; principal?: string; interest?: string; status?: InstallmentStatus; paid?: string; due?: string};
 
 /** A sold unit on a plan: 1,000.00 down, then the given installments (principal = amount unless said). */
-async function seedPlan(rows: Row[], input: {downPaymentPaid?: boolean; status?: PaymentPlanStatus; totalAmount?: string} = {}) {
-    const currency = await seedCurrency(companyId, "CHF");
+async function seedPlan(rows: Row[], input: {downPaymentPaid?: boolean; status?: PaymentPlanStatus; totalAmount?: string; decimals?: number} = {}) {
+    const currency = await seedCurrency(companyId, input.decimals === 3 ? "KWD" : "CHF", input.decimals);
     const buyer = await seedUser(companyId);
     const saleId = new ObjectId();
     const unitId = await seedUnit(companyId, {price: input.totalAmount ?? "10000.00", priceCurrency: currency, status: UnitStatus.SOLD, sale: saleId});
@@ -100,6 +100,31 @@ describe("paying an installment", {timeout: 60000}, () => {
         await expect(pay(planId, 1, 100)).rejects.toMatchObject({error_code: "payment_plan_not_open"});
     });
 
+    it("returns a defaulted plan to active once nothing is overdue, and not on a part payment (TD-B135)", async () => {
+        const planId = await asCompany(() => seedPlan([
+            {amount: "4500.00", status: InstallmentStatus.OVERDUE},
+            {amount: "4500.00"},
+        ]));
+        expect((await reload(planId)).status).toBe(PaymentPlanStatus.DEFAULTED);
+
+        await pay(planId, 1, 500);
+        let plan = await reload(planId);
+        expect([plan.installments[0].status, plan.status]).toEqual([InstallmentStatus.OVERDUE, PaymentPlanStatus.DEFAULTED]);
+
+        await pay(planId, 1, 4000);
+        plan = await reload(planId);
+        expect([plan.installments[0].status, plan.status]).toEqual([InstallmentStatus.PAID, PaymentPlanStatus.ACTIVE]);
+    });
+
+    it("keeps the sale currency's decimals: a fil is neither lost nor rounded to cents (TD-B134)", async () => {
+        const planId = await asCompany(() => seedPlan([{amount: "4500.005"}, {amount: "4499.995"}], {decimals: 3}));
+        await pay(planId, 1, 0.005);
+        await expect(pay(planId, 1, 4500.001)).rejects.toMatchObject({error_code: "installment_payment_exceeds_due"});
+        await pay(planId, 1, 4500);
+        const plan = await reload(planId);
+        expect([plan.installments[0].status, decString(plan.installments[0].paidAmount)]).toEqual([InstallmentStatus.PAID, "4500.005"]);
+    });
+
     it("takes the down payment once", async () => {
         const planId = await asCompany(() => seedPlan([{amount: "9000.00"}]));
         await asCompany(() => sales.payDownPayment({...params, _id: planId.toString()}));
@@ -113,7 +138,7 @@ describe("restructuring a plan", {timeout: 60000}, () => {
     it("keeps the rows that carry payments and re-plans only the principal still unpaid", async () => {
         const planId = await asCompany(() => seedPlan([
             {amount: "3000.00", paid: "3000.00", status: InstallmentStatus.PAID},
-            // Overdue but not yet past its due date here, so the plan stays active (restructuring takes active plans).
+            // Overdue, so the plan is defaulted; restructuring takes defaulted plans too (TD-B135).
             {amount: "3000.00", paid: "1000.00", status: InstallmentStatus.OVERDUE, due: "2027-03-01"},
             {amount: "3000.00"},
         ], {downPaymentPaid: true}));
@@ -134,6 +159,33 @@ describe("restructuring a plan", {timeout: 60000}, () => {
         // Still owed: 2,000.00 on row 2 and the 3,000.00 re-planned
         expect([plan.numberOfInstallments, decString(plan.remainingBalance), plan.startDate]).toEqual([4, "5000", "2026-01-01"]);
         expect(plan.restructureHistory![0].previousInstallments).toHaveLength(3);
+        // Row 2 is kept and still overdue, so the plan stays defaulted.
+        expect(plan.status).toBe(PaymentPlanStatus.DEFAULTED);
+    });
+
+    it("takes a defaulted plan and runs it again when no kept row is overdue (TD-B135)", async () => {
+        const planId = await asCompany(() => seedPlan([
+            {amount: "4500.00", paid: "4500.00", status: InstallmentStatus.PAID},
+            {amount: "4500.00", status: InstallmentStatus.OVERDUE},
+        ], {downPaymentPaid: true}));
+        expect((await reload(planId)).status).toBe(PaymentPlanStatus.DEFAULTED);
+
+        await asCompany(() => sales.restructurePaymentPlan({
+            ...params, _id: planId.toString(), startDate: "2026-06-01", endDate: "2026-08-01", interestRate: 0,
+            installments: [{installmentNumber: 1, dueDate: "2026-07-01", amount: 2250}, {installmentNumber: 2, dueDate: "2026-08-01", amount: 2250}],
+        }));
+
+        const plan = await reload(planId);
+        expect(plan.status).toBe(PaymentPlanStatus.ACTIVE);
+        expect(plan.installments.map((row) => row.status)).toEqual([InstallmentStatus.PAID, InstallmentStatus.PENDING, InstallmentStatus.PENDING]);
+    });
+
+    it("refuses a new schedule that asks for more than is still owed (D121)", async () => {
+        const planId = await asCompany(() => seedPlan([{amount: "4500.00", paid: "4500.00", status: InstallmentStatus.PAID}, {amount: "4500.00"}]));
+        await expect(asCompany(() => sales.restructurePaymentPlan({
+            ...params, _id: planId.toString(), startDate: "2026-06-01", endDate: "2026-07-01", interestRate: 0,
+            installments: [{installmentNumber: 1, dueDate: "2026-07-01", amount: 4500.01}],
+        }))).rejects.toMatchObject({error_code: "payment_plan_installment_exceeds_owed"});
     });
 
     it("refuses a new schedule that does not pay off the unpaid principal", async () => {

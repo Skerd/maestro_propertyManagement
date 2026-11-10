@@ -2,68 +2,44 @@ import {Schema} from "mongoose";
 
 /**
  * Unit Indexes
- * 
- * Optimized indexes for unit queries.
- * Supports queries by project, edifice, floor, status, type, and various filters.
+ *
+ * Every tenant query carries `company` (ownershipPlugin, DB-02), so each index starts with it (DB-06).
+ * reservation, sale: `unique` + `sparse` on the fields already index them; a second declaration conflicts.
  */
 export function applyUnitIndexes(UnitSchema: Schema): void {
-    // Primary query pattern - units by project
-    UnitSchema.index({ project: 1, createdAt: -1 });
-    
-    // For finding units by edifice
-    UnitSchema.index({ edifice: 1, createdAt: -1 });
-    
-    // For finding units by floor
-    UnitSchema.index({ floor: 1, createdAt: -1 });
-    
-    // For filtering by status (already has inline index, but compound for better performance)
-    UnitSchema.index({ status: 1, createdAt: -1 });
-    
-    // For finding units by type
-    UnitSchema.index({ unitType: 1, createdAt: -1 });
-    
-    // For finding units by company
+    // The units list, newest first, and by status
     UnitSchema.index({ company: 1, createdAt: -1 });
-    
-    // For finding units by unit number
-    UnitSchema.index({ unitNumber: 1 });
-    
-    // Compound indexes for common query patterns
-    UnitSchema.index({ project: 1, status: 1, createdAt: -1 });
-    UnitSchema.index({ edifice: 1, status: 1, createdAt: -1 });
-    UnitSchema.index({ floor: 1, status: 1, createdAt: -1 });
-    UnitSchema.index({ project: 1, unitType: 1, createdAt: -1 });
     UnitSchema.index({ company: 1, status: 1, createdAt: -1 });
-    
-    // reservation, sale: `unique` + `sparse` on the fields already index them; a second
-    // declaration of the same key conflicts
-    
-    // For status + reservation compound queries
-    UnitSchema.index({ status: 1, reservation: 1 });
-    
-    // For status + sale compound queries
-    UnitSchema.index({ status: 1, sale: 1 });
-    
-    // For feature-based filtering
-    UnitSchema.index({ hasBalcony: 1, hasTerrace: 1 });
-    UnitSchema.index({ hasSeaView: 1, hasCityView: 1 });
-    UnitSchema.index({ hasElevator: 1 });
-    
-    // For price range queries
-    UnitSchema.index({ price: 1 });
-    UnitSchema.index({ priceCurrency: 1, price: 1 });
-    
-    // For area-based queries
-    UnitSchema.index({ area: 1 });
-    UnitSchema.index({ netArea: 1 });
-    
-    // For room-based filtering
-    UnitSchema.index({ numberOfRooms: 1 });
-    UnitSchema.index({ numberOfBathrooms: 1 });
-    
-    // The units list filtered by project (and status), sorted by `createdAt: -1` (DB-06), and the project
+
+    // The units list filtered by project / edifice / floor (and status), sorted by `createdAt: -1`, and the project
     // statistics `{company, project}` grouped by status.
     UnitSchema.index({ company: 1, project: 1, status: 1, createdAt: -1 });
+    UnitSchema.index({ company: 1, edifice: 1, status: 1, createdAt: -1 });
+    UnitSchema.index({ company: 1, floor: 1, status: 1, createdAt: -1 });
+    UnitSchema.index({ company: 1, project: 1, unitType: 1, createdAt: -1 });
+    UnitSchema.index({ company: 1, unitType: 1, createdAt: -1 });
+
+    // Orientation and construction-state filters
+    UnitSchema.index({ company: 1, orientation: 1 });
+    UnitSchema.index({ company: 1, constructionStatus: 1 });
+
+    // Unit number lookup
+    UnitSchema.index({ company: 1, unitNumber: 1 });
+
+    // Units held by a reservation or a sale, by status
+    UnitSchema.index({ company: 1, status: 1, reservation: 1 });
+    UnitSchema.index({ company: 1, status: 1, sale: 1 });
+
+    // Feature, price, area and room filters
+    UnitSchema.index({ company: 1, hasBalcony: 1, hasTerrace: 1 });
+    UnitSchema.index({ company: 1, hasSeaView: 1, hasCityView: 1 });
+    UnitSchema.index({ company: 1, hasElevator: 1 });
+    UnitSchema.index({ company: 1, priceCurrency: 1, price: 1 });
+    UnitSchema.index({ company: 1, price: 1 });
+    UnitSchema.index({ company: 1, area: 1 });
+    UnitSchema.index({ company: 1, netArea: 1 });
+    UnitSchema.index({ company: 1, numberOfRooms: 1 });
+    UnitSchema.index({ company: 1, numberOfBathrooms: 1 });
 
     // Homepage featured units
     UnitSchema.index({ company: 1, deletedAt: 1, featuredOnHomepage: 1, featuredSortOrder: 1 });

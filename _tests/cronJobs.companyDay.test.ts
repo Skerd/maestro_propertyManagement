@@ -146,6 +146,36 @@ describe("installment reminders", {timeout: 60000}, () => {
     }));
 });
 
+describe("installment late fees (TD-B134, D121)", {timeout: 60000}, () => {
+    it("stamps the fee exactly at the sale currency's decimals, on defaulted plans too, without changing the amount due", () => asCompany(async () => {
+        const kwd = await seedCurrency(companyId, "KWD", 3);
+        const saleId = new ObjectId();
+        const unit = await seedUnit(companyId, {price: "2469.134", priceCurrency: kwd, status: UnitStatus.SOLD, sale: saleId});
+        await Sale.collection.insertOne({
+            _id: saleId, company: companyId, unit, buyer: client, soldBy: client, paymentType: "payment_plan", saleDate: "2026-01-01",
+            saleCurrency: kwd, finalPrice: dec("2469.134"), name: "SALE-KWD", deletedAt: null,
+        });
+        const plan = await PaymentPlan.create({
+            sale: saleId, company: companyId, status: PaymentPlanStatus.ACTIVE, totalAmount: dec("2469.134"), downPayment: dec("0"), downPaymentPaid: true,
+            remainingBalance: dec("0"), numberOfInstallments: 2, installmentAmount: dec("2469.134"), interestRate: 0, gracePeriodDays: 0,
+            lateFeePercentage: 1.5, startDate: "2026-01-01", endDate: "2026-12-01",
+            installments: ["2026-03-01", "2026-03-05"].map((due, i) => ({
+                installmentNumber: i + 1, dueDate: due, amount: dec("1234.567"), principalAmount: dec("1234.567"), interestAmount: dec("0"),
+                status: i === 0 ? InstallmentStatus.OVERDUE : InstallmentStatus.PENDING,
+            })),
+        });
+        expect((await PaymentPlan.findById(plan._id).lean())!.status).toBe(PaymentPlanStatus.DEFAULTED);
+
+        await runPaymentPlanInstallmentReminders(companyId, undefined, {now});
+
+        const stored = (await PaymentPlan.findById(plan._id).lean())!;
+        const second = stored.installments[1];
+        // 1.5 % of 1234.567 = 18.518505 → 18.519 (fils), not 18.52 (cents) nor a 10-decimal float.
+        expect([second.status, second.lateFeeAmount?.toString(), second.amount.toString()]).toEqual([InstallmentStatus.OVERDUE, "18.519", "1234.567"]);
+        expect(stored.remainingBalance.toString()).toBe("2469.134");
+    }));
+});
+
 describe("rent reminders", {timeout: 60000}, () => {
     it("pick the day by the company's today: overdue, day-of, and one day before", () => asCompany(async () => {
         const unit = await seedUnit(companyId, {price: "300000.00", priceCurrency: chf, status: UnitStatus.RENTED});

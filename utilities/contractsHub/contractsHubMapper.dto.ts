@@ -8,8 +8,8 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/contractsHub/contractsHub.constants";
 import {SalePaymentType} from "../../database/schemas/sale/sale";
 import {ReservationStatus} from "../../database/schemas/reservation/reservation";
-import {computePaymentPlanRemainingBalance} from "../../database/schemas/paymentPlan/paymentPlan";
-import type {MoneyInput} from "armonia/src/modules/core/helpers/money";
+import {computePaymentPlanPaid, computePaymentPlanRemainingBalance} from "../../database/schemas/paymentPlan/paymentPlan";
+import {DEFAULT_DECIMAL_PLACES, type MoneyInput, roundToCurrency, subtractMoney, toMinor} from "armonia/src/modules/core/helpers/money";
 import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
 import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
@@ -25,7 +25,7 @@ const UNIT_POPULATE = [
         path: "unit",
         populate: [
             {path: "unitType", select: "name icon"},
-            {path: "priceCurrency", select: "name symbol abbreviation"},
+            {path: "priceCurrency", select: "name symbol abbreviation decimalPlaces"},
             {
                 path: "floor",
                 populate: {
@@ -51,7 +51,7 @@ export const CONTRACTS_HUB_SALE_POPULATE = [
     {path: "buyer", select: "name surname phoneNumber username"},
     {path: "soldBy", select: "name surname"},
     {path: "purchaseContract", select: "fileName metadata createdAt"},
-    {path: "saleCurrency", select: "name symbol abbreviation"},
+    {path: "saleCurrency", select: "name symbol abbreviation decimalPlaces"},
     {
         path: "paymentPlan",
         select: "totalAmount downPayment downPaymentPaid remainingBalance installments status",
@@ -99,15 +99,10 @@ function mapUnitLocation(unit: unknown): Pick<ContractRegistryRow, "project" | "
 
 function reservationPaymentStatus(reservation: {
     paid?: boolean;
-    depositAmount?: unknown;
+    depositAmount?: MoneyInput;
 }): ContractPaymentStatus {
-    const paid = reservation.paid === true;
-    const deposit =
-        reservation.depositAmount != null
-            ? parseFloat(String(reservation.depositAmount))
-            : 0;
-    if (paid) return "ok";
-    if (deposit > 0) return "partially";
+    if (reservation.paid === true) return "ok";
+    if (toMinor(reservation.depositAmount) > 0n) return "partially";
     return "no_payments";
 }
 
@@ -127,15 +122,9 @@ function salePaymentStatus(sale: {
     const remaining = computePaymentPlanRemainingBalance(plan);
     if (remaining <= 0) return "ok";
 
-    const downPayment =
-        plan.downPayment != null ? parseFloat(String(plan.downPayment)) : 0;
-    const installmentPaid = (plan.installments ?? []).some((inst) => {
-        const raw = inst.paidAmount;
-        const paid = raw != null ? parseFloat(String(raw)) : 0;
-        return paid > 0;
-    });
+    const installmentPaid = (plan.installments ?? []).some((inst) => toMinor(inst.paidAmount) > 0n);
 
-    if (plan.downPaymentPaid || installmentPaid || downPayment > 0) return "partially";
+    if (plan.downPaymentPaid || installmentPaid || toMinor(plan.downPayment) > 0n) return "partially";
     return "no_payments";
 }
 
@@ -218,10 +207,10 @@ function computeClientMoney(
 
         if (plan) {
             const totalAmount = decimalToNumber(plan.totalAmount as never) ?? finalPrice ?? 0;
-            const remaining = computePaymentPlanRemainingBalance(plan);
+            // What was paid, read from the payments: total − remaining would drop the contract interest (TD-B134).
             return {
-                paid: Math.max(0, totalAmount - remaining),
-                remaining,
+                paid: computePaymentPlanPaid(plan),
+                remaining: computePaymentPlanRemainingBalance(plan),
                 unitValue: finalPrice ?? totalAmount,
                 currency,
             };
@@ -231,23 +220,23 @@ function computeClientMoney(
     }
 
     if (reservation) {
-        const unit = reservation.unit as {price?: unknown; priceCurrency?: unknown} | undefined;
-        const unitPrice = unit?.price != null ? parseFloat(String(unit.price)) : undefined;
-        const deposit =
-            reservation.depositAmount != null
-                ? parseFloat(String(reservation.depositAmount))
-                : 0;
-        const paid = reservation.paid === true;
+        const unit = reservation.unit as {price?: MoneyInput; priceCurrency?: unknown} | undefined;
         const currency = mapSnippet<CurrencySimple>()(unit?.priceCurrency as object | undefined, CurrencySimpleSnippet);
-
-        let remaining: number | undefined;
-        if (unitPrice != null && Number.isFinite(unitPrice)) {
-            remaining = paid ? 0 : Math.max(0, unitPrice - deposit);
+        const decimals = currency?.decimalPlaces ?? DEFAULT_DECIMAL_PLACES;
+        const unitPrice = unit?.price != null ? roundToCurrency(unit.price, decimals) : undefined;
+        // D127: a reservation's paid is its deposit once paid, else nothing; what remains is the price less that.
+        if (reservation.paid !== true) {
+            return {paid: 0, remaining: unitPrice, unitValue: unitPrice, currency};
         }
-
+        // A deposit in another currency than the price is never subtracted from it (GLB-08): no paid / remaining then.
+        const depositCurrency = reservation.depositCurrency != null ? String(reservation.depositCurrency) : undefined;
+        if (depositCurrency && currency && depositCurrency !== currency._id) {
+            return {unitValue: unitPrice, currency};
+        }
+        const deposit = roundToCurrency(reservation.depositAmount as MoneyInput, decimals);
         return {
-            paid: paid ? unitPrice ?? deposit : deposit,
-            remaining,
+            paid: deposit,
+            remaining: unitPrice != null ? Math.max(0, subtractMoney(unitPrice, deposit, decimals)) : undefined,
             unitValue: unitPrice,
             currency,
         };

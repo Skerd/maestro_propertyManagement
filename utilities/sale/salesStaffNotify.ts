@@ -1,5 +1,6 @@
 import {ObjectId} from "mongodb";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {filterUnmutedReceivers} from "@coreModule/domain/notifications/notificationDomainService";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {propertyManagementConfigService} from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig.service";
 import {sendSalesStaffAlertMail} from "@propertyManagement/utilities/emails/staffAlertNotifiers";
@@ -24,7 +25,8 @@ const logger = getLogger("sales_staff_notify");
  * Sales & handover → Notifications (PropertyManagementConfig.notifyOnSales / notifyOnReservations).
  * An expired reservation also alerts the agent who made it (D112).
  *
- * Best-effort: never throws, so a failing alert cannot break the sale or reservation.
+ * Best-effort: never throws, so a failing alert cannot break the sale or reservation. A watcher who turned the
+ * notification type off (D117) gets neither the in-app notice nor the email.
  * Callers schedule them with core `runAfterCommit`, so a rolled-back request alerts nobody.
  */
 
@@ -106,6 +108,12 @@ async function namesById(ids: (string | undefined)[]): Promise<Map<string, strin
     return out;
 }
 
+/** The recipients who have not turned this notification type off (D117): one preference covers the notice and its email. */
+async function withoutMuted(recipients: UserLite[], companyId: ObjectId, code: string): Promise<UserLite[]> {
+    const keep = new Set(await filterUnmutedReceivers(recipients.map(r => r._id.toString()), companyId, code));
+    return recipients.filter(r => keep.has(r._id.toString()));
+}
+
 async function emailEach(recipients: UserLite[], send: (r: UserLite) => Promise<void>, label: string): Promise<void> {
     await Promise.all(
         recipients
@@ -143,7 +151,7 @@ export async function notifySalesWatchers(input: NotifySalesWatchersInput): Prom
             },
         });
 
-        await emailEach(recipients, r => sendSalesStaffAlertMail({
+        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.SALE_CREATED_STAFF), r => sendSalesStaffAlertMail({
             kind: "sale_created",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
@@ -203,7 +211,7 @@ export async function notifyReservationWatchers(input: NotifyReservationWatchers
             },
         });
 
-        await emailEach(recipients, r => sendSalesStaffAlertMail({
+        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_CREATED_STAFF), r => sendSalesStaffAlertMail({
             kind: "reservation_created",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
@@ -288,7 +296,7 @@ export async function notifyReservationExpired(input: NotifyReservationExpiredIn
             },
         });
 
-        await emailEach(recipients, r => sendSalesStaffAlertMail({
+        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_EXPIRED), r => sendSalesStaffAlertMail({
             kind: "reservation_expired",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,

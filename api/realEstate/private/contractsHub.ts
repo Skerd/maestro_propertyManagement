@@ -71,6 +71,8 @@ const PLAN = "paymentplans";
 /** Field-level read (SEC-09): where each contract row field comes from, per source record. */
 const RESERVATION_CONTRACT_SOURCES: RowFieldSources<ContractRegistryRow> = {
     contractNumber: [[RES, "name"]],
+    status: [[RES, "status"]],
+    paymentStatus: [[RES, "paid"], [RES, "depositAmount"]],
     client: [[RES, "client"]],
     unit: [[RES, "unit"]],
     project: [[RES, "unit"]],
@@ -81,6 +83,8 @@ const RESERVATION_CONTRACT_SOURCES: RowFieldSources<ContractRegistryRow> = {
 
 const SALE_CONTRACT_SOURCES: RowFieldSources<ContractRegistryRow> = {
     contractNumber: [[SALE, "name"]],
+    contractType: [[SALE, "paymentType"]],
+    paymentStatus: [[SALE, "paymentType"], [SALE, "paymentPlan"], [PLAN, "downPayment"], [PLAN, "downPaymentPaid"], [PLAN, "installments"]],
     client: [[SALE, "buyer"]],
     unit: [[SALE, "unit"]],
     project: [[SALE, "unit"]],
@@ -101,8 +105,8 @@ const RESERVATION_CLIENT_SOURCES: RowFieldSources<ClientRegistryRow> = {
     surface: [[RES, "unit"], [UNIT, "netArea"], [UNIT, "area"]],
     unitValue: [[RES, "unit"], [UNIT, "price"]],
     currency: [[RES, "unit"], [UNIT, "priceCurrency"]],
-    paid: [[RES, "unit"], [UNIT, "price"], [RES, "depositAmount"], [RES, "paid"]],
-    remaining: [[RES, "unit"], [UNIT, "price"], [RES, "depositAmount"], [RES, "paid"]],
+    paid: [[RES, "unit"], [UNIT, "price"], [UNIT, "priceCurrency"], [RES, "depositAmount"], [RES, "depositCurrency"], [RES, "paid"]],
+    remaining: [[RES, "unit"], [UNIT, "price"], [UNIT, "priceCurrency"], [RES, "depositAmount"], [RES, "depositCurrency"], [RES, "paid"]],
     bookingDate: [[RES, "reservationDate"]],
     agent: [[RES, "reservedBy"]],
 };
@@ -214,7 +218,8 @@ async function listContracts(
             status: {$ne: ReservationStatus.CONVERTED},
         };
         if (unitIds) reservationMatch.unit = {$in: unitIds};
-        if (status) reservationMatch.status = status;
+        // A status the caller may not read is no filter (SEC-09), like the hidden date filter below.
+        if (status && read(RES, "status")) reservationMatch.status = status;
 
         const reservations = await reservationService.findForContractsHub(reservationMatch);
 
@@ -241,8 +246,11 @@ async function listContracts(
             company: companyId,
         };
         if (unitIds) saleMatch.unit = {$in: unitIds};
-        if (contractType === "cash_sale") saleMatch.paymentType = SalePaymentType.CASH;
-        if (contractType === "payment_plan_sale") saleMatch.paymentType = SalePaymentType.PAYMENT_PLAN;
+        // A sale's type is its payment type: a caller who may not read that gets no type filter (SEC-09).
+        if (read(SALE, "paymentType")) {
+            if (contractType === "cash_sale") saleMatch.paymentType = SalePaymentType.CASH;
+            if (contractType === "payment_plan_sale") saleMatch.paymentType = SalePaymentType.PAYMENT_PLAN;
+        }
 
         const sales = await saleService.findForContractsHub(saleMatch);
 

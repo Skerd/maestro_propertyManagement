@@ -37,6 +37,9 @@ import {edificeService} from "@propertyManagement/database/schemas/edifice/edifi
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
+import {computeUnitCostSubtotal} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
+import {decimalToNumber, nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
+import {minorToNumber, subtractMoney, sumMoney, toMinor} from "armonia/src/modules/core/helpers/money";
 export const basePath = "/api/realEstate/roi";
 export const router   = Router();
 
@@ -152,29 +155,19 @@ router.post(
 
         const matchedUnitIds = units.map((u: any) => u._id);
 
-        // ── Aggregate costs per unit ──────────────────────────────────────────────
-        const costAgg = costsReadable && matchedUnitIds.length > 0 ? await unitCostService.aggregate([
-            {$match: {unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null}},
-            {$unwind: {path: "$expenditureItems", preserveNullAndEmptyArrays: true}},
-            {
-                $group: {
-                    _id: "$unit",
-                    totalCost: {
-                        $sum: {
-                            $cond: [
-                                {$and: [{$ifNull: ["$expenditureItems", false]}, {$gt: ["$expenditureItems.pricePerUnit", 0]}]},
-                                {$multiply: ["$expenditureItems.amount", {$toDouble: "$expenditureItems.pricePerUnit"}]},
-                                {$toDouble: {$ifNull: ["$totalAmount", 0]}},
-                            ],
-                        },
-                    },
-                    currencySymbol: {$first: "$currency"},
-                },
-            },
-        ]) : [];
-        const costByUnit: Record<string, number> = {};
-        for (const row of costAgg) {
-            costByUnit[row._id.toString()] = row.totalCost ?? 0;
+        // ── Costs per unit: quantity × unit price per expenditure row, exact (D35) ──
+        const unitCosts = costsReadable && matchedUnitIds.length > 0
+            ? await unitCostService.find(
+                {unit: {$in: matchedUnitIds}, company: companyId},
+                {logger: params.logger, languageCode, withDeleted: false},
+                [],
+                "unit expenditureItems",
+            )
+            : [];
+        const costMinorByUnit = new Map<string, bigint>();
+        for (const cost of unitCosts) {
+            const uid = String(nestedEntityToRef(cost.unit));
+            costMinorByUnit.set(uid, (costMinorByUnit.get(uid) ?? 0n) + toMinor(computeUnitCostSubtotal(cost)));
         }
 
         // ── Fetch sales for sold units ─────────────────────────────────────────────
@@ -185,7 +178,7 @@ router.post(
         for (const sale of sales as any[]) {
             const uid = (sale.unit as any)?.toString() ?? sale.unit.toString();
             saleByUnit[uid] = {
-                price:  sale.finalPrice ? parseFloat(sale.finalPrice.toString()) : 0,
+                price:  decimalToNumber(sale.finalPrice) ?? 0,
                 symbol: saleCurrencyReadable ? sale.saleCurrency?.symbol : undefined,
             };
         }
@@ -198,7 +191,7 @@ router.post(
         for (const lease of leases as any[]) {
             const uid = (lease.unit as any)?.toString() ?? lease.unit.toString();
             rentByUnit[uid] = {
-                monthly: lease.monthlyRent ? parseFloat(lease.monthlyRent.toString()) : 0,
+                monthly: decimalToNumber(lease.monthlyRent) ?? 0,
                 symbol:  rentCurrencyReadable ? lease.rentCurrency?.symbol : undefined,
             };
         }
@@ -207,12 +200,12 @@ router.post(
         const unitBreakdowns: RoiUnitBreakdown[] = units.map((u: any) => {
             const uid         = u._id.toString();
             const unitCurrencySymbol = unitCurrencyReadable ? u.priceCurrency?.symbol : undefined;
-            const costs       = costByUnit[uid] ?? 0;
+            const costs       = minorToNumber(costMinorByUnit.get(uid) ?? 0n);
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
             const salePrice   = sale?.price;
             const monthlyRent = rent?.monthly;
-            const netProfit   = salePrice !== undefined ? salePrice - costs : undefined;
+            const netProfit   = salePrice !== undefined ? subtractMoney(salePrice, costs) : undefined;
             const roiPercent  = netProfit !== undefined && costs > 0 ? (netProfit / costs) * 100 : undefined;
             const annualGrossYield = monthlyRent && salePrice && salePrice > 0
                 ? ((monthlyRent * 12) / salePrice) * 100
@@ -251,9 +244,9 @@ router.post(
                 unitBreakdowns,
             );
 
-            const totalRevenue = unitBreakdowns.reduce((s, u) => s + (u.salePrice ?? 0), 0);
-            const totalCosts   = unitBreakdowns.reduce((s, u) => s + u.totalCosts, 0);
-            const netProfit    = totalRevenue - totalCosts;
+            const totalRevenue = sumMoney(unitBreakdowns.map((u) => u.salePrice ?? 0));
+            const totalCosts   = sumMoney(unitBreakdowns.map((u) => u.totalCosts));
+            const netProfit    = subtractMoney(totalRevenue, totalCosts);
             const roiPercent   = totalCosts > 0 ? (netProfit / totalCosts) * 100 : 0;
             const withRoi      = unitBreakdowns.filter(u => u.roiPercent !== undefined);
             const avgRoi       = withRoi.length

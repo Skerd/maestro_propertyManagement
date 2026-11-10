@@ -335,7 +335,10 @@ const constructionProgressEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
-        permissions: {readAny: ["project", "edifice", "phase", "progressPercent", "updateDate", "expectedCompletionDate", "title", "description"]},
+        permissions: {
+            readAny: ["project", "edifice", "phase", "progressPercent", "updateDate", "expectedCompletionDate", "title", "description"],
+            writeAny: ["project", "edifice", "phase", "progressPercent", "updateDate", "expectedCompletionDate", "title", "description"],
+        },
         children: [
             {
                 render: "#FormGrid",
@@ -456,6 +459,7 @@ const constructionProgressEditFormNodes: ViewConfig["nodes"] = [
     },
     {
         render: "div",
+        permissions: {readAny: ["photos"], writeAny: ["photos"]},
         props: {
             className: "col-span-full w-full",
             skipRenderWhenFormExtraNotTruthy: "enableLocalFileMultipart",

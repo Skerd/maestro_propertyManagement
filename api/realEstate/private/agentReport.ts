@@ -1,10 +1,13 @@
 import {Router} from "express";
-import {ObjectId} from "mongodb";
+import {Decimal128, ObjectId} from "mongodb";
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
-import Sale, {SalePaymentType} from "../../../database/schemas/sale/sale";
+import {SalePaymentType} from "../../../database/schemas/sale/sale";
+import {userService} from "@coreModule/database/schemas/user/user.service";
+import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
+import {localDayInterval} from "@coreModule/utilities/time/timeWindows";
 import {CommissionStatus} from "../../../database/schemas/commission/commission";
 import {ReservationStatus} from "../../../database/schemas/reservation/reservation";
 import {unitService} from "../../../database/schemas/unit/unit.service";
@@ -24,6 +27,8 @@ export const basePath = "/api/realEstate/agentReport";
 
 const router = Router();
 export {router};
+
+const ZERO = Decimal128.fromString("0");
 
 router.post(
     "",
@@ -54,13 +59,12 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     const commissionTotals = commissionsByAgent && read("commissions", "amount") && read("commissions", "status");
     const commissionRates = commissionsByAgent && read("commissions", "ratePercent");
 
-    const from = new Date(dateFrom);
-    const to   = new Date(dateTo);
-    // Set `to` to end-of-day
-    to.setHours(23, 59, 59, 999);
+    // From the start of the first day to the end of the last, in the company's timezone (GLB-09).
+    const from = localDayInterval(dateFrom, params.companyTimeZone).start;
+    const to   = localDayInterval(dateTo, params.companyTimeZone).end;
 
     const companyId = company._id;
-    const dateFilter = {createdAt: {$gte: from, $lte: to}};
+    const dateFilter = {createdAt: {$gte: from, $lt: to}};
     const baseMatch: Record<string, unknown> = {company: companyId, ...dateFilter, deletedAt: null};
 
     const agentObjectIds = (agentIds ?? [])
@@ -120,13 +124,14 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     if (agentObjectIds.length > 0) {
         commMatch.agent = {$in: agentObjectIds};
     }
-    const commAgg: {_id: ObjectId; paidTotal: number; pendingTotal: number; avgRate: number}[] = commissionsByAgent
+    // Amounts are summed as Decimal128 in the database, exactly (D35).
+    const commAgg: {_id: ObjectId; paidTotal: Decimal128; pendingTotal: Decimal128; avgRate: number}[] = commissionsByAgent
         ? await commissionService.aggregate([
             {$match: commMatch},
             {$group: {
                 _id:          "$agent",
-                paidTotal:    {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PAID]},    {$toDouble: "$amount"}, 0]}},
-                pendingTotal: {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PENDING]}, {$toDouble: "$amount"}, 0]}},
+                paidTotal:    {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PAID]},    "$amount", ZERO]}},
+                pendingTotal: {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PENDING]}, "$amount", ZERO]}},
                 avgRate:      {$avg: "$ratePercent"},
             }},
         ])
@@ -141,17 +146,19 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
 
     const lookupAgentIds = [...agentIdSet].map(id => new ObjectId(id));
 
-    // Populate user names via aggregate $lookup from User
-    const userRows: {_id: ObjectId; name?: string; surname?: string}[] = lookupAgentIds.length > 0
-        ? await Sale.db.collection("users").find(
+    // Agent names through the user service (DB-03), members of this company only.
+    const userRows = lookupAgentIds.length > 0
+        ? await userService.find(
             {_id: {$in: lookupAgentIds}, "roles.company": companyId},
-            {projection: {_id: 1, name: 1, surname: 1}},
-        ).toArray() as any
+            {logger, languageCode},
+            [],
+            "name surname",
+        )
         : [];
 
     const userMap = new Map<string, {_id: string; name?: string; surname?: string}>();
     for (const u of userRows) {
-        userMap.set(u._id.toString(), {_id: u._id.toString(), name: (u as any).name, surname: (u as any).surname});
+        userMap.set(u._id.toString(), {_id: u._id.toString(), name: u.name, surname: u.surname});
     }
 
     // Index aggregation results by agent ID
@@ -180,8 +187,8 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
             totalReservations,
             convertedReservations,
             conversionRate,
-            totalCommissionsPaid:    commissionTotals ? Math.round((comm?.paidTotal ?? 0) * 100) / 100 : 0,
-            totalCommissionsPending: commissionTotals ? Math.round((comm?.pendingTotal ?? 0) * 100) / 100 : 0,
+            totalCommissionsPaid:    commissionTotals ? decimalToNumber(comm?.paidTotal) ?? 0 : 0,
+            totalCommissionsPending: commissionTotals ? decimalToNumber(comm?.pendingTotal) ?? 0 : 0,
             averageCommissionRate:   commissionRates ? Math.round((comm?.avgRate ?? 0) * 100) / 100 : 0,
         });
     }

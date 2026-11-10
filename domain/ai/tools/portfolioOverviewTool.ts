@@ -30,8 +30,8 @@ import {leaseService} from "@propertyManagement/database/schemas/lease/lease.ser
 import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
 import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
 import {InstallmentStatus} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan";
-import {companyObjectId, companyScope, companyToday, toAmount} from "./assistantToolHelpers";
-import {roundToCurrency, subtractMoney} from "armonia/src/modules/core/helpers/money";
+import {companyObjectId, companyScope, GROUP_CURRENCY_LOOKUP_STAGE, moneyOfCurrencyGroup} from "./assistantToolHelpers";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 
 /** Default reporting window for the "recent activity" figures. */
 const DEFAULT_WINDOW_DAYS = 30;
@@ -85,23 +85,23 @@ async function salesInWindow(
     const rows: any[] = await saleService.aggregate(
         [
             {$match: {company: companyObjectId(ctx), deletedAt: null, saleDate: {$gte: sinceDay}}},
-            {$group: {_id: "$saleCurrency", amount: {$sum: {$toDouble: "$finalPrice"}}, count: {$sum: 1}}},
-            {$lookup: {from: "currencies", localField: "_id", foreignField: "_id", as: "currency"}}
+            {$group: {_id: "$saleCurrency", amount: {$sum: {$toDecimal: "$finalPrice"}}, count: {$sum: 1}}},
+            GROUP_CURRENCY_LOOKUP_STAGE
         ],
         {logger: ctx.logger}
     );
 
     return {
         count: rows.reduce((sum, row) => sum + (row.count ?? 0), 0),
-        revenue: rows.map((row) => ({
-            currency: row.currency?.[0]?.abbreviation ?? row.currency?.[0]?.symbol ?? null,
-            amount: roundToCurrency(toAmount(row.amount))
-        }))
+        revenue: rows.map((row) => moneyOfCurrencyGroup(row, row.amount))
     };
 }
 
-/** Overdue sale instalments: how many, and how much is still outstanding. */
-async function installmentArrears(today: string, ctx: AssistantToolContext): Promise<{count: number; outstanding: number}> {
+/** Overdue sale instalments: how many, and how much is still outstanding per sale currency. */
+async function installmentArrears(
+    today: string,
+    ctx: AssistantToolContext
+): Promise<{count: number; outstanding: Array<{currency: string | null; amount: number}>}> {
     const rows: any[] = await paymentPlanService.aggregate(
         [
             {$match: {company: companyObjectId(ctx), deletedAt: null}},
@@ -114,22 +114,30 @@ async function installmentArrears(today: string, ctx: AssistantToolContext): Pro
                     "installments.dueDate": {$lt: today}
                 }
             },
+            // A plan stores no currency: its amounts are in its sale's currency.
+            {$lookup: {from: "sales", localField: "sale", foreignField: "_id", as: "planSale"}},
             {
                 $group: {
-                    _id: null,
+                    _id: {$arrayElemAt: ["$planSale.saleCurrency", 0]},
                     count: {$sum: 1},
-                    due: {$sum: {$toDouble: "$installments.amount"}},
-                    paid: {$sum: {$toDouble: {$ifNull: ["$installments.paidAmount", 0]}}}
+                    outstanding: {
+                        $sum: {
+                            $subtract: [
+                                {$toDecimal: {$ifNull: ["$installments.amount", 0]}},
+                                {$toDecimal: {$ifNull: ["$installments.paidAmount", 0]}}
+                            ]
+                        }
+                    }
                 }
-            }
+            },
+            GROUP_CURRENCY_LOOKUP_STAGE
         ],
         {logger: ctx.logger}
     );
 
-    const row = rows[0] ?? {count: 0, due: 0, paid: 0};
     return {
-        count: row.count ?? 0,
-        outstanding: subtractMoney(toAmount(row.due), toAmount(row.paid))
+        count: rows.reduce((sum, row) => sum + (row.count ?? 0), 0),
+        outstanding: rows.map((row) => moneyOfCurrencyGroup(row, row.outstanding))
     };
 }
 
@@ -139,7 +147,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const now = new Date();
     const since = new Date(now.getTime() - windowDays * MS_PER_DAY);
     // Sale and due days are local `YYYY-MM-DD` strings (D115), compared with the company's today.
-    const today = await companyToday(ctx);
+    const today = await companyTodayOf(ctx.companyId);
 
     const scope = companyScope(ctx);
     const countOptions = {logger: ctx.logger, withDeleted: false};
@@ -189,6 +197,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         },
         money: {
             overdueInstallments: arrears.count,
+            // Grouped by currency; do not add these together.
             overdueInstallmentsOutstanding: arrears.outstanding,
             overdueRentPayments: overdueRent,
         },

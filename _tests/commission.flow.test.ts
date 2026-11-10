@@ -3,6 +3,13 @@ import mongoose from "mongoose";
 import {ObjectId} from "mongodb";
 import {connectTestDatabase, disconnectTestDatabase} from "@coreModule/_tests/testDatabase";
 
+const mocks = vi.hoisted(() => ({emit: vi.fn()}));
+
+// Notices are recorded, not delivered.
+vi.mock("@coreModule/domain/notifications/notificationEventBus", async (importOriginal) => ({
+    ...await importOriginal<object>(),
+    emitNotificationEvent: mocks.emit,
+}));
 // The client's "reservation paid" email is not what these tests are about.
 vi.mock("@propertyManagement/utilities/database/reservation/reservationClientEmailDispatch", async (importOriginal) => ({
     ...await importOriginal<object>(),
@@ -15,6 +22,10 @@ import {CommissionActions} from "@propertyManagement/database/schemas/commission
 import Commission from "@propertyManagement/database/schemas/commission/commission";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import {actor, asTenant, clearDatabase, decString, seedCurrency, seedReservation, seedUnit, seedUser} from "./sale.fixtures";
+import Role from "@coreModule/database/schemas/role/role";
+import RolePermission from "@coreModule/database/schemas/rolePermission/rolePermission";
+import User from "@coreModule/database/schemas/user/user";
+import {actionPermissionTag} from "@coreModule/utilities/security/actionPermissions";
 
 const companyId = new ObjectId();
 const asCompany = asTenant(companyId);
@@ -35,6 +46,7 @@ let client: ObjectId;
 
 beforeEach(() => asCompany(async () => {
     await clearDatabase();
+    mocks.emit.mockReset();
     chf = await seedCurrency(companyId, "CHF");
     client = await seedUser(companyId);
 }));
@@ -109,5 +121,33 @@ describe("a reservation commission", {timeout: 60000}, () => {
             {agentId: agent, ratePercent: 33.34, amount: 50.01}, {agentId: agent, ratePercent: 33.33, amount: 49.99}, {agentId: agent, ratePercent: 33.33, amount: 50},
         ]});
         expect((await commissionOf(reservation)).splits!.map((split) => decString(split.amount))).toEqual(["50.01", "49.99", "50.00"]);
+    }));
+});
+
+describe("asking for a commission payment's approval (TD-B149)", {timeout: 60000}, () => {
+    it("tells the users who may approve it, not the one who asked", () => asCompany(async () => {
+        const permission = new ObjectId();
+        const [adminRole, approverRole, clerkRole] = [new ObjectId(), new ObjectId(), new ObjectId()];
+        const [admin, approver, clerk] = [new ObjectId(), new ObjectId(), new ObjectId()];
+        const member = (_id: ObjectId, role: ObjectId) => ({
+            _id, username: `${_id.toString()}@test.local`, companies: [companyId], roles: [{company: companyId, active: "active", roles: [role]}],
+        });
+        await RolePermission.collection.insertOne({_id: permission, tag: actionPermissionTag(Commission, "approvePayment", "self")!, group: "Commissions"});
+        await Role.collection.insertMany([
+            {_id: adminRole, company: companyId, slug: "admin", isAdmin: true, permissions: [], deletedAt: null},
+            {_id: approverRole, company: companyId, slug: "approver", isAdmin: false, permissions: [permission], deletedAt: null},
+            {_id: clerkRole, company: companyId, slug: "clerk", isAdmin: false, permissions: [], deletedAt: null},
+        ]);
+        await User.collection.insertMany([
+            member(admin, adminRole), member(approver, approverRole), member(clerk, clerkRole), member(new ObjectId(params.actionUserCtx.userId), adminRole),
+        ]);
+        const reservation = await seedUnpaidReservation();
+        await run("pay", reservation);
+
+        await run("requestApproval", (await commissionOf(reservation))._id);
+
+        const asked = mocks.emit.mock.calls.filter(([code]) => code === "COMMISSION_PENDING_APPROVAL");
+        expect(asked).toHaveLength(1);
+        expect([...asked[0][1].receiverIds].sort()).toEqual([admin, approver].map(String).sort());
     }));
 });

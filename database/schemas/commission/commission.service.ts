@@ -10,7 +10,7 @@ export class CommissionService extends BaseCrudService<ICommission, typeof Commi
     /** Commissions with their agent, currency and sale, for the ERP export. */
     findForErpExport(filter: FilterQuery<ICommission>) {
         return this.model.find(filter)
-            .select("name agent amount currency status sale createdAt")
+            .select("agent amount currency status sale createdAt")
             .populate("agent", "name surname")
             .populate("currency", "abbreviation symbol")
             .populate("sale", "name")

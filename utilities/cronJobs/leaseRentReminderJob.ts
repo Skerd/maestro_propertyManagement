@@ -17,8 +17,8 @@ import {
     buildLeaseRentEmailPayload,
     dispatchLeaseClientEmail,
 } from "@propertyManagement/utilities/database/lease/leaseClientEmailDispatch";
-import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
-import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
+import {addLocalDays} from "@coreModule/utilities/time/timeWindows";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import {
     isSettledRemaining,
     OPEN_RENT_STATUSES,
@@ -68,7 +68,7 @@ function companyFromLease(lease: {
 export async function runLeaseRentReminders(company: ObjectId, parentLogger?: serverLogger, clock: LeaseRentReminderClock = {}): Promise<void> {
     const logger = getLogger("lease_rent_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
-    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
+    const today = await companyTodayOf(company, {now: clock.now});
 
     const baseFilter = {
         company,

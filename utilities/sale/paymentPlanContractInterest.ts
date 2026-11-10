@@ -1,4 +1,4 @@
-import {allocatePlanInterest} from "armonia/src/modules/propertyManagement/helpers/paymentPlanInterest";
+import {allocatePlanInterest, type PlanScheduleErrorCode} from "armonia/src/modules/propertyManagement/helpers/paymentPlanInterest";
 import {roundToCurrency} from "armonia/src/modules/core/helpers/money";
 
 /**
@@ -20,7 +20,7 @@ export type PaymentPlanInstallmentScheduleComputed = PaymentPlanInstallmentSched
 
 export type AllocatePaymentPlanContractInterestResult =
     | { ok: true; code: undefined, totalContractInterest: number; planDays: number; installments: PaymentPlanInstallmentScheduleComputed[] }
-    | { ok: false; code: "invalid_schedule" | "installment_too_small" | "principal_residual" };
+    | { ok: false; code: PlanScheduleErrorCode };
 
 /**
  * Recomputes principal/interest per installment (in due-date order) from financed principal, annual %, plan
@@ -32,6 +32,8 @@ export function allocatePaymentPlanContractInterest(params: {
     planStartDate: string;
     planEndDate: string;
     rows: PaymentPlanInstallmentScheduleInput[];
+    /** The sale currency's decimal places. */
+    decimals?: number;
 }): AllocatePaymentPlanContractInterestResult {
     const result = allocatePlanInterest(params);
     if (result.ok === false) return {ok: false, code: result.code};
@@ -45,8 +47,9 @@ export function allocatePaymentPlanContractInterest(params: {
 }
 
 /** The exception key a refused schedule answers with. */
-export function paymentPlanScheduleErrorKey(code: "invalid_schedule" | "installment_too_small" | "principal_residual"): string {
+export function paymentPlanScheduleErrorKey(code: PlanScheduleErrorCode): string {
     if (code === "installment_too_small") return "payment_plan_installment_too_small";
+    if (code === "installment_exceeds_owed") return "payment_plan_installment_exceeds_owed";
     if (code === "principal_residual") return "payment_plan_principal_not_covered";
     return "payment_plan_schedule_invalid";
 }
@@ -55,7 +58,8 @@ export function parseIsoDatePrefix(v: unknown): string {
     return String(v ?? "").trim().split("T")[0];
 }
 
-export function parseMoneyInput(v: unknown): number {
+/** A posted amount rounded once to the sale currency's `decimals` (D35); not a number reads as 0. */
+export function parseMoneyInput(v: unknown, decimals?: number): number {
     const n = typeof v === "number" ? v : parseFloat(String(v ?? "0"));
-    return Number.isFinite(n) ? roundToCurrency(n) : 0;
+    return Number.isFinite(n) ? roundToCurrency(n, decimals) : 0;
 }

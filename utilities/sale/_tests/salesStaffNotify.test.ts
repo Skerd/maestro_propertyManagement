@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
     getNotificationRecipients: vi.fn(),
     emit: vi.fn(),
     sendMail: vi.fn(),
+    /** Users who turned the notice off (D117). */
+    muted: new Set<string>(),
 }));
 
 vi.mock("@coreModule/database/schemas/user/user", () => ({
@@ -26,6 +28,9 @@ vi.mock("@coreModule/database/schemas/user/user", () => ({
     },
 }));
 vi.mock("@coreModule/domain/notifications/notificationEventBus", () => ({emitNotificationEvent: mocks.emit}));
+vi.mock("@coreModule/domain/notifications/notificationDomainService", () => ({
+    filterUnmutedReceivers: async (ids: string[]) => ids.filter(id => !mocks.muted.has(id)),
+}));
 vi.mock("@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig.service", () => ({
     propertyManagementConfigService: {getNotificationRecipients: mocks.getNotificationRecipients},
 }));
@@ -55,6 +60,7 @@ const saleInput = {
 describe("notifySalesWatchers", () => {
     beforeEach(() => {
         mocks.users = [];
+        mocks.muted.clear();
         mocks.getNotificationRecipients.mockReset();
         mocks.emit.mockReset();
         mocks.sendMail.mockReset().mockResolvedValue(undefined);
@@ -90,6 +96,18 @@ describe("notifySalesWatchers", () => {
         expect(mocks.sendMail).toHaveBeenCalledTimes(2);
         expect(mocks.sendMail.mock.calls.map(([m]) => m.email).sort()).toEqual([a.username, b.username].sort());
         expect(mocks.sendMail.mock.calls[0][0]).toMatchObject({kind: "sale_created", pendingApproval: true, buyerName: "Buyer One"});
+    });
+
+    it("does not email a watcher who turned the notice off; core skips their in-app notice (D117)", async () => {
+        const a = user();
+        const b = user();
+        mocks.users = [a, b];
+        mocks.muted.add(b._id.toString());
+        mocks.getNotificationRecipients.mockResolvedValue({notifyOnSales: [a, b].map(u => u._id.toString()), notifyOnReservations: []});
+
+        await expect(notifySalesWatchers(saleInput)).resolves.toBe(2);
+        expect(mocks.emit.mock.calls[0][1].receiverIds.sort()).toEqual([a, b].map(u => u._id.toString()).sort());
+        expect(mocks.sendMail.mock.calls.map(([m]) => m.email)).toEqual([a.username]);
     });
 
     it("keeps emailing the others when one email fails, and never throws", async () => {

@@ -15,6 +15,8 @@ import {markCommissionPaidFormSchema} from "armonia/src/modules/propertyManageme
 import type {SetCommissionSplitsForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/commission/setCommissionSplits.form.type";
 import {setCommissionSplitsFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/commission/setCommissionSplits.form.validator";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
+import {companyMemberIdsWithPermission} from "@coreModule/domain/roles/companyPermissionHolders";
+import {actionPermissionTag} from "@coreModule/utilities/security/actionPermissions";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {commissionToDTO} from "../../../utilities/mappers/commission/commissionMapper.dto";
 import Commission, {CommissionStatus} from "./commission";
@@ -142,8 +144,11 @@ export class CommissionActions {
             {session, logger, languageCode, auditUserId: actionUserCtx.userId}
         );
 
+        // Whoever may approve commission payments hears about it, not the user who just asked (TD-B149).
+        const approverIds = (await companyMemberIdsWithPermission(company._id, actionPermissionTag(Commission, "approvePayment", "self")))
+            .filter((id) => id !== String(actionUserCtx.userId));
         emitNotificationEvent(NotificationEventCodes.COMMISSION_PENDING_APPROVAL, {
-            receiverIds: [actionUserCtx.userId],
+            receiverIds: approverIds,
             payload: {
                 companyId: company._id.toString(),
                 commissionId: existing._id.toString(),

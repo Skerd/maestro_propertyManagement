@@ -10,7 +10,7 @@ import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import type {serverLogger} from "@coreModule/loggers/serverLog";
 import type {UserContext} from "@coreModule/utilities/types/types";
 import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
-import {voidPendingCommission} from "@propertyManagement/utilities/mappers/commissions/commission";
+import {voidPendingCommission} from "../commission/commission.helper";
 import {notifyReservationExpired} from "@propertyManagement/utilities/sale/salesStaffNotify";
 import type {IUnit} from "../unit/unit";
 import {unitService} from "../unit/unit.service";

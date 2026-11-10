@@ -1,6 +1,5 @@
 import type {ClientSession} from "mongodb";
 import {ObjectId} from "mongodb";
-import {isKafkaConnected} from "@coreModule/connections/connectToKafka";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import type {SaleClientEmailEvent} from "../../../kafka/types";
 import {publishSaleClientEmailEvent} from "../../../kafka/kafkaProducer";
@@ -12,7 +11,8 @@ export type DispatchSaleClientEmailInput = Omit<SaleClientEmailEvent, "eventType
 };
 
 /**
- * Resolves buyer email (username), then publishes to Kafka or sends via SMTP.
+ * Resolves buyer email (username), then publishes to Kafka, or sends via SMTP when Kafka is unavailable or the publish
+ * fails (the same path as reservation emails).
  * @returns true if an email was published/sent; false if skipped (e.g. missing buyer email).
  */
 export async function dispatchSaleClientEmail(
@@ -34,13 +34,9 @@ export async function dispatchSaleClientEmail(
         timestamp: Date.now(),
         ...rest,
     };
-    await sendSaleClientMail(event);
-
-    // if (isKafkaConnected()) {
-    //     await publishSaleClientEmailEvent(event);
-    // } else {
-    //     await SendSaleClientEmail(event);
-    // }
+    if (!(await publishSaleClientEmailEvent(event))) {
+        await sendSaleClientMail(event);
+    }
     return true;
 }
 

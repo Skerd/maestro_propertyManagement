@@ -159,8 +159,7 @@ const SaleSchema = new Schema<ISale>(
         paymentType: {
             type: SchemaTypes.String,
             enum: Object.values(SalePaymentType),
-            required: true,
-            index: true
+            required: true
         },
         buyer: {
             type: SchemaTypes.ObjectId,
@@ -181,7 +180,6 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.ObjectId,
             ref: 'User',
             required: true,
-            index: true,
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
                 refDisplayKey: ["name", "surname"],
@@ -190,7 +188,6 @@ const SaleSchema = new Schema<ISale>(
         saleDate: {
             type: SchemaTypes.String,
             required: true,
-            index: true,
             dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         saleCurrency: {
@@ -330,7 +327,6 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.ObjectId,
             ref: 'Reservation',
             required: false,
-            index: true,
             refAllowlist: ReservationSnippet
         },
         // these values are frozen from the reservation
@@ -450,7 +446,6 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.String,
             enum: Object.values(SaleApprovalStatus),
             required: false,
-            index: true,
             permissions: {
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},

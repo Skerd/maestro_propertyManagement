@@ -8,18 +8,21 @@
  * Stamps `installmentReminderEmailAt*` / `installmentOverdueNoticeEmailAt` on each installment subdocument.
  */
 
-import {Decimal128, ObjectId} from "mongodb";
+import {ObjectId} from "mongodb";
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {paymentPlanService} from "../../database/schemas/paymentPlan/paymentPlan.service";
+import {saleService} from "../../database/schemas/sale/sale.service";
+import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
+import {percentOfMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 import {PaymentPlanStatus, InstallmentStatus} from "../../database/schemas/paymentPlan/paymentPlan";
 import {
     type DispatchSaleClientEmailInput,
     dispatchSaleClientEmail,
     formatInstallmentDueDateForEmail,
 } from "@propertyManagement/utilities/database/sale/saleClientEmailDispatch";
-import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
-import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
+import {addLocalDays} from "@coreModule/utilities/time/timeWindows";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import {
     formatMoneyAmountForEmail,
     UNIT_EMAIL_POPULATE,
@@ -146,7 +149,7 @@ function buildDispatchPayload(params: {
 export async function runPaymentPlanInstallmentReminders(company: ObjectId, parentLogger?: serverLogger, clock: InstallmentReminderClock = {}): Promise<void> {
     const logger = getLogger("payment_plan_installment_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
-    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
+    const today = await companyTodayOf(company, {now: clock.now});
 
     const baseFilter = {company, status: PaymentPlanStatus.ACTIVE};
     const populate = [
@@ -263,7 +266,8 @@ async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, paren
     const logger = getLogger("payment_plan_installment_overdue_marking", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
 
-    const baseFilter = {company, status: PaymentPlanStatus.ACTIVE};
+    // A defaulted plan still runs: its later installments fall overdue too.
+    const baseFilter = {company, status: {$in: [PaymentPlanStatus.ACTIVE, PaymentPlanStatus.DEFAULTED]}};
 
     let lastId: ObjectId | undefined;
     while (true) {
@@ -285,6 +289,11 @@ async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, paren
             const graceDays = typeof plan.gracePeriodDays === "number" ? plan.gracePeriodDays : 0;
             const lateFeePercentage = typeof plan.lateFeePercentage === "number" ? plan.lateFeePercentage : 0;
             const installments = (plan.installments || []) as InstallmentLike[];
+            // The plan's money is in its sale's currency; read its decimals once, only when a fee is stamped (D35).
+            let saleDecimals: Promise<number | undefined> | undefined;
+            const decimalsOfSale = () => saleDecimals ??= saleService
+                .findOne({_id: plan.sale, company}, {logger, languageCode: lang, timeOperations: false}, [{path: "saleCurrency", select: "decimalPlaces"}], "saleCurrency")
+                .then((sale) => sale?.saleCurrency?.decimalPlaces);
 
             for (const inst of installments) {
                 if (inst.status !== InstallmentStatus.PENDING && inst.status !== InstallmentStatus.PARTIALLY_PAID) {
@@ -304,11 +313,13 @@ async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, paren
                     "installments.$[i].status": InstallmentStatus.OVERDUE,
                 };
 
+                // The late fee is a percentage of the installment's principal, exact at the sale currency's decimals.
+                // It is owed information shown beside the installment, never added to the amount due (D121).
                 if (lateFeePercentage > 0 && inst.principalAmount) {
-                    const principal = parseFloat(inst.principalAmount.toString());
-                    if (Number.isFinite(principal) && principal > 0) {
-                        const fee = (principal * lateFeePercentage) / 100;
-                        updateFields["installments.$[i].lateFeeAmount"] = Decimal128.fromString(fee.toFixed(10));
+                    const decimals = await decimalsOfSale();
+                    const fee = percentOfMinor(toMinor(inst.principalAmount, decimals), lateFeePercentage);
+                    if (fee > 0n) {
+                        updateFields["installments.$[i].lateFeeAmount"] = decimal128FromMinor(fee, decimals);
                     }
                 }
 

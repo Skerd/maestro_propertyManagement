@@ -1,21 +1,24 @@
-import {ClientSession} from "mongoose";
+/**
+ * Recording and voiding the commission a reservation or a sale earns. Reservation and sale transitions call these
+ * inside their transaction; the rate comes from the unit, else its project (BE-01: DB work beside the entity).
+ */
+import type {ClientSession} from "mongoose";
 import {Decimal128, ObjectId} from "mongodb";
-import Commission, {
-    CommissionSourceType,
-    CommissionStatus
-} from "../../../database/schemas/commission/commission";
-import {commissionService} from "../../../database/schemas/commission/commission.service";
-import {IReservation} from "../../../database/schemas/reservation/reservation";
-import {UserContext} from "@coreModule/utilities/types/types";
-import {serverLogger} from "@coreModule/loggers/serverLog";
-import {resolveCommissionRatePercent} from "./resolveCommissionRate";
-import {ISale} from "../../../database/schemas/sale/sale";
-import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
-import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
+import {CommissionSourceType, CommissionStatus} from "./commission";
+import {commissionService} from "./commission.service";
+import type {IReservation} from "../reservation/reservation";
+import type {ISale} from "../sale/sale";
+import {reservationService} from "../reservation/reservation.service";
+import {saleService} from "../sale/sale.service";
+import {unitService} from "../unit/unit.service";
+import type {UserContext} from "@coreModule/utilities/types/types";
+import type {serverLogger} from "@coreModule/loggers/serverLog";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
 import {percentOfMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+
+export type CommissionRateChannel = "sale" | "reservation";
 
 type CommissionSourceParams = {
     sourceId: ObjectId,
@@ -35,6 +38,63 @@ type RecordCommissionParams = CommissionSourceParams & {
     languageCode: string,
 }
 
+function clampRate(n: number): number {
+    if (!Number.isFinite(n)) {
+        return 0;
+    }
+    return Math.min(100, Math.max(0, n));
+}
+
+function normalizedCommissionRatePercent(raw: unknown): number | undefined {
+
+    if (raw == null) {
+        return undefined;
+    }
+    if (typeof raw === "number" && !Number.isNaN(raw)) {
+        return clampRate(raw);
+    }
+    if (typeof raw === "object" && typeof (raw as {toString?: () => string}).toString === "function") {
+        const n = parseFloat((raw as {toString: () => string}).toString());
+        if (!Number.isNaN(n)) {
+            return clampRate(n);
+        }
+    }
+    return undefined;
+}
+
+type CommissionRateSource = {saleCommissionRatePercent?: unknown, reservationCommissionRatePercent?: unknown} | null | undefined;
+
+function pickRate(unitDoc: CommissionRateSource, projectDoc: CommissionRateSource, channel: CommissionRateChannel): number | undefined {
+    const unitKey = channel === "sale" ? "saleCommissionRatePercent" : "reservationCommissionRatePercent";
+
+    const foundUnitRate = normalizedCommissionRatePercent(unitDoc?.[unitKey]);
+    if (foundUnitRate !== undefined) {
+        return foundUnitRate;
+    }
+    const foundProjectRate = normalizedCommissionRatePercent(projectDoc?.[unitKey]);
+    if (foundProjectRate !== undefined) {
+        return foundProjectRate;
+    }
+    return undefined;
+}
+
+export async function resolveCommissionRatePercent(params: { unitId: ObjectId; companyId: ObjectId; channel: CommissionRateChannel; session?: ClientSession; }): Promise<number> {
+    const {unitId, companyId, channel, session} = params;
+    const unit = await unitService.findWithProjectChain({_id: unitId, company: companyId}, session);
+
+
+    if (!unit) {
+        return 0;
+    }
+    else{
+        const project = unit.floor?.edifice?.project;
+        const resolved = pickRate(unit, project, channel);
+        if (resolved !== undefined) {
+            return resolved;
+        }
+    }
+    return 0;
+}
 export async function recordCommission({sourceId, sourceType, companyId, session, actionUserCtx, logger, languageCode}: RecordCommissionParams): Promise<void> {
 
     let foundModel: ISale | IReservation; // = undefined;
@@ -102,7 +162,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
     const currency = await currencyService.findOne({_id: nestedEntityToRef(baseCurrency), company: companyId}, {session}, undefined, "decimalPlaces");
     const decimals = currency?.decimalPlaces;
 
-    const payload: any = {
+    await commissionService.create({
         company: companyId,
         agent: baseAgent,
         recordedByActionUser: new ObjectId(actionUserCtx.userId),
@@ -115,8 +175,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
         amount: decimal128FromMinor(percentOfMinor(toMinor(baseAmount, decimals), ratePercent), decimals),
         currency: baseCurrency,
         status: CommissionStatus.PENDING
-    };
-    await commissionService.create(payload, {
+    }, {
         session,
         logger,
         languageCode,
@@ -147,7 +206,3 @@ export async function voidPendingCommission({sourceId, sourceType, companyId, se
         logger.debug?.(`Commission voided  ${sourceType} - ${sourceId}`);
     }
 }
-
-
-
-

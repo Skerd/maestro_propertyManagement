@@ -214,7 +214,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("sales")) {
         const saleFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("saleDate", range),
+            ...(read("sales", "saleDate") ? dateFilter("saleDate", range) : {}),
         };
         if (projectUnitIds) {
             saleFilter.unit = {$in: projectUnitIds};
@@ -247,7 +247,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("commissions")) {
         const commFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...instantFilter("createdAt", range, params.companyTimeZone),
+            ...(read("commissions", "createdAt") ? instantFilter("createdAt", range, params.companyTimeZone) : {}),
         };
 
         const commDocs = await commissionService.findForErpExport(commFilter);
@@ -262,7 +262,6 @@ async function erpExportHandler(
             const currency = c.currency as {abbreviation?: string; symbol?: string} | undefined;
             return {
                 id: c._id?.toString() ?? "",
-                name: String(c.name ?? ""),
                 agentName,
                 saleId: sale?._id?.toString() ?? "",
                 saleName: sale?.name ?? "",
@@ -288,6 +287,8 @@ async function erpExportHandler(
         const ppDocs = await paymentPlanService.findForErpExport(ppFilter);
 
         const rows: ErpPaymentPlanRow[] = [];
+        const canFilterByDue = read("paymentplans", "installments.dueDate");
+        const canReadNumber = read("paymentplans", "installments.installmentNumber");
         for (const pp of ppDocs as Record<string, unknown>[]) {
             const sale = pp.sale as {
                 name?: string;
@@ -297,11 +298,12 @@ async function erpExportHandler(
                 sale?.saleCurrency?.abbreviation ?? sale?.saleCurrency?.symbol ?? "";
             const saleName = sale?.name ?? "";
 
-            for (const inst of (pp.installments as Record<string, unknown>[]) ?? []) {
+            for (const [position, inst] of ((pp.installments as Record<string, unknown>[]) ?? []).entries()) {
                 const due = dayOf(inst.dueDate);
-                if (due && !inDayRange(due, range)) continue;
+                // A hidden due day is no filter, and a hidden number does not make the row id (SEC-09).
+                if (canFilterByDue && due && !inDayRange(due, range)) continue;
                 rows.push({
-                    id: `${pp._id}_${inst.installmentNumber}`,
+                    id: `${pp._id}_${canReadNumber ? inst.installmentNumber : position + 1}`,
                     name: String(pp.name ?? ""),
                     saleName,
                     installmentNumber: Number(inst.installmentNumber),
@@ -321,7 +323,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("rentalPayments")) {
         const rpFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("dueDate", range),
+            ...(read("rentalpayments", "dueDate") ? dateFilter("dueDate", range) : {}),
         };
 
         const rpDocs = await rentalPaymentService.findForErpExport(rpFilter);
@@ -349,7 +351,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("unitCosts")) {
         const ucFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("purchaseDate", range),
+            ...(read("unitcosts", "purchaseDate") ? dateFilter("purchaseDate", range) : {}),
         };
         if (projectId && ObjectId.isValid(projectId)) {
             ucFilter.project = new ObjectId(projectId);

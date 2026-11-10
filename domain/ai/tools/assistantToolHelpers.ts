@@ -2,7 +2,7 @@
  * propertyManagement-specific helpers for the AI-assistant tools.
  *
  * The generic mechanics — the `{total, returned, truncated, results}` envelope,
- * regex escaping, Decimal128 parsing, date/number/calendar-day ranges, the company's today — live in core's
+ * regex escaping, Decimal128 parsing, date/number/calendar-day ranges — live in core's
  * {@link module:assistantToolKit} and are re-exported here so every tool in this
  * folder can keep importing from one place. What stays local is the part that
  * only means something in this module: turning a human-typed project, building
@@ -27,6 +27,7 @@ import {
 import {projectService} from "@propertyManagement/database/schemas/project/project.service";
 import {edificeService} from "@propertyManagement/database/schemas/edifice/edifice.service";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {DEFAULT_DECIMAL_PLACES, roundToCurrency} from "armonia/src/modules/core/helpers/money";
 
 // The generic toolkit, surfaced under this module's import path so tool files
 // need only one import line.
@@ -107,4 +108,22 @@ export async function resolveUnitIdsForEdifice(name: string, ctx: AssistantToolC
         MAX_SCOPE_UNITS
     );
     return units.map((u: any) => u._id).filter(Boolean);
+}
+
+/** Looks up a `$group`'s currency id (`_id`) as a one-element `currency` array, for {@link moneyOfCurrencyGroup}. */
+export const GROUP_CURRENCY_LOOKUP_STAGE = {$lookup: {from: "currencies", localField: "_id", foreignField: "_id", as: "currency"}};
+
+/** A `$group` row keyed by currency id, after {@link GROUP_CURRENCY_LOOKUP_STAGE}. */
+export type CurrencyGroupRow = {currency?: {abbreviation?: string; symbol?: string; decimalPlaces?: number}[]};
+
+/**
+ * The currency label and an exact amount of a per-currency `$group` row: `sum` is a `$toDecimal` sum (never
+ * `$toDouble`), rounded once at the currency's decimals (GLB-08).
+ */
+export function moneyOfCurrencyGroup(row: CurrencyGroupRow, sum: unknown): {currency: string | null; amount: number} {
+    const currency = row.currency?.[0];
+    return {
+        currency: currency?.abbreviation || currency?.symbol || null,
+        amount: roundToCurrency(sum == null ? 0 : String(sum), currency?.decimalPlaces ?? DEFAULT_DECIMAL_PLACES),
+    };
 }

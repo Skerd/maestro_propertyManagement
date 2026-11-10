@@ -22,14 +22,7 @@ import Floor from "../floor/floor";
 import Unit from "../unit/unit";
 import Project, {IProject} from "./project";
 import type {FilterQuery} from "mongoose";
-
-interface ProjectStatsCurrencyAccum {
-    currencyId: string;
-    currencyName: string;
-    currencySymbol: string;
-    currencyAbbreviation: string;
-    sum: number;
-}
+import {addMoneyLines, aggregateCurrencyFields, moneyRowsOf, type MoneyTotals, sumMoneyRows} from "../../../utilities/statistics/moneyTotals";
 
 export class ProjectService extends BaseCrudService<IProject, typeof Project> {
     constructor() {
@@ -38,42 +31,6 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
 
     private static emptyUnitsByStatus() {
         return {available: 0, reserved: 0, sold: 0, unavailable: 0, leased: 0};
-    }
-
-    private static currencyAccumMapToDto(map: Map<string, ProjectStatsCurrencyAccum>): EdificeMoneyByCurrency[] {
-        return [...map.values()].map((v) => ({
-            currency: {
-                _id: v.currencyId,
-                name: v.currencyName,
-                symbol: v.currencySymbol,
-                abbreviation: v.currencyAbbreviation,
-            },
-            value: Number.isNaN(v.sum) ? 0 : v.sum,
-        }));
-    }
-
-    /** Merges money rows by currency id (same semantics as edifice/floor rollup). */
-    private static mergeEdificeMoneyByCurrency(rows: EdificeMoneyByCurrency[]): EdificeMoneyByCurrency[] {
-        const map = new Map<string, ProjectStatsCurrencyAccum>();
-        for (const row of rows) {
-            const id = row.currency?._id;
-            if (id == null) continue;
-            const v = row.value ?? 0;
-            const k = id.toString();
-            const existing = map.get(k);
-            if (existing) {
-                existing.sum += v;
-            } else {
-                map.set(k, {
-                    currencyId: k,
-                    currencyName: row.currency?.name ?? '',
-                    currencySymbol: row.currency?.symbol ?? '',
-                    currencyAbbreviation: row.currency?.abbreviation ?? '',
-                    sum: v,
-                });
-            }
-        }
-        return ProjectService.currencyAccumMapToDto(map);
     }
 
     /**
@@ -128,12 +85,12 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
             }
         }
 
-        const mergedValue = ProjectService.mergeEdificeMoneyByCurrency(totalValueParts);
-        const mergedCollected = ProjectService.mergeEdificeMoneyByCurrency(collectedParts);
-        const mergedNotCollected = ProjectService.mergeEdificeMoneyByCurrency(notCollectedParts);
-        const mergedVerifiedPaid = ProjectService.mergeEdificeMoneyByCurrency(verifiedPaidParts);
-        const mergedVerifiedOutstanding = ProjectService.mergeEdificeMoneyByCurrency(verifiedOutstandingParts);
-        const mergedPendingVerification = ProjectService.mergeEdificeMoneyByCurrency(pendingVerificationParts);
+        const mergedValue = sumMoneyRows(totalValueParts);
+        const mergedCollected = sumMoneyRows(collectedParts);
+        const mergedNotCollected = sumMoneyRows(notCollectedParts);
+        const mergedVerifiedPaid = sumMoneyRows(verifiedPaidParts);
+        const mergedVerifiedOutstanding = sumMoneyRows(verifiedOutstandingParts);
+        const mergedPendingVerification = sumMoneyRows(pendingVerificationParts);
 
         return {
             totalUnitsArea,
@@ -339,7 +296,7 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
                         currency: "$investmentCurrency"
                     },
                     totalArea: { $sum: "$totalArea" },
-                    totalInvestmentValue: { $sum: "$investmentValue" },
+                    totalInvestmentValue: { $sum: { $toDecimal: { $ifNull: ["$investmentValue", 0] } } },
                     currencyInfo: { $first: "$currencyInfo" }
                 }
             },
@@ -350,9 +307,7 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
                     investmentByCurrency: {
                         $push: {
                             currencyId: "$_id.currency",
-                            currencyName: { $ifNull: ["$currencyInfo.name", ""] },
-                            currencySymbol: { $ifNull: ["$currencyInfo.symbol", ""] },
-                            currencyAbbreviation: { $ifNull: ["$currencyInfo.abbreviation", ""] },
+                            ...aggregateCurrencyFields("currencyInfo"),
                             value: "$totalInvestmentValue"
                         }
                     }
@@ -470,31 +425,12 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
         for (const stat of edificeStats) {
             const projectId = stat._id?.toString();
             if (projectId) {
-                const investments = (stat.investmentByCurrency || []).map((inv: any) => {
-                    let value = 0;
-                    if (inv.value != null) {
-                        if (typeof inv.value === 'number') {
-                            value = inv.value;
-                        } else if (inv.value.toString) {
-                            value = parseFloat(inv.value.toString());
-                        } else {
-                            value = parseFloat(String(inv.value));
-                        }
-                    }
-                    return {
-                        currency: inv.currencyId ? {
-                            _id: inv.currencyId.toString(),
-                            name: inv.currencyName || '',
-                            symbol: inv.currencySymbol || '',
-                            abbreviation: inv.currencyAbbreviation || ''
-                        } : null,
-                        value: isNaN(value) ? 0 : value
-                    };
-                });
+                const investments: MoneyTotals = new Map();
+                addMoneyLines(investments, stat.investmentByCurrency);
                 statisticsByProjectId[projectId] = {
                     ...(statisticsByProjectId[projectId] || {}),
                     totalArea: stat.totalArea || 0,
-                    totalInvestmentValue: investments
+                    totalInvestmentValue: moneyRowsOf(investments)
                 };
             }
         }

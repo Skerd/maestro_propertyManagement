@@ -15,8 +15,8 @@ import {CONSTANTS} from "@coreModule/environment";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
-import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
-import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
+import {addLocalDays} from "@coreModule/utilities/time/timeWindows";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
 import {reservationService} from "../../database/schemas/reservation/reservation.service";
 import {ReservationStatus} from "../../database/schemas/reservation/reservation";
@@ -105,7 +105,7 @@ export async function runReservationExpiredStamp(company: ObjectId, parentLogger
 export async function runReservationExpirationReminders(company: ObjectId, parentLogger?: serverLogger, clock: ReservationExpiryClock = {}): Promise<void> {
     const logger = getLogger("reservation_expiration_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
-    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
+    const today = await companyTodayOf(company, {now: clock.now});
 
     for (const {phase, daysUntilExpiration, field} of PHASES) {
         const baseFilter: Record<string, unknown> = {

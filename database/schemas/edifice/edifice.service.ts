@@ -20,6 +20,7 @@ import Floor from '../floor/floor';
 import Unit from '../unit/unit';
 import {COLLECTED_DATA} from '@coreModule/database/collections';
 import type {FilterQuery} from "mongoose";
+import {addMoneyLines, aggregateCurrencyFields, moneyRowsOf, type MoneyTotals, sumMoneyRows} from '../../../utilities/statistics/moneyTotals';
 
 export type EdificeFloorCoordinateRow = {
     polygonCoordinates: {x: number; y: number}[];
@@ -44,14 +45,6 @@ type FloorListingAggregateRows = {
     unitValueByFloor: any[];
 };
 
-interface EdificeStatsCurrencyAccum {
-    currencyId: string;
-    currencyName: string;
-    currencySymbol: string;
-    currencyAbbreviation: string;
-    sum: number;
-}
-
 type EdificeUnitsByStatus = {available: number; reserved: number; sold: number; unavailable: number; leased: number};
 
 const STATUS_KEY_MAP: Record<string, keyof EdificeUnitsByStatus> = {
@@ -71,73 +64,8 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
         return {available: 0, reserved: 0, sold: 0, unavailable: 0, leased: 0};
     }
 
-    private static parseAggMoneyValue(v: unknown): number {
-        if (v == null) return 0;
-        if (typeof v === 'number' && !Number.isNaN(v)) return v;
-        if (typeof v === 'object' && v !== null && typeof (v as {toString?: () => string}).toString === 'function') {
-            return parseFloat((v as {toString: () => string}).toString()) || 0;
-        }
-        return parseFloat(String(v)) || 0;
-    }
-
-    private static addAggCurrencyItems(target: Map<string, EdificeStatsCurrencyAccum>, items: any[] | undefined): void {
-        for (const inv of items || []) {
-            const value = EdificeService.parseAggMoneyValue(inv?.value);
-            const cid = inv?.currencyId;
-            if (cid == null) continue;
-            const k = cid.toString();
-            const existing = target.get(k);
-            if (existing) {
-                existing.sum += value;
-            } else {
-                target.set(k, {
-                    currencyId: k,
-                    currencyName: inv.currencyName || '',
-                    currencySymbol: inv.currencySymbol || '',
-                    currencyAbbreviation: inv.currencyAbbreviation || '',
-                    sum: value,
-                });
-            }
-        }
-    }
-
-    private static currencyAccumMapToDto(map: Map<string, EdificeStatsCurrencyAccum>): EdificeMoneyByCurrency[] {
-        return [...map.values()].map((v) => ({
-            currency: {
-                _id: v.currencyId,
-                name: v.currencyName,
-                symbol: v.currencySymbol,
-                abbreviation: v.currencyAbbreviation,
-            },
-            value: Number.isNaN(v.sum) ? 0 : v.sum,
-        }));
-    }
-
-    private static mergeEdificeMoneyByCurrency(rows: EdificeMoneyByCurrency[]): EdificeMoneyByCurrency[] {
-        const map = new Map<string, EdificeStatsCurrencyAccum>();
-        for (const row of rows) {
-            const id = row.currency?._id;
-            if (id == null) continue;
-            const v = row.value ?? 0;
-            const k = id.toString();
-            const existing = map.get(k);
-            if (existing) {
-                existing.sum += v;
-            } else {
-                map.set(k, {
-                    currencyId: k,
-                    currencyName: row.currency?.name ?? '',
-                    currencySymbol: row.currency?.symbol ?? '',
-                    currencyAbbreviation: row.currency?.abbreviation ?? '',
-                    sum: v,
-                });
-            }
-        }
-        return EdificeService.currencyAccumMapToDto(map);
-    }
-
     private static initEdificeValueMaps(edificeIds: ObjectId[]) {
-        const totalValueByEdifice = new Map<string, Map<string, EdificeStatsCurrencyAccum>>();
+        const totalValueByEdifice = new Map<string, MoneyTotals>();
         for (const id of edificeIds) {
             totalValueByEdifice.set(id.toString(), new Map());
         }
@@ -183,7 +111,7 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
             {
                 $group: {
                     _id: {floor: '$floor', currency: '$priceCurrency'},
-                    totalValue: {$sum: '$price'},
+                    totalValue: {$sum: {$toDecimal: {$ifNull: ['$price', 0]}}},
                     currencyInfo: {$first: '$currencyInfo'},
                 },
             },
@@ -193,9 +121,7 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
                     valueByCurrency: {
                         $push: {
                             currencyId: '$_id.currency',
-                            currencyName: {$ifNull: ['$currencyInfo.name', '']},
-                            currencySymbol: {$ifNull: ['$currencyInfo.symbol', '']},
-                            currencyAbbreviation: {$ifNull: ['$currencyInfo.abbreviation', '']},
+                            ...aggregateCurrencyFields('currencyInfo'),
                             value: '$totalValue',
                         },
                     },
@@ -258,7 +184,8 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
         for (const row of agg.unitValueByFloor) {
             const floorId = row._id?.toString();
             const edificeId = floorId ? floorToEdifice.get(floorId) : undefined;
-            if (edificeId) EdificeService.addAggCurrencyItems(totalValueByEdifice.get(edificeId)!, row.valueByCurrency);
+            const totals = edificeId ? totalValueByEdifice.get(edificeId) : undefined;
+            if (totals) addMoneyLines(totals, row.valueByCurrency);
         }
 
         for (const row of agg.unitsByStatusResult) {
@@ -281,7 +208,7 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
             const tvMap = totalValueByEdifice.get(key) || new Map();
             statisticsMap.set(key, {
                 ...current,
-                totalValue: EdificeService.currencyAccumMapToDto(tvMap),
+                totalValue: moneyRowsOf(tvMap),
             });
         }
 
@@ -328,11 +255,11 @@ export class EdificeService extends BaseCrudService<IEdifice, typeof Edifice> {
             }
         }
         return {
-            collected: EdificeService.mergeEdificeMoneyByCurrency(collectedParts),
-            notCollected: EdificeService.mergeEdificeMoneyByCurrency(notCollectedParts),
-            verifiedPaidUnitCosts: EdificeService.mergeEdificeMoneyByCurrency(verifiedPaidParts),
-            verifiedOutstandingUnitCosts: EdificeService.mergeEdificeMoneyByCurrency(verifiedOutstandingParts),
-            pendingVerificationUnitCosts: EdificeService.mergeEdificeMoneyByCurrency(pendingVerificationParts),
+            collected: sumMoneyRows(collectedParts),
+            notCollected: sumMoneyRows(notCollectedParts),
+            verifiedPaidUnitCosts: sumMoneyRows(verifiedPaidParts),
+            verifiedOutstandingUnitCosts: sumMoneyRows(verifiedOutstandingParts),
+            pendingVerificationUnitCosts: sumMoneyRows(pendingVerificationParts),
             totalUnitCostDocuments,
         };
     }

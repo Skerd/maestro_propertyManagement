@@ -143,6 +143,7 @@ const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "notifications"},
+        permissions: {readAny: ["notifyOnSales", "notifyOnReservations"], writeAny: ["notifyOnSales", "notifyOnReservations"]},
         children: [
             {
                 render: "#FormGrid",
@@ -191,6 +192,7 @@ const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
+        permissions: {readAny: ["requiresSaleApproval", "requiresHandoverPackageForHandover", "listedOnPortal"], writeAny: ["requiresSaleApproval", "requiresHandoverPackageForHandover", "listedOnPortal"]},
         children: [
             {
                 render: "#FormGrid",

@@ -148,20 +148,19 @@ All four are required only when Kafka is enabled (`environment.validator.ts`); t
 
 ## Notifications
 
-Codes are declared in `domain/notifications/notificationEventCodes.ts`, emitted with core `emitNotificationEvent` (after commit) and turned into in-app notifications by `registerRealEstateNotificationEventHandlers` (`domain/notifications/realEstateNotificationHandlers.ts`).
+Codes are declared in `domain/notifications/notificationEventCodes.ts`, emitted with core `emitNotificationEvent` (after commit) and turned into in-app notifications by `registerRealEstateNotificationEventHandlers` (`domain/notifications/realEstateNotificationHandlers.ts`, one notice per code). Each notice stores the code, its message values (`params`) and an English `description` fallback; the panel translates the code from sinfonia `propertyManagement/assets/languages/<locale>/notificationTypes.json` and lists it on the account Notifications tab, where a user can turn it off (D117). A turned-off type is not created in-app, and the staff-alert and construction-progress emails skip that user too; client transactional emails (reservation and sale documents) are not affected.
 
 | Group | Codes | Receivers |
 |-------|-------|-----------|
 | Reservations (client) | `RESERVATION_CREATED`, `RESERVATION_CANCELLED`, `RESERVATION_REINSTATED`, `RESERVATION_PAID`, `RESERVATION_PAYMENT_REVERSED`, `RESERVATION_EXPIRATION_REMINDER` | The reservation's client |
 | Staff watchers | `RESERVATION_CREATED_STAFF`, `SALE_CREATED_STAFF`, `RESERVATION_EXPIRED` | `PropertyManagementConfig.notifyOnReservations` / `notifyOnSales` users (in-app + email); `RESERVATION_EXPIRED` also goes to the reservation's agent (`reservedBy`) |
 | Sales | `SALE_CREATED`, `SALE_PENDING_APPROVAL`, `SALE_APPROVED`, `SALE_REJECTED` | Buyer (`SALE_CREATED`); seller (`SALE_PENDING_APPROVAL`); seller + buyer (`SALE_APPROVED` / `SALE_REJECTED`) |
-| Commissions | `COMMISSION_PENDING_APPROVAL`, `COMMISSION_APPROVAL_REJECTED`, `COMMISSION_PAID` | The agent (`COMMISSION_PAID`, `COMMISSION_APPROVAL_REJECTED`); the requesting user (`COMMISSION_PENDING_APPROVAL`) |
+| Commissions | `COMMISSION_PENDING_APPROVAL`, `COMMISSION_APPROVAL_REJECTED`, `COMMISSION_PAID` | The agent (`COMMISSION_PAID`, `COMMISSION_APPROVAL_REJECTED`); the users who may approve commission payments, not the requester (`COMMISSION_PENDING_APPROVAL`) |
 | Payment plans | `PAYMENT_PLAN_DOWN_PAYMENT_PAID`, `PAYMENT_PLAN_INSTALLMENT_PAID`, `PAYMENT_PLAN_COMPLETED`, `PAYMENT_PLAN_DEFAULTED` | Buyer (`PAYMENT_PLAN_DEFAULTED`: the users the sale action picks) |
-| Modification requests | `MODIFICATION_REQUEST_CREATED`, `_APPROVED`, `_REJECTED`, `_CANCELLED`, `_FINANCE_ADDED`, `_CLIENT_COST_PENDING`, `_CLIENT_COST_APPROVED`, `_CLIENT_COST_REJECTED`, `_REVISION_SUBMITTED`, `_REACTIVATED`, `_SLA_BREACHED`, `_DELIVERED` | The requester (`requestedBy`) |
+| Modification requests | `MODIFICATION_REQUEST_CREATED`, `_APPROVED`, `_REJECTED`, `_CANCELLED`, `_CLIENT_COST_PENDING` (finance details added), `_CLIENT_COST_APPROVED`, `_CLIENT_COST_REJECTED`, `_REVISION_SUBMITTED`, `_REACTIVATED`, `_SLA_BREACHED`, `_DELIVERED` | The requester (`requestedBy`) |
 | Construction progress | `CONSTRUCTION_PROGRESS_UPDATE` | Clients holding units in the project/building |
-| propertyDevelopment (emitted by PD, handled here) | `PROJECT_DOCUMENT_*` (5), `PERMIT_*` (6), `MILESTONE_*` (3), `SCHEDULE_TASK_*` (2), `RFI_OPENED`, `RFI_ANSWERED`, `VARIATION_ORDER_APPROVED`, `VARIATION_ORDER_REJECTED`, `BUDGET_APPROVED`, `PROGRESS_CLAIM_SUBMITTED`, `SAFETY_INCIDENT_REPORTED` | Receivers chosen by the PD action |
 
-Emitted but with no handler yet (no in-app notification is created): `SALE_PENDING_APPROVAL`, `SALE_APPROVED`, `SALE_REJECTED`, `COMMISSION_PENDING_APPROVAL`, `COMMISSION_APPROVAL_REJECTED`, `MODIFICATION_REQUEST_CLIENT_COST_PENDING`, `_CLIENT_COST_APPROVED`, `_CLIENT_COST_REJECTED`, `_REVISION_SUBMITTED`, `_REACTIVATED`, `_SLA_BREACHED`. `MODIFICATION_REQUEST_FINANCE_ADDED` has a handler but nothing emits it.
+propertyDevelopment's codes and handlers live in that module (D119).
 
 ## Other contributions
 

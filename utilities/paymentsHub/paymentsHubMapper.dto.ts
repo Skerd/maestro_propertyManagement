@@ -24,6 +24,9 @@ import {
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {InstallmentStatus, PaymentPlanStatus} from "../../database/schemas/paymentPlan/paymentPlan";
 import {calendarDaysUntil} from "../reservation/reservationExpirationCalendar";
+import type {CollectedFieldReader} from "../security/canReadCollectedFields";
+
+const PLAN = "paymentplans";
 
 /**
  * Sale-side data every hub row needs: unit, project, buyer and currency. Populated
@@ -123,11 +126,17 @@ function daysOverdueOf(dueDate: unknown, status: PaymentsHubStatus, today: strin
 /**
  * Flatten one payment plan into its hub rows: the down payment (when the plan has
  * one) followed by every installment. `today` is the company's day (`YYYY-MM-DD`).
+ * The required `status` is worked out only from the plan fields `read` grants (SEC-09): with the amounts hidden it
+ * follows the stored status and the due day, so it never tells paid from unpaid money the caller may not see.
  */
-export function planToHubRows(plan: Record<string, any>, today: string): PaymentsHubRow[] {
+export function planToHubRows(plan: Record<string, any>, today: string, read: CollectedFieldReader = () => true): PaymentsHubRow[] {
     const sale = plan.sale as any;
     const planId = plan._id.toString();
-    const planCancelled = plan.status === PaymentPlanStatus.CANCELLED;
+    const planCancelled = read(PLAN, "status") && plan.status === PaymentPlanStatus.CANCELLED;
+    const downPaymentReadable = read(PLAN, "downPayment") && read(PLAN, "downPaymentPaid");
+    const installmentMoneyReadable = read(PLAN, "installments.amount") && read(PLAN, "installments.paidAmount");
+    const installmentStatusReadable = read(PLAN, "installments.status");
+    const installmentDueReadable = read(PLAN, "installments.dueDate");
     const shared = {
         planId,
         planCode: plan.name as string | undefined,
@@ -147,15 +156,17 @@ export function planToHubRows(plan: Record<string, any>, today: string): Payment
         const paidScaled = paid ? downPaymentScaled : 0n;
         const remaining = paid ? 0n : downPaymentScaled;
         const status = derivePaymentsHubStatus(
-            {
-                storedStatus: paid ? InstallmentStatus.PAID : InstallmentStatus.PENDING,
-                // A down payment is due when the plan starts; `downPaymentDate` is when it was made.
-                dueDate: plan.startDate,
-                amountScaled: downPaymentScaled,
-                paidScaled,
-                remainingScaled: remaining,
-                planCancelled,
-            },
+            downPaymentReadable
+                ? {
+                    storedStatus: paid ? InstallmentStatus.PAID : InstallmentStatus.PENDING,
+                    // A down payment is due when the plan starts; `downPaymentDate` is when it was made.
+                    dueDate: read(PLAN, "startDate") ? plan.startDate : undefined,
+                    amountScaled: downPaymentScaled,
+                    paidScaled,
+                    remainingScaled: remaining,
+                    planCancelled,
+                }
+                : {amountScaled: 0n, paidScaled: 0n, remainingScaled: 0n, planCancelled},
             today,
         );
         rows.push({
@@ -176,22 +187,22 @@ export function planToHubRows(plan: Record<string, any>, today: string): Payment
         const storedStatus = installment?.status as string | undefined;
         const amountScaled = moneyToScaled(installment?.amount);
         const paidScaled = moneyToScaled(installment?.paidAmount);
-        // `remainingScaled` only zeroes waived rentals, so cancelled installments are handled here.
+        // `remainingScaled` only zeroes waived rentals, so cancelled installments are handled here. A late fee is
+        // owed information shown beside the installment, not part of what is due on it (D121).
         const remaining = storedStatus === InstallmentStatus.CANCELLED
             ? 0n
             : remainingScaled({
                 amount: installment?.amount,
                 paidAmount: installment?.paidAmount,
-                lateFeeAmount: installment?.lateFeeAmount,
                 status: storedStatus,
             });
         const status = derivePaymentsHubStatus(
             {
-                storedStatus,
-                dueDate: installment?.dueDate,
-                amountScaled,
-                paidScaled,
-                remainingScaled: remaining,
+                storedStatus: installmentStatusReadable ? storedStatus : undefined,
+                dueDate: installmentDueReadable ? installment?.dueDate : undefined,
+                amountScaled: installmentMoneyReadable ? amountScaled : 0n,
+                paidScaled: installmentMoneyReadable ? paidScaled : 0n,
+                remainingScaled: installmentMoneyReadable ? remaining : 0n,
                 planCancelled,
             },
             today,

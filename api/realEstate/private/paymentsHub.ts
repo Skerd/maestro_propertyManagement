@@ -144,7 +144,7 @@ const INSTALLMENT_SOURCES: RowFieldSources<PaymentsHubRow> = {
     paidDate: [[PLAN, "installments.paidDate"], [PLAN, "installments.paymentReceipts"]],
     amount: [[PLAN, "installments.amount"]],
     paidAmount: [[PLAN, "installments.paidAmount"]],
-    remaining: [[PLAN, "installments.amount"], [PLAN, "installments.paidAmount"], [PLAN, "installments.lateFeeAmount"]],
+    remaining: [[PLAN, "installments.amount"], [PLAN, "installments.paidAmount"]],
     lateFeeAmount: [[PLAN, "installments.lateFeeAmount"]],
 };
 
@@ -240,9 +240,10 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
     const truncated = docs.length > PLAN_SCAN_CAP;
     const today = localDateOf(new Date(), params.companyTimeZone);
     const mask = rowMasker(params);
+    const read = collectedFieldReader(params.actionUserCtx, params.languageCode);
     const rows: PaymentsHubRow[] = [];
     for (const doc of docs.slice(0, PLAN_SCAN_CAP)) {
-        rows.push(...planToHubRows(doc as unknown as Record<string, any>, today).map(mask));
+        rows.push(...planToHubRows(doc as unknown as Record<string, any>, today, read).map(mask));
     }
     return {rows, truncated};
 }

@@ -1,16 +1,6 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
 
-type ViewNode = ViewConfig["nodes"][number];
-
-function card(name: string, widgetProps: Record<string, unknown>): ViewNode {
-    return {
-        render: "#DisplayCard",
-        permissions: {read: name},
-        field: {name, widget: "#DisplayCard", label: name, widgetProps},
-    };
-}
-
 /**
  * Sheet only.
  *
@@ -38,13 +28,41 @@ export const marketingPreferenceSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props: {columns: 3},
                     children: [
-                        card("email", {icon: "#Mail"}),
-                        card("allowPriceChange", {icon: "#TrendingDown", languageKeyCategory: "activeState", variantLookupField: "allowPriceChange"}),
-                        card("allowOffers", {icon: "#Tag", languageKeyCategory: "activeState", variantLookupField: "allowOffers"}),
-                        card("allowNewProjects", {icon: "#Building2", languageKeyCategory: "activeState", variantLookupField: "allowNewProjects"}),
-                        card("unsubscribedAllAt", {icon: "#BellOff", format: "datetime", type: "date"}),
-                        card("source", {icon: "#Pointer", languageKeyCategory: "sourceEnum", type: "enum"}),
-                        card("lastChangedAt", {icon: "#IconCalendarBolt", format: "datetime", type: "date"}),
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "email"},
+                            field: {name: "email", widget: "#DisplayCard", label: "email", widgetProps: {icon: "#Mail"}},
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "allowPriceChange"},
+                            field: {name: "allowPriceChange", widget: "#DisplayCard", label: "allowPriceChange", widgetProps: {icon: "#TrendingDown", languageKeyCategory: "activeState", variantLookupField: "allowPriceChange"}},
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "allowOffers"},
+                            field: {name: "allowOffers", widget: "#DisplayCard", label: "allowOffers", widgetProps: {icon: "#Tag", languageKeyCategory: "activeState", variantLookupField: "allowOffers"}},
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "allowNewProjects"},
+                            field: {name: "allowNewProjects", widget: "#DisplayCard", label: "allowNewProjects", widgetProps: {icon: "#Building2", languageKeyCategory: "activeState", variantLookupField: "allowNewProjects"}},
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "unsubscribedAllAt"},
+                            field: {name: "unsubscribedAllAt", widget: "#DisplayCard", label: "unsubscribedAllAt", widgetProps: {icon: "#BellOff", format: "datetime", type: "date"}},
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "source"},
+                            field: {name: "source", widget: "#DisplayCard", label: "source", widgetProps: {icon: "#Pointer", languageKeyCategory: "sourceEnum", type: "enum"}},
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: {read: "lastChangedAt"},
+                            field: {name: "lastChangedAt", widget: "#DisplayCard", label: "lastChangedAt", widgetProps: {icon: "#IconCalendarBolt", format: "datetime", type: "date"}},
+                        },
                     ],
                 },
             ],

@@ -9,11 +9,25 @@ import {getLogger} from "@coreModule/loggers/serverLog";
 
 const logger = getLogger("realEstate_notifications");
 
-function langOpts(event: NotificationEvent) {
-    return {
-        languageCode: (event.payload.languageCode as string) ?? CONSTANTS.DEFAULT_LANGUAGE
-    };
-}
+type Payload = Record<string, unknown>;
+type Params = Record<string, string | number>;
+
+/**
+ * One propertyManagement notice. `params` are the values of the code's translated message in this module's
+ * `notificationTypes.json` (D117; `variant` picks a message variant); `description` is the same message in English,
+ * kept as the fallback for surfaces without the translation (SMS, Telegram, other clients).
+ */
+type Notice = {
+    code: string;
+    importance: NotificationImportance;
+    category: NotificationCategory;
+    params: (payload: Payload, receiverId: string) => Params;
+    description: (payload: Payload, receiverId: string) => string;
+    content: (payload: Payload, receiverId: string) => Record<string, unknown>;
+};
+
+const {MEDIUM, HIGH} = NotificationImportance;
+const {FINANCIAL, COMPANY} = NotificationCategory;
 
 function withCurrency(amount: unknown, symbol: unknown): string | undefined {
     const a = amount != null ? String(amount) : undefined;
@@ -22,934 +36,384 @@ function withCurrency(amount: unknown, symbol: unknown): string | undefined {
     return s ? `${a} ${s}` : a;
 }
 
-export function registerRealEstateNotificationEventHandlers(): void {
+/** A payload value as message text, or "—" when the event did not carry it. */
+function text(value: unknown): string {
+    return value == null || value === "" ? "—" : String(value);
+}
 
+/** Only the values that are set, so a message variant never shows an empty placeholder. */
+function defined(values: Record<string, unknown>): Params {
+    const out: Params = {};
+    for (const [key, value] of Object.entries(values)) {
+        if (value != null && value !== "") out[key] = typeof value === "number" ? value : String(value);
+    }
+    return out;
+}
+
+/** Variant `noX` when the optional `value` is missing, so the message leaves that part out instead of showing "—". */
+function variantWithout(value: unknown, variant: string): Params {
+    return value == null || value === "" ? {variant} : {};
+}
+
+const STAGE_LABEL: Record<string, string> = {architect: "Architect", engineer: "Engineer"};
+
+const NOTICES: Notice[] = [
     // ─── Reservations ──────────────────────────────────────────────────────────
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_CREATED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_CREATED,
-                        description: "Reservation created",
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            depositAmount: payload.depositAmount,
-                            depositCurrencyId: payload.depositCurrencyId,
-                            depositCurrencySymbol: payload.depositCurrencySymbol,
-                            expirationDate: payload.expirationDate,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_CREATED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_CANCELLED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_CANCELLED,
-                        description: "Reservation cancelled",
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            cancellationReason: payload.cancellationReason,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_CANCELLED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_REINSTATED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_REINSTATED,
-                        description: "Reservation reinstated",
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_REINSTATED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_PAID, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const amountStr = withCurrency(payload.depositAmount, payload.depositCurrencySymbol);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_PAID,
-                        description: amountStr
-                            ? `Reservation deposit paid: ${amountStr}`
-                            : "Reservation deposit paid",
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            depositAmount: payload.depositAmount,
-                            depositCurrencyId: payload.depositCurrencyId,
-                            depositCurrencySymbol: payload.depositCurrencySymbol,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_PAID notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_PAYMENT_REVERSED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_PAYMENT_REVERSED,
-                        description: "Reservation payment reversed",
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_PAYMENT_REVERSED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_EXPIRATION_REMINDER, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const phase = (payload.reminderPhase as string) || "3";
-        const label =
-            phase === "1" ? "Reservation ends tomorrow" : phase === "0" ? "Reservation ends today" : "Reservation ends in 3 days";
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_EXPIRATION_REMINDER,
-                        description: label,
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitNumber: payload.unitNumber,
-                            expirationDate: payload.expirationDate,
-                            reminderPhase: phase,
-                        },
-                        importance: phase === "0" ? NotificationImportance.HIGH : NotificationImportance.MEDIUM,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_EXPIRATION_REMINDER notification for ${receiverId}:`, e);
-            }
-        }
-    });
+    {
+        code: NotificationEventCodes.RESERVATION_CREATED, importance: MEDIUM, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber)}),
+        description: () => "Reservation created",
+        content: (p) => ({
+            reservationId: p.reservationId, unitId: p.unitId, unitNumber: p.unitNumber, depositAmount: p.depositAmount,
+            depositCurrencyId: p.depositCurrencyId, depositCurrencySymbol: p.depositCurrencySymbol, expirationDate: p.expirationDate,
+        }),
+    },
+    {
+        code: NotificationEventCodes.RESERVATION_CANCELLED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber)}),
+        description: () => "Reservation cancelled",
+        content: (p) => ({reservationId: p.reservationId, unitId: p.unitId, unitNumber: p.unitNumber, cancellationReason: p.cancellationReason}),
+    },
+    {
+        code: NotificationEventCodes.RESERVATION_REINSTATED, importance: MEDIUM, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber)}),
+        description: () => "Reservation reinstated",
+        content: (p) => ({reservationId: p.reservationId, unitId: p.unitId, unitNumber: p.unitNumber}),
+    },
+    {
+        code: NotificationEventCodes.RESERVATION_PAID, importance: HIGH, category: FINANCIAL,
+        params: (p) => {
+            const amount = withCurrency(p.depositAmount, p.depositCurrencySymbol);
+            return {...defined({amount}), ...variantWithout(amount, "noAmount")};
+        },
+        description: (p) => {
+            const amount = withCurrency(p.depositAmount, p.depositCurrencySymbol);
+            return amount ? `Reservation deposit paid: ${amount}` : "Reservation deposit paid";
+        },
+        content: (p) => ({
+            reservationId: p.reservationId, unitId: p.unitId, depositAmount: p.depositAmount,
+            depositCurrencyId: p.depositCurrencyId, depositCurrencySymbol: p.depositCurrencySymbol,
+        }),
+    },
+    {
+        code: NotificationEventCodes.RESERVATION_PAYMENT_REVERSED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber)}),
+        description: () => "Reservation payment reversed",
+        content: (p) => ({reservationId: p.reservationId, unitId: p.unitId, unitNumber: p.unitNumber}),
+    },
+    {
+        code: NotificationEventCodes.RESERVATION_EXPIRATION_REMINDER, importance: MEDIUM, category: FINANCIAL,
+        // Phase "3" (default), "1" or "0" days before the expiry day.
+        params: (p) => {
+            const phase = (p.reminderPhase as string) || "3";
+            return {unit: text(p.unitNumber), variant: phase === "1" ? "tomorrow" : phase === "0" ? "today" : "inThreeDays"};
+        },
+        description: (p) => {
+            const phase = (p.reminderPhase as string) || "3";
+            return phase === "1" ? "Reservation ends tomorrow" : phase === "0" ? "Reservation ends today" : "Reservation ends in 3 days";
+        },
+        content: (p) => ({
+            reservationId: p.reservationId, unitNumber: p.unitNumber, expirationDate: p.expirationDate,
+            reminderPhase: (p.reminderPhase as string) || "3",
+        }),
+    },
 
     // ─── Sales ─────────────────────────────────────────────────────────────────
+    {
+        code: NotificationEventCodes.SALE_CREATED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({
+            unit: text(p.unitNumber),
+            price: text(withCurrency(p.finalPrice, p.currencySymbol)),
+            variant: p.paymentType === "payment_plan" ? "paymentPlan" : "cash",
+        }),
+        description: (p) => {
+            const typeLabel = p.paymentType === "payment_plan" ? "Payment Plan" : "Cash";
+            const price = withCurrency(p.finalPrice, p.currencySymbol);
+            return price ? `Unit sold (${typeLabel}): ${price}` : `Unit sold (${typeLabel})`;
+        },
+        content: (p) => ({
+            saleId: p.saleId, unitId: p.unitId, unitNumber: p.unitNumber, finalPrice: p.finalPrice, currencySymbol: p.currencySymbol,
+            paymentType: p.paymentType, downPayment: p.downPayment, numberOfInstallments: p.numberOfInstallments,
+        }),
+    },
+    {
+        // To the agent who recorded the sale: it waits for an approver (TD-B149).
+        code: NotificationEventCodes.SALE_PENDING_APPROVAL, importance: MEDIUM, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber)}),
+        description: (p) => `Sale awaiting approval: Unit ${text(p.unitNumber)}`,
+        content: (p) => ({saleId: p.saleId, unitId: p.unitId, unitNumber: p.unitNumber, finalPrice: p.finalPrice, paymentType: p.paymentType}),
+    },
+    {
+        // To the agent and the buyer (TD-B149).
+        code: NotificationEventCodes.SALE_APPROVED, importance: HIGH, category: FINANCIAL,
+        params: () => ({}),
+        description: () => "Sale approved",
+        content: (p) => ({saleId: p.saleId, decision: p.decision}),
+    },
+    {
+        // To the agent and the buyer; the sale's unit is released (TD-B149).
+        code: NotificationEventCodes.SALE_REJECTED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({...defined({notes: p.notes}), ...variantWithout(p.notes, "noNotes")}),
+        description: (p) => (p.notes ? `Sale rejected: ${p.notes}` : "Sale rejected"),
+        content: (p) => ({saleId: p.saleId, decision: p.decision, notes: p.notes}),
+    },
 
-    notificationEventBus.on(NotificationEventCodes.SALE_CREATED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const paymentType = payload.paymentType as string;
-        const typeLabel = paymentType === "payment_plan" ? "Payment Plan" : "Cash";
-        const priceStr = withCurrency(payload.finalPrice, payload.currencySymbol);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.SALE_CREATED,
-                        description: priceStr
-                            ? `Unit sold (${typeLabel}): ${priceStr}`
-                            : `Unit sold (${typeLabel})`,
-                        content: {
-                            saleId: payload.saleId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            finalPrice: payload.finalPrice,
-                            currencySymbol: payload.currencySymbol,
-                            paymentType: payload.paymentType,
-                            downPayment: payload.downPayment,
-                            numberOfInstallments: payload.numberOfInstallments,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create SALE_CREATED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    // ─── Construction progress (clients of units in scope) ───────────────────────
-
-    notificationEventBus.on(NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const unitsByUser = (payload.unitLabelsByUser ?? {}) as Record<string, string[]>;
-        const place = payload.edificeName ? `${payload.projectName} · ${payload.edificeName}` : payload.projectName;
-
-        for (const receiverId of receiverIds) {
-            const units = unitsByUser[receiverId]?.join(", ");
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE,
-                        description: units
-                            ? `Unit ${units} (${place}) has reached ${payload.progressPercent}% of works`
-                            : `${place} has reached ${payload.progressPercent}% of works`,
-                        content: {
-                            constructionProgressId: payload.constructionProgressId,
-                            projectId: payload.projectId,
-                            phase: payload.phase,
-                            progressPercent: payload.progressPercent,
-                            units: unitsByUser[receiverId] ?? [],
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create CONSTRUCTION_PROGRESS_UPDATE notification for ${receiverId}:`, e);
-            }
-        }
-    });
+    // ─── Construction progress (clients of units in scope) ─────────────────────
+    {
+        code: NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE, importance: MEDIUM, category: COMPANY,
+        params: (p, receiverId) => {
+            const units = ((p.unitLabelsByUser ?? {}) as Record<string, string[]>)[receiverId]?.join(", ");
+            const place = p.edificeName ? `${p.projectName} · ${p.edificeName}` : String(p.projectName ?? "");
+            return {place, percent: Number(p.progressPercent ?? 0), ...defined({units}), ...variantWithout(units, "noUnits")};
+        },
+        description: (p, receiverId) => {
+            const units = ((p.unitLabelsByUser ?? {}) as Record<string, string[]>)[receiverId]?.join(", ");
+            const place = p.edificeName ? `${p.projectName} · ${p.edificeName}` : p.projectName;
+            return units
+                ? `Unit ${units} (${place}) has reached ${p.progressPercent}% of works`
+                : `${place} has reached ${p.progressPercent}% of works`;
+        },
+        content: (p, receiverId) => ({
+            constructionProgressId: p.constructionProgressId, projectId: p.projectId, phase: p.phase, progressPercent: p.progressPercent,
+            units: ((p.unitLabelsByUser ?? {}) as Record<string, string[]>)[receiverId] ?? [],
+        }),
+    },
 
     // ─── Staff watchers (Sales & handover → Notifications) ─────────────────────
+    {
+        code: NotificationEventCodes.RESERVATION_CREATED_STAFF, importance: MEDIUM, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber), ...defined({client: p.clientName}), ...variantWithout(p.clientName, "noClient")}),
+        description: (p) => `New reservation: Unit ${text(p.unitNumber)}${p.clientName ? ` for ${p.clientName}` : ""}`,
+        content: (p) => ({
+            reservationId: p.reservationId, unitId: p.unitId, unitNumber: p.unitNumber, clientName: p.clientName,
+            depositDisplay: p.depositDisplay, expirationDate: p.expirationDate,
+        }),
+    },
+    {
+        code: NotificationEventCodes.SALE_CREATED_STAFF, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({
+            unit: text(p.unitNumber),
+            ...defined({price: p.finalPriceDisplay}),
+            variant: `${p.pendingApproval ? "pending" : "created"}${p.finalPriceDisplay ? "WithPrice" : ""}`,
+        }),
+        description: (p) => {
+            const prefix = p.pendingApproval ? "New sale pending approval" : "New sale";
+            const price = p.finalPriceDisplay ? ` (${p.finalPriceDisplay})` : "";
+            return `${prefix}: Unit ${text(p.unitNumber)}${price}`;
+        },
+        content: (p) => ({
+            saleId: p.saleId, unitId: p.unitId, unitNumber: p.unitNumber, finalPriceDisplay: p.finalPriceDisplay,
+            buyerName: p.buyerName, soldByName: p.soldByName, pendingApproval: !!p.pendingApproval,
+        }),
+    },
+    {
+        code: NotificationEventCodes.RESERVATION_EXPIRED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({unit: text(p.unitNumber), ...defined({client: p.clientName}), ...variantWithout(p.clientName, "noClient")}),
+        description: (p) => `Reservation expired: Unit ${text(p.unitNumber)}${p.clientName ? ` (${p.clientName})` : ""}`,
+        content: (p) => ({
+            reservationId: p.reservationId, unitId: p.unitId, unitNumber: p.unitNumber, clientName: p.clientName,
+            agentName: p.agentName, expirationDate: p.expirationDate,
+        }),
+    },
 
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_CREATED_STAFF, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const who = payload.clientName ? ` for ${payload.clientName}` : "";
+    // ─── Payment plans ─────────────────────────────────────────────────────────
+    {
+        code: NotificationEventCodes.PAYMENT_PLAN_DOWN_PAYMENT_PAID, importance: HIGH, category: FINANCIAL,
+        params: (p) => {
+            const amount = withCurrency(p.downPayment, p.currencySymbol);
+            return {...defined({amount}), ...variantWithout(amount, "noAmount")};
+        },
+        description: (p) => {
+            const amount = withCurrency(p.downPayment, p.currencySymbol);
+            return amount ? `Down payment recorded: ${amount}` : "Down payment recorded";
+        },
+        content: (p) => ({
+            paymentPlanId: p.paymentPlanId, saleId: p.saleId, downPayment: p.downPayment, currencySymbol: p.currencySymbol,
+            remainingBalance: p.remainingBalance,
+        }),
+    },
+    {
+        code: NotificationEventCodes.PAYMENT_PLAN_INSTALLMENT_PAID, importance: MEDIUM, category: FINANCIAL,
+        params: (p) => {
+            const amount = withCurrency(p.paidAmount, p.currencySymbol);
+            return {number: text(p.installmentNumber), ...defined({amount}), ...variantWithout(amount, "noAmount")};
+        },
+        description: (p) => {
+            const amount = withCurrency(p.paidAmount, p.currencySymbol);
+            return amount ? `Installment #${p.installmentNumber} paid: ${amount}` : `Installment #${p.installmentNumber} paid`;
+        },
+        content: (p) => ({
+            paymentPlanId: p.paymentPlanId, saleId: p.saleId, installmentNumber: p.installmentNumber, paidAmount: p.paidAmount,
+            currencySymbol: p.currencySymbol, remainingBalance: p.remainingBalance,
+        }),
+    },
+    {
+        code: NotificationEventCodes.PAYMENT_PLAN_COMPLETED, importance: HIGH, category: FINANCIAL,
+        params: (p) => {
+            const amount = withCurrency(p.totalAmount, p.currencySymbol);
+            return {...defined({amount}), ...variantWithout(amount, "noAmount")};
+        },
+        description: (p) => {
+            const amount = withCurrency(p.totalAmount, p.currencySymbol);
+            return amount ? `Payment plan completed: ${amount}` : "Payment plan completed";
+        },
+        content: (p) => ({paymentPlanId: p.paymentPlanId, saleId: p.saleId, totalAmount: p.totalAmount, currencySymbol: p.currencySymbol}),
+    },
+    {
+        code: NotificationEventCodes.PAYMENT_PLAN_DEFAULTED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({plan: text(p.planName ?? p.paymentPlanId)}),
+        description: (p) => `Payment plan defaulted: ${p.planName ?? p.paymentPlanId}`,
+        content: (p) => ({paymentPlanId: p.paymentPlanId, saleId: p.saleId, planName: p.planName}),
+    },
 
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_CREATED_STAFF,
-                        description: `New reservation: Unit ${payload.unitNumber ?? "—"}${who}`,
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            clientName: payload.clientName,
-                            depositDisplay: payload.depositDisplay,
-                            expirationDate: payload.expirationDate,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_CREATED_STAFF notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.SALE_CREATED_STAFF, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const prefix = payload.pendingApproval ? "New sale pending approval" : "New sale";
-        const price = payload.finalPriceDisplay ? ` (${payload.finalPriceDisplay})` : "";
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.SALE_CREATED_STAFF,
-                        description: `${prefix}: Unit ${payload.unitNumber ?? "—"}${price}`,
-                        content: {
-                            saleId: payload.saleId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            finalPriceDisplay: payload.finalPriceDisplay,
-                            buyerName: payload.buyerName,
-                            soldByName: payload.soldByName,
-                            pendingApproval: !!payload.pendingApproval,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create SALE_CREATED_STAFF notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.RESERVATION_EXPIRED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const who = payload.clientName ? ` (${payload.clientName})` : "";
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.RESERVATION_EXPIRED,
-                        description: `Reservation expired: Unit ${payload.unitNumber ?? "—"}${who}`,
-                        content: {
-                            reservationId: payload.reservationId,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            clientName: payload.clientName,
-                            agentName: payload.agentName,
-                            expirationDate: payload.expirationDate,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create RESERVATION_EXPIRED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    // ─── Payment Plans ─────────────────────────────────────────────────────────
-
-    notificationEventBus.on(NotificationEventCodes.PAYMENT_PLAN_DOWN_PAYMENT_PAID, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const amountStr = withCurrency(payload.downPayment, payload.currencySymbol);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.PAYMENT_PLAN_DOWN_PAYMENT_PAID,
-                        description: amountStr
-                            ? `Down payment recorded: ${amountStr}`
-                            : "Down payment recorded",
-                        content: {
-                            paymentPlanId: payload.paymentPlanId,
-                            saleId: payload.saleId,
-                            downPayment: payload.downPayment,
-                            currencySymbol: payload.currencySymbol,
-                            remainingBalance: payload.remainingBalance,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create PAYMENT_PLAN_DOWN_PAYMENT_PAID notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.PAYMENT_PLAN_INSTALLMENT_PAID, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const installmentNumber = payload.installmentNumber as number;
-        const amountStr = withCurrency(payload.paidAmount, payload.currencySymbol);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.PAYMENT_PLAN_INSTALLMENT_PAID,
-                        description: amountStr
-                            ? `Installment #${installmentNumber} paid: ${amountStr}`
-                            : `Installment #${installmentNumber} paid`,
-                        content: {
-                            paymentPlanId: payload.paymentPlanId,
-                            saleId: payload.saleId,
-                            installmentNumber,
-                            paidAmount: payload.paidAmount,
-                            currencySymbol: payload.currencySymbol,
-                            remainingBalance: payload.remainingBalance,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create PAYMENT_PLAN_INSTALLMENT_PAID notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.PAYMENT_PLAN_COMPLETED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const amountStr = withCurrency(payload.totalAmount, payload.currencySymbol);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.PAYMENT_PLAN_COMPLETED,
-                        description: amountStr
-                            ? `Payment plan completed: ${amountStr}`
-                            : "Payment plan completed",
-                        content: {
-                            paymentPlanId: payload.paymentPlanId,
-                            saleId: payload.saleId,
-                            totalAmount: payload.totalAmount,
-                            currencySymbol: payload.currencySymbol,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create PAYMENT_PLAN_COMPLETED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.PAYMENT_PLAN_DEFAULTED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.PAYMENT_PLAN_DEFAULTED,
-                        description: `Payment plan defaulted: ${payload.planName ?? payload.paymentPlanId}`,
-                        content: {
-                            paymentPlanId: payload.paymentPlanId,
-                            saleId: payload.saleId,
-                            planName: payload.planName,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create PAYMENT_PLAN_DEFAULTED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    // ─── Modification Requests ─────────────────────────────────────────────────
-
-    notificationEventBus.on(NotificationEventCodes.MODIFICATION_REQUEST_CREATED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.MODIFICATION_REQUEST_CREATED,
-                        description: "Modification request submitted",
-                        content: {
-                            modificationRequestId: payload.modificationRequestId,
-                            title: payload.title,
-                            unitId: payload.unitId,
-                            unitNumber: payload.unitNumber,
-                            status: payload.status,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create MODIFICATION_REQUEST_CREATED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.MODIFICATION_REQUEST_APPROVED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const stage = payload.stage as string;
-        const stageLabel = stage === "architect" ? "Architect" : stage === "engineer" ? "Engineer" : "CEO";
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.MODIFICATION_REQUEST_APPROVED,
-                        description: `Approved by ${stageLabel}`,
-                        content: {
-                            modificationRequestId: payload.modificationRequestId,
-                            title: payload.title,
-                            stage,
-                            newStatus: payload.newStatus,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create MODIFICATION_REQUEST_APPROVED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.MODIFICATION_REQUEST_REJECTED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const stage = payload.stage as string;
-        const stageLabel = stage === "architect" ? "Architect" : stage === "engineer" ? "Engineer" : "CEO";
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.MODIFICATION_REQUEST_REJECTED,
-                        description: `Revision requested by ${stageLabel}`,
-                        content: {
-                            modificationRequestId: payload.modificationRequestId,
-                            title: payload.title,
-                            stage,
-                            notes: payload.notes,
-                            newStatus: payload.newStatus,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create MODIFICATION_REQUEST_REJECTED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.MODIFICATION_REQUEST_CANCELLED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.MODIFICATION_REQUEST_CANCELLED,
-                        description: "Modification request cancelled",
-                        content: {
-                            modificationRequestId: payload.modificationRequestId,
-                            title: payload.title,
-                            cancellationReason: payload.cancellationReason,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create MODIFICATION_REQUEST_CANCELLED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.MODIFICATION_REQUEST_FINANCE_ADDED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const costStr = withCurrency(payload.totalCost, payload.currencySymbol);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.MODIFICATION_REQUEST_FINANCE_ADDED,
-                        description: costStr
-                            ? `Finance details added: ${costStr}`
-                            : "Finance details added",
-                        content: {
-                            modificationRequestId: payload.modificationRequestId,
-                            title: payload.title,
-                            totalCost: payload.totalCost,
-                            currencyId: payload.currencyId,
-                            currencySymbol: payload.currencySymbol,
-                        },
-                        importance: NotificationImportance.MEDIUM,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create MODIFICATION_REQUEST_FINANCE_ADDED notification for ${receiverId}:`, e);
-            }
-        }
-    });
-
-    notificationEventBus.on(NotificationEventCodes.MODIFICATION_REQUEST_DELIVERED, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.MODIFICATION_REQUEST_DELIVERED,
-                        description: "Modification request delivered",
-                        content: {
-                            modificationRequestId: payload.modificationRequestId,
-                            title: payload.title,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.COMPANY,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create MODIFICATION_REQUEST_DELIVERED notification for ${receiverId}:`, e);
-            }
-        }
-    });
+    // ─── Modification requests ─────────────────────────────────────────────────
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_CREATED, importance: MEDIUM, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification request submitted",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, unitId: p.unitId, unitNumber: p.unitNumber, status: p.status}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_APPROVED, importance: MEDIUM, category: COMPANY,
+        // The stage ("architect", "engineer", else the CEO) is a message variant, so its name is translated too.
+        params: (p) => ({title: text(p.title), variant: STAGE_LABEL[p.stage as string] ? String(p.stage) : "ceo"}),
+        description: (p) => `Approved by ${STAGE_LABEL[p.stage as string] ?? "CEO"}`,
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, stage: p.stage, newStatus: p.newStatus}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_REJECTED, importance: HIGH, category: COMPANY,
+        params: (p) => ({title: text(p.title), variant: STAGE_LABEL[p.stage as string] ? String(p.stage) : "ceo"}),
+        description: (p) => `Revision requested by ${STAGE_LABEL[p.stage as string] ?? "CEO"}`,
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, stage: p.stage, notes: p.notes, newStatus: p.newStatus}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_CANCELLED, importance: HIGH, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification request cancelled",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, cancellationReason: p.cancellationReason}),
+    },
+    {
+        // Emitted when finance details (the client's cost) are added (TD-B149: was a handler under an unemitted code).
+        code: NotificationEventCodes.MODIFICATION_REQUEST_CLIENT_COST_PENDING, importance: MEDIUM, category: COMPANY,
+        params: (p) => {
+            const cost = withCurrency(p.totalCost, p.currencySymbol);
+            return {title: text(p.title), ...defined({cost}), ...variantWithout(cost, "noCost")};
+        },
+        description: (p) => {
+            const cost = withCurrency(p.totalCost, p.currencySymbol);
+            return cost ? `Cost to approve: ${cost}` : "Cost to approve";
+        },
+        content: (p) => ({
+            modificationRequestId: p.modificationRequestId, title: p.title, totalCost: p.totalCost,
+            currencyId: p.currencyId, currencySymbol: p.currencySymbol,
+        }),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_CLIENT_COST_APPROVED, importance: MEDIUM, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification cost approved",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, notes: p.notes, newStatus: p.newStatus}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_CLIENT_COST_REJECTED, importance: HIGH, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification cost declined",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, notes: p.notes, newStatus: p.newStatus}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_REVISION_SUBMITTED, importance: MEDIUM, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification request revised and resubmitted",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, newStatus: p.newStatus}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_REACTIVATED, importance: MEDIUM, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification request reactivated",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_SLA_BREACHED, importance: HIGH, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification request overdue at its current stage",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title, status: p.status, stageDueDate: p.stageDueDate}),
+    },
+    {
+        code: NotificationEventCodes.MODIFICATION_REQUEST_DELIVERED, importance: HIGH, category: COMPANY,
+        params: (p) => ({title: text(p.title)}),
+        description: () => "Modification request delivered",
+        content: (p) => ({modificationRequestId: p.modificationRequestId, title: p.title}),
+    },
 
     // ─── Commissions ───────────────────────────────────────────────────────────
+    {
+        code: NotificationEventCodes.COMMISSION_PAID, importance: HIGH, category: FINANCIAL,
+        params: (p) => {
+            const amount = withCurrency(p.amount, p.currencySymbol);
+            return {...defined({amount}), ...variantWithout(amount, "noAmount")};
+        },
+        description: (p) => {
+            const amount = withCurrency(p.amount, p.currencySymbol);
+            return amount ? `Commission paid: ${amount}` : "Commission paid";
+        },
+        content: (p) => ({
+            commissionId: p.commissionId, amount: p.amount, currencySymbol: p.currencySymbol, currencyId: p.currencyId,
+            sourceType: p.sourceType, sourceId: p.sourceId,
+        }),
+    },
+    {
+        // To the users who may approve commission payments (TD-B149).
+        code: NotificationEventCodes.COMMISSION_PENDING_APPROVAL, importance: MEDIUM, category: FINANCIAL,
+        params: (p) => {
+            const amount = withCurrency(p.amount, p.currencySymbol);
+            return {...defined({amount}), ...variantWithout(amount, "noAmount")};
+        },
+        description: (p) => {
+            const amount = withCurrency(p.amount, p.currencySymbol);
+            return amount ? `Commission payment to approve: ${amount}` : "Commission payment to approve";
+        },
+        content: (p) => ({
+            commissionId: p.commissionId, amount: p.amount, currencySymbol: p.currencySymbol, sourceType: p.sourceType, sourceId: p.sourceId,
+        }),
+    },
+    {
+        // To the commission's agent (TD-B149).
+        code: NotificationEventCodes.COMMISSION_APPROVAL_REJECTED, importance: HIGH, category: FINANCIAL,
+        params: (p) => ({...defined({notes: p.notes}), ...variantWithout(p.notes, "noNotes")}),
+        description: (p) => (p.notes ? `Commission payment rejected: ${p.notes}` : "Commission payment rejected"),
+        content: (p) => ({commissionId: p.commissionId, notes: p.notes}),
+    },
+];
 
-    notificationEventBus.on(NotificationEventCodes.COMMISSION_PAID, async (event: NotificationEvent) => {
-        const {receiverIds, payload} = event;
-        const opts = langOpts(event);
-        const amountStr = withCurrency(payload.amount, payload.currencySymbol);
+async function deliver(notice: Notice, event: NotificationEvent): Promise<void> {
+    const {receiverIds, payload} = event;
+    const languageCode = (payload.languageCode as string) ?? CONSTANTS.DEFAULT_LANGUAGE;
 
-        for (const receiverId of receiverIds) {
-            try {
-                await createAndPushNotification(
-                    {
-                        receiver: new ObjectId(receiverId),
-                        company: new ObjectId(payload.companyId as string),
-                        code: NotificationEventCodes.COMMISSION_PAID,
-                        description: amountStr
-                            ? `Commission paid: ${amountStr}`
-                            : "Commission paid",
-                        content: {
-                            commissionId: payload.commissionId,
-                            amount: payload.amount,
-                            currencySymbol: payload.currencySymbol,
-                            currencyId: payload.currencyId,
-                            sourceType: payload.sourceType,
-                            sourceId: payload.sourceId,
-                        },
-                        importance: NotificationImportance.HIGH,
-                        category: NotificationCategory.FINANCIAL,
-                    },
-                    opts
-                );
-            }
-            catch (e) {
-                logger.err(`Failed to create COMMISSION_PAID notification for ${receiverId}:`, e);
-            }
+    for (const receiverId of receiverIds) {
+        try {
+            await createAndPushNotification(
+                {
+                    receiver: new ObjectId(receiverId),
+                    company: new ObjectId(payload.companyId as string),
+                    code: notice.code,
+                    description: notice.description(payload, receiverId),
+                    params: notice.params(payload, receiverId),
+                    content: notice.content(payload, receiverId),
+                    importance: notice.importance,
+                    category: notice.category,
+                },
+                {languageCode},
+            );
         }
-    });
-
-    // ─── Project Documents ─────────────────────────────────────────────────────
-
-    const projectDocumentEvents: {code: string; description: string; importance: NotificationImportance}[] = [
-        {code: NotificationEventCodes.PROJECT_DOCUMENT_SUBMITTED_FOR_REVIEW, description: "Document submitted for review", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.PROJECT_DOCUMENT_APPROVED, description: "Document approved", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.PROJECT_DOCUMENT_REJECTED, description: "Document rejected", importance: NotificationImportance.HIGH},
-        {code: NotificationEventCodes.PROJECT_DOCUMENT_SUPERSEDED, description: "Document superseded", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.PROJECT_DOCUMENT_MARKED_AS_BUILT, description: "Document marked as-built", importance: NotificationImportance.MEDIUM},
-    ];
-
-    for (const evt of projectDocumentEvents) {
-        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
-            const {receiverIds, payload} = event;
-            const opts = langOpts(event);
-            for (const receiverId of receiverIds) {
-                try {
-                    await createAndPushNotification(
-                        {
-                            receiver: new ObjectId(receiverId),
-                            company: new ObjectId(payload.companyId as string),
-                            code: evt.code,
-                            description: evt.description,
-                            content: {
-                                projectDocumentId: payload.projectDocumentId,
-                                title: payload.title,
-                                projectId: payload.projectId,
-                            },
-                            importance: evt.importance,
-                            category: NotificationCategory.COMPANY,
-                        },
-                        opts
-                    );
-                } catch (e) {
-                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
-                }
-            }
-        });
+        catch (e) {
+            logger.err(`Failed to create ${notice.code} notification for ${receiverId}:`, e);
+        }
     }
+}
 
-    // ─── Permits ───────────────────────────────────────────────────────────────
-
-    const permitEvents: {code: string; description: string; importance: NotificationImportance}[] = [
-        {code: NotificationEventCodes.PERMIT_SUBMITTED, description: "Permit submitted", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.PERMIT_UNDER_REVIEW, description: "Permit under review", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.PERMIT_APPROVED, description: "Permit approved", importance: NotificationImportance.HIGH},
-        {code: NotificationEventCodes.PERMIT_REJECTED, description: "Permit rejected", importance: NotificationImportance.HIGH},
-        {code: NotificationEventCodes.PERMIT_RENEWED, description: "Permit renewed", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.PERMIT_EXPIRING, description: "Permit expiring soon", importance: NotificationImportance.HIGH},
-    ];
-
-    for (const evt of permitEvents) {
-        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
-            const {receiverIds, payload} = event;
-            const opts = langOpts(event);
-            for (const receiverId of receiverIds) {
-                try {
-                    await createAndPushNotification(
-                        {
-                            receiver: new ObjectId(receiverId),
-                            company: new ObjectId(payload.companyId as string),
-                            code: evt.code,
-                            description: evt.description,
-                            content: {
-                                permitId: payload.permitId,
-                                title: payload.title,
-                                projectId: payload.projectId,
-                                expiresAt: payload.expiresAt,
-                            },
-                            importance: evt.importance,
-                            category: NotificationCategory.COMPANY,
-                        },
-                        opts
-                    );
-                } catch (e) {
-                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
-                }
-            }
-        });
-    }
-
-    // ─── Milestones ────────────────────────────────────────────────────────────
-
-    const milestoneEvents: {code: string; description: string; importance: NotificationImportance}[] = [
-        {code: NotificationEventCodes.MILESTONE_STARTED, description: "Milestone started", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.MILESTONE_COMPLETED, description: "Milestone completed", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.MILESTONE_SLIPPING, description: "Milestone slipping (overdue)", importance: NotificationImportance.HIGH},
-    ];
-
-    for (const evt of milestoneEvents) {
-        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
-            const {receiverIds, payload} = event;
-            const opts = langOpts(event);
-            for (const receiverId of receiverIds) {
-                try {
-                    await createAndPushNotification(
-                        {
-                            receiver: new ObjectId(receiverId),
-                            company: new ObjectId(payload.companyId as string),
-                            code: evt.code,
-                            description: evt.description,
-                            content: {
-                                milestoneId: payload.milestoneId,
-                                title: payload.title,
-                                projectId: payload.projectId,
-                                plannedEnd: payload.plannedEnd,
-                            },
-                            importance: evt.importance,
-                            category: NotificationCategory.COMPANY,
-                        },
-                        opts
-                    );
-                } catch (e) {
-                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
-                }
-            }
-        });
-    }
-
-    // ─── Schedule Tasks ──────────────────────────────────────────────────────────
-
-    const scheduleTaskEvents: {code: string; description: string; importance: NotificationImportance}[] = [
-        {code: NotificationEventCodes.SCHEDULE_TASK_STARTED, description: "Task started", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.SCHEDULE_TASK_COMPLETED, description: "Task completed", importance: NotificationImportance.MEDIUM},
-    ];
-
-    for (const evt of scheduleTaskEvents) {
-        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
-            const {receiverIds, payload} = event;
-            const opts = langOpts(event);
-            for (const receiverId of receiverIds) {
-                try {
-                    await createAndPushNotification(
-                        {
-                            receiver: new ObjectId(receiverId),
-                            company: new ObjectId(payload.companyId as string),
-                            code: evt.code,
-                            description: evt.description,
-                            content: {
-                                scheduleTaskId: payload.scheduleTaskId,
-                                title: payload.title,
-                                projectId: payload.projectId,
-                                milestoneId: payload.milestoneId,
-                            },
-                            importance: evt.importance,
-                            category: NotificationCategory.COMPANY,
-                        },
-                        opts
-                    );
-                } catch (e) {
-                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
-                }
-            }
-        });
-    }
-
-    // ─── Construction delivery records (propertyDevelopment) ─────────────────────
-    // Emitted with the permit payload shape: {companyId, <record>Id, title, projectId, languageCode}.
-
-    const deliveryRecordEvents: {code: string; idKey: string; description: string; importance: NotificationImportance}[] = [
-        {code: NotificationEventCodes.RFI_OPENED, idKey: "rfiId", description: "RFI opened", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.RFI_ANSWERED, idKey: "rfiId", description: "RFI answered", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.VARIATION_ORDER_APPROVED, idKey: "variationOrderId", description: "Variation order approved", importance: NotificationImportance.HIGH},
-        {code: NotificationEventCodes.VARIATION_ORDER_REJECTED, idKey: "variationOrderId", description: "Variation order rejected", importance: NotificationImportance.HIGH},
-        {code: NotificationEventCodes.BUDGET_APPROVED, idKey: "budgetId", description: "Budget approved", importance: NotificationImportance.HIGH},
-        {code: NotificationEventCodes.PROGRESS_CLAIM_SUBMITTED, idKey: "progressClaimId", description: "Progress claim submitted", importance: NotificationImportance.MEDIUM},
-        {code: NotificationEventCodes.SAFETY_INCIDENT_REPORTED, idKey: "safetyIncidentId", description: "Safety incident reported", importance: NotificationImportance.HIGH},
-    ];
-
-    for (const evt of deliveryRecordEvents) {
-        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
-            const {receiverIds, payload} = event;
-            const opts = langOpts(event);
-            for (const receiverId of receiverIds) {
-                try {
-                    await createAndPushNotification(
-                        {
-                            receiver: new ObjectId(receiverId),
-                            company: new ObjectId(payload.companyId as string),
-                            code: evt.code,
-                            description: evt.description,
-                            content: {
-                                [evt.idKey]: payload[evt.idKey],
-                                title: payload.title,
-                                projectId: payload.projectId,
-                            },
-                            importance: evt.importance,
-                            category: NotificationCategory.COMPANY,
-                        },
-                        opts
-                    );
-                } catch (e) {
-                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
-                }
-            }
-        });
+/** Every propertyManagement code has exactly one notice here (TD-B149; `notificationHandlers.test.ts` checks it). */
+export function registerRealEstateNotificationEventHandlers(): void {
+    for (const notice of NOTICES) {
+        notificationEventBus.on(notice.code, (event: NotificationEvent) => deliver(notice, event));
     }
 }

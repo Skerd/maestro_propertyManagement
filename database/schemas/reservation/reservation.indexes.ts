@@ -3,46 +3,32 @@ import {Schema} from "mongoose";
 /**
  * Reservation Indexes
  *
- * Optimized indexes for reservation queries.
- * Supports queries by unit, client, company, and reservation status.
+ * Every tenant query carries `company` (ownershipPlugin, DB-02), so each index starts with it (DB-06).
  */
 export function applyReservationIndexes(ReservationSchema: Schema): void {
-    // Primary query pattern - reservations by unit
-    ReservationSchema.index({ unit: 1, createdAt: -1 });
+    // Reservations of a unit, the active one first (unit pages, sale creation, conflicts)
+    ReservationSchema.index({ company: 1, unit: 1, isActive: 1, createdAt: -1 });
 
-    // For finding reservations by client
-    ReservationSchema.index({ client: 1, createdAt: -1 });
+    // Reservations of a client
+    ReservationSchema.index({ company: 1, client: 1, isActive: 1, createdAt: -1 });
 
-    // For finding reservations by company
-    ReservationSchema.index({ reservedByCompany: 1, createdAt: -1 });
+    // Reservations by the reserving company and by the agent who made them (agent report)
+    ReservationSchema.index({ company: 1, reservedByCompany: 1, isActive: 1, createdAt: -1 });
+    ReservationSchema.index({ company: 1, reservedBy: 1, createdAt: -1 });
 
-    // For finding reservations by user who made the reservation
-    ReservationSchema.index({ reservedBy: 1, createdAt: -1 });
+    // Active / paid filters on the list, newest first
+    ReservationSchema.index({ company: 1, isActive: 1, createdAt: -1 });
+    ReservationSchema.index({ company: 1, paid: 1, createdAt: -1 });
 
-    // For filtering active reservations
-    ReservationSchema.index({ isActive: 1, createdAt: -1 });
+    // Reservations by status and by source
+    ReservationSchema.index({ company: 1, status: 1, createdAt: -1 });
+    ReservationSchema.index({ company: 1, source: 1 });
 
-    // For filtering paid reservations
-    ReservationSchema.index({ paid: 1, createdAt: -1 });
+    // Expiration and cancellation days
+    ReservationSchema.index({ company: 1, expirationDate: 1 });
+    ReservationSchema.index({ company: 1, cancelledAt: -1 });
 
-    // For finding reservations by reservation date
-    ReservationSchema.index({ reservationDate: -1 });
-
-    // For finding reservations by expiration date
-    ReservationSchema.index({ expirationDate: 1 });
-
-    // Compound indexes for common query patterns
-    ReservationSchema.index({ unit: 1, isActive: 1 });
-    ReservationSchema.index({ client: 1, isActive: 1 });
-    ReservationSchema.index({ reservedByCompany: 1, isActive: 1 });
-
-    // For finding cancelled reservations
-    ReservationSchema.index({ cancelledAt: -1 });
-
-    // Compound index for unit + active status (most common query)
-    ReservationSchema.index({ unit: 1, isActive: 1, createdAt: -1 });
-
-    // Unpaid active reservations by expiration day (DB-06): the expiry cron
+    // Unpaid active reservations by expiration day: the expiry cron
     // `{company, isActive: true, paid: false, status: "active", expirationDate: {$lt}}`, the reminder cron
     // `{company, isActive: true, paid: false, expirationDate: "<day>"}` and the dashboard's upcoming expirations
     // (expiration days are `YYYY-MM-DD` strings, D115).
@@ -51,6 +37,6 @@ export function applyReservationIndexes(ReservationSchema: Schema): void {
     // The reservations list: `{company}` sorted by `reservationDate: -1` (the router's default sort).
     ReservationSchema.index({ company: 1, reservationDate: -1 });
 
-    // Multi-company: client reservations filtered to a specific company
+    // A client's own reservations across companies, then narrowed to one
     ReservationSchema.index({ client: 1, company: 1 });
 }

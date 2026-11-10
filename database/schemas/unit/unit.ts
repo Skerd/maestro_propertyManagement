@@ -229,7 +229,6 @@ const UnitSchema = new Schema<IUnit>(
             type: SchemaTypes.String,
             enum: [...UNIT_ORIENTATION_VALUES],
             required: false,
-            index: true,
             dynamicTableConfiguration: {
                 hideColumn: true,
             }
@@ -238,7 +237,6 @@ const UnitSchema = new Schema<IUnit>(
             type: SchemaTypes.String,
             enum: [...UNIT_CONSTRUCTION_STATUS_VALUES],
             required: false,
-            index: true,
             dynamicTableConfiguration: {
                 hideColumn: true,
             }
@@ -357,7 +355,6 @@ const UnitSchema = new Schema<IUnit>(
             enum: Object.values(UnitStatus),
             required: true,
             default: UnitStatus.AVAILABLE,
-            index: true,
             dynamicTableConfiguration: {
                 enumTones: {
                     available_unit:     "success",

@@ -2,43 +2,31 @@ import {Schema} from "mongoose";
 
 /**
  * Sale Indexes
- * 
- * Optimized indexes for sale queries.
- * Supports queries by unit, payment type, buyer, and sale date.
+ *
+ * Every tenant query carries `company` (ownershipPlugin, DB-02), so each index starts with it (DB-06).
  */
 export function applySaleIndexes(SaleSchema: Schema): void {
-    // Primary query pattern - sales by unit
-    SaleSchema.index({ unit: 1 });
-    
-    // For filtering by payment type (already has inline index, but compound for better performance)
-    SaleSchema.index({ paymentType: 1, createdAt: -1 });
-    
-    // For finding sales by seller
-    SaleSchema.index({ soldBy: 1, createdAt: -1 });
-    
-    // For finding sales by sale date (already has inline index, but compound for better performance)
-    SaleSchema.index({ saleDate: -1 });
-    
-    // Compound indexes for common query patterns
-    SaleSchema.index({ unit: 1, paymentType: 1 });
-    SaleSchema.index({ soldBy: 1, paymentType: 1 });
-    SaleSchema.index({ paymentType: 1, saleDate: -1 });
-    
-    // For finding sales by payment plan reference
-    SaleSchema.index({ paymentPlan: 1 });
-    
-    // For finding sales by buyer (shared for cash and payment plan)
-    SaleSchema.index({ buyer: 1 });
-    
-    // For finding sales by buyer company
-    SaleSchema.index({ buyerCompany: 1 });
-    
-    // Compound index for unit + payment type (most common query)
-    SaleSchema.index({ unit: 1, paymentType: 1, saleDate: -1 });
-    
-    // For sorting by creation date
-    SaleSchema.index({ createdAt: -1 });
+    // Sales of a unit (unit pages, hubs scoped by unit), by payment type and newest sale day
+    SaleSchema.index({ company: 1, unit: 1, paymentType: 1, saleDate: -1 });
 
-    // The sales list: `{company}` sorted by `saleDate: -1` (the router's default sort, DB-06).
+    // Sales by payment type
+    SaleSchema.index({ company: 1, paymentType: 1, saleDate: -1 });
+
+    // Sales by seller (agent report), by payment type
+    SaleSchema.index({ company: 1, soldBy: 1, paymentType: 1, createdAt: -1 });
+
+    // Sales by payment plan, buyer and buyer company
+    SaleSchema.index({ company: 1, paymentPlan: 1 });
+    SaleSchema.index({ company: 1, buyer: 1 });
+    SaleSchema.index({ company: 1, buyerCompany: 1 });
+
+    // The agent report's created-day window
+    SaleSchema.index({ company: 1, createdAt: -1 });
+
+    // The sale a reservation became, and sales by approval state
+    SaleSchema.index({ company: 1, reservation: 1 });
+    SaleSchema.index({ company: 1, approvalStatus: 1, saleDate: -1 });
+
+    // The sales list: `{company}` sorted by `saleDate: -1` (the router's default sort).
     SaleSchema.index({ company: 1, saleDate: -1 });
 }

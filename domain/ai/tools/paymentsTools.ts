@@ -35,18 +35,19 @@ import {
     calendarDaysPast,
     companyObjectId,
     companyScope,
-    companyToday,
     emptyResult,
     findOptions,
+    GROUP_CURRENCY_LOOKUP_STAGE,
     limitArg,
     limitParameter,
     listResult,
+    moneyOfCurrencyGroup,
     resolveUnitId,
-    toAmount,
     toNumber,
     userDisplayName,
 } from "./assistantToolHelpers";
-import {roundToCurrency, subtractMoney} from "armonia/src/modules/core/helpers/money";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
+import {DEFAULT_DECIMAL_PLACES, subtractMoney} from "armonia/src/modules/core/helpers/money";
 
 const INSTALLMENT_STATUS_VALUES = Object.values(InstallmentStatus) as string[];
 const PLAN_STATUS_VALUES = Object.values(PaymentPlanStatus) as string[];
@@ -95,7 +96,7 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
     const args = SearchInstallmentsArgs.parse(rawArgs ?? {});
     const limit = args.limit ?? DEFAULT_RESULTS;
     // Due days are local `YYYY-MM-DD` strings (D115), compared with the company's today.
-    const today = await companyToday(ctx);
+    const today = await companyTodayOf(ctx.companyId);
 
     // Stage 1 — which payment plans are in scope. Company-scoped, soft-deletes out.
     const planMatch: Record<string, unknown> = {company: companyObjectId(ctx), deletedAt: null};
@@ -144,15 +145,18 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
         {
             $facet: {
                 rows: [{$limit: limit}],
+                // A plan stores no currency: its amounts are in its sale's currency, so totals are per currency.
                 totals: [
+                    {$lookup: {from: "sales", localField: "sale", foreignField: "_id", as: "planSale"}},
                     {
                         $group: {
-                            _id: null,
+                            _id: {$arrayElemAt: ["$planSale.saleCurrency", 0]},
                             count: {$sum: 1},
-                            amountDue: {$sum: {$toDouble: "$installments.amount"}},
-                            amountPaid: {$sum: {$toDouble: {$ifNull: ["$installments.paidAmount", 0]}}}
+                            amountDue: {$sum: {$toDecimal: {$ifNull: ["$installments.amount", 0]}}},
+                            amountPaid: {$sum: {$toDecimal: {$ifNull: ["$installments.paidAmount", 0]}}}
                         }
-                    }
+                    },
+                    GROUP_CURRENCY_LOOKUP_STAGE
                 ]
             }
         }
@@ -160,7 +164,8 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
 
     const [facet] = await paymentPlanService.aggregate(pipeline, {logger: ctx.logger});
     const rows: any[] = facet?.rows ?? [];
-    const totals = facet?.totals?.[0] ?? {count: 0, amountDue: 0, amountPaid: 0};
+    const totalRows: any[] = facet?.totals ?? [];
+    const total = totalRows.reduce((sum, row) => sum + (row.count ?? 0), 0);
 
     // Enrich the sample rows with unit/buyer, resolved through the sale. Done via
     // the service (company-scoped) rather than a $lookup so the tenant boundary
@@ -206,21 +211,20 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
         };
     });
 
-    const amountDue = roundToCurrency(toAmount(totals.amountDue));
-    const amountPaid = roundToCurrency(toAmount(totals.amountPaid));
+    // Totals span every matching instalment, not just the rows below; one row per sale currency.
+    const totals = totalRows.map((row) => {
+        const due = moneyOfCurrencyGroup(row, row.amountDue);
+        const paid = moneyOfCurrencyGroup(row, row.amountPaid);
+        const decimals = row.currency?.[0]?.decimalPlaces ?? DEFAULT_DECIMAL_PLACES;
+        return {currency: due.currency, amountDue: due.amount, amountPaid: paid.amount, outstanding: subtractMoney(due.amount, paid.amount, decimals)};
+    });
 
     return {
-        // Totals span every matching instalment, not just the rows below.
-        total: totals.count ?? 0,
+        total,
         returned: results.length,
-        truncated: (totals.count ?? 0) > results.length,
-        totals: {
-            amountDue,
-            amountPaid,
-            outstanding: subtractMoney(amountDue, amountPaid)
-        },
-        note: "Amounts are summed across all matching instalments and are NOT currency-converted; " +
-            "each payment plan carries its own sale currency.",
+        truncated: total > results.length,
+        totals,
+        note: "Totals are one row per sale currency and are NOT currency-converted; never add rows of different currencies.",
         results
     };
 }
@@ -232,8 +236,8 @@ export const searchInstallmentsTool: AssistantTool = {
         "are buying by instalments. Filter by instalment status, parent plan status, " +
         "a due-date range, a specific unit, or `overdueOnly` for arrears. Returns " +
         "sample instalments with unit, buyer, due date, amount and days overdue, plus " +
-        "`total` (the true number of matching instalments) and `totals.outstanding` " +
-        "(amount still owed across ALL matches). Use this for questions about " +
+        "`total` (the true number of matching instalments) and `totals` (amount due, " +
+        "paid and still owed across ALL matches, one row per currency). Use this for questions about " +
         "instalments, arrears, overdue buyer payments, or who owes money on a sale. " +
         "For rent owed by tenants use search_rental_payments.",
     parameters: installmentParameters,
@@ -274,7 +278,7 @@ const rentalParameters = {
 };
 
 async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext): Promise<unknown> {
-    const today = await companyToday(ctx);
+    const today = await companyTodayOf(ctx.companyId);
     const args = SearchRentalPaymentsArgs.parse(rawArgs ?? {});
 
     // Hard company scope — the only scope the tool is allowed to read.

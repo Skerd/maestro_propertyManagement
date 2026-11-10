@@ -11,9 +11,9 @@ import {notificationEventBus} from "@coreModule/domain/notifications/notificatio
 import {NotificationImportance} from "@coreModule/database/schemas/notification/notification";
 import {NotificationCategory} from "armonia/src/modules/core/api/user/private/notifications/notifications.enum";
 import {registerRealEstateNotificationEventHandlers} from "@propertyManagement/domain/notifications/realEstateNotificationHandlers";
+import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 
 const companyId = new ObjectId().toString();
-const projectId = new ObjectId().toString();
 const receivers = [new ObjectId().toString(), new ObjectId().toString()];
 
 /** Emits the way `emitNotificationEvent` publishes, and waits for the async handler to finish. */
@@ -31,29 +31,6 @@ beforeEach(() => {
     mocks.createAndPush.mockReset().mockResolvedValue({});
 });
 
-describe("propertyDevelopment delivery notices (emitted with the permit payload shape)", () => {
-    it.each([
-        ["RFI_OPENED", "rfiId", "RFI opened", NotificationImportance.MEDIUM],
-        ["RFI_ANSWERED", "rfiId", "RFI answered", NotificationImportance.MEDIUM],
-        ["VARIATION_ORDER_APPROVED", "variationOrderId", "Variation order approved", NotificationImportance.HIGH],
-        ["VARIATION_ORDER_REJECTED", "variationOrderId", "Variation order rejected", NotificationImportance.HIGH],
-        ["BUDGET_APPROVED", "budgetId", "Budget approved", NotificationImportance.HIGH],
-        ["PROGRESS_CLAIM_SUBMITTED", "progressClaimId", "Progress claim submitted", NotificationImportance.MEDIUM],
-        ["SAFETY_INCIDENT_REPORTED", "safetyIncidentId", "Safety incident reported", NotificationImportance.HIGH],
-    ])("%s notifies each receiver under the event's company, in its language", async (code, idKey, description, importance) => {
-        const recordId = new ObjectId().toString();
-        const sent = await deliver(code, {companyId, [idKey]: recordId, title: "Level 3 slab", projectId, languageCode: "de-CH"});
-
-        expect(sent.map(({input}) => String(input.receiver)).sort()).toEqual([...receivers].sort());
-        for (const {input, opts} of sent) {
-            expect(input).toMatchObject({code, description, importance, category: NotificationCategory.COMPANY});
-            expect(String(input.company)).toBe(companyId);
-            expect(input.content).toEqual({[idKey]: recordId, title: "Level 3 slab", projectId});
-            expect(opts).toEqual({languageCode: "de-CH"});
-        }
-    });
-});
-
 describe("RESERVATION_EXPIRED (D112)", () => {
     it("tells each receiver which unit and client it was", async () => {
         const reservationId = new ObjectId().toString();
@@ -69,6 +46,41 @@ describe("RESERVATION_EXPIRED (D112)", () => {
                 category: NotificationCategory.FINANCIAL,
             });
             expect(input.content).toMatchObject({reservationId, unitNumber: "A-101", clientName: "Ann Lee", agentName: "Bo Ng"});
+            // The panel translates the code with these values (D117).
+            expect(input.params).toEqual({unit: "A-101", client: "Ann Lee"});
+        }
+    });
+
+    it("picks the variant without a client when there is none", async () => {
+        const sent = await deliver("RESERVATION_EXPIRED", {companyId, reservationId: new ObjectId().toString(), unitNumber: "A-101", languageCode: "en-US"});
+        expect(sent[0].input).toMatchObject({description: "Reservation expired: Unit A-101", params: {unit: "A-101", variant: "noClient"}});
+    });
+});
+
+describe("every propertyManagement code (TD-B149)", () => {
+    it("has exactly one handler", () => {
+        for (const code of Object.values(NotificationEventCodes)) {
+            expect(notificationEventBus.listenerCount(code), code).toBe(1);
+        }
+    });
+
+    it.each([
+        ["SALE_PENDING_APPROVAL", {unitNumber: "B-7"}, "Sale awaiting approval: Unit B-7", {unit: "B-7"}, NotificationImportance.MEDIUM],
+        ["SALE_APPROVED", {decision: "approved"}, "Sale approved", {}, NotificationImportance.HIGH],
+        ["SALE_REJECTED", {decision: "rejected", notes: "Price too low"}, "Sale rejected: Price too low", {notes: "Price too low"}, NotificationImportance.HIGH],
+        ["COMMISSION_PENDING_APPROVAL", {amount: "1200.00", currencySymbol: "CHF"}, "Commission payment to approve: 1200.00 CHF", {amount: "1200.00 CHF"}, NotificationImportance.MEDIUM],
+        ["COMMISSION_APPROVAL_REJECTED", {}, "Commission payment rejected", {variant: "noNotes"}, NotificationImportance.HIGH],
+        ["MODIFICATION_REQUEST_CLIENT_COST_PENDING", {title: "Kitchen", totalCost: "800", currencySymbol: "EUR"}, "Cost to approve: 800 EUR", {title: "Kitchen", cost: "800 EUR"}, NotificationImportance.MEDIUM],
+        ["MODIFICATION_REQUEST_CLIENT_COST_APPROVED", {title: "Kitchen"}, "Modification cost approved", {title: "Kitchen"}, NotificationImportance.MEDIUM],
+        ["MODIFICATION_REQUEST_CLIENT_COST_REJECTED", {title: "Kitchen"}, "Modification cost declined", {title: "Kitchen"}, NotificationImportance.HIGH],
+        ["MODIFICATION_REQUEST_REVISION_SUBMITTED", {title: "Kitchen"}, "Modification request revised and resubmitted", {title: "Kitchen"}, NotificationImportance.MEDIUM],
+        ["MODIFICATION_REQUEST_REACTIVATED", {title: "Kitchen"}, "Modification request reactivated", {title: "Kitchen"}, NotificationImportance.MEDIUM],
+        ["MODIFICATION_REQUEST_SLA_BREACHED", {title: "Kitchen"}, "Modification request overdue at its current stage", {title: "Kitchen"}, NotificationImportance.HIGH],
+    ])("%s is delivered with its English fallback and message values", async (code, extra, description, params, importance) => {
+        const sent = await deliver(code, {companyId, languageCode: "fr-FR", ...extra});
+        for (const {input, opts} of sent) {
+            expect(input).toMatchObject({code, description, params, importance});
+            expect(opts).toEqual({languageCode: "fr-FR"});
         }
     });
 });

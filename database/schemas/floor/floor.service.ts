@@ -18,6 +18,7 @@ import type {
 import type {FloorStatistics} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.dto";
 import type {UnitStatistics} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.dto";
 import type {FilterQuery} from "mongoose";
+import {addMoneyLines, aggregateCurrencyFields, moneyRowsOf, type MoneyTotals, sumMoneyRows} from "../../../utilities/statistics/moneyTotals";
 
 export type FloorUnitCoordinateRow = {
     polygonCoordinates: {x: number; y: number}[];
@@ -31,14 +32,6 @@ type FloorListingAggregateRows = {
     unitsByStatusResult: any[];
     unitValueByFloor: any[];
 };
-
-interface FloorStatsCurrencyAccum {
-    currencyId: string;
-    currencyName: string;
-    currencySymbol: string;
-    currencyAbbreviation: string;
-    sum: number;
-}
 
 type FloorUnitsByStatus = {available: number; reserved: number; sold: number; unavailable: number; leased: number};
 
@@ -59,73 +52,8 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
         return {available: 0, reserved: 0, sold: 0, unavailable: 0, leased: 0};
     }
 
-    private static parseAggMoneyValue(v: unknown): number {
-        if (v == null) return 0;
-        if (typeof v === "number" && !Number.isNaN(v)) return v;
-        if (typeof v === "object" && v !== null && typeof (v as {toString?: () => string}).toString === "function") {
-            return parseFloat((v as {toString: () => string}).toString()) || 0;
-        }
-        return parseFloat(String(v)) || 0;
-    }
-
-    private static addAggCurrencyItems(target: Map<string, FloorStatsCurrencyAccum>, items: any[] | undefined): void {
-        for (const inv of items || []) {
-            const value = FloorService.parseAggMoneyValue(inv?.value);
-            const cid = inv?.currencyId;
-            if (cid == null) continue;
-            const k = cid.toString();
-            const existing = target.get(k);
-            if (existing) {
-                existing.sum += value;
-            } else {
-                target.set(k, {
-                    currencyId: k,
-                    currencyName: inv.currencyName || "",
-                    currencySymbol: inv.currencySymbol || "",
-                    currencyAbbreviation: inv.currencyAbbreviation || "",
-                    sum: value,
-                });
-            }
-        }
-    }
-
-    private static currencyAccumMapToDto(map: Map<string, FloorStatsCurrencyAccum>): EdificeMoneyByCurrency[] {
-        return [...map.values()].map((v) => ({
-            currency: {
-                _id: v.currencyId,
-                name: v.currencyName,
-                symbol: v.currencySymbol,
-                abbreviation: v.currencyAbbreviation,
-            },
-            value: Number.isNaN(v.sum) ? 0 : v.sum,
-        }));
-    }
-
-    private static mergeEdificeMoneyByCurrency(rows: EdificeMoneyByCurrency[]): EdificeMoneyByCurrency[] {
-        const map = new Map<string, FloorStatsCurrencyAccum>();
-        for (const row of rows) {
-            const id = row.currency?._id;
-            if (id == null) continue;
-            const v = row.value ?? 0;
-            const k = id.toString();
-            const existing = map.get(k);
-            if (existing) {
-                existing.sum += v;
-            } else {
-                map.set(k, {
-                    currencyId: k,
-                    currencyName: row.currency?.name ?? "",
-                    currencySymbol: row.currency?.symbol ?? "",
-                    currencyAbbreviation: row.currency?.abbreviation ?? "",
-                    sum: v,
-                });
-            }
-        }
-        return FloorService.currencyAccumMapToDto(map);
-    }
-
     private static initFloorValueMaps(floorIds: ObjectId[]) {
-        const totalValueByFloor = new Map<string, Map<string, FloorStatsCurrencyAccum>>();
+        const totalValueByFloor = new Map<string, MoneyTotals>();
         for (const id of floorIds) {
             totalValueByFloor.set(id.toString(), new Map());
         }
@@ -171,7 +99,7 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
             {
                 $group: {
                     _id: {floor: "$floor", currency: "$priceCurrency"},
-                    totalValue: {$sum: "$price"},
+                    totalValue: {$sum: {$toDecimal: {$ifNull: ["$price", 0]}}},
                     currencyInfo: {$first: "$currencyInfo"},
                 },
             },
@@ -181,9 +109,7 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
                     valueByCurrency: {
                         $push: {
                             currencyId: "$_id.currency",
-                            currencyName: {$ifNull: ["$currencyInfo.name", ""]},
-                            currencySymbol: {$ifNull: ["$currencyInfo.symbol", ""]},
-                            currencyAbbreviation: {$ifNull: ["$currencyInfo.abbreviation", ""]},
+                            ...aggregateCurrencyFields("currencyInfo"),
                             value: "$totalValue",
                         },
                     },
@@ -236,7 +162,8 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
 
         for (const row of agg.unitValueByFloor) {
             const floorId = row._id?.toString();
-            if (floorId) FloorService.addAggCurrencyItems(totalValueByFloor.get(floorId)!, row.valueByCurrency);
+            const totals = floorId ? totalValueByFloor.get(floorId) : undefined;
+            if (totals) addMoneyLines(totals, row.valueByCurrency);
         }
 
         for (const row of agg.unitsByStatusResult) {
@@ -264,7 +191,7 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
             const tvMap = totalValueByFloor.get(key) || new Map();
             statisticsMap.set(key, {
                 ...current,
-                totalValue: FloorService.currencyAccumMapToDto(tvMap),
+                totalValue: moneyRowsOf(tvMap),
             });
         }
 
@@ -357,11 +284,11 @@ export class FloorService extends BaseCrudService<IFloor, typeof Floor> {
             }
         }
         return {
-            collected: FloorService.mergeEdificeMoneyByCurrency(collectedParts),
-            notCollected: FloorService.mergeEdificeMoneyByCurrency(notCollectedParts),
-            verifiedPaidUnitCosts: FloorService.mergeEdificeMoneyByCurrency(verifiedPaidParts),
-            verifiedOutstandingUnitCosts: FloorService.mergeEdificeMoneyByCurrency(verifiedOutstandingParts),
-            pendingVerificationUnitCosts: FloorService.mergeEdificeMoneyByCurrency(pendingVerificationParts),
+            collected: sumMoneyRows(collectedParts),
+            notCollected: sumMoneyRows(notCollectedParts),
+            verifiedPaidUnitCosts: sumMoneyRows(verifiedPaidParts),
+            verifiedOutstandingUnitCosts: sumMoneyRows(verifiedOutstandingParts),
+            pendingVerificationUnitCosts: sumMoneyRows(pendingVerificationParts),
             totalUnitCostDocuments,
         };
     }

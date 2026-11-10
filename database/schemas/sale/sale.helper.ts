@@ -10,7 +10,7 @@ import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/
 import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import type {serverLogger} from "@coreModule/loggers/serverLog";
 import type {UserContext} from "@coreModule/utilities/types/types";
-import {recordCommission, voidPendingCommission} from "@propertyManagement/utilities/mappers/commissions/commission";
+import {recordCommission, voidPendingCommission} from "../commission/commission.helper";
 import {type ISale, SaleApprovalStatus} from "./sale";
 import {unitService} from "../unit/unit.service";
 import {paymentPlanService} from "../paymentPlan/paymentPlan.service";

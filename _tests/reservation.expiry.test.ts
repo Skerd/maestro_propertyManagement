@@ -160,6 +160,23 @@ describe("staff sending the expired email end the reservation like the cron (TD-
     }));
 });
 
+describe("confirming a reservation to its client (TD-B149)", {timeout: 60000}, () => {
+    it("confirms an active one whose last day is not over, and refuses an expired or ended one", () => asCompany(async () => {
+        vi.useFakeTimers({now, toFake: ["Date"]});
+        const active = await seedHeldReservation("2026-03-12");
+        const lastDayOver = await seedHeldReservation("2026-03-09");
+        const ended = await seedHeldReservation("2026-03-12");
+        await db().collection("reservations").updateOne({_id: ended.reservation}, {$set: {status: "expired"}});
+
+        await reservations.manualClientEmail({...params, _id: active.reservation.toString(), action: "send_confirmation"});
+        for (const held of [lastDayOver, ended]) {
+            await expect(reservations.manualClientEmail({...params, _id: held.reservation.toString(), action: "send_confirmation"}))
+                .rejects.toMatchObject({error_code: "manual_reservation_email_action_not_allowed"});
+        }
+        expect(mocks.clientEmail.mock.calls.map(([email]) => [email.kind, email.reservationId])).toEqual([["created", active.reservation.toString()]]);
+    }));
+});
+
 describe("payments on a reservation that is no longer active (TD-B141)", {timeout: 60000}, () => {
     it("refuses to pay an expired reservation, which keeps isActive", () => asCompany(async () => {
         const unit = await seedUnit(companyId, {price: "1000.00", priceCurrency: chf});

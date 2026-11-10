@@ -32,18 +32,18 @@ import {
     companyScope,
     emptyResult,
     findOptions,
+    GROUP_CURRENCY_LOOKUP_STAGE,
     limitArg,
     limitParameter,
     listResult,
+    moneyOfCurrencyGroup,
     numberRange,
     resolveUnitId,
     resolveUnitIdsForEdifice,
     resolveUnitIdsForProject,
-    toAmount,
     toNumber,
     userDisplayName,
 } from "./assistantToolHelpers";
-import {roundToCurrency} from "armonia/src/modules/core/helpers/money";
 
 const PAYMENT_TYPE_VALUES = Object.values(SalePaymentType) as string[];
 const APPROVAL_STATUS_VALUES = Object.values(SaleApprovalStatus) as string[];
@@ -108,17 +108,13 @@ async function rollUpRevenue(
     const rows: any[] = await saleService.aggregate(
         [
             {$match: {...query, deletedAt: null}},
-            {$group: {_id: "$saleCurrency", amount: {$sum: {$toDouble: "$finalPrice"}}, sales: {$sum: 1}}},
-            {$lookup: {from: "currencies", localField: "_id", foreignField: "_id", as: "currency"}}
+            {$group: {_id: "$saleCurrency", amount: {$sum: {$toDecimal: "$finalPrice"}}, sales: {$sum: 1}}},
+            GROUP_CURRENCY_LOOKUP_STAGE
         ],
         {logger: ctx.logger}
     );
 
-    return rows.map((row) => ({
-        currency: row.currency?.[0]?.abbreviation ?? row.currency?.[0]?.symbol ?? null,
-        amount: roundToCurrency(toAmount(row.amount)),
-        sales: row.sales ?? 0
-    }));
+    return rows.map((row) => ({...moneyOfCurrencyGroup(row, row.amount), sales: row.sales ?? 0}));
 }
 
 async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unknown> {

@@ -96,6 +96,7 @@ const RENT = "rentalpayments";
 /** Field-level read (SEC-09): where each lease row field comes from. */
 const LEASE_ROW_SOURCES: RowFieldSources<LeaseRegistryRow> = {
     name: [[LEASE, "name"]],
+    status: [[LEASE, "status"]],
     startDate: [[LEASE, "startDate"]],
     endDate: [[LEASE, "endDate"]],
     monthlyRent: [[LEASE, "monthlyRent"]],
@@ -111,6 +112,7 @@ const LEASE_ROW_SOURCES: RowFieldSources<LeaseRegistryRow> = {
 /** Field-level read (SEC-09): where each rent payment row field comes from. */
 const PAYMENT_ROW_SOURCES: RowFieldSources<RentalPaymentRegistryRow> = {
     name: [[RENT, "name"]],
+    status: [[RENT, "status"]],
     dueDate: [[RENT, "dueDate"]],
     amount: [[RENT, "amount"]],
     paidAmount: [[RENT, "paidAmount"]],
@@ -125,12 +127,14 @@ const PAYMENT_ROW_SOURCES: RowFieldSources<RentalPaymentRegistryRow> = {
     createdAt: [[RENT, "createdAt"]],
 };
 
-/** Collected = paid amounts; outstanding / overdue = amount + late fee − paid. */
-function rentTotalsAccess(read: CollectedFieldReader): {collected: boolean; outstanding: boolean} {
+/** Collected = paid amounts; outstanding / overdue = amount + late fee − paid; overdue also needs the status. */
+function rentTotalsAccess(read: CollectedFieldReader): {collected: boolean; outstanding: boolean; overdue: boolean} {
     const paid = read(RENT, "paidAmount");
+    const outstanding = paid && read(RENT, "amount") && read(RENT, "lateFeeAmount");
     return {
         collected: paid,
-        outstanding: paid && read(RENT, "amount") && read(RENT, "lateFeeAmount"),
+        outstanding,
+        overdue: outstanding && read(RENT, "status"),
     };
 }
 
@@ -166,7 +170,9 @@ async function listLeases(
         company: companyId,
     };
     if (unitIds) match.unit = {$in: unitIds};
-    if (status) match.status = status;
+    const read = collectedFieldReader(params.actionUserCtx, params.languageCode);
+    // A status the caller may not read is no filter (SEC-09), like the hidden date filters below.
+    if (status && read(LEASE, "status")) match.status = status;
 
     const docs = await leaseService.find(
         match,
@@ -176,7 +182,6 @@ async function listLeases(
         {createdAt: -1},
     );
 
-    const read = collectedFieldReader(params.actionUserCtx, params.languageCode);
     const hidden = unreadableRowKeys(LEASE_ROW_SOURCES, read);
     const canFilterByStart = read(LEASE, "startDate");
     const matched: LeaseRegistryRow[] = [];
@@ -254,7 +259,8 @@ async function listRentalPayments(
     };
     if (payment && ObjectId.isValid(payment)) match._id = new ObjectId(payment);
     if (unitIds) match.unit = {$in: unitIds};
-    if (status) match.status = status;
+    const read = collectedFieldReader(params.actionUserCtx, params.languageCode);
+    if (status && read(RENT, "status")) match.status = status;
 
     const docs = await rentalPaymentService.find(
         match,
@@ -264,7 +270,6 @@ async function listRentalPayments(
         {dueDate: -1},
     );
 
-    const read = collectedFieldReader(params.actionUserCtx, params.languageCode);
     const hidden = unreadableRowKeys(PAYMENT_ROW_SOURCES, read);
     const canFilterByDue = read(RENT, "dueDate");
     const rows: RentalPaymentRegistryRow[] = [];
@@ -387,24 +392,22 @@ async function listRentalPaymentsCalendar(
     const overdue = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
     for (const payment of kpiPayments) {
         if (totalsAccess.collected) addRevenue(collected, payment, "collected");
-        if (totalsAccess.outstanding) {
-            addRevenue(outstanding, payment, "outstanding");
-            addRevenue(overdue, payment, "overdue");
-        }
+        if (totalsAccess.outstanding) addRevenue(outstanding, payment, "outstanding");
+        if (totalsAccess.overdue) addRevenue(overdue, payment, "overdue");
     }
 
-    const monthMatch = {
-        ...match,
-        dueDate: {$gte: from, $lte: to},
-    };
-    const monthDocs = await rentalPaymentService.find(
-        monthMatch,
-        {logger, languageCode: params.languageCode, withDeleted: false},
-        RENTALS_HUB_PAYMENT_POPULATE,
-        undefined,
-        {dueDate: 1},
-        CALENDAR_MAX_ROWS + 1,
-    );
+    // A calendar places rows by due day: a caller who may not read it gets no month rows, so the month cannot reveal
+    // the hidden day (SEC-09, as in the payments hub calendar).
+    const monthDocs = read(RENT, "dueDate")
+        ? await rentalPaymentService.find(
+            {...match, dueDate: {$gte: from, $lte: to}},
+            {logger, languageCode: params.languageCode, withDeleted: false},
+            RENTALS_HUB_PAYMENT_POPULATE,
+            undefined,
+            {dueDate: 1},
+            CALENDAR_MAX_ROWS + 1,
+        )
+        : [];
     const truncated = monthDocs.length > CALENDAR_MAX_ROWS;
     const hidden = unreadableRowKeys(PAYMENT_ROW_SOURCES, read);
     const payments = monthDocs.slice(0, CALENDAR_MAX_ROWS).map((doc) =>

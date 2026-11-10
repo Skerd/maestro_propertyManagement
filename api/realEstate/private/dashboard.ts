@@ -72,29 +72,21 @@ import {
     buildUnitCostRollupMatch,
     type UnitCostHierarchyIdSets,
 } from "../../../database/schemas/unitCost/unitCostHierarchy.util";
+import {UNIT_COST_DOC_SUBTOTAL_STAGE} from "../../../database/schemas/unitCost/unitCostInheritedPipelines.util";
+import {DEFAULT_DECIMAL_PLACES, minorToNumber, prorateMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
+import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
+import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
+import {
+    addMoneyLines,
+    aggregateCurrencyFields,
+    type AggregateMoneyLine,
+    currencyOfLine,
+    type MoneyTotals,
+    revenueRowsOf,
+} from "../../../utilities/statistics/moneyTotals";
 
 const router = Router();
-
-function unitCostDocSubtotalStage() {
-    return {
-        $addFields: {
-            docSubtotal: {
-                $sum: {
-                    $map: {
-                        input: {$ifNull: ["$expenditureItems", []]},
-                        as: "row",
-                        in: {
-                            $multiply: [
-                                {$toDouble: {$ifNull: ["$$row.amount", 0]}},
-                                {$convert: {input: "$$row.pricePerUnit", to: "double", onError: 0, onNull: 0}},
-                            ],
-                        },
-                    },
-                },
-            },
-        },
-    };
-}
 
 function unitCostMoneyByCurrencyPipeline(
     companyId: ObjectId,
@@ -106,41 +98,36 @@ function unitCostMoneyByCurrencyPipeline(
         {
             $match: buildUnitCostRollupMatch(companyId, unitIds, sets, extraMatch),
         },
-        unitCostDocSubtotalStage(),
-        {
-            $lookup: {
-                from: "currencies",
-                localField: "currency",
-                foreignField: "_id",
-                as: "currencyInfo",
-            },
-        },
-        {$unwind: {path: "$currencyInfo", preserveNullAndEmptyArrays: true}},
-        {
-            $group: {
-                _id: "$currency",
-                total: {$sum: "$docSubtotal"},
-                currencyInfo: {$first: "$currencyInfo"},
-            },
-        },
+        UNIT_COST_DOC_SUBTOTAL_STAGE,
+        {$group: {_id: "$currency", total: {$sum: "$docSubtotal"}}},
+        ...CURRENCY_LINE_STAGES,
     ];
 }
 
+/**
+ * After a `$group` on a currency id with a `$toDecimal` sum in `total`: the currency looked up and the group as an
+ * {@link AggregateMoneyLine} (its `count` kept when the group has one).
+ */
+const CURRENCY_LINE_STAGES = [
+    {$lookup: {from: "currencies", localField: "_id", foreignField: "_id", as: "currencyInfo"}},
+    {$unwind: {path: "$currencyInfo", preserveNullAndEmptyArrays: true}},
+    {$project: {_id: 0, currencyId: "$_id", ...aggregateCurrencyFields("currencyInfo"), value: "$total", count: 1}},
+];
+
+/** Aggregate money lines as exact dashboard rows, one per currency (GLB-08, TD-B166). */
+function revenueRows(lines: AggregateMoneyLine[]): RevenueByCurrency[] {
+    const totals: MoneyTotals = new Map();
+    addMoneyLines(totals, lines);
+    return revenueRowsOf(totals);
+}
+
+/** A single stored amount (an alert's installment, a recent sale's price) as a number for the wire. */
 function toNumber(v: any): number {
     if (v == null) return 0;
     if (typeof v === "number" && !Number.isNaN(v)) return v;
     if (typeof v === "object" && typeof v.toString === "function")
         return parseFloat(v.toString()) || 0;
     return parseFloat(String(v)) || 0;
-}
-
-function mapUnitCostCurrencyAgg(rows: unknown[]): RevenueByCurrency[] {
-    return (rows as any[]).map((r: any) => ({
-        currencyId: r._id?.toString() ?? "",
-        currencyName: r.currencyInfo?.name,
-        currencySymbol: r.currencyInfo?.symbol,
-        value: toNumber(r.total),
-    }));
 }
 
 function emptyRentalsSummary() {
@@ -249,7 +236,8 @@ function rentalsFromPayments(
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildDashboardCacheKey(companyId: string, params: {projectId?: string; edificeId?: string; period?: string; from?: string; to?: string; recentSalesLimit?: number}): string {
-    return `dashboard:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
+    // v2: money is per currency (TD-B166); a v1 entry has the old number fields and is never read back.
+    return `dashboard:v2:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
 }
 
 /**
@@ -270,8 +258,640 @@ router.post(
     asyncHandler(getDashboardStats)
 );
 
+type DashboardParams = AuthenticatedMWType & DashboardFormType;
+type DashboardAccess = ReturnType<typeof dashboardReadAccess>;
+type DashboardOpts = {logger: DashboardParams["logger"]; languageCode: string; withDeleted: false};
+
+/** What every statistics block reads: the caller's access, the units in scope and the company's days (D115). */
+type DashboardScope = {
+    params: DashboardParams;
+    opts: DashboardOpts;
+    access: DashboardAccess;
+    unitIds: ObjectId[];
+    today: string;
+    /** The sale-day bounds the caller asked for (`from` / `to`), empty when none. */
+    saleDays: {$gte?: string; $lte?: string};
+    periodStart: string;
+    periodEnd: string;
+    expiringEnd: string;
+    alertHorizon: string;
+};
+
+/** Rows an alert is built from: an installment or a reservation deposit coming due, with its currency's fields. */
+type AlertSourceRow = Omit<AggregateMoneyLine, "value"> & {
+    _id?: unknown;
+    saleId?: unknown;
+    reservationId?: unknown;
+    unitId?: unknown;
+    unitNumber?: string;
+    unitName?: string;
+    amount?: unknown;
+    dueDate?: string;
+    clientId?: unknown;
+    clientName?: string;
+    clientSurname?: string;
+};
+
+const NONE: never[] = [];
+
+/** Projects, edifices and floors in the company (edifices of the project, floors of the edifice when filtered). */
+async function hierarchyCounts({params, access, opts}: Pick<DashboardScope, "params" | "access" | "opts">) {
+    const {company, projectId, edificeId} = params;
+    const [projects, edifices, floors] = await Promise.all([
+        access.projects ? projectService.count({ company: company._id }, opts) : Promise.resolve(0),
+        access.edifices
+            ? edificeService.count(
+                projectId && ObjectId.isValid(projectId)
+                    ? { project: new ObjectId(projectId), company: company._id }
+                    : { company: company._id },
+                opts
+            )
+            : Promise.resolve(0),
+        access.floors
+            ? floorService.count(
+                edificeId && ObjectId.isValid(edificeId)
+                    ? { edifice: new ObjectId(edificeId), company: company._id }
+                    : { company: company._id },
+                opts
+            )
+            : Promise.resolve(0),
+    ]);
+    return {projects, edifices, floors};
+}
+
+/** The average sale price in each currency: that currency's revenue over its number of sales, rounded once. */
+function averageSalePriceOf(lines: (AggregateMoneyLine & {count?: number})[]): RevenueByCurrency[] {
+    return lines.flatMap((line) => {
+        const currency = currencyOfLine(line);
+        if (!currency || !line.count) return [];
+        const decimals = currency.decimalPlaces ?? DEFAULT_DECIMAL_PLACES;
+        const average = prorateMinor(toMinor(String(line.value ?? 0), decimals), [1], line.count);
+        return [{currencyId: currency._id, currencyName: currency.name, currencySymbol: currency.symbol, value: minorToNumber(average, decimals)}];
+    });
+}
+
+/** Revenue per month (rows sorted by month), each month's revenue per currency. */
+function revenueByPeriodOf(lines: (AggregateMoneyLine & {month?: string})[]): PeriodDatum[] {
+    const byMonth = new Map<string, AggregateMoneyLine[]>();
+    for (const line of lines) {
+        const month = String(line.month ?? "");
+        byMonth.set(month, [...(byMonth.get(month) ?? []), line]);
+    }
+    return [...byMonth.entries()].map(([month, monthLines]) => ({month, revenue: revenueRows(monthLines)}));
+}
+
+/** Sales: count, revenue per currency, revenue and count per month, the latest sales, cash vs. plan. */
+async function salesStats({params, access, opts, unitIds, saleDays, periodStart, periodEnd}: DashboardScope) {
+    if (!access.sales) {
+        return {
+            totalSales: 0,
+            totalRevenue: [] as RevenueByCurrency[],
+            averageSalePrice: [] as RevenueByCurrency[],
+            revenueByPeriod: [] as PeriodDatum[],
+            salesByPeriod: [] as PeriodDatum[],
+            recentSales: [] as RecentSaleItem[],
+            salesByPaymentType: { cash: 0, payment_plan: 0 } as SalesByPaymentType,
+        };
+    }
+    const saleFilter: Record<string, unknown> = { unit: { $in: unitIds } };
+    if (Object.keys(saleDays).length) saleFilter.saleDate = saleDays;
+    const recentSalesLimit = params.recentSalesLimit ?? 10;
+
+    const [totalSales, revenueByCurrencyAgg, revenueByMonthAgg, salesByMonthAgg, recentSalesList, salesByPaymentTypeAgg] = await Promise.all([
+        saleService.count(saleFilter, opts),
+        saleService.aggregate(
+            [
+                { $match: { unit: { $in: unitIds }, ...(Object.keys(saleDays).length ? { saleDate: saleDays } : {}) } },
+                { $group: { _id: "$saleCurrency", total: { $sum: { $toDecimal: { $ifNull: ["$finalPrice", 0] } } }, count: { $sum: 1 } } },
+                ...CURRENCY_LINE_STAGES,
+            ],
+            opts
+        ),
+        saleService.aggregate(
+            [
+                {
+                    $match: {
+                        unit: { $in: unitIds },
+                        saleDate: { $gte: periodStart, $lte: periodEnd },
+                    },
+                },
+                {
+                    $group: {
+                        // The month of a `YYYY-MM-DD` day is its first seven characters; each currency is its own sum.
+                        _id: { month: { $substrBytes: ["$saleDate", 0, 7] }, currency: "$saleCurrency" },
+                        total: { $sum: { $toDecimal: { $ifNull: ["$finalPrice", 0] } } },
+                    },
+                },
+                { $lookup: { from: "currencies", localField: "_id.currency", foreignField: "_id", as: "currencyInfo" } },
+                { $unwind: { path: "$currencyInfo", preserveNullAndEmptyArrays: true } },
+                { $project: { _id: 0, month: "$_id.month", currencyId: "$_id.currency", ...aggregateCurrencyFields("currencyInfo"), value: "$total" } },
+                { $sort: { month: 1 } },
+            ],
+            opts
+        ),
+        saleService.aggregate(
+            [
+                {
+                    $match: {
+                        unit: { $in: unitIds },
+                        saleDate: { $gte: periodStart, $lte: periodEnd },
+                    },
+                },
+                {
+                    $group: {
+                        _id: { $substrBytes: ["$saleDate", 0, 7] },
+                        count: { $sum: 1 },
+                    },
+                },
+                { $sort: { _id: 1 } },
+            ],
+            opts
+        ),
+        saleService.find(
+            { unit: { $in: unitIds } },
+            opts,
+            [
+                { path: "unit", select: "name unitNumber" },
+                { path: "soldBy", select: "name surname fullName" },
+                { path: "saleCurrency", select: "name" },
+            ],
+            "unit soldBy saleCurrency saleDate finalPrice paymentType",
+            { saleDate: -1 },
+            Math.min(Math.max(1, recentSalesLimit), 50),
+            0
+        ),
+        saleService.aggregate(
+            [
+                { $match: saleFilter },
+                { $group: { _id: "$paymentType", count: { $sum: 1 } } },
+            ],
+            opts
+        ),
+    ]);
+
+    const salesByPaymentType: SalesByPaymentType = { cash: 0, payment_plan: 0 };
+    for (const row of salesByPaymentTypeAgg) {
+        const typ = row._id as string;
+        const count = row.count ?? 0;
+        if (typ === SalePaymentType.CASH) salesByPaymentType.cash = count;
+        else if (typ === SalePaymentType.PAYMENT_PLAN) salesByPaymentType.payment_plan = count;
+    }
+
+    return {
+        totalSales,
+        totalRevenue: revenueRows(revenueByCurrencyAgg),
+        averageSalePrice: averageSalePriceOf(revenueByCurrencyAgg),
+        revenueByPeriod: revenueByPeriodOf(revenueByMonthAgg),
+        salesByPeriod: salesByMonthAgg.map((r: any): PeriodDatum => ({
+            month: String(r._id ?? ""),
+            count: r.count ?? 0,
+        })),
+        recentSales: recentSalesList.map((s: any): RecentSaleItem => ({
+            _id: s._id.toString(),
+            unit: s.unit
+                ? {
+                      _id: s.unit._id?.toString() ?? "",
+                      name: s.unit.name,
+                      unitNumber: s.unit.unitNumber,
+                  }
+                : { _id: "", name: undefined, unitNumber: undefined },
+            finalPrice: toNumber(s.finalPrice),
+            saleDate: s.saleDate ?? "",
+            soldBy: s.soldBy
+                ? {
+                      _id: s.soldBy._id?.toString() ?? "",
+                      name: s.soldBy.name,
+                      surname: s.soldBy.surname,
+                      fullName: s.soldBy.fullName,
+                  }
+                : { _id: "", name: undefined, surname: undefined, fullName: undefined },
+            paymentType: s.paymentType ?? "",
+            saleCurrency: s.saleCurrency
+                ? { _id: s.saleCurrency._id?.toString() ?? "", name: s.saleCurrency.name }
+                : { _id: "", name: undefined },
+        })),
+        salesByPaymentType,
+    };
+}
+
+/** Units per status, and the list value of the units still for sale (available or reserved). */
+async function unitStats({access, opts, unitIds}: DashboardScope) {
+    const [unitsByStatusAgg, inventoryValueAgg] = await Promise.all([
+        access.units ? unitService.aggregate(
+            [{ $match: { _id: { $in: unitIds } } }, { $group: { _id: "$status", count: { $sum: 1 } } }],
+            opts
+        ) : Promise.resolve(NONE),
+        access.units ? unitService.aggregate(
+            [
+                {
+                    $match: {
+                        _id: { $in: unitIds },
+                        status: { $in: [UnitStatus.AVAILABLE, UnitStatus.RESERVED] },
+                    },
+                },
+                { $group: { _id: "$priceCurrency", total: { $sum: { $toDecimal: { $ifNull: ["$price", 0] } } } } },
+                ...CURRENCY_LINE_STAGES,
+            ],
+            opts
+        ) : Promise.resolve(NONE),
+    ]);
+
+    const unitsByStatus: UnitsByStatus = {
+        available: 0,
+        unavailable: 0,
+        reserved: 0,
+        sold: 0,
+        leased: 0,
+    };
+    for (const row of unitsByStatusAgg) {
+        const status = row._id as string;
+        const count = row.count ?? 0;
+        if (status === UnitStatus.AVAILABLE) unitsByStatus.available = count;
+        else if (status === UnitStatus.UNAVAILABLE) unitsByStatus.unavailable = count;
+        else if (status === UnitStatus.RESERVED) unitsByStatus.reserved = count;
+        else if (status === UnitStatus.SOLD) unitsByStatus.sold = count;
+        else if (status === UnitStatus.RENTED) unitsByStatus.leased = count;
+    }
+    return {unitsByStatus, inventoryValue: revenueRows(inventoryValueAgg)};
+}
+
+/** Active reservations, those expiring within a week, their deposits, and unpaid deposits coming due. */
+async function reservationStats({access, opts, unitIds, today, expiringEnd, alertHorizon}: DashboardScope) {
+    if (!access.reservations) {
+        return {activeReservations: 0, expiringReservationsCount: 0, totalReservationDeposits: [] as RevenueByCurrency[], alertRows: [] as AlertSourceRow[]};
+    }
+    const [activeReservations, expiringReservationsCount, totalReservationDepositsAgg, alertRows] = await Promise.all([
+        reservationService.count(
+            {unit: {$in: unitIds}, isActive: true, status: ReservationStatus.ACTIVE},
+            opts
+        ),
+        reservationService.count(
+            {
+                unit: {$in: unitIds},
+                isActive: true,
+                status: ReservationStatus.ACTIVE,
+                expirationDate: {$exists: true, $gte: today, $lte: expiringEnd},
+            },
+            opts
+        ),
+        reservationService.aggregate(
+            [
+                {
+                    $match: {
+                        unit: {$in: unitIds},
+                        isActive: true,
+                        status: ReservationStatus.ACTIVE,
+                        deletedAt: null,
+                        depositAmount: {$exists: true, $ne: null},
+                    },
+                },
+                {$group: {_id: "$depositCurrency", total: {$sum: {$toDecimal: "$depositAmount"}}}},
+                ...CURRENCY_LINE_STAGES,
+            ],
+            opts
+        ),
+        reservationService.aggregate(
+            [
+                {
+                    $match: {
+                        unit: {$in: unitIds},
+                        isActive: true,
+                        status: ReservationStatus.ACTIVE,
+                        deletedAt: null,
+                        paid: false,
+                        expirationDate: {
+                            $exists: true,
+                            $ne: null,
+                            $lte: alertHorizon,
+                        },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "units",
+                        localField: "unit",
+                        foreignField: "_id",
+                        as: "unitDoc",
+                    },
+                },
+                {$unwind: "$unitDoc"},
+                { $lookup: { from: "users", localField: "client", foreignField: "_id", as: "clientDoc" } },
+                { $unwind: { path: "$clientDoc", preserveNullAndEmptyArrays: true } },
+                { $lookup: { from: "currencies", localField: "depositCurrency", foreignField: "_id", as: "currencyDoc" } },
+                { $unwind: { path: "$currencyDoc", preserveNullAndEmptyArrays: true } },
+                {
+                    $project: {
+                        currencyId: "$depositCurrency",
+                        ...aggregateCurrencyFields("currencyDoc"),
+                        reservationId: "$_id",
+                        unitId: "$unitDoc._id",
+                        unitNumber: "$unitDoc.unitNumber",
+                        unitName: "$unitDoc.name",
+                        amount: {$ifNull: ["$depositAmount", 0]},
+                        dueDate: "$expirationDate",
+                        clientId: "$clientDoc._id",
+                        clientName: "$clientDoc.name",
+                        clientSurname: "$clientDoc.surname",
+                    },
+                },
+                {$limit: 50},
+            ],
+            opts
+        ),
+    ]);
+    return {activeReservations, expiringReservationsCount, totalReservationDeposits: revenueRows(totalReservationDepositsAgg), alertRows};
+}
+
+/** Payment plans per status, what active plans still owe, overdue installments, installments coming due. */
+async function paymentPlanStats({access, opts, unitIds, today, alertHorizon}: DashboardScope) {
+    const byStatus = {active: 0, completed: 0, defaulted: 0, cancelled: 0};
+    const empty = {byStatus, totalOutstanding: [] as RevenueByCurrency[], overdueInstallmentsCount: 0, alertRows: [] as AlertSourceRow[]};
+    if (!access.paymentPlans) return empty;
+
+    const sales = await saleService.find({ unit: { $in: unitIds } }, opts, null, "_id", {}, undefined, undefined);
+    const saleIds = sales.map((s) => s._id).filter((id): id is ObjectId => id != null);
+    if (saleIds.length === 0) return empty;
+
+    const [byStatusAgg, outstandingAgg, overdueAgg, alertRows] = await Promise.all([
+        paymentPlanService.aggregate(
+            [
+                { $match: { sale: { $in: saleIds } } },
+                { $group: { _id: "$status", count: { $sum: 1 } } },
+            ],
+            opts
+        ),
+        paymentPlanService.aggregate(
+            [
+                { $match: { sale: { $in: saleIds }, status: PaymentPlanStatus.ACTIVE } },
+                // A plan stores no currency: what it still owes is in its sale's currency.
+                { $lookup: { from: "sales", localField: "sale", foreignField: "_id", pipeline: [{ $project: { saleCurrency: 1 } }], as: "saleDoc" } },
+                { $unwind: "$saleDoc" },
+                { $group: { _id: "$saleDoc.saleCurrency", total: { $sum: { $toDecimal: { $ifNull: ["$remainingBalance", 0] } } } } },
+                ...CURRENCY_LINE_STAGES,
+            ],
+            opts
+        ),
+        paymentPlanService.aggregate(
+            [
+                { $match: { sale: { $in: saleIds } } },
+                { $unwind: "$installments" },
+                {
+                    $match: {
+                        $or: [
+                            { "installments.status": InstallmentStatus.OVERDUE },
+                            {
+                                "installments.dueDate": { $lt: today },
+                                "installments.status": { $nin: [InstallmentStatus.PAID, InstallmentStatus.CANCELLED] },
+                            },
+                        ],
+                    },
+                },
+                { $count: "count" },
+            ],
+            opts
+        ),
+        paymentPlanService.aggregate(
+            [
+                { $match: { sale: { $in: saleIds } } },
+                { $unwind: "$installments" },
+                {
+                    $match: {
+                        "installments.status": { $nin: [InstallmentStatus.PAID, InstallmentStatus.CANCELLED] },
+                        "installments.dueDate": { $lte: alertHorizon },
+                    },
+                },
+                // A deleted sale's installments are not due; its unit is shown even when deleted (DB-04).
+                { $lookup: { from: "sales", localField: "sale", foreignField: "_id", pipeline: [{ $match: { deletedAt: null } }], as: "saleDoc" } },
+                { $unwind: "$saleDoc" },
+                { $lookup: { from: "units", localField: "saleDoc.unit", foreignField: "_id", as: "unitDoc" } },
+                { $unwind: "$unitDoc" },
+                { $lookup: { from: "users", localField: "saleDoc.buyer", foreignField: "_id", as: "buyerDoc" } },
+                { $unwind: { path: "$buyerDoc", preserveNullAndEmptyArrays: true } },
+                // A plan stores no currency: its installments are in its sale's currency.
+                { $lookup: { from: "currencies", localField: "saleDoc.saleCurrency", foreignField: "_id", as: "currencyDoc" } },
+                { $unwind: { path: "$currencyDoc", preserveNullAndEmptyArrays: true } },
+                {
+                    $project: {
+                        currencyId: "$saleDoc.saleCurrency",
+                        ...aggregateCurrencyFields("currencyDoc"),
+                        saleId: "$saleDoc._id",
+                        unitId: "$unitDoc._id",
+                        unitNumber: "$unitDoc.unitNumber",
+                        unitName: "$unitDoc.name",
+                        amount: "$installments.amount",
+                        dueDate: "$installments.dueDate",
+                        clientId: "$buyerDoc._id",
+                        clientName: "$buyerDoc.name",
+                        clientSurname: "$buyerDoc.surname",
+                    },
+                },
+                { $limit: 50 },
+            ],
+            opts
+        ),
+    ]);
+
+    for (const row of byStatusAgg) {
+        const status = row._id as string;
+        const count = row.count ?? 0;
+        if (status === PaymentPlanStatus.ACTIVE) byStatus.active = count;
+        else if (status === PaymentPlanStatus.COMPLETED) byStatus.completed = count;
+        else if (status === PaymentPlanStatus.DEFAULTED) byStatus.defaulted = count;
+        else if (status === PaymentPlanStatus.CANCELLED) byStatus.cancelled = count;
+    }
+    return {
+        byStatus,
+        totalOutstanding: revenueRows(outstandingAgg),
+        overdueInstallmentsCount: overdueAgg.length > 0 && overdueAgg[0].count != null ? overdueAgg[0].count : 0,
+        alertRows,
+    };
+}
+
+/** Inspections per status and those needing a follow-up. */
+async function inspectionStats({access, opts, unitIds}: DashboardScope) {
+    const [byStatusAgg, followUpRequiredCount] = await Promise.all([
+        access.inspections ? inspectionService.aggregate(
+            [
+                { $match: { unit: { $in: unitIds } } },
+                { $group: { _id: "$status", count: { $sum: 1 } } },
+            ],
+            opts
+        ) : Promise.resolve(NONE),
+        access.inspections ? inspectionService.count(
+            { unit: { $in: unitIds }, followUpRequired: true },
+            opts
+        ) : Promise.resolve(0),
+    ]);
+    const byStatus: Record<string, number> = {};
+    for (const row of byStatusAgg) {
+        byStatus[row._id as string] = row.count ?? 0;
+    }
+    return {byStatus, followUpRequiredCount};
+}
+
+/** Modification requests per status. */
+async function modificationRequestStats({access, opts, unitIds}: DashboardScope): Promise<Record<string, number>> {
+    const byStatusAgg = access.modificationRequests ? await modificationRequestService.aggregate(
+        [
+            { $match: { unit: { $in: unitIds } } },
+            { $group: { _id: "$status", count: { $sum: 1 } } },
+        ],
+        opts
+    ) : NONE;
+    const byStatus: Record<string, number> = {};
+    for (const row of byStatusAgg) {
+        byStatus[row._id as string] = row.count ?? 0;
+    }
+    return byStatus;
+}
+
+/** Unit costs on the units in scope and on their floors, edifices and projects: paid, outstanding, pending, count. */
+async function unitCostStats({params, access, opts, unitIds}: DashboardScope) {
+    if (!access.unitCosts) {
+        return {verifiedPaid: [] as RevenueByCurrency[], verifiedOutstanding: [] as RevenueByCurrency[], pending: [] as RevenueByCurrency[], documents: 0};
+    }
+    const companyId = params.company._id;
+    const sets = await resolveHierarchySetsFromUnitIds(unitIds, opts);
+    const [paidAgg, outstandingAgg, pendingAgg, documents] = await Promise.all([
+        unitCostService.aggregate(
+            unitCostMoneyByCurrencyPipeline(companyId, unitIds, sets, {
+                verificationStatus: "verified",
+                paymentStatus: "paid",
+            }),
+            opts
+        ),
+        unitCostService.aggregate(
+            unitCostMoneyByCurrencyPipeline(companyId, unitIds, sets, {
+                verificationStatus: "verified",
+                paymentStatus: {$in: ["unpaid", "partially_paid", "disputed"]},
+            }),
+            opts
+        ),
+        unitCostService.aggregate(
+            unitCostMoneyByCurrencyPipeline(companyId, unitIds, sets, {
+                verificationStatus: {$in: ["pending_verification", "needs_revision"]},
+            }),
+            opts
+        ),
+        unitCostService.count(buildUnitCostRollupMatch(companyId, unitIds, sets, {}), opts),
+    ]);
+    return {
+        verifiedPaid: revenueRows(paidAgg),
+        verifiedOutstanding: revenueRows(outstandingAgg),
+        pending: revenueRows(pendingAgg),
+        documents: typeof documents === "number" ? documents : 0,
+    };
+}
+
+/** Rent collected / outstanding / overdue, active leases, and unpaid rent coming due. */
+async function rentalStats({access, opts, unitIds, today, alertHorizon}: DashboardScope) {
+    const [rentalPayments, activeLeases] = await Promise.all([
+        access.rentalPayments ? rentalPaymentService.find(
+            {unit: {$in: unitIds}},
+            {...opts, withDeleted: false},
+            [
+                {path: "currency", select: "name symbol abbreviation decimalPlaces"},
+                {path: "unit", select: "name unitNumber"},
+                {
+                    path: "lease",
+                    select: "tenant",
+                    populate: {path: "tenant", select: "name surname"},
+                },
+            ],
+            "amount paidAmount lateFeeAmount status currency unit dueDate lease",
+        ) : Promise.resolve(NONE),
+        access.leases ? leaseService.count(
+            {unit: {$in: unitIds}, status: LeaseStatus.ACTIVE},
+            opts,
+        ) : Promise.resolve(0),
+    ]);
+
+    const rentAlerts: PaymentAlertItem[] = rentalPayments
+        .filter((p) => {
+            if (p.status === RentalPaymentStatus.WAIVED || p.status === RentalPaymentStatus.PAID) return false;
+            if (remainingNumber(p) <= 0) return false;
+            return !!p.dueDate && p.dueDate <= alertHorizon;
+        })
+        .map((p) => {
+            const unit = p.unit as unknown as {_id?: unknown; unitNumber?: string; name?: string} | undefined;
+            const lease = p.lease as unknown as {
+                tenant?: {_id?: unknown; name?: string; surname?: string};
+            } | undefined;
+            const tenant = lease?.tenant;
+            const currency = mapSnippet<CurrencySimple>()(p.currency as object | undefined, CurrencySimpleSnippet);
+            const dueDate = p.dueDate || today;
+            const client =
+                tenant?._id != null
+                    ? {
+                          _id: String(tenant._id),
+                          name: tenant.name,
+                          surname: tenant.surname,
+                      }
+                    : undefined;
+            return {
+                kind: "rent" as const,
+                unit: {
+                    _id: unit?._id != null ? String(unit._id) : "",
+                    unitNumber: unit?.unitNumber != null ? String(unit.unitNumber) : undefined,
+                    name: unit?.name,
+                },
+                ...(client ? {client} : {}),
+                installment: {
+                    amount: remainingNumber(p),
+                    dueDate,
+                },
+                ...(currency ? {currency} : {}),
+                daysUntilDue: calendarDaysUntil(dueDate, today),
+                rentalPaymentId: p._id != null ? String(p._id) : undefined,
+            };
+        });
+
+    return {rentals: rentalsFromPayments(rentalPayments, typeof activeLeases === "number" ? activeLeases : 0), rentAlerts};
+}
+
+/** An installment or reservation alert from its source row. */
+function alertOf(row: AlertSourceRow, kind: "installment" | "reservation", today: string): PaymentAlertItem {
+    const dueDate: string = row.dueDate || today;
+    const client: PaymentAlertItem["client"] | undefined = row.clientId == null
+        ? undefined
+        : {_id: String(row.clientId), name: row.clientName, surname: row.clientSurname};
+    const currency = currencyOfLine(row);
+    return {
+        kind,
+        unit: {
+            _id: row.unitId?.toString?.() ?? "",
+            unitNumber: row.unitNumber,
+            name: row.unitName,
+        },
+        ...(client ? {client} : {}),
+        installment: {
+            amount: toNumber(row.amount),
+            dueDate,
+        },
+        ...(currency ? {currency} : {}),
+        daysUntilDue: calendarDaysUntil(dueDate, today),
+        ...(kind === "reservation"
+            ? { reservationId: row.reservationId?.toString?.() ?? row._id?.toString?.() }
+            : {}),
+        ...(kind === "installment" && row.saleId
+            ? { saleId: row.saleId?.toString?.() ?? String(row.saleId) }
+            : {}),
+    };
+}
+
+/** Installments, reservation deposits and rent coming due, soonest first, at most 50. */
+function paymentAlertsOf(installmentRows: AlertSourceRow[], reservationRows: AlertSourceRow[], rentAlerts: PaymentAlertItem[], today: string): PaymentAlertItem[] {
+    return [
+        ...installmentRows.map((row) => alertOf(row, "installment", today)),
+        ...reservationRows.map((row) => alertOf(row, "reservation", today)),
+        ...rentAlerts,
+    ]
+        .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
+        .slice(0, 50);
+}
+
 async function getDashboardStats(
-    params: AuthenticatedMWType & DashboardFormType
+    params: DashboardParams
 ): Promise<DashboardFormResponseType> {
     const {
         logger,
@@ -287,7 +907,7 @@ async function getDashboardStats(
     } = params;
 
     logger.start("Fetching dashboard stats...");
-    const opts = {logger, languageCode, withDeleted: false as const};
+    const opts: DashboardOpts = {logger, languageCode, withDeleted: false};
     const access = dashboardReadAccess(actionUserCtx, languageCode);
     assertAnyCollectedRead(access.any, languageCode);
 
@@ -316,44 +936,18 @@ async function getDashboardStats(
     else if (edificeId && ObjectId.isValid(edificeId)) unitFilter.edifice = new ObjectId(edificeId);
 
     const companyUnits = access.needsUnitScope
-        ? await unitService.find(
-            unitFilter,
-            opts,
-            null,
-            "_id",
-            {},
-            undefined,
-            undefined
-        )
+        ? await unitService.find(unitFilter, opts, null, "_id", {}, undefined, undefined)
         : [];
-    const companyUnitIds = companyUnits
+    const unitIds = companyUnits
         .map((u) => u._id)
         .filter((id): id is ObjectId => id != null);
 
-    if (companyUnitIds.length === 0) {
-        const [projectsCount0, edificesCount0, floorsCount0] = await Promise.all([
-            access.projects ? projectService.count({ company: company._id }, opts) : Promise.resolve(0),
-            access.edifices
-                ? edificeService.count(
-                    projectId && ObjectId.isValid(projectId)
-                        ? { project: new ObjectId(projectId), company: company._id }
-                        : { company: company._id },
-                    opts
-                )
-                : Promise.resolve(0),
-            access.floors
-                ? floorService.count(
-                    edificeId && ObjectId.isValid(edificeId)
-                        ? { edifice: new ObjectId(edificeId), company: company._id }
-                        : { company: company._id },
-                    opts
-                )
-                : Promise.resolve(0),
-        ]);
+    if (unitIds.length === 0) {
+        const counts = await hierarchyCounts({params, access, opts});
         const emptySummary = buildEmptySummary();
-        emptySummary.totalProjects = projectsCount0;
-        emptySummary.totalEdifices = edificesCount0;
-        emptySummary.totalFloors = floorsCount0;
+        emptySummary.totalProjects = counts.projects;
+        emptySummary.totalEdifices = counts.edifices;
+        emptySummary.totalFloors = counts.floors;
         logger.finish("Dashboard stats (no units).");
         return sanitizeDashboardResponse({
             rawSummary: emptySummary,
@@ -363,489 +957,47 @@ async function getDashboardStats(
         }, actionUserCtx, languageCode);
     }
 
-    const unitCostHierarchySets = access.unitCosts
-        ? await resolveHierarchySetsFromUnitIds(companyUnitIds, opts)
-        : {projectIds: [], edificeIds: [], floorIds: []} as UnitCostHierarchyIdSets;
-
     // Sale, due and expiry days are local `YYYY-MM-DD` strings (D115): bounds are days, compared as text, and
     // "today" is the company's.
     const today = localDateOf(new Date(), params.companyTimeZone);
     const fromDay = from ? from.slice(0, 10) : undefined;
     const toDay = to ? to.slice(0, 10) : undefined;
-    const saleFilter: any = { unit: { $in: companyUnitIds } };
-    const dateFilter: any = {};
-    if (fromDay) dateFilter.$gte = fromDay;
-    if (toDay) dateFilter.$lte = toDay;
-    if (Object.keys(dateFilter).length) saleFilter.saleDate = dateFilter;
+    const saleDays: DashboardScope["saleDays"] = {};
+    if (fromDay) saleDays.$gte = fromDay;
+    if (toDay) saleDays.$lte = toDay;
 
     const periodMonths = period === "week" ? 3 : 12;
     const [todayYear, todayMonth, todayDate] = today.split("-").map(Number);
     const startPeriod = localDateOf(new Date(Date.UTC(todayYear, todayMonth - 1 - periodMonths, todayDate)), "UTC");
-    const periodStart = fromDay ?? startPeriod;
-    const periodEnd = toDay ?? today;
 
-    const saleIdsForPaymentPlans = access.paymentPlans
-        ? await saleService.find(
-            { unit: { $in: companyUnitIds } },
-            opts,
-            null,
-            "_id",
-            {},
-            undefined,
-            undefined
-        )
-        : [];
-    const saleIds = saleIdsForPaymentPlans.map((s) => s._id).filter((id): id is ObjectId => id != null);
+    const scope: DashboardScope = {
+        params,
+        opts,
+        access,
+        unitIds,
+        today,
+        saleDays,
+        periodStart: fromDay ?? startPeriod,
+        periodEnd: toDay ?? today,
+        expiringEnd: addLocalDays(today, 7),
+        alertHorizon: addLocalDays(today, 30),
+    };
 
-    const none: never[] = [];
-    const zero = 0;
-
-    const expiringEnd = addLocalDays(today, 7);
-    const alertHorizon = addLocalDays(today, 30);
-
-    const [
-        totalSalesCount,
-        revenueByCurrencyAgg,
-        revenueByMonthAgg,
-        salesByMonthAgg,
-        recentSalesList,
-        unitsByStatusAgg,
-        projectsCount,
-        edificesCount,
-        floorsCount,
-        activeReservationsCount,
-        paymentPlansByStatusAgg,
-        paymentPlansOutstandingAgg,
-        overdueInstallmentsAgg,
-        inspectionsByStatusAgg,
-        inspectionsFollowUpCount,
-        modificationRequestsByStatusAgg,
-        salesByPaymentTypeAgg,
-        inventoryValueAgg,
-        expiringReservationsCount,
-        totalReservationDepositsAgg,
-        paymentAlertsListAgg,
-        reservationAlertsListAgg,
-        unitCostsVerifiedPaidAgg,
-        unitCostsVerifiedOutstandingAgg,
-        unitCostsPendingVerificationAgg,
-        unitCostsDocumentCount,
-        rentalPaymentsForStats,
-        activeLeasesCount,
-    ] = await Promise.all([
-        access.sales ? saleService.count(saleFilter, opts) : Promise.resolve(zero),
-        access.sales ? saleService.aggregate(
-            [
-                { $match: { unit: { $in: companyUnitIds }, ...(Object.keys(dateFilter).length ? { saleDate: dateFilter } : {}) } },
-                {
-                    $group: {
-                        _id: "$saleCurrency",
-                        total: { $sum: "$finalPrice" },
-                    },
-                },
-                {
-                    $lookup: {
-                        from: "currencies",
-                        localField: "_id",
-                        foreignField: "_id",
-                        as: "currencyInfo",
-                    },
-                },
-                { $unwind: { path: "$currencyInfo", preserveNullAndEmptyArrays: true } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.sales ? saleService.aggregate(
-            [
-                {
-                    $match: {
-                        unit: { $in: companyUnitIds },
-                        saleDate: { $gte: periodStart, $lte: periodEnd },
-                    },
-                },
-                {
-                    $group: {
-                        // The month of a `YYYY-MM-DD` day is its first seven characters.
-                        _id: { $substrBytes: ["$saleDate", 0, 7] },
-                        totalRevenue: { $sum: "$finalPrice" },
-                    },
-                },
-                { $sort: { _id: 1 } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.sales ? saleService.aggregate(
-            [
-                {
-                    $match: {
-                        unit: { $in: companyUnitIds },
-                        saleDate: { $gte: periodStart, $lte: periodEnd },
-                    },
-                },
-                {
-                    $group: {
-                        _id: { $substrBytes: ["$saleDate", 0, 7] },
-                        count: { $sum: 1 },
-                    },
-                },
-                { $sort: { _id: 1 } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.sales ? saleService.find(
-            { unit: { $in: companyUnitIds } },
-            opts,
-            [
-                { path: "unit", select: "name unitNumber" },
-                { path: "soldBy", select: "name surname fullName" },
-                { path: "saleCurrency", select: "name" },
-            ],
-            "unit soldBy saleCurrency saleDate finalPrice paymentType",
-            { saleDate: -1 },
-            Math.min(Math.max(1, recentSalesLimit), 50),
-            0
-        ) : Promise.resolve(none),
-        access.units ? unitService.aggregate(
-            [{ $match: { _id: { $in: companyUnitIds } } }, { $group: { _id: "$status", count: { $sum: 1 } } }],
-            opts
-        ) : Promise.resolve(none),
-        access.projects ? projectService.count({ company: company._id }, opts) : Promise.resolve(zero),
-        access.edifices ? edificeService.count(
-            projectId && ObjectId.isValid(projectId)
-                ? { project: new ObjectId(projectId), company: company._id }
-                : { company: company._id },
-            opts
-        ) : Promise.resolve(zero),
-        access.floors ? floorService.count(
-            edificeId && ObjectId.isValid(edificeId)
-                ? { edifice: new ObjectId(edificeId), company: company._id }
-                : { company: company._id },
-            opts
-        ) : Promise.resolve(zero),
-        access.reservations ? reservationService.count(
-            {unit: {$in: companyUnitIds}, isActive: true, status: ReservationStatus.ACTIVE},
-            opts
-        ) : Promise.resolve(zero),
-        access.paymentPlans && saleIds.length > 0
-            ? paymentPlanService.aggregate(
-                  [
-                      { $match: { sale: { $in: saleIds } } },
-                      { $group: { _id: "$status", count: { $sum: 1 } } },
-                  ],
-                  opts
-              )
-            : Promise.resolve(none),
-        access.paymentPlans && saleIds.length > 0
-            ? paymentPlanService.aggregate(
-                  [
-                      { $match: { sale: { $in: saleIds }, status: PaymentPlanStatus.ACTIVE } },
-                      { $group: { _id: null, total: { $sum: "$remainingBalance" } } },
-                  ],
-                  opts
-              )
-            : Promise.resolve(none),
-        access.paymentPlans && saleIds.length > 0
-            ? paymentPlanService.aggregate(
-                  [
-                      { $match: { sale: { $in: saleIds } } },
-                      { $unwind: "$installments" },
-                      {
-                          $match: {
-                              $or: [
-                                  { "installments.status": InstallmentStatus.OVERDUE },
-                                  {
-                                      "installments.dueDate": { $lt: today },
-                                      "installments.status": { $nin: [InstallmentStatus.PAID, InstallmentStatus.CANCELLED] },
-                                  },
-                              ],
-                          },
-                      },
-                      { $count: "count" },
-                  ],
-                  opts
-              )
-            : Promise.resolve(none),
-        access.inspections ? inspectionService.aggregate(
-            [
-                { $match: { unit: { $in: companyUnitIds } } },
-                { $group: { _id: "$status", count: { $sum: 1 } } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.inspections ? inspectionService.count(
-            { unit: { $in: companyUnitIds }, followUpRequired: true },
-            opts
-        ) : Promise.resolve(zero),
-        access.modificationRequests ? modificationRequestService.aggregate(
-            [
-                { $match: { unit: { $in: companyUnitIds } } },
-                { $group: { _id: "$status", count: { $sum: 1 } } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.sales ? saleService.aggregate(
-            [
-                { $match: saleFilter },
-                { $group: { _id: "$paymentType", count: { $sum: 1 } } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.units ? unitService.aggregate(
-            [
-                {
-                    $match: {
-                        _id: { $in: companyUnitIds },
-                        status: { $in: [UnitStatus.AVAILABLE, UnitStatus.RESERVED] },
-                    },
-                },
-                { $group: { _id: null, total: { $sum: "$price" } } },
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.reservations ? reservationService.count(
-            {
-                unit: {$in: companyUnitIds},
-                isActive: true,
-                status: ReservationStatus.ACTIVE,
-                expirationDate: {$exists: true, $gte: today, $lte: expiringEnd},
-            },
-            opts
-        ) : Promise.resolve(zero),
-        access.reservations ? reservationService.aggregate(
-            [
-                {
-                    $match: {
-                        unit: {$in: companyUnitIds},
-                        isActive: true,
-                        status: ReservationStatus.ACTIVE,
-                        deletedAt: null,
-                        depositAmount: {$exists: true, $ne: null},
-                    },
-                },
-                {$group: {_id: null, total: {$sum: "$depositAmount"}}},
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.paymentPlans && saleIds.length > 0
-            ? paymentPlanService.aggregate(
-                  [
-                      { $match: { sale: { $in: saleIds } } },
-                      { $unwind: "$installments" },
-                      {
-                          $match: {
-                              "installments.status": { $nin: [InstallmentStatus.PAID, InstallmentStatus.CANCELLED] },
-                              "installments.dueDate": { $lte: alertHorizon },
-                          },
-                      },
-                      // A deleted sale's installments are not due; its unit is shown even when deleted (DB-04).
-                      { $lookup: { from: "sales", localField: "sale", foreignField: "_id", pipeline: [{ $match: { deletedAt: null } }], as: "saleDoc" } },
-                      { $unwind: "$saleDoc" },
-                      { $lookup: { from: "units", localField: "saleDoc.unit", foreignField: "_id", as: "unitDoc" } },
-                      { $unwind: "$unitDoc" },
-                      { $lookup: { from: "users", localField: "saleDoc.buyer", foreignField: "_id", as: "buyerDoc" } },
-                      { $unwind: { path: "$buyerDoc", preserveNullAndEmptyArrays: true } },
-                      {
-                          $project: {
-                              saleId: "$saleDoc._id",
-                              unitId: "$unitDoc._id",
-                              unitNumber: "$unitDoc.unitNumber",
-                              unitName: "$unitDoc.name",
-                              amount: "$installments.amount",
-                              dueDate: "$installments.dueDate",
-                              clientId: "$buyerDoc._id",
-                              clientName: "$buyerDoc.name",
-                              clientSurname: "$buyerDoc.surname",
-                          },
-                      },
-                      { $limit: 50 },
-                  ],
-                  opts
-              )
-            : Promise.resolve(none),
-        access.reservations ? reservationService.aggregate(
-            [
-                {
-                    $match: {
-                        unit: {$in: companyUnitIds},
-                        isActive: true,
-                        status: ReservationStatus.ACTIVE,
-                        deletedAt: null,
-                        paid: false,
-                        expirationDate: {
-                            $exists: true,
-                            $ne: null,
-                            $lte: alertHorizon,
-                        },
-                    },
-                },
-                {
-                    $lookup: {
-                        from: "units",
-                        localField: "unit",
-                        foreignField: "_id",
-                        as: "unitDoc",
-                    },
-                },
-                {$unwind: "$unitDoc"},
-                { $lookup: { from: "users", localField: "client", foreignField: "_id", as: "clientDoc" } },
-                { $unwind: { path: "$clientDoc", preserveNullAndEmptyArrays: true } },
-                {
-                    $project: {
-                        reservationId: "$_id",
-                        unitId: "$unitDoc._id",
-                        unitNumber: "$unitDoc.unitNumber",
-                        unitName: "$unitDoc.name",
-                        amount: {$ifNull: ["$depositAmount", 0]},
-                        dueDate: "$expirationDate",
-                        clientId: "$clientDoc._id",
-                        clientName: "$clientDoc.name",
-                        clientSurname: "$clientDoc.surname",
-                    },
-                },
-                {$limit: 50},
-            ],
-            opts
-        ) : Promise.resolve(none),
-        access.unitCosts ? unitCostService.aggregate(
-            unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
-                verificationStatus: "verified",
-                paymentStatus: "paid",
-            }),
-            opts
-        ) : Promise.resolve(none),
-        access.unitCosts ? unitCostService.aggregate(
-            unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
-                verificationStatus: "verified",
-                paymentStatus: {$in: ["unpaid", "partially_paid", "disputed"]},
-            }),
-            opts
-        ) : Promise.resolve(none),
-        access.unitCosts ? unitCostService.aggregate(
-            unitCostMoneyByCurrencyPipeline(company._id, companyUnitIds, unitCostHierarchySets, {
-                verificationStatus: {$in: ["pending_verification", "needs_revision"]},
-            }),
-            opts
-        ) : Promise.resolve(none),
-        access.unitCosts ? unitCostService.count(
-            buildUnitCostRollupMatch(company._id, companyUnitIds, unitCostHierarchySets, {}),
-            opts
-        ) : Promise.resolve(zero),
-        access.rentalPayments ? rentalPaymentService.find(
-            {unit: {$in: companyUnitIds}},
-            {...opts, withDeleted: false},
-            [
-                {path: "currency", select: "name symbol"},
-                {path: "unit", select: "name unitNumber"},
-                {
-                    path: "lease",
-                    select: "tenant",
-                    populate: {path: "tenant", select: "name surname"},
-                },
-            ],
-            "amount paidAmount lateFeeAmount status currency unit dueDate lease",
-        ) : Promise.resolve(none),
-        access.leases ? leaseService.count(
-            {unit: {$in: companyUnitIds}, status: LeaseStatus.ACTIVE},
-            opts,
-        ) : Promise.resolve(zero),
+    const [counts, sales, units, reservations, paymentPlans, inspections, modificationRequestsByStatus, unitCosts, rentals] = await Promise.all([
+        hierarchyCounts(scope),
+        salesStats(scope),
+        unitStats(scope),
+        reservationStats(scope),
+        paymentPlanStats(scope),
+        inspectionStats(scope),
+        modificationRequestStats(scope),
+        unitCostStats(scope),
+        rentalStats(scope),
     ]);
 
-    const totalRevenueByCurrency: RevenueByCurrency[] = revenueByCurrencyAgg.map((r: any) => ({
-        currencyId: r._id?.toString() ?? "",
-        currencyName: r.currencyInfo?.name,
-        currencySymbol: r.currencyInfo?.symbol,
-        value: toNumber(r.total),
-    }));
-
-    const revenueByPeriod: PeriodDatum[] = revenueByMonthAgg.map((r: any) => ({
-        month: String(r._id ?? ""),
-        totalRevenue: toNumber(r.totalRevenue),
-    }));
-
-    const salesByPeriod: PeriodDatum[] = salesByMonthAgg.map((r: any) => ({
-        month: String(r._id ?? ""),
-        count: r.count ?? 0,
-    }));
-
-    const unitsByStatus: UnitsByStatus = {
-        available: 0,
-        unavailable: 0,
-        reserved: 0,
-        sold: 0,
-        leased: 0,
-    };
-    for (const row of unitsByStatusAgg) {
-        const status = row._id as string;
-        const count = row.count ?? 0;
-        if (status === UnitStatus.AVAILABLE) unitsByStatus.available = count;
-        else if (status === UnitStatus.UNAVAILABLE) unitsByStatus.unavailable = count;
-        else if (status === UnitStatus.RESERVED) unitsByStatus.reserved = count;
-        else if (status === UnitStatus.SOLD) unitsByStatus.sold = count;
-        else if (status === UnitStatus.RENTED) unitsByStatus.leased = count;
-    }
-
-    const paymentPlansByStatus = {
-        active: 0,
-        completed: 0,
-        defaulted: 0,
-        cancelled: 0,
-    };
-    for (const row of paymentPlansByStatusAgg) {
-        const status = row._id as string;
-        const count = row.count ?? 0;
-        if (status === PaymentPlanStatus.ACTIVE) paymentPlansByStatus.active = count;
-        else if (status === PaymentPlanStatus.COMPLETED) paymentPlansByStatus.completed = count;
-        else if (status === PaymentPlanStatus.DEFAULTED) paymentPlansByStatus.defaulted = count;
-        else if (status === PaymentPlanStatus.CANCELLED) paymentPlansByStatus.cancelled = count;
-    }
-
-    const totalOutstanding =
-        paymentPlansOutstandingAgg.length > 0 && paymentPlansOutstandingAgg[0].total != null
-            ? toNumber(paymentPlansOutstandingAgg[0].total)
-            : 0;
-    const overdueInstallmentsCount =
-        overdueInstallmentsAgg.length > 0 && overdueInstallmentsAgg[0].count != null
-            ? overdueInstallmentsAgg[0].count
-            : 0;
-
-    const inspectionsByStatus: Record<string, number> = {};
-    for (const row of inspectionsByStatusAgg) {
-        inspectionsByStatus[row._id as string] = row.count ?? 0;
-    }
-    const modificationRequestsByStatus: Record<string, number> = {};
-    for (const row of modificationRequestsByStatusAgg) {
-        modificationRequestsByStatus[row._id as string] = row.count ?? 0;
-    }
-
-    const salesByPaymentType: SalesByPaymentType = { cash: 0, payment_plan: 0 };
-    for (const row of salesByPaymentTypeAgg) {
-        const typ = row._id as string;
-        const count = row.count ?? 0;
-        if (typ === SalePaymentType.CASH) salesByPaymentType.cash = count;
-        else if (typ === SalePaymentType.PAYMENT_PLAN) salesByPaymentType.payment_plan = count;
-    }
-
-    const inventoryValue =
-        inventoryValueAgg.length > 0 && inventoryValueAgg[0].total != null
-            ? toNumber(inventoryValueAgg[0].total)
-            : 0;
-
-    const totalReservationDeposits =
-        totalReservationDepositsAgg.length > 0 && totalReservationDepositsAgg[0].total != null
-            ? toNumber(totalReservationDepositsAgg[0].total)
-            : 0;
-
-    const verifiedPaidUnitCosts = mapUnitCostCurrencyAgg(unitCostsVerifiedPaidAgg);
-    const verifiedOutstandingUnitCosts = mapUnitCostCurrencyAgg(unitCostsVerifiedOutstandingAgg);
-    const pendingVerificationUnitCosts = mapUnitCostCurrencyAgg(unitCostsPendingVerificationAgg);
-    const totalUnitCostDocuments = typeof unitCostsDocumentCount === "number" ? unitCostsDocumentCount : 0;
-    const rentals = rentalsFromPayments(rentalPaymentsForStats ?? [], typeof activeLeasesCount === "number" ? activeLeasesCount : 0);
-
-    const totalRevenueSum = totalRevenueByCurrency.reduce((acc, r) => acc + r.value, 0);
-    const averageSalePrice = totalSalesCount > 0 ? totalRevenueSum / totalSalesCount : 0;
-    const totalUnitsCount = companyUnitIds.length;
-    const occupancyRatePercent = totalUnitsCount > 0 ? (unitsByStatus.sold / totalUnitsCount) * 100 : 0;
-    const totalInspections = Object.values(inspectionsByStatus).reduce((a, b) => a + b, 0);
+    const totalUnitsCount = unitIds.length;
+    const occupancyRatePercent = totalUnitsCount > 0 ? (units.unitsByStatus.sold / totalUnitsCount) * 100 : 0;
+    const totalInspections = Object.values(inspections.byStatus).reduce((a, b) => a + b, 0);
     const TERMINAL_MODIFICATION_STATUSES = ["completed", "rejected", "cancelled"];
     const openModificationRequests = Object.entries(modificationRequestsByStatus).reduce(
         (sum, [status, count]) => (TERMINAL_MODIFICATION_STATUSES.includes(status) ? sum : sum + count),
@@ -853,156 +1005,45 @@ async function getDashboardStats(
     );
 
     const summary: DashboardSummary = {
-        totalRevenue: totalRevenueByCurrency,
-        totalSales: totalSalesCount,
-        totalUnits: companyUnitIds.length,
-        totalProjects: projectsCount,
-        totalEdifices: edificesCount,
-        totalFloors: floorsCount,
-        unitsByStatus,
-        activeReservations: activeReservationsCount,
+        totalRevenue: sales.totalRevenue,
+        totalSales: sales.totalSales,
+        totalUnits: unitIds.length,
+        totalProjects: counts.projects,
+        totalEdifices: counts.edifices,
+        totalFloors: counts.floors,
+        unitsByStatus: units.unitsByStatus,
+        activeReservations: reservations.activeReservations,
         paymentPlans: {
-            byStatus: paymentPlansByStatus,
-            totalOutstanding,
-            overdueInstallmentsCount,
+            byStatus: paymentPlans.byStatus,
+            totalOutstanding: paymentPlans.totalOutstanding,
+            overdueInstallmentsCount: paymentPlans.overdueInstallmentsCount,
         },
         inspections: {
-            byStatus: inspectionsByStatus,
-            followUpRequiredCount: inspectionsFollowUpCount,
+            byStatus: inspections.byStatus,
+            followUpRequiredCount: inspections.followUpRequiredCount,
         },
         modificationRequests: {
             byStatus: modificationRequestsByStatus,
         },
-        averageSalePrice,
-        inventoryValue,
-        salesByPaymentType,
+        averageSalePrice: sales.averageSalePrice,
+        inventoryValue: units.inventoryValue,
+        salesByPaymentType: sales.salesByPaymentType,
         occupancyRatePercent,
         totalInspections,
         openModificationRequests,
-        expiringReservationsCount,
-        totalReservationDeposits,
-        paymentPlansCompleted: paymentPlansByStatus.completed,
-        paymentPlansDefaulted: paymentPlansByStatus.defaulted,
-        verifiedPaidUnitCosts,
-        verifiedOutstandingUnitCosts,
-        pendingVerificationUnitCosts,
-        totalUnitCostDocuments,
-        rentals,
+        expiringReservationsCount: reservations.expiringReservationsCount,
+        totalReservationDeposits: reservations.totalReservationDeposits,
+        paymentPlansCompleted: paymentPlans.byStatus.completed,
+        paymentPlansDefaulted: paymentPlans.byStatus.defaulted,
+        verifiedPaidUnitCosts: unitCosts.verifiedPaid,
+        verifiedOutstandingUnitCosts: unitCosts.verifiedOutstanding,
+        pendingVerificationUnitCosts: unitCosts.pending,
+        totalUnitCostDocuments: unitCosts.documents,
+        rentals: rentals.rentals,
     };
 
-    const recentSales: RecentSaleItem[] = recentSalesList.map((s: any) => ({
-        _id: s._id.toString(),
-        unit: s.unit
-            ? {
-                  _id: s.unit._id?.toString() ?? "",
-                  name: s.unit.name,
-                  unitNumber: s.unit.unitNumber,
-              }
-            : { _id: "", name: undefined, unitNumber: undefined },
-        finalPrice: toNumber(s.finalPrice),
-        saleDate: s.saleDate ?? "",
-        soldBy: s.soldBy
-            ? {
-                  _id: s.soldBy._id?.toString() ?? "",
-                  name: s.soldBy.name,
-                  surname: s.soldBy.surname,
-                  fullName: s.soldBy.fullName,
-              }
-            : { _id: "", name: undefined, surname: undefined, fullName: undefined },
-        paymentType: s.paymentType ?? "",
-        saleCurrency: s.saleCurrency
-            ? { _id: s.saleCurrency._id?.toString() ?? "", name: s.saleCurrency.name }
-            : { _id: "", name: undefined },
-    }));
-
-
-    const mapAlertClient = (row: {
-        clientId?: unknown;
-        clientName?: string;
-        clientSurname?: string;
-    }): PaymentAlertItem["client"] | undefined => {
-        if (row.clientId == null) return undefined;
-        return {
-            _id: String(row.clientId),
-            name: row.clientName,
-            surname: row.clientSurname,
-        };
-    };
-
-    const mapAlertRow = (
-        row: any,
-        kind: "installment" | "reservation" | "rent"
-    ): PaymentAlertItem => {
-        const dueDate: string = row.dueDate || today;
-        const daysUntilDue = calendarDaysUntil(dueDate, today);
-        const client = mapAlertClient(row);
-        return {
-            kind,
-            unit: {
-                _id: row.unitId?.toString?.() ?? "",
-                unitNumber: row.unitNumber,
-                name: row.unitName,
-            },
-            ...(client ? {client} : {}),
-            installment: {
-                amount: toNumber(row.amount),
-                dueDate,
-            },
-            daysUntilDue,
-            ...(kind === "reservation"
-                ? { reservationId: row.reservationId?.toString?.() ?? row._id?.toString?.() }
-                : {}),
-            ...(kind === "installment" && row.saleId
-                ? { saleId: row.saleId?.toString?.() ?? String(row.saleId) }
-                : {}),
-        };
-    };
-
-    const rentAlerts: PaymentAlertItem[] = (rentalPaymentsForStats ?? [])
-        .filter((p) => {
-            if (p.status === RentalPaymentStatus.WAIVED || p.status === RentalPaymentStatus.PAID) return false;
-            if (remainingNumber(p) <= 0) return false;
-            return !!p.dueDate && p.dueDate <= alertHorizon;
-        })
-        .map((p) => {
-            const unit = p.unit as unknown as {_id?: unknown; unitNumber?: string; name?: string} | undefined;
-            const lease = p.lease as unknown as {
-                tenant?: {_id?: unknown; name?: string; surname?: string};
-            } | undefined;
-            const tenant = lease?.tenant;
-            const dueDate = p.dueDate || today;
-            const client =
-                tenant?._id != null
-                    ? {
-                          _id: String(tenant._id),
-                          name: tenant.name,
-                          surname: tenant.surname,
-                      }
-                    : undefined;
-            return {
-                kind: "rent" as const,
-                unit: {
-                    _id: unit?._id != null ? String(unit._id) : "",
-                    unitNumber: unit?.unitNumber != null ? String(unit.unitNumber) : undefined,
-                    name: unit?.name,
-                },
-                ...(client ? {client} : {}),
-                installment: {
-                    amount: remainingNumber(p),
-                    dueDate,
-                },
-                daysUntilDue: calendarDaysUntil(dueDate, today),
-                rentalPaymentId: p._id != null ? String(p._id) : undefined,
-            };
-        });
-
-    const paymentAlerts: PaymentAlertItem[] = [
-        ...(paymentAlertsListAgg || []).map((row: any) => mapAlertRow(row, "installment")),
-        ...(reservationAlertsListAgg || []).map((row: any) => mapAlertRow(row, "reservation")),
-        ...rentAlerts,
-    ]
-        .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
-        .slice(0, 50);
+    const {revenueByPeriod, salesByPeriod, recentSales} = sales;
+    const paymentAlerts = paymentAlertsOf(paymentPlans.alertRows, reservations.alertRows, rentals.rentAlerts, today);
 
     if (access.all) {
         dashboardCacheService.store(
@@ -1034,19 +1075,19 @@ function buildEmptySummary(): DashboardSummary {
         activeReservations: 0,
         paymentPlans: {
             byStatus: { active: 0, completed: 0, defaulted: 0, cancelled: 0 },
-            totalOutstanding: 0,
+            totalOutstanding: [],
             overdueInstallmentsCount: 0,
         },
         inspections: { byStatus: {}, followUpRequiredCount: 0 },
         modificationRequests: { byStatus: {} },
-        averageSalePrice: 0,
-        inventoryValue: 0,
+        averageSalePrice: [],
+        inventoryValue: [],
         salesByPaymentType: { cash: 0, payment_plan: 0 },
         occupancyRatePercent: 0,
         totalInspections: 0,
         openModificationRequests: 0,
         expiringReservationsCount: 0,
-        totalReservationDeposits: 0,
+        totalReservationDeposits: [],
         paymentPlansCompleted: 0,
         paymentPlansDefaulted: 0,
         verifiedPaidUnitCosts: [],
@@ -1068,13 +1109,13 @@ function sanitizeDashboardSummary(
     if (!access.sales) {
         out.totalRevenue = [];
         out.totalSales = 0;
-        out.averageSalePrice = 0;
+        out.averageSalePrice = [];
         out.salesByPaymentType = { cash: 0, payment_plan: 0 };
     }
     if (!access.units) {
         out.unitsByStatus = { available: 0, unavailable: 0, reserved: 0, sold: 0, leased: 0 };
         out.totalUnits = 0;
-        out.inventoryValue = 0;
+        out.inventoryValue = [];
         out.occupancyRatePercent = 0;
     }
     if (!access.projects) {
@@ -1089,12 +1130,12 @@ function sanitizeDashboardSummary(
     if (!access.reservations) {
         out.activeReservations = 0;
         out.expiringReservationsCount = 0;
-        out.totalReservationDeposits = 0;
+        out.totalReservationDeposits = [];
     }
     if (!access.paymentPlans) {
         out.paymentPlans = {
             byStatus: { active: 0, completed: 0, defaulted: 0, cancelled: 0 },
-            totalOutstanding: 0,
+            totalOutstanding: [],
             overdueInstallmentsCount: 0,
         };
         out.paymentPlansCompleted = 0;

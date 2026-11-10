@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
     sendMail: vi.fn(),
     loadPhotos: vi.fn(),
     stamp: vi.fn(),
+    /** Clients who turned the updates off (D117). */
+    muted: new Set<string>(),
 }));
 
 vi.mock("@propertyManagement/database/schemas/constructionProgress/constructionProgress.service", () => ({
@@ -20,6 +22,9 @@ vi.mock("@coreModule/database/schemas/company/company.service", () => ({
     companyService: {findById: async () => ({name: "Acme"})},
 }));
 vi.mock("@coreModule/domain/notifications/notificationEventBus", () => ({emitNotificationEvent: mocks.emit}));
+vi.mock("@coreModule/domain/notifications/notificationDomainService", () => ({
+    filterUnmutedReceivers: async (ids: string[]) => ids.filter(id => !mocks.muted.has(id)),
+}));
 vi.mock("../constructionProgressRecipients", () => ({findConstructionProgressRecipients: mocks.recipients}));
 vi.mock("@propertyManagement/utilities/emails/mediaImageAttachments", () => ({loadInlineImageAttachments: mocks.loadPhotos}));
 vi.mock("@propertyManagement/utilities/emails/constructionProgressNotifiers", () => ({sendConstructionProgressClientMail: mocks.sendMail}));
@@ -41,6 +46,7 @@ describe("notifyConstructionProgressClients", () => {
             phase: "structure", progressPercent: 75, updateDate: "2027-01-01", title: "Roof", photos: [new ObjectId()],
         };
         for (const m of [mocks.recipients, mocks.emit, mocks.sendMail, mocks.loadPhotos, mocks.stamp]) m.mockReset();
+        mocks.muted.clear();
         mocks.sendMail.mockResolvedValue(undefined);
         mocks.loadPhotos.mockResolvedValue([{filename: "a.jpg", content: Buffer.from("x"), contentType: "image/jpeg", cid: "site-1"}]);
     });
@@ -73,6 +79,17 @@ describe("notifyConstructionProgressClients", () => {
         });
         expect(mocks.sendMail.mock.calls[0][0].photos).toBe(mocks.sendMail.mock.calls[1][0].photos);
         expect(mocks.stamp.mock.calls[0][1].$set.clientsNotifiedCount).toBe(2);
+    });
+
+    it("does not email a client who turned the updates off (D117)", async () => {
+        const a = recipient(["A-1"]);
+        const b = recipient(["B-1"]);
+        mocks.recipients.mockResolvedValue([a, b]);
+        mocks.muted.add(a.userId);
+
+        await expect(notifyConstructionProgressClients(mocks.progress._id, {languageCode: "en-US"})).resolves.toBe(2);
+        expect(mocks.emit.mock.calls[0][1].receiverIds).toEqual([a.userId, b.userId]);
+        expect(mocks.sendMail.mock.calls.map(([m]) => m.email)).toEqual([b.email]);
     });
 
     it("keeps going when one email fails and never throws", async () => {

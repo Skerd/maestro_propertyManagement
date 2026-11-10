@@ -301,7 +301,7 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.scheduledAtLabel",
                             placeholder: "form.scheduledAtPlaceholder",
-                            widgetProps: {withTime: true},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
                         },
                     },
                 ],
@@ -368,7 +368,7 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     label: "form.offerEndsAtLabel",
                                     placeholder: "form.offerEndsAtPlaceholder",
                                     required: true,
-                                    widgetProps: {withTime: true},
+                                    widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
                                 },
                             },
                             {
@@ -655,6 +655,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
+        permissions: {readAny: ["title", "campaignType", "template", "scheduledAt"], writeAny: ["title", "campaignType", "template", "scheduledAt"]},
         children: [
             {
                 render: "#FormGrid",
@@ -707,7 +708,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.scheduledAtLabel",
                             placeholder: "form.scheduledAtPlaceholder",
-                            widgetProps: {withTime: true},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
                         },
                         permissions: {read: "scheduledAt", write: "scheduledAt"},
                     },
@@ -718,6 +719,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "content"},
+        permissions: {readAny: ["contentUnit", "offerTitle", "offerEndsAt", "contentProject", "ctaUrl"], writeAny: ["contentUnit", "offerTitle", "offerEndsAt", "contentProject", "ctaUrl"]},
         children: [
             {
                 render: "#FormGrid",
@@ -777,7 +779,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     label: "form.offerEndsAtLabel",
                                     placeholder: "form.offerEndsAtPlaceholder",
                                     required: true,
-                                    widgetProps: {withTime: true},
+                                    widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
                                 },
                                 permissions: {read: "offerEndsAt", write: "offerEndsAt"},
                             },
@@ -842,6 +844,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "audience"},
+        permissions: {readAny: ["audienceMode", "recipients", "leadRecipients", "includeClientUsers", "includeLeads"], writeAny: ["audienceMode", "recipients", "leadRecipients", "includeClientUsers", "includeLeads"]},
         children: [
             {
                 render: "#FormGrid",
@@ -936,6 +939,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "scope"},
+        permissions: {readAny: ["projects", "units"], writeAny: ["projects", "units"]},
         children: [
             {
                 render: "#FormGrid",
@@ -984,6 +988,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "contentOverrides"},
+        permissions: {readAny: ["subjectOverride", "bodyHtmlOverride"], writeAny: ["subjectOverride", "bodyHtmlOverride"]},
         children: [
             {
                 render: "#FormGrid",
@@ -1028,6 +1033,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "delivery"},
+        permissions: {readAny: ["batchSize", "fromName", "replyTo"], writeAny: ["batchSize", "fromName", "replyTo"]},
         children: [
             {
                 render: "#FormGrid",

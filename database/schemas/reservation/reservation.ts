@@ -203,7 +203,6 @@ const ReservationSchema = new Schema<IReservation>(
             type: SchemaTypes.String,
             enum: [...RESERVATION_SOURCE_VALUES],
             required: false,
-            index: true,
             dynamicTableConfiguration: {
                 hideColumn: true,
             },
@@ -271,7 +270,6 @@ const ReservationSchema = new Schema<IReservation>(
             type: SchemaTypes.String,
             enum: Object.values(ReservationStatus),
             required: false,
-            index: true,
             permissions: {
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},

@@ -115,7 +115,7 @@ describe("planToHubRows — derived status", () => {
         expect(row.remaining).toBe(0);
     });
 
-    it("counts the late fee as part of what is still owed", () => {
+    it("shows the late fee beside the installment, not as part of what is due on it (D121)", () => {
         const plan = makePlan({
             installments: [installment({
                 dueDate: "2026-08-15",
@@ -125,8 +125,24 @@ describe("planToHubRows — derived status", () => {
 
         const [row] = planToHubRows(plan, TODAY);
 
-        expect(row.remaining).toBe(1050);
+        expect(row.remaining).toBe(1000);
         expect(row.lateFeeAmount).toBe(50);
+    });
+
+    it("works the status out only from fields the caller may read (SEC-09)", () => {
+        const plan = makePlan({
+            installments: [
+                installment({dueDate: "2026-10-15", amount: dec("1000"), paidAmount: dec("1000"), status: "pending"}),
+                installment({installmentNumber: 2, dueDate: "2026-09-01", paidAmount: dec("400"), status: "partially_paid"}),
+            ],
+        });
+        const moneyHidden = (_collection: string, path: string) => path !== "installments.amount" && path !== "installments.paidAmount";
+
+        // With the amounts readable the first row reads as paid; hidden, it follows the stored status and due day.
+        expect(planToHubRows(plan, TODAY).map((row) => row.status)).toEqual(["paid", "overdue"]);
+        expect(planToHubRows(plan, TODAY, moneyHidden).map((row) => row.status)).toEqual(["pending", "overdue"]);
+        const nothingButMoney = (_collection: string, path: string) => path.startsWith("installments.") && path.endsWith("mount");
+        expect(planToHubRows(plan, TODAY, nothingButMoney).map((row) => row.status)).toEqual(["paid", "partially_paid"]);
     });
 
     it("falls back to the last receipt date when the installment has no paidDate", () => {

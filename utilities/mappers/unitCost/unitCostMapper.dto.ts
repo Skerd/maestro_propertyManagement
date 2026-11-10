@@ -26,17 +26,20 @@ import {
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
+import {minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 
-/** Reads only each row's amount and price, so hydrated and lean unit costs both qualify. */
+/**
+ * Quantity × unit price per row, each rounded once, summed exactly (D35). Reads only each row's amount and price,
+ * so hydrated and lean unit costs both qualify; a row without a number in either counts nothing.
+ */
 export function computeUnitCostSubtotal(doc: {expenditureItems?: {amount?: unknown; pricePerUnit?: unknown}[]}): number {
-    const items = doc.expenditureItems || [];
-    let sum = 0;
-    for (const row of items) {
+    const lines: bigint[] = [];
+    for (const row of doc.expenditureItems || []) {
         const amt = typeof row.amount === "number" ? row.amount : parseFloat(String(row.amount));
         const ppu = decimalToNumber(row.pricePerUnit);
-        if (Number.isFinite(amt) && Number.isFinite(ppu)) sum += amt * ppu;
+        if (Number.isFinite(amt) && ppu !== undefined && Number.isFinite(ppu)) lines.push(multiplyMinor(toMinor(ppu), amt));
     }
-    return sum;
+    return minorToNumber(sumMinor(lines));
 }
 
 function unitCostDocRowToDto(row: {

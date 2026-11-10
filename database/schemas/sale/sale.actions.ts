@@ -11,7 +11,7 @@ import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.
 import {recordTitleTransferFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/recordTitleTransfer.form.validator";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 import {localDateOf} from "@coreModule/utilities/time/timeWindows";
-import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
+import {companyTimeZone, companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import {
     assertTitleTransferAllowed,
     salesWithHandoverContext,
@@ -46,11 +46,7 @@ import {
     paymentPlanScheduleErrorKey,
     type PaymentPlanInstallmentScheduleInput,
 } from "@propertyManagement/utilities/sale/paymentPlanContractInterest";
-import {
-    calendarDaysUntil,
-    companyToday,
-    isCalendarDayOver,
-} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {calendarDaysUntil, isCalendarDayOver} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import {
     formatDiscountForEmail,
     formatMoneyAmountForEmail,
@@ -64,6 +60,7 @@ import {notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaff
 import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import {minorToNumber, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 
 function finalPriceDisplayForEmail(
     finalPrice: number | Decimal128 | undefined,
@@ -129,7 +126,7 @@ export class SaleActions {
             {session, logger, languageCode},
         );
 
-        if ((sale as any).approvalStatus !== SaleApprovalStatus.PENDING_APPROVAL) {
+        if (sale.approvalStatus !== SaleApprovalStatus.PENDING_APPROVAL) {
             throw apiValidationException("sale_not_pending_approval", "", null, languageCode);
         }
 
@@ -155,8 +152,8 @@ export class SaleActions {
             await releaseSale(sale, {session, logger, languageCode, actionUserCtx, companyId: company._id});
         }
 
-        const soldById = (sale.soldBy as any)?._id?.toString() ?? sale.soldBy?.toString();
-        const buyerId = (sale.buyer as any)?._id?.toString() ?? (sale.buyer as any)?.toString();
+        const soldById = nestedEntityToRef(sale.soldBy)?.toString();
+        const buyerId = nestedEntityToRef(sale.buyer)?.toString();
 
         const notifCode =
             decision === "approved" ? NotificationEventCodes.SALE_APPROVED : NotificationEventCodes.SALE_REJECTED;
@@ -402,7 +399,7 @@ export class SaleActions {
             const dueFormatted = formatInstallmentDueDateForEmail(dueIso, lang);
             const instAmt = formatMoneyAmountForEmail(inst.amount.toString(), lang);
             const installmentAmountDisplay = saleSym ? `${instAmt} ${saleSym}` : instAmt;
-            const today = await companyToday(company._id);
+            const today = await companyTodayOf(company._id);
             const past = isCalendarDayOver(due, today);
             const diff = calendarDaysUntil(due, today);
 
@@ -468,12 +465,14 @@ export class SaleActions {
         const sale = await saleService.findOneOrThrow(
             {_id: existingPlan.sale, company: company._id},
             {session, logger, languageCode},
-            [{path: "saleCurrency", select: "symbol name"}],
+            [{path: "saleCurrency", select: "symbol name decimalPlaces"}],
         );
         await unitService.findOneOrThrow(
             {_id: sale.unit, company: company._id},
             {session, logger, languageCode},
         );
+        // The plan's money is in the sale currency, exact at its decimals (D35).
+        const decimals = sale.saleCurrency?.decimalPlaces;
 
         assertPlanTakesPayments(existingPlan, languageCode);
         const installment = existingPlan.installments.find((inst) => inst.installmentNumber === installmentNumber);
@@ -484,30 +483,36 @@ export class SaleActions {
             throw apiValidationException("installment_already_paid", "", null, languageCode);
         }
 
-        const newPaidMinor = sumMinor([toMinor(installment.paidAmount), toMinor(paidAmount)]);
-        const amountMinor = toMinor(installment.amount);
+        const newPaidMinor = sumMinor([toMinor(installment.paidAmount, decimals), toMinor(paidAmount, decimals)]);
+        const amountMinor = toMinor(installment.amount, decimals);
+        // Paying beyond the installment is refused (D121); a late fee is owed information, never part of the amount due.
         if (newPaidMinor > amountMinor) {
             throw apiValidationException("installment_payment_exceeds_due", "", null, languageCode);
         }
 
-        installment.paidAmount = decimal128FromMinor(newPaidMinor);
+        installment.paidAmount = decimal128FromMinor(newPaidMinor, decimals);
         const receiptPaidDate = localDateOf(new Date(), companyTimeZone(company));
         if (newPaidMinor === amountMinor) {
             installment.status = InstallmentStatus.PAID;
             installment.paidDate = receiptPaidDate;
-        } else if (newPaidMinor > 0n) {
+        } else if (newPaidMinor > 0n && installment.status !== InstallmentStatus.OVERDUE) {
+            // A part payment does not catch up an overdue installment: it stays overdue until it is paid in full.
             installment.status = InstallmentStatus.PARTIALLY_PAID;
         }
         if (transactionId) installment.transactionId = transactionId;
         if (notes) installment.notes = notes;
 
-        const receipt: any = {amount: decimal128FromMinor(toMinor(paidAmount)), paidDate: receiptPaidDate};
-        if (transactionId) receipt.transactionId = transactionId;
-        if (notes) receipt.notes = notes;
-        if (!Array.isArray((installment as any).paymentReceipts)) (installment as any).paymentReceipts = [];
-        (installment as any).paymentReceipts.push(receipt);
+        installment.paymentReceipts = [
+            ...(installment.paymentReceipts ?? []),
+            {
+                amount: decimal128FromMinor(toMinor(paidAmount, decimals), decimals),
+                paidDate: receiptPaidDate,
+                ...(transactionId ? {transactionId} : {}),
+                ...(notes ? {notes} : {}),
+            },
+        ];
 
-        const allPaid = existingPlan.installments.every((inst: any) => inst.status === InstallmentStatus.PAID);
+        const allPaid = existingPlan.installments.every((inst) => inst.status === InstallmentStatus.PAID);
         if (allPaid && existingPlan.downPaymentPaid) {
             existingPlan.status = PaymentPlanStatus.COMPLETED;
         }
@@ -532,7 +537,7 @@ export class SaleActions {
             logger.debug("User has no read permission on payment plan!");
         }
 
-        const buyerId = (sale.buyer as any)?._id?.toString() ?? sale.buyer?.toString();
+        const buyerId = nestedEntityToRef(sale.buyer)?.toString();
         if (buyerId) {
             emitNotificationEvent(NotificationEventCodes.PAYMENT_PLAN_INSTALLMENT_PAID, {
                 receiverIds: [buyerId],
@@ -542,7 +547,7 @@ export class SaleActions {
                     saleId: existingPlan.sale?.toString(),
                     installmentNumber,
                     paidAmount: paidAmount?.toString(),
-                    currencySymbol: (sale.saleCurrency as any)?.symbol,
+                    currencySymbol: sale.saleCurrency?.symbol,
                     remainingBalance: existingPlan.remainingBalance?.toString(),
                     languageCode: languageCode ?? "en-US",
                 },
@@ -556,7 +561,7 @@ export class SaleActions {
                         paymentPlanId: existingPlan._id.toString(),
                         saleId: existingPlan.sale?.toString(),
                         totalAmount: existingPlan.totalAmount?.toString(),
-                        currencySymbol: (sale.saleCurrency as any)?.symbol,
+                        currencySymbol: sale.saleCurrency?.symbol,
                         languageCode: languageCode ?? "en-US",
                     },
                 });
@@ -564,7 +569,7 @@ export class SaleActions {
         }
 
         if (existingPlan.status === PaymentPlanStatus.DEFAULTED) {
-            const soldById = (sale.soldBy as any)?._id?.toString() ?? sale.soldBy?.toString();
+            const soldById = nestedEntityToRef(sale.soldBy)?.toString();
             const notifyIds = [soldById].filter(Boolean) as string[];
             if (notifyIds.length) {
                 emitNotificationEvent(NotificationEventCodes.PAYMENT_PLAN_DEFAULTED, {
@@ -619,7 +624,7 @@ export class SaleActions {
         if (!existingPlan.downPaymentDate) existingPlan.downPaymentDate = localDateOf(new Date(), companyTimeZone(company));
 
         const allInstallmentsPaid = existingPlan.installments.every(
-            (inst: any) => inst.status === InstallmentStatus.PAID,
+            (inst) => inst.status === InstallmentStatus.PAID,
         );
         if (allInstallmentsPaid && existingPlan.downPaymentPaid) {
             existingPlan.status = PaymentPlanStatus.COMPLETED;
@@ -645,7 +650,7 @@ export class SaleActions {
             logger.debug("User has no read permission on payment plan!");
         }
 
-        const downPaymentBuyerId = (sale.buyer as any)?._id?.toString() ?? sale.buyer?.toString();
+        const downPaymentBuyerId = nestedEntityToRef(sale.buyer)?.toString();
         if (downPaymentBuyerId) {
             emitNotificationEvent(NotificationEventCodes.PAYMENT_PLAN_DOWN_PAYMENT_PAID, {
                 receiverIds: [downPaymentBuyerId],
@@ -654,7 +659,7 @@ export class SaleActions {
                     paymentPlanId: existingPlan._id.toString(),
                     saleId: existingPlan.sale?.toString(),
                     downPayment: existingPlan.downPayment?.toString(),
-                    currencySymbol: (sale.saleCurrency as any)?.symbol,
+                    currencySymbol: sale.saleCurrency?.symbol,
                     remainingBalance: existingPlan.remainingBalance?.toString(),
                     languageCode: languageCode ?? "en-US",
                 },
@@ -668,7 +673,7 @@ export class SaleActions {
                         paymentPlanId: existingPlan._id.toString(),
                         saleId: existingPlan.sale?.toString(),
                         totalAmount: existingPlan.totalAmount?.toString(),
-                        currencySymbol: (sale.saleCurrency as any)?.symbol,
+                        currencySymbol: sale.saleCurrency?.symbol,
                         languageCode: languageCode ?? "en-US",
                     },
                 });
@@ -690,26 +695,36 @@ export class SaleActions {
 
         logger.start(`Restructuring payment plan: ${_id}...`);
 
+        // A defaulted plan is restructured too: that is how its arrears get a new schedule.
         const existingPlan = await paymentPlanService.findOneOrThrow(
-            {_id: new ObjectId(_id), company: company._id, status: PaymentPlanStatus.ACTIVE},
+            {_id: new ObjectId(_id), company: company._id, status: {$in: [PaymentPlanStatus.ACTIVE, PaymentPlanStatus.DEFAULTED]}},
             {session, logger, languageCode},
         );
 
+        // The plan has no currency of its own: its money is in the sale currency, exact at its decimals (D35).
+        const sale = await saleService.findOneOrThrow(
+            {_id: existingPlan.sale, company: company._id},
+            {session, logger, languageCode},
+            [{path: "saleCurrency", select: "decimalPlaces"}],
+        );
+        const decimals = sale.saleCurrency?.decimalPlaces;
+
         // Rows with payments stay; the new schedule re-plans only the principal they do not carry, numbered after them.
         const keptInstallments = existingPlan.installments.filter(installmentHasPayments);
-        const unpaidPrincipalMinor = toMinor(existingPlan.totalAmount) - toMinor(existingPlan.downPayment)
-            - sumMinor(keptInstallments.map((inst) => toMinor(inst.principalAmount)));
+        const unpaidPrincipalMinor = toMinor(existingPlan.totalAmount, decimals) - toMinor(existingPlan.downPayment, decimals)
+            - sumMinor(keptInstallments.map((inst) => toMinor(inst.principalAmount, decimals)));
         const firstNewNumber = Math.max(0, ...keptInstallments.map((inst) => inst.installmentNumber)) + 1;
 
         const scheduleInputs: PaymentPlanInstallmentScheduleInput[] = newSchedule.map((inst: any, index: number) => ({
             installmentNumber: firstNewNumber + index,
             dueDate:           parseIsoDatePrefix(inst.dueDate),
-            amount:            parseMoneyInput(inst.amount),
+            amount:            parseMoneyInput(inst.amount, decimals),
             notes:             inst.notes,
         }));
 
         const allocation = allocatePaymentPlanContractInterest({
-            financedPrincipal: minorToNumber(unpaidPrincipalMinor),
+            decimals,
+            financedPrincipal: minorToNumber(unpaidPrincipalMinor, decimals),
             annualRatePercent: interestRate ?? existingPlan.interestRate ?? 0,
             planStartDate:     parseIsoDatePrefix(startDate),
             planEndDate:       parseIsoDatePrefix(endDate),
@@ -722,15 +737,15 @@ export class SaleActions {
             ...allocation.installments.map((row) => ({
                 installmentNumber: row.installmentNumber,
                 dueDate:           row.dueDate,
-                amount:            decimal128FromMinor(toMinor(row.amount)),
-                principalAmount:   decimal128FromMinor(toMinor(row.principalAmount)),
-                interestAmount:    decimal128FromMinor(toMinor(row.interestAmount)),
+                amount:            decimal128FromMinor(toMinor(row.amount, decimals), decimals),
+                principalAmount:   decimal128FromMinor(toMinor(row.principalAmount, decimals), decimals),
+                interestAmount:    decimal128FromMinor(toMinor(row.interestAmount, decimals), decimals),
                 status:            InstallmentStatus.PENDING,
                 notes:             row.notes || "",
             })),
         ];
 
-        const totalInstallmentMinor = sumMinor(newInstallments.map((inst) => toMinor(inst.amount)));
+        const totalInstallmentMinor = sumMinor(newInstallments.map((inst) => toMinor(inst.amount, decimals)));
         const newRemainingBalance = computePaymentPlanRemainingBalance({
             downPayment:     existingPlan.downPayment,
             downPaymentPaid: existingPlan.downPaymentPaid,
@@ -753,8 +768,12 @@ export class SaleActions {
             {
                 $set: {
                     installments:         newInstallments,
+                    // The new rows are pending; the plan stays defaulted only while a kept row is still overdue.
+                    status:               keptInstallments.some((inst) => inst.status === InstallmentStatus.OVERDUE)
+                        ? PaymentPlanStatus.DEFAULTED
+                        : PaymentPlanStatus.ACTIVE,
                     numberOfInstallments: newInstallments.length,
-                    installmentAmount:    decimal128FromMinor(totalInstallmentMinor),
+                    installmentAmount:    decimal128FromMinor(totalInstallmentMinor, decimals),
                     remainingBalance:     Decimal128.fromString(newRemainingBalance.toString()),
                     // With paid rows kept, the plan still starts where it started.
                     ...(keptInstallments.length === 0 && {startDate: parseIsoDatePrefix(startDate)}),

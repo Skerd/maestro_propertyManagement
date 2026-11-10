@@ -11,8 +11,8 @@
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ObjectId} from "mongodb";
-import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
-import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
+import {addLocalDays} from "@coreModule/utilities/time/timeWindows";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
 import {leaseService} from "../../database/schemas/lease/lease.service";
 import {LeaseStatus} from "../../database/schemas/lease/lease";
@@ -24,11 +24,7 @@ import {
     OPEN_RENT_STATUSES,
     remainingScaled,
 } from "../lease/rentRemaining";
-import {
-    releaseUnitIfRented,
-    unitIdFromLease,
-    waiveOpenRentalPayments,
-} from "../lease/leaseLifecycle";
+import {endLease} from "../../database/schemas/lease/lease.helper";
 
 const BATCH_SIZE = 200;
 const lang = () => CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
@@ -40,7 +36,7 @@ export async function runRentalMaintenance(company: ObjectId, parentLogger?: ser
     const logger = getLogger("rentalMaintenanceJob", parentLogger);
     logger.start("Running rental maintenance...");
     const languageCode = lang();
-    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
+    const today = await companyTodayOf(company, {now: clock.now});
 
     try {
         let lastId: ObjectId | undefined;
@@ -126,15 +122,7 @@ export async function runRentalMaintenance(company: ObjectId, parentLogger?: ser
                             {session, logger, languageCode, timeOperations: false},
                         );
                         if (!lease) return false;
-                        await leaseService.updateByIdOrThrow(
-                            lease._id,
-                            {$set: {status: LeaseStatus.EXPIRED}},
-                            {session, logger, languageCode, timeOperations: false},
-                        );
-                        const ctx = {session, logger, languageCode, company: {_id: company}};
-                        await waiveOpenRentalPayments(lease._id, ctx);
-                        const unitId = unitIdFromLease(lease);
-                        if (unitId) await releaseUnitIfRented(unitId, ctx);
+                        await endLease(lease, {status: LeaseStatus.EXPIRED}, {session, logger, languageCode, companyId: company});
                         return true;
                     });
                     if (done) expiredCount += 1;

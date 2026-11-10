@@ -103,24 +103,43 @@ export interface IPaymentPlan extends Document, IOwnershipPluginFields, ISoftDel
 }
 
 /**
- * Still owed: the down payment and every installment (contract interest included; cancelled rows owe nothing), less
- * the down payment once it is paid and every installment payment. Exact, in minor units (D35).
+ * A plan stores no currency: its amounts are already exact in the sale currency. Adding and subtracting them at the
+ * most decimal places any currency has (ISO 4217: 4) keeps every currency's amounts exact without rounding (D35).
  */
-export function computePaymentPlanRemainingBalance(plan: {
+const PLAN_SUM_DECIMALS = 4;
+
+type PlanMoney = {
     downPayment?: MoneyInput;
     downPaymentPaid?: boolean;
     installments?: Array<{amount?: MoneyInput; paidAmount?: MoneyInput; status?: string}>;
-}): number {
+};
+
+/** Paid so far: the down payment once it is paid and every installment payment (contract interest included). */
+function paidMinor(plan: PlanMoney): bigint {
+    return sumMinor([
+        plan.downPaymentPaid ? toMinor(plan.downPayment, PLAN_SUM_DECIMALS) : 0n,
+        ...(plan.installments ?? []).map((inst) => toMinor(inst.paidAmount, PLAN_SUM_DECIMALS)),
+    ]);
+}
+
+/**
+ * Still owed: the down payment and every installment (contract interest included; cancelled rows owe nothing), less
+ * the down payment once it is paid and every installment payment. Exact, in minor units (D35). Late fees are owed
+ * information, not part of it (D121).
+ */
+export function computePaymentPlanRemainingBalance(plan: PlanMoney): number {
     const installments = plan.installments ?? [];
     const owed = sumMinor([
-        toMinor(plan.downPayment),
-        ...installments.filter((inst) => inst.status !== InstallmentStatus.CANCELLED).map((inst) => toMinor(inst.amount)),
+        toMinor(plan.downPayment, PLAN_SUM_DECIMALS),
+        ...installments.filter((inst) => inst.status !== InstallmentStatus.CANCELLED).map((inst) => toMinor(inst.amount, PLAN_SUM_DECIMALS)),
     ]);
-    const paid = sumMinor([
-        plan.downPaymentPaid ? toMinor(plan.downPayment) : 0n,
-        ...installments.map((inst) => toMinor(inst.paidAmount)),
-    ]);
-    return owed > paid ? minorToNumber(owed - paid) : 0;
+    const paid = paidMinor(plan);
+    return owed > paid ? minorToNumber(owed - paid, PLAN_SUM_DECIMALS) : 0;
+}
+
+/** {@link computePaymentPlanRemainingBalance}'s other half: everything paid on the plan so far, exactly. */
+export function computePaymentPlanPaid(plan: PlanMoney): number {
+    return minorToNumber(paidMinor(plan), PLAN_SUM_DECIMALS);
 }
 
 const PaymentPlanSchema = new Schema<IPaymentPlan>(
@@ -163,7 +182,6 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
             enum: Object.values(PaymentPlanStatus),
             required: true,
             default: PaymentPlanStatus.ACTIVE,
-            index: true,
             dynamicTableConfiguration: {
                 enumTones: {
                     active:      "success",
@@ -542,13 +560,11 @@ PaymentPlanSchema.pre('save', function(next) {
 
     plan.remainingBalance = Decimal128.fromString(computePaymentPlanRemainingBalance(plan).toString());
     
-    // Auto-update status when installments/down payment state changes.
+    // Auto-update status when installments/down payment state changes. Overdue is the installment status the
+    // installment cron sets on the company's day (D91); a defaulted plan with nothing overdue left runs again.
     if (plan.isModified('installments') || plan.isModified('downPaymentPaid')) {
         const allPaid = plan.installments.every(inst => inst.status === InstallmentStatus.PAID);
-        const hasOverdue = plan.installments.some(inst => 
-            inst.status === InstallmentStatus.OVERDUE && 
-            new Date(inst.dueDate) < new Date()
-        );
+        const hasOverdue = plan.installments.some(inst => inst.status === InstallmentStatus.OVERDUE);
 
         const canBeCompleted = allPaid && plan.downPaymentPaid === true;
 
@@ -558,6 +574,8 @@ PaymentPlanSchema.pre('save', function(next) {
             plan.status = hasOverdue ? PaymentPlanStatus.DEFAULTED : PaymentPlanStatus.ACTIVE;
         } else if (hasOverdue && plan.status === PaymentPlanStatus.ACTIVE) {
             plan.status = PaymentPlanStatus.DEFAULTED;
+        } else if (!hasOverdue && plan.status === PaymentPlanStatus.DEFAULTED) {
+            plan.status = PaymentPlanStatus.ACTIVE;
         }
     }
     

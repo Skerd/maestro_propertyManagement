@@ -37,6 +37,7 @@ import {commissionService} from "../commission/commission.service";
 import {unitService} from "../unit/unit.service";
 import Reservation, {type IReservation, ReservationStatus} from "./reservation";
 import {reservationService} from "./reservation.service";
+import {endReservation} from "./reservation.helper";
 import {reservationToDTO} from "@propertyManagement/utilities/mappers/reservation/reservationMapper.dto";
 
 function reservationContractMediaIdFromReservation(reservation: IReservation): string | undefined {
@@ -374,43 +375,17 @@ export class ReservationActions {
             {_id: new ObjectId(_id), company: company._id},
             {session, logger, languageCode},
         );
-        const unit = await unitService.findOneOrThrow(
-            {_id: existingReservation.unit, company: company._id},
-            {session, logger, languageCode},
-        );
+        // Expired and cancelled ones are over already; a converted one is the sale's (reject or delete the sale).
+        if (existingReservation.status !== ReservationStatus.ACTIVE) {
+            throw apiValidationException("reservation_not_active", "", null, languageCode);
+        }
 
         // The cancel permission (D14) covers what cancelling writes, the reason included.
-        const updateData: Record<string, unknown> = {
-            isActive: false,
-            cancelledAt: new Date(),
-            status: ReservationStatus.CANCELLED,
-            cancellationReason,
-        };
-
-        await reservationService.updateByIdOrThrow(
-            new ObjectId(_id),
-            {$set: updateData},
-            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        const unit = await endReservation(
+            existingReservation,
+            {status: ReservationStatus.CANCELLED, cancellationReason},
+            {session, logger, languageCode, companyId: company._id, actionUserCtx},
         );
-
-        await voidPendingCommission({
-            sourceId: existingReservation._id,
-            sourceType: CommissionSourceType.RESERVATION,
-            companyId: company._id,
-            session,
-            actionUserCtx,
-            logger,
-        });
-
-        if (unit.reservation?.toString() === existingReservation._id.toString()) {
-            if (unit.status === UnitStatus.RESERVED) {
-                unit.status = UnitStatus.AVAILABLE;
-            }
-            unit.reservation = undefined;
-            unit.$locals = unit.$locals || {};
-            unit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
-            await unit.save({session});
-        }
 
         const returnReservation = await loadReservationDto(existingReservation._id, {
             session,
@@ -424,8 +399,8 @@ export class ReservationActions {
             payload: {
                 companyId: company._id.toString(),
                 reservationId: existingReservation._id.toString(),
-                unitId: unit._id.toString(),
-                unitNumber: (unit as any).unitNumber,
+                unitId: nestedEntityToRef(existingReservation.unit)?.toString(),
+                unitNumber: unit?.unitNumber,
                 cancellationReason,
                 languageCode: languageCode ?? "en-US",
             },
@@ -460,7 +435,7 @@ export class ReservationActions {
             {session, logger, languageCode},
         );
 
-        if (!([UnitStatus.AVAILABLE, UnitStatus.SOLD] as UnitStatus[]).includes(unit.status) || unit.reservation) {
+        if (unit.status !== UnitStatus.AVAILABLE || unit.reservation) {
             throw apiValidationException("unit_not_available_for_reactivation", "", null, languageCode);
         }
 
@@ -468,7 +443,7 @@ export class ReservationActions {
             new ObjectId(_id),
             {
                 $set: {isActive: true, status: ReservationStatus.ACTIVE},
-                $unset: {cancelledAt: "", cancellationReason: ""},
+                $unset: {cancelledAt: "", cancellationReason: "", expiredAt: ""},
             },
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );

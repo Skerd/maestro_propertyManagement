@@ -1,6 +1,9 @@
 /**
  * Daily job (08:12 UTC): buyer emails for upcoming installments (3d / 1d / day-of) and one overdue notice
- * after the due calendar day (UTC end-of-day), mirroring reservation expiration reminders.
+ * after the due calendar day, mirroring reservation expiration reminders.
+ *
+ * "Today" is the calendar day in the company timezone (GLB-09, D91); `dueDate` is a calendar value stored at
+ * midnight UTC, so its day is read in UTC.
  *
  * Stamps `installmentReminderEmailAt*` / `installmentOverdueNoticeEmailAt` on each installment subdocument.
  */
@@ -15,9 +18,8 @@ import {
     dispatchSaleClientEmail,
     formatInstallmentDueDateForEmail,
 } from "@propertyManagement/utilities/database/sale/saleClientEmailDispatch";
-import {
-    isPastExpirationUtcEndOfDay,
-} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
 import {
     formatMoneyAmountForEmail,
     UNIT_EMAIL_POPULATE,
@@ -30,13 +32,8 @@ const BATCH_SIZE = 200;
 
 type ReminderPhase = "3" | "1" | "0";
 
-function utcDueDayBounds(daysFromToday: number): {start: Date; end: Date} {
-    const n = new Date();
-    const t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + daysFromToday));
-    const start = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 0, 0, 0, 0));
-    const end = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 23, 59, 59, 999));
-    return {start, end};
-}
+/** When the job runs; tests pin it. "Today" is taken in the company's timezone (D91). */
+export type InstallmentReminderClock = {now?: Date};
 
 const PHASES: {
     phase: ReminderPhase;
@@ -145,9 +142,10 @@ function buildDispatchPayload(params: {
     };
 }
 
-export async function runPaymentPlanInstallmentReminders(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
+export async function runPaymentPlanInstallmentReminders(company: ObjectId, parentLogger?: serverLogger, clock: InstallmentReminderClock = {}): Promise<void> {
     const logger = getLogger("payment_plan_installment_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
+    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
 
     const baseFilter = {company, status: PaymentPlanStatus.ACTIVE};
     const populate = [
@@ -192,17 +190,16 @@ export async function runPaymentPlanInstallmentReminders(company: ObjectId, pare
                 }
 
                 const due = new Date(inst.dueDate);
-                const dueTime = due.getTime();
-                if (Number.isNaN(dueTime)) {
+                if (Number.isNaN(due.getTime())) {
                     continue;
                 }
+                const dueDay = localDateOf(due, "UTC");
 
                 for (const {phase, daysUntilDue, field} of PHASES) {
                     if ((inst as any)[field]) {
                         continue;
                     }
-                    const {start, end} = utcDueDayBounds(daysUntilDue);
-                    if (dueTime < start.getTime() || dueTime > end.getTime()) {
+                    if (dueDay !== addLocalDays(today, daysUntilDue)) {
                         continue;
                     }
 
@@ -232,7 +229,7 @@ export async function runPaymentPlanInstallmentReminders(company: ObjectId, pare
                     }
                 }
 
-                if (isPastExpirationUtcEndOfDay(due) && !(inst as any).installmentOverdueNoticeEmailAt) {
+                if (dueDay < today && !(inst as any).installmentOverdueNoticeEmailAt) {
                     const payload = buildDispatchPayload({
                         sale,
                         plan,
@@ -259,13 +256,12 @@ export async function runPaymentPlanInstallmentReminders(company: ObjectId, pare
         if (plans.length < BATCH_SIZE) break;
     }
 
-    await runPaymentPlanInstallmentOverdueMarkings(company, parentLogger);
+    await runPaymentPlanInstallmentOverdueMarkings(company, parentLogger, today);
 }
 
-async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
+async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, parentLogger: serverLogger | undefined, today: string): Promise<void> {
     const logger = getLogger("payment_plan_installment_overdue_marking", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
-    const now = Date.now();
 
     const baseFilter = {company, status: PaymentPlanStatus.ACTIVE};
 
@@ -300,14 +296,8 @@ async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, paren
                     continue;
                 }
 
-                // Grace window: end of (dueDate + gracePeriodDays) in UTC
-                const graceEndMs = Date.UTC(
-                    dueDate.getUTCFullYear(),
-                    dueDate.getUTCMonth(),
-                    dueDate.getUTCDate() + graceDays,
-                    23, 59, 59, 999
-                );
-                if (now <= graceEndMs) {
+                // Overdue once the last grace day (due day + gracePeriodDays) is before the company's today.
+                if (addLocalDays(localDateOf(dueDate, "UTC"), graceDays) >= today) {
                     continue;
                 }
 

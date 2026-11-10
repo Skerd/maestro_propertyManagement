@@ -12,24 +12,33 @@ import {resolveCommissionRatePercent} from "./resolveCommissionRate";
 import {ISale} from "../../../database/schemas/sale/sale";
 import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
+import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
+import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
+import {percentOfMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 
-type VoidPendingCommissionParams = {
+type CommissionSourceParams = {
     sourceId: ObjectId,
     sourceType: CommissionSourceType
     companyId: ObjectId,
     session: ClientSession,
-    actionUserCtx: UserContext,
     logger: serverLogger,
 }
 
-type RecordCommissionParams = VoidPendingCommissionParams & {
+/** `actionUserCtx` is absent when a system job (the reservation expiry cron) ends the source. */
+type VoidPendingCommissionParams = CommissionSourceParams & {
+    actionUserCtx?: UserContext,
+}
+
+type RecordCommissionParams = CommissionSourceParams & {
+    actionUserCtx: UserContext,
     languageCode: string,
 }
 
 export async function recordCommission({sourceId, sourceType, companyId, session, actionUserCtx, logger, languageCode}: RecordCommissionParams): Promise<void> {
 
     let foundModel: ISale | IReservation; // = undefined;
-    let baseAmount = 0;
+    let baseAmount: Decimal128;
     let baseCurrency =  undefined;
     let baseAgent = undefined;
     if( sourceType === CommissionSourceType.RESERVATION ) {
@@ -38,7 +47,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
             return;
         }
         else{
-            baseAmount = parseFloat(foundModel.depositAmount.toString());
+            baseAmount = foundModel.depositAmount;
             baseCurrency = foundModel.depositCurrency;
             baseAgent = foundModel.reservedBy;
         }
@@ -49,7 +58,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
             return;
         }
         else{
-            baseAmount = parseFloat(foundModel.finalPrice.toString());
+            baseAmount = foundModel.finalPrice;
             baseCurrency = foundModel.saleCurrency;
             baseAgent = foundModel.soldBy;
         }
@@ -89,6 +98,10 @@ export async function recordCommission({sourceId, sourceType, companyId, session
         session
     });
 
+    // The commission is a percentage of the basis, rounded once to the basis currency's precision (D35).
+    const currency = await currencyService.findOne({_id: nestedEntityToRef(baseCurrency), company: companyId}, {session}, undefined, "decimalPlaces");
+    const decimals = currency?.decimalPlaces;
+
     const payload: any = {
         company: companyId,
         agent: baseAgent,
@@ -99,7 +112,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
         basis: sourceType === CommissionSourceType.RESERVATION ? "depositAmount" : "finalPrice",
         basisAmount: baseAmount,
         ratePercent,
-        amount: Decimal128.fromString((baseAmount * (ratePercent / 100)).toFixed(2)),
+        amount: decimal128FromMinor(percentOfMinor(toMinor(baseAmount, decimals), ratePercent), decimals),
         currency: baseCurrency,
         status: CommissionStatus.PENDING
     };
@@ -126,8 +139,10 @@ export async function voidPendingCommission({sourceId, sourceType, companyId, se
         doc.status = CommissionStatus.VOIDED;
         doc.voidedAt = new Date();
         doc.paidAt = undefined;
-        doc.$locals = doc.$locals || {};
-        doc.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
+        if (actionUserCtx) {
+            doc.$locals = doc.$locals || {};
+            doc.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
+        }
         await doc.save({session});
         logger.debug?.(`Commission voided  ${sourceType} - ${sourceId}`);
     }

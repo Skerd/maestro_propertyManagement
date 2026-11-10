@@ -1,6 +1,9 @@
 /**
  * Daily job (08:14 UTC): tenant emails for upcoming rent (3d / 1d / day-of) and one overdue notice
- * after the due calendar day (UTC end-of-day), cloned from payment-plan installment reminders.
+ * after the due calendar day, cloned from payment-plan installment reminders.
+ *
+ * "Today" is the calendar day in the company timezone (GLB-09, D91); `dueDate` is a calendar value stored at
+ * midnight UTC, so its day is read in UTC.
  *
  * Stamps `rentReminderEmailAt*` / `rentOverdueNoticeEmailAt` only after a successful send.
  */
@@ -14,7 +17,8 @@ import {
     buildLeaseRentEmailPayload,
     dispatchLeaseClientEmail,
 } from "@propertyManagement/utilities/database/lease/leaseClientEmailDispatch";
-import {isPastExpirationUtcEndOfDay} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
 import {
     isSettledRemaining,
     OPEN_RENT_STATUSES,
@@ -30,13 +34,8 @@ const BATCH_SIZE = 200;
 
 type ReminderPhase = "3" | "1" | "0";
 
-function utcDueDayBounds(daysFromToday: number): {start: Date; end: Date} {
-    const n = new Date();
-    const t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + daysFromToday));
-    const start = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 0, 0, 0, 0));
-    const end = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 23, 59, 59, 999));
-    return {start, end};
-}
+/** When the job runs; tests pin it. "Today" is taken in the company's timezone (D91). */
+export type LeaseRentReminderClock = {now?: Date};
 
 const PHASES: {
     phase: ReminderPhase;
@@ -66,9 +65,10 @@ function companyFromLease(lease: {
     return {companyId, companyName};
 }
 
-export async function runLeaseRentReminders(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
+export async function runLeaseRentReminders(company: ObjectId, parentLogger?: serverLogger, clock: LeaseRentReminderClock = {}): Promise<void> {
     const logger = getLogger("lease_rent_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
+    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
 
     const baseFilter = {
         company,
@@ -126,17 +126,16 @@ export async function runLeaseRentReminders(company: ObjectId, parentLogger?: se
             }
 
             const due = new Date(payment.dueDate);
-            const dueTime = due.getTime();
-            if (Number.isNaN(dueTime)) {
+            if (Number.isNaN(due.getTime())) {
                 continue;
             }
+            const dueDay = localDateOf(due, "UTC");
 
             for (const {phase, daysUntilDue, field} of PHASES) {
                 if (payment[field]) {
                     continue;
                 }
-                const {start, end} = utcDueDayBounds(daysUntilDue);
-                if (dueTime < start.getTime() || dueTime > end.getTime()) {
+                if (dueDay !== addLocalDays(today, daysUntilDue)) {
                     continue;
                 }
 
@@ -173,7 +172,7 @@ export async function runLeaseRentReminders(company: ObjectId, parentLogger?: se
                 }
             }
 
-            if (isPastExpirationUtcEndOfDay(due) && !payment.rentOverdueNoticeEmailAt) {
+            if (dueDay < today && !payment.rentOverdueNoticeEmailAt) {
                 const payload = buildLeaseRentEmailPayload({
                     lease: {
                         _id: lease._id,

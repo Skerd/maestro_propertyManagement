@@ -20,7 +20,7 @@ export type PaymentPlanInstallmentScheduleComputed = PaymentPlanInstallmentSched
 
 export type AllocatePaymentPlanContractInterestResult =
     | { ok: true; code: undefined, totalContractInterest: number; planDays: number; installments: PaymentPlanInstallmentScheduleComputed[] }
-    | { ok: false; code: "invalid_schedule" | "installment_too_small" };
+    | { ok: false; code: "invalid_schedule" | "installment_too_small" | "principal_residual" };
 
 /**
  * Recomputes principal/interest per installment (in due-date order) from financed principal, annual %, plan
@@ -42,6 +42,13 @@ export function allocatePaymentPlanContractInterest(params: {
         planDays: result.planDays,
         installments: result.installments.map(({index: _index, ...row}) => row),
     };
+}
+
+/** The exception key a refused schedule answers with. */
+export function paymentPlanScheduleErrorKey(code: "invalid_schedule" | "installment_too_small" | "principal_residual"): string {
+    if (code === "installment_too_small") return "payment_plan_installment_too_small";
+    if (code === "principal_residual") return "payment_plan_principal_not_covered";
+    return "payment_plan_schedule_invalid";
 }
 
 /** UTC yyyy-MM-dd from a JS Date (calendar components in UTC). */

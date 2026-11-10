@@ -1,4 +1,6 @@
-import {Decimal128, ObjectId} from "mongodb";
+import {ObjectId} from "mongodb";
+import {sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
 import {action} from "@coreModule/api/actionDecorator";
 import {COLLECTED_DATA} from "@coreModule/database/collections";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
@@ -34,14 +36,14 @@ export class CommissionActions {
 
 
         const existing = await commissionService.findOneOrThrow(
-            {
-                _id: new ObjectId(_id),
-                company: company._id,
-                status: {$in: [CommissionStatus.PENDING, CommissionStatus.APPROVED]},
-            },
+            {_id: new ObjectId(_id), company: company._id},
             {session, logger, languageCode},
             [{path: "currency", select: "symbol name"}]
         );
+        // Paying goes through approval: pending → requestApproval → approvePayment → paid.
+        if (existing.status !== CommissionStatus.APPROVED) {
+            throw apiValidationException("commission_not_approved", "", null, languageCode);
+        }
 
         const paidSetFields: Record<string, unknown> = {
             status: CommissionStatus.PAID,
@@ -225,20 +227,21 @@ export class CommissionActions {
 
         const existing = await commissionService.findOneOrThrow(
             {_id: new ObjectId(_id), company: company._id},
-            {session, logger, languageCode}
+            {session, logger, languageCode},
+            [{path: "currency", select: "decimalPlaces"}]
         );
 
-        const totalAmount = parseFloat(existing.amount.toString());
-        const splitsTotal = splits.reduce((s, sp) => s + sp.amount, 0);
-        if (splitsTotal > totalAmount + 0.005) {
+        const decimals = existing.currency?.decimalPlaces;
+        const splitMinors = splits.map((sp) => toMinor(sp.amount, decimals));
+        if (sumMinor(splitMinors) > toMinor(existing.amount, decimals)) {
             throw apiValidationException("commission_splits_exceed_total", "", null, languageCode);
         }
 
-        const splitDocs = splits.map((sp) => ({
+        const splitDocs = splits.map((sp, index) => ({
             agent: new ObjectId(sp.agentId),
             label: sp.label?.trim() || undefined,
             ratePercent: sp.ratePercent,
-            amount: Decimal128.fromString(sp.amount.toString()),
+            amount: decimal128FromMinor(splitMinors[index], decimals),
         }));
 
         await commissionService.updateByIdOrThrow(

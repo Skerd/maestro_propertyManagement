@@ -1,5 +1,4 @@
 import {ObjectId, Decimal128} from "mongodb";
-import Decimal from "decimal.js";
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
@@ -18,7 +17,6 @@ import {currencyService} from "@coreModule/database/schemas/currency/currency.se
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import {commissionService} from "../../../../database/schemas/commission/commission.service";
 import {propertyManagementConfigService} from "../../../../database/schemas/propertyManagementConfig/propertyManagementConfig.service";
-import {recordCommission} from "../../../../utilities/mappers/commissions/commission";
 import Sale, {SaleApprovalStatus, SalePaymentType} from "../../../../database/schemas/sale/sale";
 import PaymentPlan, {
     computePaymentPlanRemainingBalance,
@@ -27,10 +25,16 @@ import PaymentPlan, {
 } from "../../../../database/schemas/paymentPlan/paymentPlan";
 import {ReservationStatus} from "../../../../database/schemas/reservation/reservation";
 import {CommissionSourceType, CommissionStatus} from "../../../../database/schemas/commission/commission";
+import {recordCommission} from "../../../../utilities/mappers/commissions/commission";
+import {releaseSale, retakeSale} from "../../../../database/schemas/sale/sale.helper";
+import type {IUnit} from "../../../../database/schemas/unit/unit";
+import type {ICurrency} from "@coreModule/database/schemas/currency/currency";
+import type {CrudOptions} from "@coreModule/database/services/baseCrudService";
 import {
     allocatePaymentPlanContractInterest,
     parseIsoDatePrefix,
     parseMoneyInput,
+    paymentPlanScheduleErrorKey,
     type PaymentPlanInstallmentScheduleInput,
 } from "@propertyManagement/utilities/sale/paymentPlanContractInterest";
 import {saleToDTO, salesToDTO} from "@propertyManagement/utilities/mappers/sale/saleMapper.dto";
@@ -57,9 +61,14 @@ import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/
 import {notifySalesWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
 import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 import {salePlanSummaryForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
-import authMW from "@coreModule/utilities/middlewares/authMW";
+import authMW, {type AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
+import type {Request, Response} from "express";
+import type {SingleForm} from "armonia/src/modules/core/types/shared.types";
 import {salesWithHandoverContext} from "@propertyManagement/utilities/handoverPackage/handoverPackageChecklist";
-import {addMoney} from "armonia/src/modules/core/helpers/money";
+import {addMoney, fromMinor, minorToNumber, toMinor} from "armonia/src/modules/core/helpers/money";
+import {computeSalePricing} from "armonia/src/modules/propertyManagement/helpers/salePricing";
+import {decimal128FromMinor} from "@coreModule/utilities/helpers/money";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 
 export const basePath = "/api/realEstate/unit/sale";
 
@@ -91,28 +100,62 @@ function finalPriceDisplayForEmail(finalPrice: number | Decimal128 | undefined, 
     return currencySymbol ? `${amt} ${currencySymbol}` : amt;
 }
 
-function computeSalePricing(foundUnit: any, localDiscount: any, saleExchangeRate: any, saleCurrency: string, reservationExchangeRate: any, languageCode: string) {
-    let reservationConvertedAmount: number | undefined;
-    let finalPriceExchangeRate = 1;
+/** An exchange rate as posted, when it is a positive number. */
+function positiveRate(value: unknown): string | undefined {
+    const text = value == null ? "" : String(value).trim();
+    return text !== "" && Number(text) > 0 ? text : undefined;
+}
 
-    if (saleCurrency !== foundUnit.priceCurrency?._id?.toString()) {
-        if (!saleExchangeRate) throw apiValidationException("sale_exchange_rate_required", "", null, languageCode);
-        finalPriceExchangeRate = parseFloat((saleExchangeRate ?? "1") + "");
+/**
+ * The sale's final price by the shared rule (armonia `computeSalePricing`, also the sale forms' preview, D35): the
+ * discounted list price converted to the sale currency, less the reservation deposit converted from its currency.
+ * A rate is needed, and stored, only where the two currencies differ.
+ */
+async function priceUnitSale(
+    foundUnit: IUnit,
+    saleCurrency: ICurrency,
+    form: {localDiscount?: number; saleExchangeRate?: unknown; reservationExchangeRate?: unknown},
+    companyId: ObjectId,
+    opts: CrudOptions & {languageCode: string},
+) {
+    const {languageCode} = opts;
+    const unitCurrencyId = nestedEntityToRef(foundUnit.priceCurrency);
+    const reservation = foundUnit.reservation;
+    const depositCurrencyId = reservation ? nestedEntityToRef(reservation.depositCurrency) : undefined;
+
+    // The deposit is deducted from the price, so it must have been received and be known.
+    if (reservation && !reservation.paid) throw apiValidationException("unit_already_reserved_and_unpaid", "", null, languageCode);
+    if (reservation && (!reservation.depositAmount || !depositCurrencyId)) {
+        throw apiValidationException("reservation_deposit_data_missing", "", null, languageCode);
     }
-    if (foundUnit.reservation && foundUnit.reservation?.depositCurrency?._id.toString() !== saleCurrency) {
-        if (!reservationExchangeRate) throw apiValidationException("reservation_exchange_rate_required", "", null, languageCode);
-        reservationConvertedAmount = reservationExchangeRate * parseFloat(foundUnit.reservation?.depositAmount?.toString() || "1");
+
+    const saleExchangeRate = unitCurrencyId?.equals(saleCurrency._id) ? undefined : positiveRate(form.saleExchangeRate);
+    if (!unitCurrencyId?.equals(saleCurrency._id) && !saleExchangeRate) {
+        throw apiValidationException("sale_exchange_rate_required", "", null, languageCode);
+    }
+    const reservationExchangeRate = !depositCurrencyId || depositCurrencyId.equals(saleCurrency._id)
+        ? undefined
+        : positiveRate(form.reservationExchangeRate);
+    if (depositCurrencyId && !depositCurrencyId.equals(saleCurrency._id) && !reservationExchangeRate) {
+        throw apiValidationException("reservation_exchange_rate_required", "", null, languageCode);
     }
 
-    const priceD = new Decimal(foundUnit.price.toString());
-    const discountD = new Decimal(String(localDiscount ?? 0));
-    const discountedPrice = priceD.minus(priceD.mul(discountD).div(100));
-    const finalPrice = new Decimal(String(finalPriceExchangeRate))
-        .mul(discountedPrice.minus(new Decimal(String(reservationConvertedAmount ?? 0))))
-        .toNumber();
+    const currencyIds = [unitCurrencyId, depositCurrencyId].filter((id): id is ObjectId => id !== undefined);
+    const currencies = await currencyService.find({_id: {$in: currencyIds}, company: companyId}, opts, undefined, "decimalPlaces");
+    const decimalsOf = (id: ObjectId | undefined) => currencies.find((currency) => id?.equals(currency._id))?.decimalPlaces;
 
-    if (finalPrice < 0) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
-    return {finalPrice, reservationConvertedAmount, finalPriceExchangeRate};
+    const pricing = computeSalePricing({
+        unitPrice: foundUnit.price,
+        unitDecimals: decimalsOf(unitCurrencyId),
+        discountPercent: form.localDiscount,
+        saleExchangeRate,
+        saleDecimals: saleCurrency.decimalPlaces,
+        depositAmount: reservation?.depositAmount,
+        depositDecimals: decimalsOf(depositCurrencyId),
+        reservationExchangeRate,
+    });
+    if (!pricing.ok) throw apiValidationException("final_price_cannot_be_negative", "", null, languageCode);
+    return {...pricing, saleExchangeRate, reservationExchangeRate};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,15 +290,21 @@ const {router} = createCrudRouter({
         if (foundUnit.status === UnitStatus.RENTED) throw apiValidationException("unit_already_rented", "", null, languageCode);
         if (foundUnit.status === UnitStatus.UNAVAILABLE) throw apiValidationException("unit_not_available", "", null, languageCode);
 
-        const {finalPrice, reservationConvertedAmount} = computeSalePricing(
-            foundUnit, localDiscount, saleExchangeRate, saleCurrency, reservationExchangeRate, languageCode,
-        );
-
         const [buyerDoc, soldByDoc, saleCurrencyDoc] = await Promise.all([
             userService.findOneOrThrow({_id: new ObjectId(buyer), "roles.company": company._id}, {session, logger, languageCode}),
             userService.findOneOrThrow({_id: new ObjectId(soldBy), "roles.company": company._id}, {session, logger, languageCode}),
             currencyService.findOneOrThrow({_id: new ObjectId(saleCurrency), company: company._id}, {session, logger, languageCode}),
         ]);
+
+        const pricing = await priceUnitSale(
+            foundUnit,
+            saleCurrencyDoc,
+            {localDiscount, saleExchangeRate, reservationExchangeRate},
+            company._id,
+            {session, logger, languageCode},
+        );
+        const saleDecimals = saleCurrencyDoc.decimalPlaces;
+        const finalPrice = minorToNumber(pricing.finalPriceMinor, saleDecimals);
 
         // stash on params so afterCreate can reuse without re-fetching
         (params as any).__foundUnitSnapshot = {
@@ -285,7 +334,8 @@ const {router} = createCrudRouter({
             }
             if (!installmentsArray?.length) throw apiValidationException("at_least_one_installment_required", "", null, languageCode);
 
-            if (downPayment > finalPrice + 0.005) throw apiValidationException("down_payment_exceeds_final_price", "", null, languageCode);
+            const downPaymentMinor = toMinor(downPayment, saleDecimals);
+            if (downPaymentMinor > pricing.finalPriceMinor) throw apiValidationException("down_payment_exceeds_final_price", "", null, languageCode);
 
             const nFromForm = parseInt(String(numberOfInstallmentsField ?? ""), 10);
             if (!Number.isFinite(nFromForm) || nFromForm !== installmentsArray.length) {
@@ -303,18 +353,13 @@ const {router} = createCrudRouter({
             }));
 
             const allocation = allocatePaymentPlanContractInterest({
-                financedPrincipal: finalPrice - downPayment,
+                financedPrincipal: minorToNumber(pricing.finalPriceMinor - downPaymentMinor, saleDecimals),
                 annualRatePercent: interestRate,
                 planStartDate:     parseIsoDatePrefix(startDateField),
                 planEndDate:       parseIsoDatePrefix(endDateField),
                 rows:              scheduleInputs,
             });
-            if (!allocation.ok) {
-                throw apiValidationException(
-                    allocation.code === "installment_too_small" ? "payment_plan_installment_too_small" : "payment_plan_schedule_invalid",
-                    "", null, languageCode,
-                );
-            }
+            if (!allocation.ok) throw apiValidationException(paymentPlanScheduleErrorKey(allocation.code), "", null, languageCode);
 
             const installments: any[] = allocation.installments.map((row) => ({
                 installmentNumber: row.installmentNumber,
@@ -338,8 +383,7 @@ const {router} = createCrudRouter({
             const endDate   = planDateFromForm(endDateField)   ?? installments[installments.length - 1]?.dueDate ?? new Date();
 
             const remainingBalance = computePaymentPlanRemainingBalance({
-                totalAmount:     finalPrice,
-                downPayment,
+                downPayment:     fromMinor(downPaymentMinor, saleDecimals),
                 downPaymentPaid: !!downPaymentPaid,
                 installments,
             });
@@ -348,8 +392,8 @@ const {router} = createCrudRouter({
                 {
                     sale:                 new ObjectId(),
                     status:               PaymentPlanStatus.ACTIVE,
-                    totalAmount:          Decimal128.fromString(finalPrice.toString()),
-                    downPayment:          Decimal128.fromString(downPayment.toString()),
+                    totalAmount:          decimal128FromMinor(pricing.finalPriceMinor, saleDecimals),
+                    downPayment:          decimal128FromMinor(downPaymentMinor, saleDecimals),
                     downPaymentPaid:      !!downPaymentPaid,
                     downPaymentDate:      downPaymentDate ? new Date(downPaymentDate) : undefined,
                     remainingBalance:     Decimal128.fromString(remainingBalance.toString()),
@@ -385,9 +429,9 @@ const {router} = createCrudRouter({
             saleDate:                   new Date(saleDate),
             listedUnitPrice:            foundUnit.price,
             listedUnitCurrency:         foundUnit.priceCurrency,
-            saleExchangeRate:           saleCurrency !== foundUnit.priceCurrency?._id?.toString() ? saleExchangeRate : undefined,
+            saleExchangeRate:           pricing.saleExchangeRate,
             localDiscount:              Decimal128.fromString(String(localDiscount ?? 0)),
-            finalPrice,
+            finalPrice:                 decimal128FromMinor(pricing.finalPriceMinor, saleDecimals),
             notes,
             purchaseContract:           firstMediaId(purchaseContract),
             additionalDocuments:        Array.isArray(additionalDocuments) ? additionalDocuments : (additionalDocuments ? [additionalDocuments] : []),
@@ -395,8 +439,8 @@ const {router} = createCrudRouter({
             reservation:                foundUnit.reservation,
             reservationDepositAmount:   foundUnit.reservation?.depositAmount,
             reservationDepositCurrency: foundUnit.reservation?.depositCurrency,
-            reservationExchangeRate,
-            reservationConvertedAmount,
+            reservationExchangeRate:    pricing.reservationExchangeRate,
+            reservationConvertedAmount: foundUnit.reservation ? decimal128FromMinor(pricing.depositInSaleCurrencyMinor, saleDecimals) : undefined,
             company:                    company._id,
             paymentPlan:                paymentPlanId,
         };
@@ -611,26 +655,12 @@ const {router} = createCrudRouter({
     },
 
     afterDelete: async (params, doc) => {
-        const {session, logger, languageCode, _id, company, actionUserCtx} = params as any;
-
-        const commission = await commissionService.findOne({
-            company: company._id,
-            sourceType: CommissionSourceType.SALE,
-            sourceId: (doc as any)._id,
-        });
-        if (commission) {
-            await commissionService.deleteById(commission._id, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        }
-
-        const unit = await unitService.findOneOrThrow({_id: (doc as any).unit, company: company._id}, {session, logger, languageCode});
-        const unitSaleId = (unit as any).sale?._id?.toString() ?? (unit as any).sale?.toString();
-        if (unitSaleId === _id) {
-            unit.status = unit.reservation ? UnitStatus.RESERVED : UnitStatus.AVAILABLE;
-            (unit as any).sale = undefined;
-            unit.$locals = unit.$locals || {};
-            unit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
-            await unit.save({session});
-        }
+        const {session, logger, languageCode, company, actionUserCtx} = params;
+        const ctx = {session, logger, languageCode, actionUserCtx, companyId: company._id};
+        await releaseSale(doc, ctx);
+        // The plan belongs to the sale (and its required reference would block the delete); restoring brings it back.
+        const planId = nestedEntityToRef(doc.paymentPlan);
+        if (planId) await paymentPlanService.deleteById(planId, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
     },
 
     // ── Restore ────────────────────────────────────────────────────────────
@@ -640,27 +670,9 @@ const {router} = createCrudRouter({
         logger.start(`Restoring sale: ${_id}...`);
         SchemaGuard.checkModelPermission(Sale, "restore", actionUserCtx, languageCode);
 
-        const foundSale = await saleService.findOneOrThrow({_id: new ObjectId(_id), company: company._id}, {session, logger, languageCode});
-        const unit = await unitService.findOneOrThrow({_id: foundSale.unit, company: company._id}, {session, logger, languageCode});
-
-        if (([UnitStatus.SOLD] as UnitStatus[]).includes(unit.status) || (unit as any).sale) {
-            throw apiValidationException("sale_not_available_for_restore", "", null, languageCode);
-        }
-
+        const foundSale = await saleService.findOneOrThrow({_id: new ObjectId(_id), company: company._id}, {session, logger, languageCode, withDeleted: true});
         await saleService.restoreOneOrThrow({_id: new ObjectId(_id), company: company._id}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-
-        unit.status = UnitStatus.SOLD;
-        (unit as any).sale = foundSale;
-        unit.$locals = unit.$locals || {};
-        unit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
-        await unit.save({session});
-
-        const commission = await commissionService.findOne({company: company._id, sourceType: CommissionSourceType.SALE, sourceId: foundSale._id});
-        if (commission) {
-            await commissionService.restoreOneOrThrow({_id: commission._id, company: company._id}, {session, logger, languageCode, auditUserId: actionUserCtx.userId});
-        } else {
-            await recordCommission({sourceId: foundSale._id, sourceType: CommissionSourceType.SALE, companyId: company._id, session, actionUserCtx, logger, languageCode});
-        }
+        await retakeSale(foundSale, {session, logger, languageCode, actionUserCtx, companyId: company._id});
 
         logger.finish(`Successfully restored sale: ${_id}`);
         return {message: "Sale successfully restored"};
@@ -697,25 +709,19 @@ router.post(
     "/paymentPlan/pdf",
     authMW("private"),
     rateLimiter({windowMs: 60000, max: 30}),
-    asyncHandler(async (req: any, res: any) => {
-        const {company, languageCode} = req;
-        const {_id} = req.body ?? {};
-        if (!_id || !ObjectId.isValid(String(_id))) {
-            throw apiValidationException("paymentPlan_not_found", "", null, languageCode);
-        }
+    validateFormZod(validateSingleForm),
+    schemaSanitizer({model: "paymentplans", requiredModes: ["read"]}),
+    asyncHandler(async (params: AuthenticatedMWType & SingleForm, _query: unknown, _req: Request, res: Response) => {
+        const {logger, languageCode, _id, company} = params;
 
-        const plan = await paymentPlanService.findOneOrThrow(
-            {_id: new ObjectId(String(_id)), company: company._id},
-            {logger: req.logger ?? console, languageCode},
-        );
-
+        const plan = await paymentPlanService.findOneOrThrow({_id: new ObjectId(_id), company: company._id}, {logger, languageCode});
         const planDto = paymentPlanToDTO(plan);
-        const pdfBytes = await generatePaymentPlanPdf(planDto, (company as any)?.name);
+        const pdfBytes = await generatePaymentPlanPdf(planDto, company.name);
 
         const filename = `payment-schedule-${planDto.name ?? _id}.pdf`;
-        res.set("Content-Type", "application/pdf");
-        res.set("Content-Disposition", `attachment; filename="${filename}"`);
-        res.set("Content-Length", String(pdfBytes.length));
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+        res.setHeader("Content-Length", pdfBytes.length);
         res.send(Buffer.from(pdfBytes));
     }),
 );

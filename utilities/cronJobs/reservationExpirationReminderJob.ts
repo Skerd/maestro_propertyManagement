@@ -1,7 +1,11 @@
 /**
  * Daily job (08:10 UTC):
- * - Email + in-app reminder for active unpaid reservations approaching expiration (3d / 1d / day-of, UTC calendar).
- * - Stamp `expiredAt` on active unpaid reservations past the expiration calendar day (UTC end-of-day).
+ * - Email + in-app reminder for active unpaid reservations approaching expiration (3d / 1d / day-of).
+ * - Ends active unpaid reservations whose expiration day is over (`endReservation`: expired, commission voided, unit freed).
+ *
+ * "Today" is the calendar day in the company timezone (GLB-09, D91). `expirationDate` is a calendar value stored at
+ * midnight UTC, so its day is read in UTC. Each reservation is ended in its own transaction, so one failure does not
+ * stop the company's sweep.
  *
  * @module utilities/timing/reservationExpirationReminderJob
  */
@@ -11,9 +15,12 @@ import {CONSTANTS} from "@coreModule/environment";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
+import {addLocalDays, localDateOf, localDayInterval} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
+import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
 import {reservationService} from "../../database/schemas/reservation/reservation.service";
-import {UnitStatus} from "../../database/schemas/unit/unit";
 import {ReservationStatus} from "../../database/schemas/reservation/reservation";
+import {endReservation} from "../../database/schemas/reservation/reservation.helper";
 import {
     dispatchReservationClientEmail,
     formatReservationExpirationForEmail,
@@ -24,18 +31,17 @@ import {
     unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 
-import {unitService} from "../../database/schemas/unit/unit.service";
 const BATCH_SIZE = 200;
 
 
 type ReminderPhase = "3" | "1" | "0";
 
-function utcExpirationDayBounds(daysFromToday: number): {start: Date; end: Date} {
-    const n = new Date();
-    const t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + daysFromToday));
-    const start = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 0, 0, 0, 0));
-    const end = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 23, 59, 59, 999));
-    return {start, end};
+/** When the job runs; tests pin it. "Today" is taken in the company's timezone (D91). */
+export type ReservationExpiryClock = {now?: Date};
+
+/** The stored instants of one expiration calendar day (`YYYY-MM-DD`). */
+function expirationDayBounds(day: string): {start: Date; end: Date} {
+    return localDayInterval(day, "UTC");
 }
 
 const PHASES: {phase: ReminderPhase; daysUntilExpiration: number; field: "expirationReminderEmailAt3d" | "expirationReminderEmailAt1d" | "expirationReminderEmailAt0d"}[] = [
@@ -44,29 +50,23 @@ const PHASES: {phase: ReminderPhase; daysUntilExpiration: number; field: "expira
     {phase: "0", daysUntilExpiration: 0, field: "expirationReminderEmailAt0d"},
 ];
 
-/** End of the expiration calendar day in UTC (23:59:59.999). */
-function endOfUtcCalendarDayForExpiration(d: Date): number {
-    const x = new Date(d);
-    return Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate(), 23, 59, 59, 999);
-}
-
 /**
- * Marks unpaid active reservations as expired the first time we observe them past
- * the expiration day's end (UTC), so the sheet can show an "expired" milestone.
+ * Ends unpaid active reservations whose expiration day is before `today` (the company's calendar day), each in its
+ * own transaction.
  */
-export async function runReservationExpiredStamp(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
+export async function runReservationExpiredStamp(company: ObjectId, parentLogger: serverLogger | undefined, today: string): Promise<void> {
     const logger = getLogger("reservation_expired_stamp", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
-    const now = Date.now();
 
     const baseFilter: Record<string, unknown> = {
         company,
         isActive: true,
         paid: false,
-        expirationDate: {$exists: true, $ne: null},
-        expiredAt: {$exists: false},
+        status: ReservationStatus.ACTIVE,
+        expirationDate: {$lt: expirationDayBounds(today).start},
     };
 
+    let ended = 0;
     let lastId: ObjectId | undefined;
     while (true) {
         const filter = lastId ? {...baseFilter, _id: {$gt: lastId}} : baseFilter;
@@ -74,7 +74,7 @@ export async function runReservationExpiredStamp(company: ObjectId, parentLogger
             filter,
             {logger, languageCode: lang, timeOperations: false},
             undefined,
-            undefined,
+            "_id",
             {_id: 1},
             BATCH_SIZE,
             0
@@ -83,42 +83,42 @@ export async function runReservationExpiredStamp(company: ObjectId, parentLogger
         if (rows.length === 0) break;
         lastId = rows[rows.length - 1]._id as ObjectId;
 
-        for (const res of rows) {
-            if (!res.expirationDate) {
-                continue;
-            }
-            if (now <= endOfUtcCalendarDayForExpiration(new Date(res.expirationDate))) {
-                continue;
-            }
+        for (const {_id} of rows) {
             try {
-                await reservationService.updateByIdOrThrow(
-                    res._id,
-                    {$set: {expiredAt: new Date(), status: ReservationStatus.EXPIRED}},
-                    {logger, languageCode: lang, timeOperations: false}
-                );
-                await unitService.updateOne({_id: res.unit, status: UnitStatus.RESERVED, reservation: res._id}, {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: "", unavailableNotes: ""}});
+                const done = await runInTransaction(logger, async (session) => {
+                    // Re-read inside the transaction: it may have been paid or cancelled meanwhile.
+                    const reservation = await reservationService.findOne(
+                        {_id, company, isActive: true, paid: false, status: ReservationStatus.ACTIVE},
+                        {session, logger, languageCode: lang, timeOperations: false},
+                    );
+                    if (!reservation) return false;
+                    await endReservation(reservation, {status: ReservationStatus.EXPIRED}, {session, logger, languageCode: lang, companyId: company});
+                    return true;
+                });
+                if (done) ended += 1;
             } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : String(e);
-                logger.err(`Reservation expired stamp failed for ${res._id?.toString?.()}: ${msg}`);
+                logger.err(`Reservation expiry failed for ${_id.toString()}`, e);
             }
         }
 
         if (rows.length < BATCH_SIZE) break;
     }
+    logger.debug(`Expired ${ended} reservation(s)`);
 }
 
-export async function runReservationExpirationReminders(company: ObjectId, parentLogger?: serverLogger): Promise<void> {
+export async function runReservationExpirationReminders(company: ObjectId, parentLogger?: serverLogger, clock: ReservationExpiryClock = {}): Promise<void> {
     const logger = getLogger("reservation_expiration_reminder", parentLogger);
     const lang = CONSTANTS.DEFAULT_LANGUAGE ?? "en-US";
+    const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
 
     for (const {phase, daysUntilExpiration, field} of PHASES) {
-        const {start, end} = utcExpirationDayBounds(daysUntilExpiration);
+        const {start, end} = expirationDayBounds(addLocalDays(today, daysUntilExpiration));
 
         const baseFilter: Record<string, unknown> = {
             company,
             isActive: true,
             paid: false,
-            expirationDate: {$gte: start, $lte: end},
+            expirationDate: {$gte: start, $lt: end},
             [field]: {$exists: false},
         };
 
@@ -205,5 +205,5 @@ export async function runReservationExpirationReminders(company: ObjectId, paren
         }
     }
 
-    await runReservationExpiredStamp(company, parentLogger);
+    await runReservationExpiredStamp(company, parentLogger, today);
 }

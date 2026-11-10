@@ -9,6 +9,7 @@ import type {
 import {SalePaymentType} from "../../database/schemas/sale/sale";
 import {ReservationStatus} from "../../database/schemas/reservation/reservation";
 import {computePaymentPlanRemainingBalance} from "../../database/schemas/paymentPlan/paymentPlan";
+import type {MoneyInput} from "armonia/src/modules/core/helpers/money";
 import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
 import type {ProjectSimple} from "armonia/src/modules/propertyManagement/dto/project.dto";
@@ -117,10 +118,10 @@ function salePaymentStatus(sale: {
 }): ContractPaymentStatus {
     if (sale.paymentType === SalePaymentType.CASH) return "ok";
     const plan = sale.paymentPlan as {
-        totalAmount?: unknown;
-        downPayment?: unknown;
+        totalAmount?: MoneyInput;
+        downPayment?: MoneyInput;
         downPaymentPaid?: boolean;
-        installments?: Array<{paidAmount?: unknown}>;
+        installments?: Array<{amount?: MoneyInput; paidAmount?: MoneyInput; status?: string}>;
     } | null;
     if (!plan) return "no_payments";
 
@@ -210,10 +211,10 @@ function computeClientMoney(
         }
 
         const plan = sale.paymentPlan as {
-            totalAmount?: unknown;
-            downPayment?: unknown;
+            totalAmount?: MoneyInput;
+            downPayment?: MoneyInput;
             downPaymentPaid?: boolean;
-            installments?: Array<{paidAmount?: unknown}>;
+            installments?: Array<{amount?: MoneyInput; paidAmount?: MoneyInput; status?: string}>;
         } | null;
 
         if (plan) {

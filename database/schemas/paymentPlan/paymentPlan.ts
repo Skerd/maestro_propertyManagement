@@ -20,6 +20,7 @@ import dayjs from "dayjs";
 import crypto from "crypto";
 import {SalePaymentType} from "../sale/sale";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {minorToNumber, type MoneyInput, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 
 /**
  * Payment plan installment status
@@ -100,38 +101,25 @@ export interface IPaymentPlan extends Document, IOwnershipPluginFields, ISoftDel
     restructureHistory?: IRestructureHistoryEntry[];
 }
 
-/** Still owed: full contract minus installment payments; minus down payment only when `downPaymentPaid` is true. */
+/**
+ * Still owed: the down payment and every installment (contract interest included; cancelled rows owe nothing), less
+ * the down payment once it is paid and every installment payment. Exact, in minor units (D35).
+ */
 export function computePaymentPlanRemainingBalance(plan: {
-    totalAmount: unknown;
-    downPayment: unknown;
-    downPaymentPaid: boolean;
-    installments?: Array<{paidAmount?: unknown}>;
-} & any): number {
-    const totalAmount =
-        typeof plan.totalAmount === "object" && plan.totalAmount !== null && "toString" in plan.totalAmount
-            ? parseFloat((plan.totalAmount as Decimal128).toString())
-            : typeof plan.totalAmount === "number"
-              ? plan.totalAmount
-              : parseFloat(String(plan.totalAmount ?? 0));
-    const downPaymentAmount =
-        typeof plan.downPayment === "object" && plan.downPayment !== null && "toString" in plan.downPayment
-            ? parseFloat((plan.downPayment as Decimal128).toString())
-            : typeof plan.downPayment === "number"
-              ? plan.downPayment
-              : parseFloat(String(plan.downPayment ?? 0));
-    const totalPaid = (plan.installments ?? []).reduce((sum: number, inst: {paidAmount?: unknown}) => {
-        const raw = inst.paidAmount;
-        const paid = raw
-            ? typeof raw === "object" && raw !== null && "toString" in raw
-                ? parseFloat((raw as Decimal128).toString())
-                : typeof raw === "number"
-                  ? raw
-                  : parseFloat(String(raw))
-            : 0;
-        return sum + paid;
-    }, 0);
-    const downContribution = plan.downPaymentPaid ? downPaymentAmount : 0;
-    return Math.max(0, totalAmount - downContribution - totalPaid);
+    downPayment?: MoneyInput;
+    downPaymentPaid?: boolean;
+    installments?: Array<{amount?: MoneyInput; paidAmount?: MoneyInput; status?: string}>;
+}): number {
+    const installments = plan.installments ?? [];
+    const owed = sumMinor([
+        toMinor(plan.downPayment),
+        ...installments.filter((inst) => inst.status !== InstallmentStatus.CANCELLED).map((inst) => toMinor(inst.amount)),
+    ]);
+    const paid = sumMinor([
+        plan.downPaymentPaid ? toMinor(plan.downPayment) : 0n,
+        ...installments.map((inst) => toMinor(inst.paidAmount)),
+    ]);
+    return owed > paid ? minorToNumber(owed - paid) : 0;
 }
 
 const PaymentPlanSchema = new Schema<IPaymentPlan>(
@@ -549,13 +537,7 @@ PaymentPlanSchema.pre('save', function(next) {
         return next(new Error(`Number of installments (${plan.installments.length}) must match numberOfInstallments (${plan.numberOfInstallments})`));
     }
 
-    const rb = computePaymentPlanRemainingBalance({
-        totalAmount: plan.totalAmount,
-        downPayment: plan.downPayment,
-        downPaymentPaid: !!plan.downPaymentPaid,
-        installments: plan.installments ?? [],
-    });
-    plan.remainingBalance = Decimal128.fromString(rb.toString());
+    plan.remainingBalance = Decimal128.fromString(computePaymentPlanRemainingBalance(plan).toString());
     
     // Auto-update status when installments/down payment state changes.
     if (plan.isModified('installments') || plan.isModified('downPaymentPaid')) {

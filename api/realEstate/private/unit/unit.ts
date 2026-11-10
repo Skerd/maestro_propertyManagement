@@ -443,46 +443,60 @@ async function bulkUpdateUnitStatus(params: BulkUpdateStatusParams): Promise<{up
 }
 
 // ── POST /availability ────────────────────────────────────────────────────────
-// Returns reservation/sale windows for units in the requested date range.
-// Accepts: { unitId?, projectId?, floorId?, dateFrom, dateTo }
+// The reservation and sale windows of the chosen units that overlap the requested calendar days.
 
-import Reservation from "../../../../database/schemas/reservation/reservation";
-import Sale from "../../../../database/schemas/sale/sale";
 import type {UnitAvailabilityResponse} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unitAvailability.response.type";
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
+import {
+    type UnitAvailabilityForm,
+    unitAvailabilityFormSchema,
+} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unitAvailability.form.validator";
+import {assertAnyCollectedRead, canReadCollectedFields} from "@propertyManagement/utilities/security/canReadCollectedFields";
+
+const DAY_MS = 24 * 3600 * 1000;
 
 router.post(
     "/availability",
     authMW("private"),
     rateLimiter({windowMs: 60000, max: 60}),
-    asyncHandler(async (req: AuthenticatedMWType & any, res: any) => {
-        const {company, languageCode} = req;
-        const {unitId, projectId, floorId, dateFrom, dateTo} = req.body ?? {};
+    validateFormZod(unitAvailabilityFormSchema),
+    asyncHandler(async (params: AuthenticatedMWType & UnitAvailabilityForm): Promise<UnitAvailabilityResponse> => {
+        const {company, languageCode, logger, actionUserCtx, unitId, projectId, floorId, dateFrom, dateTo} = params;
+        assertAnyCollectedRead(canReadCollectedFields("units", actionUserCtx, languageCode), languageCode);
+        const canReadReservations = canReadCollectedFields("reservations", actionUserCtx, languageCode);
+        const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
 
-        const from = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 90 * 24 * 3600 * 1000);
-        const to   = dateTo   ? new Date(dateTo)   : new Date(Date.now() + 365 * 24 * 3600 * 1000);
+        // Calendar days, both included: from the start of `dateFrom` to the end of `dateTo` (UTC, as the calendar shows them).
+        const from = dateFrom ? new Date(`${dateFrom}T00:00:00.000Z`) : new Date(Date.now() - 90 * DAY_MS);
+        const to   = dateTo   ? new Date(`${dateTo}T23:59:59.999Z`)   : new Date(Date.now() + 365 * DAY_MS);
 
-        const unitFilter: Record<string, any> = {company: company._id};
-        if (unitId && ObjectId.isValid(String(unitId)))    unitFilter._id     = new ObjectId(String(unitId));
-        if (projectId && ObjectId.isValid(String(projectId))) unitFilter.project = new ObjectId(String(projectId));
-        if (floorId && ObjectId.isValid(String(floorId)))  unitFilter.floor   = new ObjectId(String(floorId));
+        const unitFilter: Record<string, unknown> = {company: company._id};
+        if (unitId)    unitFilter._id     = new ObjectId(unitId);
+        if (projectId) unitFilter.project = new ObjectId(projectId);
+        if (floorId)   unitFilter.floor   = new ObjectId(floorId);
 
-        const units = await unitService.find(unitFilter, {logger: req.logger ?? console, languageCode}, null, "_id name unitNumber status floor project");
+        const units = await unitService.find(unitFilter, {logger, languageCode}, null, "_id name unitNumber status floor project");
 
         const unitIds  = units.map((u: any) => u._id);
         if (unitIds.length === 0) {
-            const resp: UnitAvailabilityResponse = {entries: [], dateFrom: from.toISOString(), dateTo: to.toISOString()};
-            return res.json({data: resp});
+            return {entries: [], dateFrom: from.toISOString(), dateTo: to.toISOString()};
         }
 
+        // Windows that start before the range ends; those that also end before it starts are dropped below.
         const [reservations, sales] = await Promise.all([
-            reservationService.findUnitHistoryLean({unit: {$in: unitIds}, company: company._id}),
-            saleService.findUnitHistoryLean({unit: {$in: unitIds}, company: company._id}),
+            canReadReservations
+                ? reservationService.findUnitHistoryLean({unit: {$in: unitIds}, company: company._id, reservationDate: {$lte: to}})
+                : [],
+            canReadSales
+                ? saleService.findUnitHistoryLean({unit: {$in: unitIds}, company: company._id, saleDate: {$lte: to}})
+                : [],
         ]);
 
         const resByUnit   = new Map<string, any[]>();
         const saleByUnit  = new Map<string, any[]>();
         for (const r of reservations) {
+            const end = r.cancelledAt ?? r.expiredAt ?? r.expirationDate;
+            if (end && new Date(end) < from) continue;
             const key = r.unit.toString();
             if (!resByUnit.has(key)) resByUnit.set(key, []);
             resByUnit.get(key)!.push(r);
@@ -534,8 +548,7 @@ router.post(
             };
         });
 
-        const resp: UnitAvailabilityResponse = {entries, dateFrom: from.toISOString(), dateTo: to.toISOString()};
-        return res.json({data: resp});
+        return {entries, dateFrom: from.toISOString(), dateTo: to.toISOString()};
     }),
 );
 

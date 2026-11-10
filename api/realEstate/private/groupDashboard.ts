@@ -5,6 +5,10 @@
  * returns aggregated real estate KPIs for each branch plus a group total.
  * If the company has no children but has a parentCompany, it fetches the
  * parent's children so HQ and branch users both see the full group view.
+ *
+ * Each company's figures are read as that company (DB-02: `withTenant`, one company's slice of a cross-company read),
+ * and only where the caller may read them: in another company of the group, an active, unlocked membership whose
+ * role there grants the read (as propertyDevelopment's group dashboard does). Other branches are left out.
  */
 
 import {ObjectId} from "mongodb";
@@ -26,8 +30,14 @@ import {saleService} from "../../../database/schemas/sale/sale.service";
 import {commissionService} from "../../../database/schemas/commission/commission.service";
 import {leaseService} from "../../../database/schemas/lease/lease.service";
 import {companyService} from "@coreModule/database/schemas/company/company.service";
+import {withTenant} from "@coreModule/utilities/endpoints/tenantScope";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
+import {userService} from "@coreModule/database/schemas/user/user.service";
+import type {UserContext} from "@coreModule/utilities/types/types";
 export const basePath = "/api/realEstate/groupDashboard";
 export const router = Router();
+
+const GROUP_COLLECTIONS = ["units", "sales", "commissions", "leases"] as const;
 
 function toNumber(v: unknown): number {
     if (v == null) return 0;
@@ -38,22 +48,15 @@ function toNumber(v: unknown): number {
     return parseFloat(String(v)) || 0;
 }
 
-function byCompany<T extends {_id: unknown}>(arr: T[]): Map<string, T> {
-    return new Map(arr.map(r => [String(r._id), r]));
-}
 
 router.post(
     "",
     authMW("private"),
     rateLimiter({windowMs: 60_000, max: 20}),
     asyncHandler(async (params: AuthenticatedMWType): Promise<GroupDashboardResponse> => {
-        const {company, actionUserCtx, languageCode} = params;
-        const canReadUnits = canReadCollectedFields("units", actionUserCtx, languageCode);
-        const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
-        const canReadCommissions = canReadCollectedFields("commissions", actionUserCtx, languageCode);
-        const canReadLeases = canReadCollectedFields("leases", actionUserCtx, languageCode);
+        const {company, actionUserCtx, languageCode, logger} = params;
         assertAnyCollectedRead(
-            canReadUnits || canReadSales || canReadCommissions || canReadLeases,
+            GROUP_COLLECTIONS.some((collection) => canReadCollectedFields(collection, actionUserCtx, languageCode)),
             languageCode,
         );
         const companyId = company._id as ObjectId;
@@ -74,67 +77,65 @@ router.post(
             branches = await companyService.find({parentCompany: parentId}, {withDeleted: false}, undefined, "_id name");
         }
 
-        const branchIds: ObjectId[] = [
+        const groupIds: ObjectId[] = [
             rootId,
             ...(branches as Array<{_id: ObjectId}>).map(b => b._id),
         ];
+
+        const user = await userService.findById(actionUserCtx.userId, {logger, languageCode}, undefined, "roles");
+        const now = new Date();
+        /** The caller's access in a company of the group; none where they are not an active, unlocked member. */
+        const accessIn = async (groupCompanyId: ObjectId): Promise<UserContext | undefined> => {
+            if (groupCompanyId.equals(companyId)) return actionUserCtx;
+            const membership = user?.roles.find((role) => String(nestedEntityToRef(role.company)) === String(groupCompanyId));
+            if (!user || !membership || membership.active !== "active" || (membership.lockedOutUntil && membership.lockedOutUntil > now)) return undefined;
+            const {isAdmin, permissions} = await user.getCompanyAccess(groupCompanyId);
+            return {userId: actionUserCtx.userId, orgId: String(groupCompanyId), isSelf: actionUserCtx.isSelf, isAdmin, permissions};
+        };
+        const readable = await Promise.all(groupIds.map(async (groupCompanyId) => {
+            const access = await accessIn(groupCompanyId);
+            const can = (collection: typeof GROUP_COLLECTIONS[number]) => access !== undefined && canReadCollectedFields(collection, access, languageCode);
+            return {companyId: groupCompanyId, units: can("units"), sales: can("sales"), commissions: can("commissions"), leases: can("leases")};
+        }));
+        const branchReads = readable.filter((read) => read.units || read.sales || read.commissions || read.leases);
 
         const companyNames: Record<string, string> = {[rootId.toString()]: rootName};
         for (const b of branches as Array<{_id: ObjectId; name: string}>) {
             companyNames[b._id.toString()] = b.name;
         }
 
-        const emptyAgg: never[] = [];
-        const [unitAgg, saleAgg, commAgg, leaseAgg] = await Promise.all([
-            canReadUnits ? unitService.aggregate([
-                {$match: {company: {$in: branchIds}, deletedAt: null}},
-                {$group: {
-                    _id: "$company",
-                    total: {$sum: 1},
-                    available: {$sum: {$cond: [{$eq: ["$status", UnitStatus.AVAILABLE]}, 1, 0]}},
-                    sold: {$sum: {$cond: [{$eq: ["$status", UnitStatus.SOLD]}, 1, 0]}},
-                    rented: {$sum: {$cond: [{$eq: ["$status", UnitStatus.RENTED]}, 1, 0]}},
-                }},
-            ]) : Promise.resolve(emptyAgg),
-            canReadSales ? saleService.aggregate([
-                {$match: {company: {$in: branchIds}, deletedAt: null}},
-                {$group: {
-                    _id: "$company",
-                    revenue: {$sum: {$toDouble: {$ifNull: ["$finalPrice", 0]}}},
-                }},
-            ]) : Promise.resolve(emptyAgg),
-            canReadCommissions ? commissionService.aggregate([
-                {$match: {
-                    company: {$in: branchIds},
-                    deletedAt: null,
-                    status: {$ne: CommissionStatus.VOIDED},
-                }},
-                {$group: {
-                    _id: "$company",
-                    amount: {$sum: {$toDouble: {$ifNull: ["$amount", 0]}}},
-                }},
-            ]) : Promise.resolve(emptyAgg),
-            canReadLeases ? leaseService.aggregate([
-                {$match: {
-                    company: {$in: branchIds},
-                    deletedAt: null,
-                    status: LeaseStatus.ACTIVE,
-                }},
-                {$group: {_id: "$company", count: {$sum: 1}}},
-            ]) : Promise.resolve(emptyAgg),
-        ]);
-
-        const unitMap = byCompany(unitAgg as Array<{_id: ObjectId; total?: number; available?: number; sold?: number; rented?: number}>);
-        const saleMap = byCompany(saleAgg as Array<{_id: ObjectId; revenue?: number}>);
-        const commMap = byCompany(commAgg as Array<{_id: ObjectId; amount?: number}>);
-        const leaseMap = byCompany(leaseAgg as Array<{_id: ObjectId; count?: number}>);
-
-        const branchKpis: BranchKpi[] = branchIds.map(cid => {
+        const branchKpis: BranchKpi[] = await Promise.all(branchReads.map((read) => withTenant(read.companyId, async () => {
+            const cid = read.companyId;
+            const emptyAgg: never[] = [];
+            const [unitAgg, saleAgg, commAgg, leaseAgg] = await Promise.all([
+                read.units ? unitService.aggregate([
+                    {$match: {company: cid, deletedAt: null}},
+                    {$group: {
+                        _id: null,
+                        total: {$sum: 1},
+                        available: {$sum: {$cond: [{$eq: ["$status", UnitStatus.AVAILABLE]}, 1, 0]}},
+                        sold: {$sum: {$cond: [{$eq: ["$status", UnitStatus.SOLD]}, 1, 0]}},
+                        rented: {$sum: {$cond: [{$eq: ["$status", UnitStatus.RENTED]}, 1, 0]}},
+                    }},
+                ]) : Promise.resolve(emptyAgg),
+                read.sales ? saleService.aggregate([
+                    {$match: {company: cid, deletedAt: null}},
+                    {$group: {_id: null, revenue: {$sum: {$toDouble: {$ifNull: ["$finalPrice", 0]}}}}},
+                ]) : Promise.resolve(emptyAgg),
+                read.commissions ? commissionService.aggregate([
+                    {$match: {company: cid, deletedAt: null, status: {$ne: CommissionStatus.VOIDED}}},
+                    {$group: {_id: null, amount: {$sum: {$toDouble: {$ifNull: ["$amount", 0]}}}}},
+                ]) : Promise.resolve(emptyAgg),
+                read.leases ? leaseService.aggregate([
+                    {$match: {company: cid, deletedAt: null, status: LeaseStatus.ACTIVE}},
+                    {$group: {_id: null, count: {$sum: 1}}},
+                ]) : Promise.resolve(emptyAgg),
+            ]);
+            const [u] = unitAgg as Array<{total?: number; available?: number; sold?: number; rented?: number}>;
+            const [sl] = saleAgg as Array<{revenue?: number}>;
+            const [c] = commAgg as Array<{amount?: number}>;
+            const [l] = leaseAgg as Array<{count?: number}>;
             const sid = cid.toString();
-            const u = unitMap.get(sid);
-            const s = saleMap.get(sid);
-            const c = commMap.get(sid);
-            const l = leaseMap.get(sid);
             return {
                 companyId: sid,
                 companyName: companyNames[sid] ?? sid,
@@ -142,12 +143,12 @@ router.post(
                 availableUnits: u?.available ?? 0,
                 soldUnits: u?.sold ?? 0,
                 rentedUnits: u?.rented ?? 0,
-                totalRevenue: toNumber(s?.revenue),
+                totalRevenue: toNumber(sl?.revenue),
                 totalCommissions: toNumber(c?.amount),
                 activeLeases: l?.count ?? 0,
                 openSnags: 0,
             };
-        });
+        }, "propertyManagement")));
 
         const totals: Omit<BranchKpi, "companyId" | "companyName"> = {
             totalUnits: branchKpis.reduce((s, b) => s + b.totalUnits, 0),

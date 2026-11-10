@@ -37,6 +37,8 @@ export type ReservationSeedRow = {
     paymentMethod: string;
     source: string;
     paid: boolean;
+    /** The day a paid deposit was received; null while unpaid. */
+    paidDate: string | null;
     isActive: boolean;
     /** active | expired | cancelled | converted — only `active` reserves the unit. */
     status: string;

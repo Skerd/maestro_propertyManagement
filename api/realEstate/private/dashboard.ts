@@ -244,8 +244,8 @@ function rentalsFromPayments(
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildDashboardCacheKey(companyId: string, params: {projectId?: string; edificeId?: string; period?: string; from?: string; to?: string; recentSalesLimit?: number}): string {
-    // v3: the summary has `collected` (TD-B176); an older entry lacks it and is never read back.
-    return `dashboard:v3:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
+    // v4: `collected` counts reservation deposits on their paid day, inactive ones too (TD-B178); a v3 entry is never read back.
+    return `dashboard:v4:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
 }
 
 /**
@@ -731,14 +731,20 @@ type PlanPaymentsRow = AggregateMoneyLine & {
 /**
  * Money received in the period, per currency (TD-B176): cash sales on their sale day, payment-plan down payments and
  * installment payments on the day they were paid (an installment without a paid day: its last receipt's, as in the
- * payments hub), and the paid deposits of active reservations on their reservation day, since a reservation records
- * no payment day. Without a period, everything received so far. Rent has its own figure (`rentals.collectedAmount`).
+ * payments hub), and paid reservation deposits on their paid day (a reservation paid before it recorded one: its
+ * reservation day), whether the reservation is still active or expired, cancelled or converted since: the money was
+ * received, and a converted reservation's deposit is deducted from its sale's price (TD-B178). A reservation records
+ * no deposit refund, so every paid deposit counts. Without a period, everything received so far. Rent has its own
+ * figure (`rentals.collectedAmount`).
  * It spans sales, plans and reservations, so it needs read access to all three; a partial sum is never shown.
  */
 async function collectedStats({access, opts, unitIds, saleDays}: DashboardScope): Promise<RevenueByCurrency[]> {
     if (!access.sales || !access.paymentPlans || !access.reservations) return [];
     const days: DayRange = {from: saleDays.$gte, to: saleDays.$lte};
     const dayMatch = (field: string) => (Object.keys(saleDays).length ? {[field]: saleDays} : {});
+    const depositDayMatch = Object.keys(saleDays).length
+        ? {$or: [{paidDate: saleDays}, {paidDate: null, reservationDate: saleDays}]}
+        : {};
     const [cashLines, planRows, depositLines] = await Promise.all([
         saleService.aggregate(
             [
@@ -773,7 +779,7 @@ async function collectedStats({access, opts, unitIds, saleDays}: DashboardScope)
         ),
         reservationService.aggregate(
             [
-                {$match: {unit: {$in: unitIds}, isActive: true, paid: true, deletedAt: null, depositAmount: {$exists: true, $ne: null}, ...dayMatch("reservationDate")}},
+                {$match: {unit: {$in: unitIds}, paid: true, deletedAt: null, depositAmount: {$exists: true, $ne: null}, ...depositDayMatch}},
                 {$group: {_id: "$depositCurrency", total: {$sum: {$toDecimal: "$depositAmount"}}}},
                 ...CURRENCY_LINE_STAGES,
             ],

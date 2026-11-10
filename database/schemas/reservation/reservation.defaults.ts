@@ -65,6 +65,7 @@ export async function createReservations(
                 paymentMethod: row.paymentMethod,
                 source: row.source as ReservationSource,
                 paid: row.paid,
+                ...opt("paidDate", row.paidDate),
                 isActive: row.isActive,
                 status: row.status as ReservationStatus,
                 ...optDate("cancelledAt", row.cancelledAt),

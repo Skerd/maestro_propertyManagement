@@ -94,6 +94,7 @@ export function reservationToDTO(reservation: IReservation): Reservation {
         cancelledAt: reservation.cancelledAt ? new Date(reservation.cancelledAt).toISOString() : undefined,
         cancellationReason: reservation.cancellationReason,
         paid: reservation.paid,
+        paidDate: reservation.paidDate || undefined,
         paymentMethod: reservation.paymentMethod || undefined,
         reservationContract: reservation.reservationContract?.length ? reservation.reservationContract.map((m) => mapMedia(m)) : undefined,
         additionalDocuments: reservation.additionalDocuments?.length ? reservation.additionalDocuments.map((m) => mapMedia(m)) : undefined,

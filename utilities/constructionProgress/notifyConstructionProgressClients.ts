@@ -20,7 +20,8 @@ const dateText = (day: string | undefined, lang: string) => (day ? formatReserva
 
 /**
  * Tells every client holding a unit in the report's scope (buyers + active reservations) about it:
- * one in-app notification + one email (with inline site photos) per client, then stamps the report.
+ * one in-app notification + one email (with inline site photos) per client, then stamps the report. Each email is
+ * written in its client's language (D128); `opts.languageCode` (the staff member's) only goes in the in-app payload.
  *
  * Best-effort: never throws, so a failing notification cannot break the save that triggered it.
  * @returns how many clients were notified (0 when nobody is in scope, the report is gone, or on failure).
@@ -76,7 +77,7 @@ export async function notifyConstructionProgressClients(
                 sendConstructionProgressClientMail({
                     email: r.email,
                     fullName: r.fullName,
-                    languageCode: lang,
+                    languageCode: r.languageCode,
                     companyId: company.toString(),
                     companyName: companyDoc?.name ?? "",
                     projectName,
@@ -84,8 +85,8 @@ export async function notifyConstructionProgressClients(
                     unitLabels: r.units.map(u => u.unitNumber ?? u.unitName ?? "—"),
                     phase: progress.phase,
                     progressPercent: progress.progressPercent,
-                    updateDateFormatted: dateText(progress.updateDate, lang),
-                    expectedCompletionFormatted: dateText(progress.expectedCompletionDate, lang),
+                    updateDateFormatted: dateText(progress.updateDate, r.languageCode),
+                    expectedCompletionFormatted: dateText(progress.expectedCompletionDate, r.languageCode),
                     title: progress.title,
                     description: progress.description,
                     photos,

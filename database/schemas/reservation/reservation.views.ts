@@ -197,7 +197,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            permissions: { readAny: ["reservationDate", "expirationDate", "cancelledAt"] },
+            permissions: { readAny: ["reservationDate", "expirationDate", "paidDate", "cancelledAt"] },
             props: { title: "dates" },
             children: [
                 {
@@ -222,6 +222,17 @@ export const reservationSheetView: ViewConfig = {
                                 widget: "#DisplayCard",
                                 label: "expirationDate",
                                 widgetProps: { icon: "#CalendarClock", format: "date" , type: "date"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "paidDate",
+                            permissions: { read: "paidDate" },
+                            field: {
+                                name: "paidDate",
+                                widget: "#DisplayCard",
+                                label: "paidDate",
+                                widgetProps: { icon: "#CalendarCheck", format: "date" , type: "date"},
                             },
                         },
                         {

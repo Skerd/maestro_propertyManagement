@@ -58,6 +58,8 @@ export interface IReservation extends Document, IOwnershipPluginFields, ISoftDel
     referralCode?: string;
     isActive: boolean;              // Whether reservation is still active
     paid: boolean;
+    /** The company's calendar day (`YYYY-MM-DD`) the deposit was marked paid; unset while unpaid. Server-only. */
+    paidDate?: string;
     /** When the reservation-created confirmation email was dispatched (UTC). Server-only. */
     confirmationEmailSentAt?: Date;
     /** When the 3-day / 1-day / day-of expiration reminder email was sent (UTC). Server-only. */
@@ -220,6 +222,19 @@ const ReservationSchema = new Schema<IReservation>(
             type: SchemaTypes.Boolean,
             required: true,
             default: false,
+        },
+        paidDate: {
+            type: SchemaTypes.String,
+            required: false,
+            permissions: {
+                self: {write: "no-permission"},
+                others: {write: "no-permission"},
+            },
+            dynamicTableConfiguration: {
+                cellType: COLUMN_TYPE.DATE,
+                filterable: true,
+                sortable: true,
+            },
         },
         confirmationEmailSentAt: {
             type: SchemaTypes.Date,

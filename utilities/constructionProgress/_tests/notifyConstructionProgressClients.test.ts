@@ -34,9 +34,9 @@ import {notifyConstructionProgressClients} from "../notifyConstructionProgressCl
 const company = new ObjectId();
 const project = new ObjectId();
 
-function recipient(units: string[]) {
+function recipient(units: string[], languageCode = "en-US") {
     const userId = new ObjectId().toString();
-    return {userId, email: `${userId}@example.com`, fullName: "Ann Lee", units: units.map(u => ({unitId: u, unitNumber: u, relation: "buyer"}))};
+    return {userId, email: `${userId}@example.com`, fullName: "Ann Lee", languageCode, units: units.map(u => ({unitId: u, unitNumber: u, relation: "buyer"}))};
 }
 
 describe("notifyConstructionProgressClients", () => {
@@ -60,7 +60,7 @@ describe("notifyConstructionProgressClients", () => {
 
     it("emits once, emails each client their own units with the shared photos, then stamps the report", async () => {
         const a = recipient(["A-1"]);
-        const b = recipient(["B-1", "B-2"]);
+        const b = recipient(["B-1", "B-2"], "sq-AL");
         mocks.recipients.mockResolvedValue([a, b]);
 
         await expect(notifyConstructionProgressClients(mocks.progress._id, {languageCode: "sq-AL"})).resolves.toBe(2);
@@ -79,6 +79,20 @@ describe("notifyConstructionProgressClients", () => {
         });
         expect(mocks.sendMail.mock.calls[0][0].photos).toBe(mocks.sendMail.mock.calls[1][0].photos);
         expect(mocks.stamp.mock.calls[0][1].$set.clientsNotifiedCount).toBe(2);
+    });
+
+    // TD-B177: every client was emailed in the language of the staff member who saved the report.
+    it("writes each client's email in that client's language, not the staff member's", async () => {
+        const swiss = recipient(["A-1"], "de-CH");
+        const french = recipient(["B-1"], "fr-FR");
+        mocks.recipients.mockResolvedValue([swiss, french]);
+
+        await expect(notifyConstructionProgressClients(mocks.progress._id, {languageCode: "sq-AL"})).resolves.toBe(2);
+
+        expect(mocks.emit.mock.calls[0][1].payload.languageCode).toBe("sq-AL");
+        const sent = mocks.sendMail.mock.calls.map(([mail]) => mail);
+        expect(sent.map(mail => [mail.email, mail.languageCode])).toEqual([[swiss.email, "de-CH"], [french.email, "fr-FR"]]);
+        expect(sent[0].updateDateFormatted).not.toBe(sent[1].updateDateFormatted);
     });
 
     it("does not email a client who turned the updates off (D117)", async () => {

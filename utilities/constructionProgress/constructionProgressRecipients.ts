@@ -1,6 +1,7 @@
 import {ObjectId} from "mongodb";
 import {findClientHoldings, type ClientRelation} from "@propertyManagement/utilities/marketing/clientAudience";
 import {userService} from "@coreModule/database/schemas/user/user.service";
+import {receiverLanguage} from "@coreModule/domain/notifications/notificationTexts";
 
 export type RecipientUnit = {unitId: string; unitNumber?: string; unitName?: string; relation: ClientRelation};
 
@@ -8,10 +9,12 @@ export type ConstructionProgressRecipient = {
     userId: string;
     email: string;
     fullName: string;
+    /** The language their email is written in (D128). */
+    languageCode: string;
     units: RecipientUnit[];
 };
 
-type UserLite = {_id: ObjectId; username?: string; name?: string; surname?: string; fullName?: string};
+type UserLite = {_id: ObjectId; username?: string; name?: string; surname?: string; fullName?: string; preferredLanguage?: string | null};
 
 /**
  * Clients to tell about construction progress in a project (optionally one building):
@@ -37,7 +40,7 @@ export async function findConstructionProgressRecipients(scope: {
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
         companies: scope.company,
         isActive: true,
-    }, {}, undefined, "_id username name surname fullName");
+    }, {}, undefined, "_id username name surname fullName preferredLanguage");
 
     return users
         .filter(u => !!u.username)
@@ -56,6 +59,7 @@ export async function findConstructionProgressRecipients(scope: {
                 userId: u._id.toString(),
                 email: u.username!,
                 fullName: u.fullName || `${u.name ?? ""} ${u.surname ?? ""}`.trim() || u.username!,
+                languageCode: receiverLanguage(u),
                 units: heldUnits,
             };
         });

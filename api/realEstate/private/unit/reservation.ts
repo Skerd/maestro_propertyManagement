@@ -181,6 +181,7 @@ export const {router} = createCrudRouter({
             reservationDate,
             // System-managed — never set via create form
             paid: undefined,
+            paidDate: undefined,
             isActive: undefined,
             cancellationReason: undefined,
         });
@@ -290,7 +291,7 @@ export const {router} = createCrudRouter({
                 reservationCode: (created as any).name,
                 clientId: client ? String(client) : undefined,
                 depositDisplay: reservationDepositDisplay,
-                expirationDateFormatted: formatReservationExpirationForEmail(expIso, languageCode ?? "en-US"),
+                expirationDate: expIso,
                 createdById: actionUserCtx?.userId ? String(actionUserCtx.userId) : undefined,
                 unitId: foundUnit._id.toString(),
                 unitNumber: foundUnit.unitNumber != null ? String(foundUnit.unitNumber) : undefined,

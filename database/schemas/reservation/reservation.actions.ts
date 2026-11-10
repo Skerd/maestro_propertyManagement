@@ -152,7 +152,7 @@ export class ReservationActions {
             reservationCode: reservation.name,
             clientId: idOf(reservation.client),
             depositDisplay: listing.reservationDepositDisplay,
-            expirationDateFormatted: formatReservationExpirationForEmail(expIso, lang),
+            expirationDate: expIso,
             createdById: idOf((reservation as {createdBy?: unknown}).createdBy),
             unitId: idOf(reservation.unit) ?? "",
             unitNumber: unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined,
@@ -507,9 +507,11 @@ export class ReservationActions {
             throw apiValidationException("reservation_not_active", "", null, languageCode);
         }
 
+        // Collected counts the deposit on this day (TD-B178).
+        const paidDate = await companyTodayOf(company._id, {session});
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
-            {$set: {paid: true}},
+            {$set: {paid: true, paidDate}},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 
@@ -645,7 +647,7 @@ export class ReservationActions {
 
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
-            {$set: {paid: false}},
+            {$set: {paid: false}, $unset: {paidDate: ""}},
             {session, logger, languageCode, auditUserId: actionUserCtx.userId},
         );
 

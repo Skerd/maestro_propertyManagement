@@ -6,6 +6,7 @@ import {propertyManagementConfigService} from "@propertyManagement/database/sche
 import {sendSalesStaffAlertMail} from "@propertyManagement/utilities/emails/staffAlertNotifiers";
 import type {PaymentScheduleRowForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import {getLogger} from "@coreModule/loggers/serverLog";
+import {receiverLanguage} from "@coreModule/domain/notifications/notificationTexts";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import {companyService} from "@coreModule/database/schemas/company/company.service";
 import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
@@ -26,7 +27,9 @@ const logger = getLogger("sales_staff_notify");
  * An expired reservation also alerts the agent who made it (D112).
  *
  * Best-effort: never throws, so a failing alert cannot break the sale or reservation. A watcher who turned the
- * notification type off (D117) gets neither the in-app notice nor the email.
+ * notification type off (D117) gets neither the in-app notice nor the email. Each email is written in its recipient's
+ * language (`receiverLanguage`, D128), not the language of the user whose action triggered it; amounts keep the
+ * triggering request's number format.
  * Callers schedule them with core `runAfterCommit`, so a rolled-back request alerts nobody.
  */
 
@@ -42,6 +45,7 @@ type UnitContext = {
 type Base = UnitContext & {
     companyId: ObjectId | string;
     companyName: string;
+    /** The triggering request's language: the in-app notice payload and the number format of the amounts. */
     languageCode: string;
 };
 
@@ -66,11 +70,12 @@ export type NotifyReservationWatchersInput = Base & {
     reservationCode?: string;
     clientId?: string;
     depositDisplay?: string;
-    expirationDateFormatted?: string;
+    /** Local day (D115); formatted in each recipient's language. */
+    expirationDate?: string;
     createdById?: string;
 };
 
-type UserLite = {_id: ObjectId; username?: string; name?: string; surname?: string; fullName?: string};
+type UserLite = {_id: ObjectId; username?: string; name?: string; surname?: string; fullName?: string; preferredLanguage?: string | null};
 
 function displayName(u: UserLite | undefined): string | undefined {
     if (!u) return undefined;
@@ -92,7 +97,7 @@ async function activeCompanyUsers(companyId: ObjectId, ids: string[]): Promise<U
         {_id: {$in: oids}, companies: companyId, roles: {$elemMatch: {company: companyId, active: "active"}}},
         {},
         undefined,
-        "_id username name surname fullName",
+        "_id username name surname fullName preferredLanguage",
     );
 }
 
@@ -155,7 +160,7 @@ export async function notifySalesWatchers(input: NotifySalesWatchersInput): Prom
             kind: "sale_created",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
-            languageCode: input.languageCode,
+            languageCode: receiverLanguage(r),
             companyId: companyId.toString(),
             companyName: input.companyName,
             saleId: input.saleId,
@@ -206,7 +211,7 @@ export async function notifyReservationWatchers(input: NotifyReservationWatchers
                 unitNumber: input.unitNumber,
                 clientName,
                 depositDisplay: input.depositDisplay,
-                expirationDate: input.expirationDateFormatted,
+                expirationDate: formatReservationExpirationForEmail(input.expirationDate, input.languageCode),
                 languageCode: input.languageCode,
             },
         });
@@ -215,14 +220,14 @@ export async function notifyReservationWatchers(input: NotifyReservationWatchers
             kind: "reservation_created",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
-            languageCode: input.languageCode,
+            languageCode: receiverLanguage(r),
             companyId: companyId.toString(),
             companyName: input.companyName,
             reservationId: input.reservationId,
             reservationCode: input.reservationCode,
             clientName,
             depositDisplay: input.depositDisplay,
-            expirationDateFormatted: input.expirationDateFormatted,
+            expirationDateFormatted: formatReservationExpirationForEmail(input.expirationDate, receiverLanguage(r)),
             createdByName,
             unitId: input.unitId,
             unitNumber: input.unitNumber,
@@ -276,11 +281,6 @@ export async function notifyReservationExpired(input: NotifyReservationExpiredIn
         const unit = reservation.unit as {_id?: ObjectId; unitNumber?: string | number; name?: string} | undefined;
         const unitNumber = unit?.unitNumber != null ? String(unit.unitNumber) : undefined;
         const expirationDateFormatted = formatReservationExpirationForEmail(reservation.expirationDate, languageCode);
-        const depositDisplay = formatReservationDepositForEmailDisplay(
-            reservation.depositAmount,
-            (reservation.depositCurrency as {symbol?: string} | undefined)?.symbol,
-            languageCode,
-        );
 
         emitNotificationEvent(NotificationEventCodes.RESERVATION_EXPIRED, {
             receiverIds: recipients.map(r => r._id.toString()),
@@ -296,18 +296,19 @@ export async function notifyReservationExpired(input: NotifyReservationExpiredIn
             },
         });
 
+        const depositSymbol = (reservation.depositCurrency as {symbol?: string} | undefined)?.symbol;
         await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_EXPIRED), r => sendSalesStaffAlertMail({
             kind: "reservation_expired",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
-            languageCode,
+            languageCode: receiverLanguage(r),
             companyId: companyId.toString(),
             companyName: company?.name ?? "",
             reservationId: reservationId.toString(),
             reservationCode: reservation.name,
             clientName,
-            depositDisplay,
-            expirationDateFormatted,
+            depositDisplay: formatReservationDepositForEmailDisplay(reservation.depositAmount, depositSymbol, receiverLanguage(r)),
+            expirationDateFormatted: formatReservationExpirationForEmail(reservation.expirationDate, receiverLanguage(r)),
             agentName,
             unitId: unit?._id?.toString(),
             unitNumber,

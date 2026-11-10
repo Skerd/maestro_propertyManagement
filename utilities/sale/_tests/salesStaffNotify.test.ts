@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import {ObjectId} from "mongodb";
 
-type FixtureUser = {_id: ObjectId; username?: string; name?: string; surname?: string; companies: ObjectId[]; isActive: boolean};
+type FixtureUser = {_id: ObjectId; username?: string; name?: string; surname?: string; companies: ObjectId[]; isActive: boolean; preferredLanguage?: string};
 
 const mocks = vi.hoisted(() => ({
     users: [] as FixtureUser[],
@@ -37,6 +37,7 @@ vi.mock("@propertyManagement/database/schemas/propertyManagementConfig/propertyM
 vi.mock("@propertyManagement/utilities/emails/staffAlertNotifiers", () => ({sendSalesStaffAlertMail: mocks.sendMail}));
 
 import {notifyReservationWatchers, notifySalesWatchers} from "../salesStaffNotify";
+import {CONSTANTS} from "@coreModule/environment";
 
 const companyId = new ObjectId();
 const otherCompany = new ObjectId();
@@ -155,3 +156,44 @@ describe("notifyReservationWatchers", () => {
     });
 });
 
+// TD-B177: staff alerts were emailed in the language of the user whose action triggered them.
+describe("staff alert language", () => {
+    beforeEach(() => {
+        mocks.users = [];
+        mocks.muted.clear();
+        mocks.emit.mockReset();
+        mocks.sendMail.mockReset().mockResolvedValue(undefined);
+    });
+
+    it("writes each watcher's email in their own language, dates included", async () => {
+        const swiss = user({preferredLanguage: "de-CH"});
+        const french = user({preferredLanguage: "fr-FR"});
+        mocks.users = [swiss, french];
+        mocks.getNotificationRecipients.mockResolvedValue({notifyOnSales: [], notifyOnReservations: [swiss, french].map(u => u._id.toString())});
+
+        await notifyReservationWatchers({
+            companyId,
+            companyName: "Acme",
+            languageCode: "sq-AL",
+            reservationId: new ObjectId().toString(),
+            unitId: new ObjectId().toString(),
+            expirationDate: "2027-03-15",
+        });
+
+        expect(mocks.emit.mock.calls[0][1].payload.languageCode).toBe("sq-AL");
+        const byEmail = new Map(mocks.sendMail.mock.calls.map(([mail]) => [mail.email, mail]));
+        expect(byEmail.get(swiss.username)).toMatchObject({languageCode: "de-CH"});
+        expect(byEmail.get(french.username)).toMatchObject({languageCode: "fr-FR"});
+        expect(byEmail.get(swiss.username)?.expirationDateFormatted).not.toBe(byEmail.get(french.username)?.expirationDateFormatted);
+    });
+
+    it("uses the instance default for a watcher who never picked a language", async () => {
+        const unset = user();
+        mocks.users = [unset];
+        mocks.getNotificationRecipients.mockResolvedValue({notifyOnSales: [unset._id.toString()], notifyOnReservations: []});
+
+        await notifySalesWatchers({...saleInput, languageCode: "sq-AL"});
+
+        expect(mocks.sendMail.mock.calls[0][0].languageCode).toBe(CONSTANTS.DEFAULT_LANGUAGE ?? "en-US");
+    });
+});

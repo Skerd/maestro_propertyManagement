@@ -1,6 +1,7 @@
 import {BaseCrudService} from "@coreModule/database/services/baseCrudService";
 import Lease, {ILease} from "./lease";
 import type {FilterQuery} from "mongoose";
+import type {ObjectId} from "mongodb";
 
 export class LeaseService extends BaseCrudService<ILease, typeof Lease> {
     constructor() {
@@ -13,6 +14,11 @@ export class LeaseService extends BaseCrudService<ILease, typeof Lease> {
             .select("unit monthlyRent rentCurrency")
             .populate("rentCurrency", "symbol")
             .lean();
+    }
+
+    /** Tenant of each matching lease, for client audiences. */
+    findTenantsLean(filter: FilterQuery<ILease>) {
+        return this.model.find(filter).select("unit tenant").lean<{unit: ObjectId; tenant: ObjectId}[]>();
     }
 }
 

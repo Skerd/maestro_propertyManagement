@@ -29,7 +29,7 @@ import {ReservationStatus} from "../../../database/schemas/reservation/reservati
 import {saleService} from "../../../database/schemas/sale/sale.service";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {projectService} from "../../../database/schemas/project/project.service";
-import {SalePaymentType} from "../../../database/schemas/sale/sale";
+import {SaleApprovalStatus, SalePaymentType} from "../../../database/schemas/sale/sale";
 import {UnitStatus} from "../../../database/schemas/unit/unit";
 import {
     assertAnyCollectedRead,
@@ -245,7 +245,7 @@ const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildDashboardCacheKey(companyId: string, params: {projectId?: string; edificeId?: string; period?: string; from?: string; to?: string; recentSalesLimit?: number}): string {
     // v4: `collected` counts reservation deposits on their paid day, inactive ones too (TD-B178); a v3 entry is never read back.
-    return `dashboard:v4:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
+    return `dashboard:v5:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
 }
 
 /**
@@ -729,13 +729,15 @@ type PlanPaymentsRow = AggregateMoneyLine & {
 };
 
 /**
- * Money received in the period, per currency (TD-B176): cash sales on their sale day, payment-plan down payments and
+ * Money received in the period, per currency (TD-B176): cash sales on their sale day (a rejected one was never
+ * received and is left out; one pending approval counts, TD-B180), payment-plan down payments and
  * installment payments on the day they were paid (an installment without a paid day: its last receipt's, as in the
  * payments hub), and paid reservation deposits on their paid day (a reservation paid before it recorded one: its
  * reservation day), whether the reservation is still active or expired, cancelled or converted since: the money was
  * received, and a converted reservation's deposit is deducted from its sale's price (TD-B178). A reservation records
  * no deposit refund, so every paid deposit counts. Without a period, everything received so far. Rent has its own
- * figure (`rentals.collectedAmount`).
+ * figure (`rentals.collectedAmount`). Payments on a cancelled plan count too: they were received. The payments hub lists
+ * exactly these rows (cash-sale, deposit and plan rows by paid day), so its paid total adds up to this figure (TD-B180).
  * It spans sales, plans and reservations, so it needs read access to all three; a partial sum is never shown.
  */
 async function collectedStats({access, opts, unitIds, saleDays}: DashboardScope): Promise<RevenueByCurrency[]> {
@@ -748,7 +750,7 @@ async function collectedStats({access, opts, unitIds, saleDays}: DashboardScope)
     const [cashLines, planRows, depositLines] = await Promise.all([
         saleService.aggregate(
             [
-                {$match: {unit: {$in: unitIds}, paymentType: SalePaymentType.CASH, ...dayMatch("saleDate")}},
+                {$match: {unit: {$in: unitIds}, paymentType: SalePaymentType.CASH, approvalStatus: {$ne: SaleApprovalStatus.REJECTED}, ...dayMatch("saleDate")}},
                 {$group: {_id: "$saleCurrency", total: {$sum: {$toDecimal: {$ifNull: ["$finalPrice", 0]}}}}},
                 ...CURRENCY_LINE_STAGES,
             ],

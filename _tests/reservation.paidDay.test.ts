@@ -1,6 +1,6 @@
 /**
- * A reservation records the day its deposit was paid (TD-B178): `pay` stamps the company's today, `reversePayment`
- * clears it, and the dashboard's "Collected" counts a paid deposit on that day whether the reservation is still active
+ * A reservation records the day its deposit was paid (TD-B178): `pay` stamps the day staff give (an earlier one, never a
+ * future one in the company's zone) or else the company's today (TD-B180), `reversePayment` clears it, and the dashboard's "Collected" counts a paid deposit on that day whether the reservation is still active
  * or not (a reservation paid before it recorded a day counts on its reservation day).
  */
 import {afterAll, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
@@ -23,6 +23,7 @@ vi.mock("@propertyManagement/utilities/database/reservation/reservationClientEma
 
 import {allPermissionTags, appFor, callerHeader, type TestCaller} from "@coreModule/_tests/httpHarness";
 import * as dashboardRoute from "@propertyManagement/api/realEstate/private/dashboard";
+import * as reservationRoute from "@propertyManagement/api/realEstate/private/unit/reservation";
 import {ReservationActions} from "@propertyManagement/database/schemas/reservation/reservation.actions";
 import Unit from "@propertyManagement/database/schemas/unit/unit";
 import Sale from "@propertyManagement/database/schemas/sale/sale";
@@ -37,6 +38,7 @@ const db = () => mongoose.connection.db!;
 const reservations = new ReservationActions();
 const params = actor(companyId);
 const app = appFor([{...dashboardRoute, module: "propertyManagement"}]);
+const reservationApp = appFor([{...reservationRoute, module: "propertyManagement"}]);
 
 let chf: ObjectId;
 let client: ObjectId;
@@ -73,6 +75,51 @@ describe("the reservation's paid day", {timeout: 60000}, () => {
         expect(reversed?.paid).toBe(false);
         expect(reversed).not.toHaveProperty("paidDate");
     }));
+
+    describe("given by staff on the pay route (TD-B180)", () => {
+        const staff = (): TestCaller => ({
+            userId: new ObjectId().toString(), companyId: companyId.toString(), isAdmin: true,
+            permissions: allPermissionTags([Unit, Sale, PaymentPlan, Reservation]), timeZone: "Europe/Zurich",
+        });
+        const pay = (body: Record<string, unknown>) =>
+            request(reservationApp).post("/api/realEstate/unit/reservation/pay").set(callerHeader(staff())).send(body);
+        const unpaidReservation = () => asCompany(async () => seedReservation(companyId, {
+            unit: await seedUnit(companyId, {price: "1000.00", priceCurrency: chf, status: UnitStatus.RESERVED}),
+            client, paid: false, depositAmount: "100.00", depositCurrency: chf,
+        }));
+        const stored = (id: ObjectId) => asCompany(() => findRaw("reservations", id));
+
+        beforeEach(() => {
+            // 00:30 on 10 March in Zurich, still 9 March in UTC.
+            vi.useFakeTimers({toFake: ["Date"], now: new Date("2026-03-09T23:30:00.000Z")});
+        });
+
+        it("stores an earlier day", async () => {
+            const reservationId = await unpaidReservation();
+            const response = await pay({_id: reservationId.toString(), paidDate: "2026-02-20"});
+            expect(response.status).toBe(200);
+            expect(await stored(reservationId)).toMatchObject({paid: true, paidDate: "2026-02-20"});
+        });
+
+        it("stores the company's today when no day is sent", async () => {
+            const reservationId = await unpaidReservation();
+            expect((await pay({_id: reservationId.toString()})).status).toBe(200);
+            expect(await stored(reservationId)).toMatchObject({paid: true, paidDate: "2026-03-10"});
+        });
+
+        it("accepts the company's today though UTC is a day behind, and refuses a future day", async () => {
+            const today = await unpaidReservation();
+            expect((await pay({_id: today.toString(), paidDate: "2026-03-10"})).status).toBe(200);
+            expect(await stored(today)).toMatchObject({paid: true, paidDate: "2026-03-10"});
+
+            const future = await unpaidReservation();
+            const refused = await pay({_id: future.toString(), paidDate: "2026-03-11"});
+            expect([refused.status, refused.body.error_code]).toEqual([400, "form_not_correct"]);
+            const untouched = await stored(future);
+            expect(untouched?.paid).toBe(false);
+            expect(untouched).not.toHaveProperty("paidDate");
+        });
+    });
 });
 
 describe("Collected counts reservation deposits on their paid day (TD-B178)", {timeout: 60000}, () => {

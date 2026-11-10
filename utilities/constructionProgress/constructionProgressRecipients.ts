@@ -19,7 +19,8 @@ type UserLite = {_id: ObjectId; username?: string; name?: string; surname?: stri
 /**
  * Clients to tell about construction progress in a project (optionally one building):
  * buyers of the units' current sales (not rejected) plus clients holding an active reservation.
- * One entry per user, listing every unit they hold in scope. Inactive / foreign users are dropped.
+ * One entry per user, listing every unit they hold in scope. Holding a unit is what makes them a recipient, so their
+ * company membership status is not checked (D131); users without an email address are dropped.
  *
  * The buyer/reservation union itself lives in `findClientHoldings`, shared with
  * ad campaigns so both features agree on who a client is.
@@ -38,8 +39,6 @@ export async function findConstructionProgressRecipients(scope: {
 
     const users = await userService.find({
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
-        companies: scope.company,
-        isActive: true,
     }, {}, undefined, "_id username name surname fullName preferredLanguage");
 
     return users

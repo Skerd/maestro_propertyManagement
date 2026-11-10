@@ -100,15 +100,15 @@ describe("leadInterestFilter", () => {
 describe("skip reasons", () => {
     it("writes no_email when a selected user has no username", () => {
         const id = oid();
-        const row = toUserCandidate({_id: id}, {recordInactive: true});
+        const row = toUserCandidate({_id: id}, {recordInactive: true, recipient: true});
         expect(row?.skipReason).toBe("no_email");
         expect(row?.email).toBe(`skipped.user.${id.toString()}@invalid.example`);
     });
 
-    it("writes inactive when a selected user is deactivated", () => {
+    it("writes inactive when a selected user may not get client emails (D131)", () => {
         const row = toUserCandidate(
-            {_id: oid(), username: "ana@x.com", isActive: false, name: "Ana", surname: "Marku"},
-            {recordInactive: true},
+            {_id: oid(), username: "ana@x.com", name: "Ana", surname: "Marku"},
+            {recordInactive: true, recipient: false},
         );
         expect(row?.skipReason).toBe("inactive");
         expect(row?.email).toBe("ana@x.com");

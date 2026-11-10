@@ -8,6 +8,8 @@ import {apiValidationException} from "armonia/src/modules/core/helpers/exception
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import {cancelReservationFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/cancelReservation.form.validator";
 import type {CancelReservationForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/cancelReservation.form.type";
+import {payReservationFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/payReservation.form.validator";
+import type {PayReservationForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/payReservation.form.type";
 import {manualReservationClientEmailFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/manualReservationClientEmail.form.validator";
 import type {ManualReservationClientEmailForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/manualReservationClientEmail.form.type";
 import type {Reservation as ReservationData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.dto";
@@ -490,10 +492,11 @@ export class ReservationActions {
         auth: "private",
         rateLimit: {windowMs: 60000, max: 30},
         transaction: true,
-        schema: validateSingleForm,
+        schema: payReservationFormSchema,
     })
     async pay(params: Record<string, any>): Promise<ReservationData | undefined> {
-        const {logger, languageCode, session, _id, actionUserCtx, company} = params;
+        const {logger, languageCode, session, _id, actionUserCtx, company, paidDate: givenPaidDate} =
+            params as Record<string, any> & PayReservationForm;
 
         logger.start(`Paying reservation in full: ${_id}...`);
 
@@ -507,8 +510,8 @@ export class ReservationActions {
             throw apiValidationException("reservation_not_active", "", null, languageCode);
         }
 
-        // Collected counts the deposit on this day (TD-B178).
-        const paidDate = await companyTodayOf(company._id, {session});
+        // Collected counts the deposit on this day (TD-B178); staff may give an earlier day, else the company's today (TD-B180).
+        const paidDate = givenPaidDate ?? await companyTodayOf(company._id, {session});
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
             {$set: {paid: true, paidDate}},

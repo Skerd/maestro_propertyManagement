@@ -3,6 +3,9 @@ import {SaleApprovalStatus} from "@propertyManagement/database/schemas/sale/sale
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
+import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
+import {LeaseStatus} from "@propertyManagement/database/schemas/lease/lease";
+import {userService} from "@coreModule/database/schemas/user/user.service";
 
 export type ClientRelation = "buyer" | "reservation";
 
@@ -77,3 +80,27 @@ export async function findClientHoldings(scope: {
 
     return {holdings, unitById};
 }
+
+/**
+ * The users among `userIds` a client email may still go to (D131): active members of the company (membership
+ * `roles[].active` = "active", the rule of the client picker and of login), and anyone tied to one of its units, whatever
+ * their membership: the buyer of a sale that was not rejected, the client of an active reservation, the tenant of an
+ * active lease. A member an administrator deactivated, with no unit, is left out.
+ */
+export async function clientEmailRecipients(company: ObjectId, userIds: ObjectId[]): Promise<Set<string>> {
+    if (!userIds.length) return new Set();
+    const ids = {$in: userIds};
+    const [members, sales, reservations, leases] = await Promise.all([
+        userService.find({_id: ids, roles: {$elemMatch: {company, active: "active"}}}, {}, undefined, "_id"),
+        saleService.findBuyersLean({company, buyer: ids, approvalStatus: {$ne: SaleApprovalStatus.REJECTED}}),
+        reservationService.findClientsLean({company, client: ids, isActive: true}),
+        leaseService.findTenantsLean({company, tenant: ids, status: LeaseStatus.ACTIVE}),
+    ]);
+    return new Set([
+        ...members.map(u => u._id.toString()),
+        ...sales.map(s => s.buyer.toString()),
+        ...reservations.map(r => r.client.toString()),
+        ...leases.map(l => l.tenant.toString()),
+    ]);
+}
+

@@ -23,37 +23,44 @@ import {
     SETTLE_THRESHOLD_SCALED,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {InstallmentStatus, PaymentPlanStatus} from "../../database/schemas/paymentPlan/paymentPlan";
+import type {ISale} from "../../database/schemas/sale/sale";
+import type {IReservation} from "../../database/schemas/reservation/reservation";
 import {calendarDaysUntil} from "../reservation/reservationExpirationCalendar";
 import type {CollectedFieldReader} from "../security/canReadCollectedFields";
 
 const PLAN = "paymentplans";
 
-/**
- * Sale-side data every hub row needs: unit, project, buyer and currency. Populated
- * exactly like the rentals hub does it, so field-level allowlists behave the same.
- */
-export const PAYMENTS_HUB_PLAN_POPULATE = [
-    {
-        path: "sale",
-        populate: [
-            {
-                path: "unit",
-                populate: [
-                    {path: "project", select: "name"},
-                    {
-                        path: "floor",
-                        populate: {
-                            path: "edifice",
-                            populate: {path: "project", select: "name"},
-                        },
-                    },
-                ],
+/** A row's unit with its project (on the unit, or through floor → edifice). */
+const UNIT_POPULATE = {
+    path: "unit",
+    populate: [
+        {path: "project", select: "name"},
+        {
+            path: "floor",
+            populate: {
+                path: "edifice",
+                populate: {path: "project", select: "name"},
             },
-            {path: "buyer", select: "name surname email username"},
-            {path: "buyerCompany", select: "name"},
-            {path: "saleCurrency", select: "name symbol abbreviation decimalPlaces"},
-        ],
-    },
+        },
+    ],
+};
+
+/** What a sale row needs: unit, project, buyer and currency. Populated like the rentals hub, so field-level allowlists behave the same. */
+export const PAYMENTS_HUB_SALE_POPULATE = [
+    UNIT_POPULATE,
+    {path: "buyer", select: "name surname email username"},
+    {path: "buyerCompany", select: "name"},
+    {path: "saleCurrency", select: "name symbol abbreviation decimalPlaces"},
+];
+
+/** A plan's rows take the unit, project, buyer and currency from the sale behind it. */
+export const PAYMENTS_HUB_PLAN_POPULATE = [{path: "sale", populate: PAYMENTS_HUB_SALE_POPULATE}];
+
+/** A deposit row's unit, client and deposit currency. */
+export const PAYMENTS_HUB_RESERVATION_POPULATE = [
+    UNIT_POPULATE,
+    {path: "client", select: "name surname email username"},
+    {path: "depositCurrency", select: "name symbol abbreviation decimalPlaces"},
 ];
 
 /** A stored local day (`YYYY-MM-DD`, D115), or undefined when the row has none. */
@@ -231,6 +238,59 @@ export function planToHubRows(plan: Record<string, any>, today: string, read: Co
     }
 
     return rows;
+}
+
+/**
+ * A cash sale as one paid hub row: the price was received on the sale day, so that day is both its due and its paid day
+ * and nothing remains (TD-B180, the same money the dashboard's "Collected" counts).
+ */
+export function cashSaleToHubRow(sale: ISale): PaymentsHubRow {
+    const saleId = sale._id.toString();
+    const amount = moneyNumber(sale.finalPrice);
+    const day = dayOf(sale.saleDate);
+    return {
+        _id: `sale:${saleId}`,
+        kind: "cash_sale",
+        status: "paid",
+        saleId,
+        saleCode: sale.name,
+        currency: mapSnippet<CurrencySimple>()(sale.saleCurrency, CurrencySimpleSnippet),
+        client: mapClient(sale),
+        unit: mapSnippet<UnitSimple>()(sale.unit, UnitSimpleSnippet),
+        project: projectFromUnit(sale.unit),
+        dueDate: day,
+        paidDate: day,
+        amount,
+        paidAmount: amount,
+        remaining: 0,
+    };
+}
+
+/**
+ * A paid reservation deposit as one paid hub row, on its paid day (a reservation paid before it recorded one: its
+ * reservation day), whatever the reservation's status since, as "Collected" counts it (TD-B178).
+ */
+export function depositToHubRow(reservation: IReservation): PaymentsHubRow {
+    const reservationId = reservation._id.toString();
+    const amount = moneyNumber(reservation.depositAmount);
+    const day = dayOf(reservation.paidDate) ?? dayOf(reservation.reservationDate);
+    const client = mapSnippet<SimpleBlankUser>()(reservation.client, SimpleBlankUserSnippet);
+    return {
+        _id: `reservation:${reservationId}`,
+        kind: "reservation_deposit",
+        status: "paid",
+        reservationId,
+        reservationCode: reservation.name,
+        currency: mapSnippet<CurrencySimple>()(reservation.depositCurrency, CurrencySimpleSnippet),
+        client: client ? {_id: client._id, name: client.name, surname: client.surname} : undefined,
+        unit: mapSnippet<UnitSimple>()(reservation.unit, UnitSimpleSnippet),
+        project: projectFromUnit(reservation.unit),
+        dueDate: day,
+        paidDate: day,
+        amount,
+        paidAmount: amount,
+        remaining: 0,
+    };
 }
 
 export type CurrencyBucket = {

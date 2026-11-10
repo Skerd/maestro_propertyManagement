@@ -14,7 +14,7 @@ import type {
     AdCampaignSkipReason,
     AdCampaignType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
-import {findClientHoldings} from "./clientAudience";
+import {clientEmailRecipients, findClientHoldings} from "./clientAudience";
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {adCampaignRecipientService} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service";
 import {userService} from "@coreModule/database/schemas/user/user.service";
@@ -42,7 +42,6 @@ export type UserLite = {
     name?: string;
     surname?: string;
     fullName?: string;
-    isActive?: boolean;
 };
 export type LeadLite = {_id: ObjectId; email?: string; firstName?: string; lastName?: string};
 
@@ -101,7 +100,11 @@ export function leadInterestFilter(projects: ObjectId[], units: ObjectId[]): Rec
     return {};
 }
 
-export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean}): AudienceCandidate | null {
+/**
+ * `opts.recipient` is false for a user a client email may not go to (D131: not an active member and tied to no unit);
+ * they are recorded as skipped "inactive" when `recordInactive` is set, else left out.
+ */
+export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; recipient: boolean}): AudienceCandidate | null {
     const identity = userIdentity(u);
     if (!u.username) {
         if (!opts.recordInactive) return null;
@@ -114,7 +117,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean}): A
             skipReason: "no_email",
         };
     }
-    if (u.isActive === false) {
+    if (!opts.recipient) {
         if (!opts.recordInactive) return null;
         return {
             email: normalizeEmail(u.username),
@@ -143,13 +146,13 @@ async function clientUserCandidates(campaign: IAdCampaign, company: ObjectId): P
     });
     if (!holdings.size) return [];
 
+    // Every holder is tied to a unit, so their membership status does not matter (D131).
     const users = await userService.find({
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
-        companies: company,
-    }, {}, undefined, "_id username name surname fullName isActive");
+    }, {}, undefined, "_id username name surname fullName");
 
     return users
-        .map(u => toUserCandidate(u, {recordInactive: true}))
+        .map(u => toUserCandidate(u, {recordInactive: true, recipient: true}))
         .filter((c): c is AudienceCandidate => !!c);
 }
 
@@ -206,10 +209,11 @@ export async function resolveAudienceCandidates(
             const users = await userService.find({
                 _id: {$in: userIds},
                 companies: company,
-            }, {}, undefined, "_id username name surname fullName isActive");
+            }, {}, undefined, "_id username name surname fullName");
+            const recipients = await clientEmailRecipients(company, users.map(u => u._id));
             candidates.push(
                 ...users
-                    .map(u => toUserCandidate(u, {recordInactive: true}))
+                    .map(u => toUserCandidate(u, {recordInactive: true, recipient: recipients.has(u._id.toString())}))
                     .filter((c): c is AudienceCandidate => !!c),
             );
         }

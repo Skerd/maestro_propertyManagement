@@ -18,7 +18,8 @@ vi.mock("@propertyManagement/database/schemas/reservation/reservation", () => ({
     default: {find: (f: any) => chain(db.reservations.filter(r => inList(r.unit, f.unit.$in) && r.isActive === true && r.client != null))},
 }));
 vi.mock("@coreModule/database/schemas/user/user", () => ({
-    default: {find: (f: any) => chain(db.users.filter(u => inList(u._id, f._id.$in) && inList(f.companies, u.companies) && u.isActive === f.isActive))},
+    // Only `_id` is queried: holding a unit makes a recipient, whatever their membership (D131).
+    default: {find: (f: any) => chain(db.users.filter(u => Object.keys(f).every(k => k === "_id") && inList(u._id, f._id.$in)))},
 }));
 
 import {findConstructionProgressRecipients} from "../constructionProgressRecipients";
@@ -30,14 +31,15 @@ const edificeB = new ObjectId();
 
 function user(o: Partial<any> = {}) {
     const _id = new ObjectId();
-    return {_id, username: `${_id}@example.com`, name: "Ann", surname: "Lee", companies: [company], isActive: true, ...o};
+    return {_id, username: `${_id}@example.com`, name: "Ann", surname: "Lee", companies: [company], roles: [{company, roles: [], active: "active"}], ...o};
 }
 
 describe("findConstructionProgressRecipients", () => {
     const buyer = user();
     const reserver = user();
     const both = user();
-    const inactive = user({isActive: false});
+    // TD-B179: an administrator deactivated their membership; they still hold B-3, so they still hear about it.
+    const deactivated = user({roles: [{company, roles: [], active: "inactive"}]});
     const rejectedBuyer = user();
 
     const u1 = {_id: new ObjectId(), project, edifice: edificeA, unitNumber: "A-1", sale: new ObjectId()};
@@ -51,20 +53,20 @@ describe("findConstructionProgressRecipients", () => {
         {_id: u1.sale, unit: u1._id, buyer: buyer._id},
         {_id: u3.sale, unit: u3._id, buyer: both._id, approvalStatus: "approved"},
         {_id: u4.sale, unit: u4._id, buyer: rejectedBuyer._id, approvalStatus: "rejected"},
-        {_id: u5.sale, unit: u5._id, buyer: inactive._id},
+        {_id: u5.sale, unit: u5._id, buyer: deactivated._id},
     ];
     db.reservations = [
         {unit: u2._id, client: reserver._id, isActive: true},
         {unit: u2._id, client: both._id, isActive: true},
         {unit: u4._id, client: reserver._id, isActive: false},
     ];
-    db.users = [buyer, reserver, both, inactive, rejectedBuyer];
+    db.users = [buyer, reserver, both, deactivated, rejectedBuyer];
 
     it("returns buyers and active reservation holders once each, with all their units", async () => {
         const recipients = await findConstructionProgressRecipients({company, project});
         const byId = Object.fromEntries(recipients.map(r => [r.userId, r]));
 
-        expect(Object.keys(byId).sort()).toEqual([buyer, reserver, both].map(u => u._id.toString()).sort());
+        expect(Object.keys(byId).sort()).toEqual([buyer, reserver, both, deactivated].map(u => u._id.toString()).sort());
         expect(byId[both._id.toString()].units.map(u => u.unitNumber).sort()).toEqual(["A-2", "B-1"]);
         expect(byId[both._id.toString()].units.find(u => u.unitNumber === "B-1")!.relation).toBe("buyer");
         expect(byId[reserver._id.toString()].units.map(u => u.unitNumber)).toEqual(["A-2"]); // inactive reservation ignored
@@ -73,8 +75,9 @@ describe("findConstructionProgressRecipients", () => {
 
     it("limits recipients to the chosen building", async () => {
         const recipients = await findConstructionProgressRecipients({company, project, edifice: edificeB});
-        expect(recipients.map(r => r.userId)).toEqual([both._id.toString()]);
-        expect(recipients[0].units.map(u => u.unitNumber)).toEqual(["B-1"]);
+        const byId = Object.fromEntries(recipients.map(r => [r.userId, r]));
+        expect(Object.keys(byId).sort()).toEqual([both, deactivated].map(u => u._id.toString()).sort());
+        expect(byId[both._id.toString()].units.map(u => u.unitNumber)).toEqual(["B-1"]);
     });
 
     it("returns nobody for a project without units", async () => {

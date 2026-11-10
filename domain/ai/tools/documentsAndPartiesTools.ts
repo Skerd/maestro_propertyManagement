@@ -21,16 +21,17 @@ import {constructorService} from "@propertyManagement/database/schemas/construct
 import {constructorPartyTypeValues} from "armonia/src/modules/propertyManagement/api/realEstate/private/constructor/constructor.schema-def";
 import {
     DEFAULT_RESULTS,
+    calendarDayArg,
+    calendarDayRange,
     companyScope,
+    companyToday,
     findOptions,
     limitArg,
     limitParameter,
     listResult,
     regexClause,
     shortText,
-    dayRange,
 } from "./assistantToolHelpers";
-import {companyToday} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 
 const PARTY_TYPE_VALUES = [...constructorPartyTypeValues];
 
@@ -41,7 +42,7 @@ const SearchContractorsArgs = z
         search: z.string().trim().min(1).optional(),
         partyType: z.enum(PARTY_TYPE_VALUES as unknown as [string, ...string[]]).optional(),
         trade: z.string().trim().min(1).optional(),
-        insuranceExpiringBefore: z.coerce.date().optional(),
+        insuranceExpiringBefore: calendarDayArg.optional(),
         limit: limitArg
     })
     .strip();
@@ -80,12 +81,12 @@ async function executeContractors(rawArgs: unknown, ctx: AssistantToolContext): 
     // Mongo matches any element, so this reads as "covers this trade".
     if (args.trade != null) query.trades = regexClause(args.trade);
     if (args.insuranceExpiringBefore != null) {
-        query.insuranceExpiry = dayRange(undefined, args.insuranceExpiringBefore);
+        query.insuranceExpiry = calendarDayRange(undefined, args.insuranceExpiringBefore);
     }
 
     const limit = args.limit ?? DEFAULT_RESULTS;
 
-    const today = await companyToday(ctx.companyId);
+    const today = await companyToday(ctx);
     const contractors = await constructorService.find(
         query,
         findOptions(ctx),

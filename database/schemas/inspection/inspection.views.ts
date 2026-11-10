@@ -438,7 +438,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -487,7 +487,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -536,7 +536,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -585,7 +585,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -634,7 +634,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -683,7 +683,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -732,7 +732,7 @@ export const inspectionSheetView: ViewConfig = {
                                                                 {
                                                                     name: "resolvedAt",
                                                                     type: "text",
-                                                                    format: "date",
+                                                                    format: "dateTime",
                                                                     className: "text-xs text-muted-foreground",
                                                                     labelKey: "resolvedAt",
                                                                 },
@@ -1189,7 +1189,7 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                     widget: "#DateInput",
                                     label: "form.resolvedAtLabel",
                                     placeholder: "form.resolvedAtPlaceholder",
-                                    widgetProps: { valueFormat: "YYYY-MM-DD" },
+                                    widgetProps: { valueFormat: "YYYY-MM-DD HH:mm" },
                                 },
                             },
                             {
@@ -1727,7 +1727,7 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                     widget: "#DateInput",
                                     label: "form.resolvedAtLabel",
                                     placeholder: "form.resolvedAtPlaceholder",
-                                    widgetProps: { valueFormat: "YYYY-MM-DD" },
+                                    widgetProps: { valueFormat: "YYYY-MM-DD HH:mm" },
                                 },
                             },
                             {

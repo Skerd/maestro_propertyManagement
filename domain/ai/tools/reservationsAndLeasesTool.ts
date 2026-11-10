@@ -25,7 +25,7 @@ import {reservationService} from "@propertyManagement/database/schemas/reservati
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
 import {ReservationStatus} from "@propertyManagement/database/schemas/reservation/reservation";
 import {LeaseStatus} from "@propertyManagement/database/schemas/lease/lease";
-import {DEFAULT_RESULTS, MAX_RESULTS, dayRange, emptyResult, limitParameter, listResult} from "./assistantToolHelpers";
+import {DEFAULT_RESULTS, MAX_RESULTS, calendarDayArg, calendarDayRange, emptyResult, limitParameter, listResult} from "./assistantToolHelpers";
 
 const RESERVATION_STATUS_VALUES = Object.values(ReservationStatus) as string[];
 const LEASE_STATUS_VALUES = Object.values(LeaseStatus) as string[];
@@ -67,7 +67,7 @@ const SearchReservationsArgs = z
         unitNumber: z.string().trim().min(1).optional(),
         status: z.enum(RESERVATION_STATUS_VALUES as [string, ...string[]]).optional(),
         paid: z.coerce.boolean().optional(),
-        expiringBefore: z.coerce.date().optional(),
+        expiringBefore: calendarDayArg.optional(),
         limit: z.coerce.number().int().positive().max(MAX_RESULTS).optional()
     })
     .strip();
@@ -105,7 +105,7 @@ async function executeReservations(rawArgs: unknown, ctx: AssistantToolContext):
     }
     if (args.status) query.status = args.status;
     if (args.paid != null) query.paid = args.paid;
-    if (args.expiringBefore != null) query.expirationDate = dayRange(undefined, args.expiringBefore);
+    if (args.expiringBefore != null) query.expirationDate = calendarDayRange(undefined, args.expiringBefore);
 
     const limit = args.limit ?? DEFAULT_RESULTS;
 
@@ -157,7 +157,7 @@ const SearchLeasesArgs = z
     .object({
         unitNumber: z.string().trim().min(1).optional(),
         status: z.enum(LEASE_STATUS_VALUES as [string, ...string[]]).optional(),
-        endingBefore: z.coerce.date().optional(),
+        endingBefore: calendarDayArg.optional(),
         minRent: z.coerce.number().nonnegative().optional(),
         maxRent: z.coerce.number().nonnegative().optional(),
         limit: z.coerce.number().int().positive().max(MAX_RESULTS).optional()
@@ -197,7 +197,7 @@ async function executeLeases(rawArgs: unknown, ctx: AssistantToolContext): Promi
         query.unit = unitId;
     }
     if (args.status) query.status = args.status;
-    if (args.endingBefore != null) query.endDate = dayRange(undefined, args.endingBefore);
+    if (args.endingBefore != null) query.endDate = calendarDayRange(undefined, args.endingBefore);
 
     if (args.minRent != null || args.maxRent != null) {
         const rent: Record<string, Decimal128> = {};

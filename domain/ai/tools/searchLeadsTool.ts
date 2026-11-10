@@ -21,7 +21,7 @@ import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {LeadStatus, LeadSource} from "@propertyManagement/database/schemas/lead/lead";
-import {DEFAULT_RESULTS, MAX_RESULTS, dayRange, limitParameter, listResult} from "./assistantToolHelpers";
+import {DEFAULT_RESULTS, MAX_RESULTS, calendarDayArg, calendarDayRange, limitParameter, listResult} from "./assistantToolHelpers";
 
 const LEAD_STATUS_VALUES = Object.values(LeadStatus) as string[];
 const LEAD_SOURCE_VALUES = Object.values(LeadSource) as string[];
@@ -45,7 +45,7 @@ const SearchLeadsArgs = z
         source: z.enum(LEAD_SOURCE_VALUES as [string, ...string[]]).optional(),
         minBudget: z.coerce.number().nonnegative().optional(),
         maxBudget: z.coerce.number().nonnegative().optional(),
-        followUpBefore: z.coerce.date().optional(),
+        followUpBefore: calendarDayArg.optional(),
         assignedToMe: z.coerce.boolean().optional(),
         limit: z.coerce.number().int().positive().max(MAX_RESULTS).optional()
     })
@@ -95,7 +95,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     }
     if (args.status) query.status = args.status;
     if (args.source) query.source = args.source;
-    if (args.followUpBefore != null) query.followUpDate = dayRange(undefined, args.followUpBefore);
+    if (args.followUpBefore != null) query.followUpDate = calendarDayRange(undefined, args.followUpBefore);
     // "My leads" — scoped from the trusted context, never from a model-supplied id.
     if (args.assignedToMe === true) query.assignedTo = new ObjectId(ctx.userId);
 

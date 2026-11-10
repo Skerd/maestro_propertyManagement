@@ -116,7 +116,7 @@ export const storySheetView: ViewConfig = {
                                 name: "publishedAt",
                                 widget: "#DisplayCard",
                                 label: "publishedAt",
-                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                                widgetProps: {icon: "#Calendar", format: "datetime", type: "date"},
                             },
                         },
                         {
@@ -337,7 +337,7 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.publishedAtLabel",
                             placeholder: "form.publishedAtPlaceholder",
-                            widgetProps: {valueFormat: "YYYY-MM-DD"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
                         },
                     },
                 ]
@@ -578,7 +578,7 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.publishedAtLabel",
                             placeholder: "form.publishedAtPlaceholder",
-                            widgetProps: {valueFormat: "YYYY-MM-DD"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
                         }, permissions: {read: "publishedAt", write: "publishedAt"},
                     },
                 ]

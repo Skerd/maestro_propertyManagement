@@ -19,7 +19,6 @@
  */
 
 import {addLocalDays} from "@coreModule/utilities/time/timeWindows";
-import {companyToday} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
@@ -31,7 +30,7 @@ import {leaseService} from "@propertyManagement/database/schemas/lease/lease.ser
 import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
 import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
 import {InstallmentStatus} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan";
-import {companyObjectId, companyScope, toAmount} from "./assistantToolHelpers";
+import {companyObjectId, companyScope, companyToday, toAmount} from "./assistantToolHelpers";
 import {roundToCurrency, subtractMoney} from "armonia/src/modules/core/helpers/money";
 
 /** Default reporting window for the "recent activity" figures. */
@@ -140,7 +139,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const now = new Date();
     const since = new Date(now.getTime() - windowDays * MS_PER_DAY);
     // Sale and due days are local `YYYY-MM-DD` strings (D115), compared with the company's today.
-    const today = await companyToday(ctx.companyId);
+    const today = await companyToday(ctx);
 
     const scope = companyScope(ctx);
     const countOptions = {logger: ctx.logger, withDeleted: false};

@@ -26,9 +26,10 @@ import {saleService} from "@propertyManagement/database/schemas/sale/sale.servic
 import {SaleApprovalStatus, SalePaymentType} from "@propertyManagement/database/schemas/sale/sale";
 import {
     DEFAULT_RESULTS,
+    calendarDayArg,
+    calendarDayRange,
     companyObjectId,
     companyScope,
-    dayRange,
     emptyResult,
     findOptions,
     limitArg,
@@ -40,7 +41,7 @@ import {
     resolveUnitIdsForProject,
     toAmount,
     toNumber,
-    userDisplayName
+    userDisplayName,
 } from "./assistantToolHelpers";
 import {roundToCurrency} from "armonia/src/modules/core/helpers/money";
 
@@ -54,8 +55,8 @@ const SearchSalesArgs = z
         unitNumber: z.string().trim().min(1).optional(),
         paymentType: z.enum(PAYMENT_TYPE_VALUES as [string, ...string[]]).optional(),
         approvalStatus: z.enum(APPROVAL_STATUS_VALUES as [string, ...string[]]).optional(),
-        soldFrom: z.coerce.date().optional(),
-        soldTo: z.coerce.date().optional(),
+        soldFrom: calendarDayArg.optional(),
+        soldTo: calendarDayArg.optional(),
         minPrice: z.coerce.number().nonnegative().optional(),
         maxPrice: z.coerce.number().nonnegative().optional(),
         handedOver: z.coerce.boolean().optional(),
@@ -146,7 +147,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     if (args.paymentType) query.paymentType = args.paymentType;
     if (args.approvalStatus) query.approvalStatus = args.approvalStatus;
 
-    const sold = dayRange(args.soldFrom, args.soldTo);
+    const sold = calendarDayRange(args.soldFrom, args.soldTo);
     if (sold) query.saleDate = sold;
 
     const price = numberRange(args.minPrice, args.maxPrice);

@@ -23,8 +23,9 @@ import {inspectionService} from "@propertyManagement/database/schemas/inspection
 import {InspectionStatus, InspectionType} from "@propertyManagement/database/schemas/inspection/inspection";
 import {
     DEFAULT_RESULTS,
+    calendarDayArg,
+    calendarDayRange,
     companyScope,
-    dayRange,
     emptyResult,
     findOptions,
     limitArg,
@@ -34,7 +35,7 @@ import {
     resolveUnitIdsForEdifice,
     resolveUnitIdsForProject,
     shortText,
-    userDisplayName
+    userDisplayName,
 } from "./assistantToolHelpers";
 
 const INSPECTION_STATUS_VALUES = Object.values(InspectionStatus) as string[];
@@ -81,8 +82,8 @@ const SearchInspectionsArgs = z
         ...locationArgs,
         status: z.enum(INSPECTION_STATUS_VALUES as [string, ...string[]]).optional(),
         type: z.enum(INSPECTION_TYPE_VALUES as [string, ...string[]]).optional(),
-        inspectedFrom: z.coerce.date().optional(),
-        inspectedTo: z.coerce.date().optional(),
+        inspectedFrom: calendarDayArg.optional(),
+        inspectedTo: calendarDayArg.optional(),
         followUpRequired: z.coerce.boolean().optional(),
         limit: limitArg
     })
@@ -142,7 +143,7 @@ async function executeInspections(rawArgs: unknown, ctx: AssistantToolContext): 
     if (args.type) query.type = args.type;
     if (args.followUpRequired != null) query.followUpRequired = args.followUpRequired;
 
-    const inspected = dayRange(args.inspectedFrom, args.inspectedTo);
+    const inspected = calendarDayRange(args.inspectedFrom, args.inspectedTo);
     if (inspected) query.inspectionDate = inspected;
 
     const limit = args.limit ?? DEFAULT_RESULTS;

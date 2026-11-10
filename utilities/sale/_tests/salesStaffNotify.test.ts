@@ -12,13 +12,15 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@coreModule/database/schemas/user/user", () => ({
     default: {
-        // Mimics the Mongo filters the notifier relies on: _id $in, companies, isActive.
-        find: (query: {_id: {$in: ObjectId[]}; companies?: ObjectId; isActive?: boolean}) => {
+        // Mimics the Mongo filters the notifier relies on: _id $in, companies, and an active role entry for the company
+        // (a fixture user's `isActive` stands for that entry).
+        find: (query: {_id: {$in: ObjectId[]}; companies?: ObjectId; roles?: {$elemMatch: {company: ObjectId; active: string}}}) => {
             const ids = query._id.$in.map(String);
+            const role = query.roles?.$elemMatch;
             const rows = mocks.users.filter(u =>
                 ids.includes(String(u._id))
                 && (query.companies == null || u.companies.some(c => String(c) === String(query.companies)))
-                && (query.isActive == null || u.isActive === query.isActive));
+                && (role == null || (u.isActive && u.companies.some(c => String(c) === String(role.company)))));
             return {select: () => ({lean: async () => rows, exec: async () => rows})};
         },
     },

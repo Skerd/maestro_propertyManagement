@@ -6,12 +6,23 @@ import {sendSalesStaffAlertMail} from "@propertyManagement/utilities/emails/staf
 import type {PaymentScheduleRowForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import {getLogger} from "@coreModule/loggers/serverLog";
 import {userService} from "@coreModule/database/schemas/user/user.service";
+import {companyService} from "@coreModule/database/schemas/company/company.service";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
+import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
+import {formatReservationExpirationForEmail} from "@propertyManagement/utilities/database/reservation/reservationClientEmailDispatch";
+import {
+    formatReservationDepositForEmailDisplay,
+    UNIT_EMAIL_POPULATE,
+    UNIT_EMAIL_SELECT,
+    unitLocationForEmail,
+} from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 
 const logger = getLogger("sales_staff_notify");
 
 /**
  * Staff alerts for new sales / reservations, addressed to the users configured under
  * Sales & handover → Notifications (PropertyManagementConfig.notifyOnSales / notifyOnReservations).
+ * An expired reservation also alerts the agent who made it (D112).
  *
  * Best-effort: never throws, so a failing alert cannot break the sale or reservation.
  * Callers schedule them with core `runAfterCommit`, so a rolled-back request alerts nobody.
@@ -68,11 +79,19 @@ function toObjectIds(ids: (string | undefined)[]): ObjectId[] {
     return ids.filter((id): id is string => !!id && ObjectId.isValid(id)).map(id => new ObjectId(id));
 }
 
-/** Active members of the company among `ids` (drops stale / foreign / deactivated users). */
+/**
+ * Active members of the company among `ids` (drops stale / foreign / deactivated users). Membership is the user's
+ * role entry for the company (`roles.active`); a user has no top-level active flag.
+ */
 async function activeCompanyUsers(companyId: ObjectId, ids: string[]): Promise<UserLite[]> {
     const oids = toObjectIds(ids);
     if (!oids.length) return [];
-    return await userService.find({_id: {$in: oids}, companies: companyId, isActive: true}, {}, undefined, "_id username name surname fullName");
+    return await userService.find(
+        {_id: {$in: oids}, companies: companyId, roles: {$elemMatch: {company: companyId, active: "active"}}},
+        {},
+        undefined,
+        "_id username name surname fullName",
+    );
 }
 
 async function namesById(ids: (string | undefined)[]): Promise<Map<string, string>> {
@@ -207,6 +226,89 @@ export async function notifyReservationWatchers(input: NotifyReservationWatchers
         return recipients.length;
     } catch (e) {
         logger.err("Failed to notify reservation watchers:", e);
+        return 0;
+    }
+}
+
+export type NotifyReservationExpiredInput = {
+    companyId: ObjectId;
+    reservationId: ObjectId;
+    languageCode: string;
+};
+
+/**
+ * A reservation expired (D112): its agent (`reservedBy`) and the reservation watchers get the staff notice, in-app
+ * and by email. The client is not emailed here: staff send that one (`manualClientEmail` `send_expired`).
+ *
+ * @returns how many users were alerted (0 when nobody is to be told or on failure).
+ */
+export async function notifyReservationExpired(input: NotifyReservationExpiredInput): Promise<number> {
+    try {
+        const {companyId, reservationId, languageCode} = input;
+        const reservation = await reservationService.findOne(
+            {_id: reservationId, company: companyId},
+            {languageCode},
+            [
+                {path: "unit", select: UNIT_EMAIL_SELECT, populate: UNIT_EMAIL_POPULATE},
+                {path: "depositCurrency", select: "symbol"},
+            ],
+        );
+        if (!reservation) return 0;
+
+        const agentId = nestedEntityToRef(reservation.reservedBy)?.toString();
+        const clientId = nestedEntityToRef(reservation.client)?.toString();
+        const {notifyOnReservations} = await propertyManagementConfigService.getNotificationRecipients(companyId);
+        const recipients = await activeCompanyUsers(companyId, agentId ? [...notifyOnReservations, agentId] : notifyOnReservations);
+        if (!recipients.length) return 0;
+
+        const names = await namesById([clientId, agentId]);
+        const clientName = clientId ? names.get(clientId) : undefined;
+        const agentName = agentId ? names.get(agentId) : undefined;
+        const company = await companyService.findById(companyId, {}, undefined, "name");
+        const unit = reservation.unit as {_id?: ObjectId; unitNumber?: string | number; name?: string} | undefined;
+        const unitNumber = unit?.unitNumber != null ? String(unit.unitNumber) : undefined;
+        const expirationDateFormatted = formatReservationExpirationForEmail(reservation.expirationDate?.toISOString(), languageCode);
+        const depositDisplay = formatReservationDepositForEmailDisplay(
+            reservation.depositAmount,
+            (reservation.depositCurrency as {symbol?: string} | undefined)?.symbol,
+            languageCode,
+        );
+
+        emitNotificationEvent(NotificationEventCodes.RESERVATION_EXPIRED, {
+            receiverIds: recipients.map(r => r._id.toString()),
+            payload: {
+                companyId: companyId.toString(),
+                reservationId: reservationId.toString(),
+                unitId: unit?._id?.toString(),
+                unitNumber,
+                clientName,
+                agentName,
+                expirationDate: expirationDateFormatted,
+                languageCode,
+            },
+        });
+
+        await emailEach(recipients, r => sendSalesStaffAlertMail({
+            kind: "reservation_expired",
+            email: r.username!,
+            fullName: displayName(r) ?? r.username!,
+            languageCode,
+            companyId: companyId.toString(),
+            companyName: company?.name ?? "",
+            reservationId: reservationId.toString(),
+            reservationCode: reservation.name,
+            clientName,
+            depositDisplay,
+            expirationDateFormatted,
+            agentName,
+            unitId: unit?._id?.toString(),
+            unitNumber,
+            unitDisplayName: unit?.name,
+            ...unitLocationForEmail(reservation.unit),
+        }), "reservation expired");
+        return recipients.length;
+    } catch (e) {
+        logger.err("Failed to notify about an expired reservation:", e);
         return 0;
     }
 }

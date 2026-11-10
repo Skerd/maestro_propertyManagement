@@ -28,9 +28,11 @@ import {
     unitLocationForEmail,
 } from "@propertyManagement/utilities/emails/reservationEmailFormatting";
 import {
-    isPastExpirationUtcEndOfDay,
-    utcCalendarDaysUntilExpirationDay,
+    calendarDaysUntil,
+    companyToday,
+    isCalendarDayOver,
 } from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
+import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
 import {recordCommission, voidPendingCommission} from "../../../utilities/mappers/commissions/commission";
 import {CommissionSourceType, CommissionStatus} from "../commission/commission";
 import {commissionService} from "../commission/commission.service";
@@ -223,8 +225,8 @@ export class ReservationActions {
 
         const unitRef = reservation.unit as {unitNumber?: string | number; name?: string; _id?: ObjectId} | undefined;
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
-        const unitId = nestedEntityToRef(reservation.unit);
 
+        const today = await companyToday(company._id);
         const exp = reservation.expirationDate ? new Date(reservation.expirationDate) : undefined;
         const expIso = exp ? exp.toISOString() : undefined;
         const lang = languageCode ?? "en-US";
@@ -253,7 +255,6 @@ export class ReservationActions {
             | "expirationReminderEmailAt3d"
             | "expirationReminderEmailAt1d"
             | "expirationReminderEmailAt0d"
-            | "expiredAt"
             | undefined;
 
         switch (action) {
@@ -269,7 +270,7 @@ export class ReservationActions {
                 if (!exp) {
                     throw apiValidationException("reservation_expiration_required", "", null, languageCode);
                 }
-                if (utcCalendarDaysUntilExpirationDay(exp) < 3) {
+                if (calendarDaysUntil(exp, today) < 3) {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_reminder", reminderPhase: "3"};
@@ -279,7 +280,7 @@ export class ReservationActions {
                 if (!exp) {
                     throw apiValidationException("reservation_expiration_required", "", null, languageCode);
                 }
-                if (utcCalendarDaysUntilExpirationDay(exp) < 1) {
+                if (calendarDaysUntil(exp, today) < 1) {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_reminder", reminderPhase: "1"};
@@ -289,7 +290,7 @@ export class ReservationActions {
                 if (!exp) {
                     throw apiValidationException("reservation_expiration_required", "", null, languageCode);
                 }
-                if (utcCalendarDaysUntilExpirationDay(exp) !== 0 || isPastExpirationUtcEndOfDay(exp)) {
+                if (calendarDaysUntil(exp, today) !== 0) {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_reminder", reminderPhase: "0"};
@@ -299,21 +300,17 @@ export class ReservationActions {
                 if (!exp) {
                     throw apiValidationException("reservation_expiration_required", "", null, languageCode);
                 }
-                if (!isPastExpirationUtcEndOfDay(exp)) {
+                if (!isCalendarDayOver(exp, today)) {
                     throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                 }
                 payload = {...base, kind: "expiration_expired"};
-                stampField = "expiredAt";
                 break;
             case "remind_remaining_days":
                 if (!exp) {
                     throw apiValidationException("reservation_expiration_required", "", null, languageCode);
                 }
-                if (isPastExpirationUtcEndOfDay(exp)) {
-                    throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
-                }
                 {
-                    const daysRemaining = utcCalendarDaysUntilExpirationDay(exp);
+                    const daysRemaining = calendarDaysUntil(exp, today);
                     if (daysRemaining < 0) {
                         throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
                     }
@@ -324,29 +321,31 @@ export class ReservationActions {
                 throw apiValidationException("manual_reservation_email_action_not_allowed", "", null, languageCode);
         }
 
+        // Its last day is over: end it the way the expiry cron does (TD-B140), unless the cron already has. The
+        // email goes after, so a client without an email still leaves the reservation correctly expired.
+        if (action === "send_expired" && reservation.status === ReservationStatus.ACTIVE) {
+            await runInTransaction(logger, async (session) => {
+                const active = await reservationService.findOne(
+                    {_id: reservation._id, company: company._id, isActive: true, paid: false, status: ReservationStatus.ACTIVE},
+                    {session, logger, languageCode},
+                );
+                if (active) {
+                    await endReservation(active, {status: ReservationStatus.EXPIRED}, {session, logger, languageCode, companyId: company._id, actionUserCtx});
+                }
+            });
+        }
+
         const sent = await dispatchReservationClientEmail(payload);
         if (!sent) {
             throw apiValidationException("client_has_no_email", "", null, languageCode);
         }
 
         if (stampField) {
-            const now = new Date();
-            const $set: Record<string, unknown> = {[stampField]: now};
-            if (stampField === "expiredAt") {
-                $set.status = ReservationStatus.EXPIRED;
-            }
             await reservationService.updateByIdOrThrow(
                 reservation._id,
-                {$set},
+                {$set: {[stampField]: new Date()}},
                 {logger, languageCode, auditUserId: actionUserCtx.userId},
             );
-            if (stampField === "expiredAt" && unitId) {
-                await unitService.updateOne(
-                    {_id: unitId, status: UnitStatus.RESERVED, reservation: reservation._id},
-                    {$set: {status: UnitStatus.AVAILABLE}, $unset: {reservation: "", unavailableNotes: ""}},
-                    {logger, languageCode},
-                );
-            }
         }
 
         const returnReservation = await loadReservationDto(reservation._id, {
@@ -502,6 +501,10 @@ export class ReservationActions {
             {session, logger, languageCode},
             [{path: "depositCurrency", select: "symbol name"}],
         );
+        // An expired one keeps `isActive` (TD-B141): only an active reservation takes a payment.
+        if (existingReservation.status !== ReservationStatus.ACTIVE) {
+            throw apiValidationException("reservation_not_active", "", null, languageCode);
+        }
 
         await reservationService.updateByIdOrThrow(
             new ObjectId(_id),
@@ -609,6 +612,9 @@ export class ReservationActions {
             {_id: new ObjectId(_id), company: company._id, isActive: true},
             {session, logger, languageCode},
         );
+        if (existingReservation.status !== ReservationStatus.ACTIVE) {
+            throw apiValidationException("reservation_not_active", "", null, languageCode);
+        }
 
         const unit = await unitService.findOneOrThrow(
             {_id: existingReservation.unit, company: company._id},

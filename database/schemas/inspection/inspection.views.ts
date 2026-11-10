@@ -1,109 +1,9 @@
-import type {ViewConfig, ViewNode} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
+import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
 import {
     INSPECTION_FINDING_NOTES_MAX,
     INSPECTION_LONG_TEXT_MAX,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
 import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
-
-const INSPECTION_FINDING_KEYS = [
-    "structuralIssues",
-    "electricalIssues",
-    "plumbingIssues",
-    "hvacIssues",
-    "safetyConcerns",
-    "cosmeticIssues",
-    "otherObservations",
-] as const;
-
-const INSPECTION_FINDING_META: Record<(typeof INSPECTION_FINDING_KEYS)[number], { panelClass: string; titleIcon: string; titleIconClassName: string }> = {
-    structuralIssues: {
-        panelClass: "p-4 rounded-lg border bg-red-500/5 border-red-500/20",
-        titleIcon: "#IconBuildingBridge2",
-        titleIconClassName: "text-red-600 dark:text-red-400",
-    },
-    electricalIssues: {
-        panelClass: "p-4 rounded-lg border bg-yellow-500/5 border-yellow-500/20",
-        titleIcon: "#IconCircuitGround",
-        titleIconClassName: "text-yellow-600 dark:text-yellow-400",
-    },
-    plumbingIssues: {
-        panelClass: "p-4 rounded-lg border bg-blue-500/5 border-blue-500/20",
-        titleIcon: "#IconRipple",
-        titleIconClassName: "text-blue-600 dark:text-blue-400",
-    },
-    hvacIssues: {
-        panelClass: "p-4 rounded-lg border bg-cyan-500/5 border-cyan-500/20",
-        titleIcon: "#IconAirConditioning",
-        titleIconClassName: "text-cyan-600 dark:text-cyan-400",
-    },
-    safetyConcerns: {
-        panelClass: "p-4 rounded-lg border bg-orange-500/5 border-orange-500/20",
-        titleIcon: "#IconShield",
-        titleIconClassName: "text-orange-600 dark:text-orange-400",
-    },
-    cosmeticIssues: {
-        panelClass: "p-4 rounded-lg border bg-purple-500/5 border-purple-500/20",
-        titleIcon: "#IconTagStarred",
-        titleIconClassName: "text-purple-600 dark:text-purple-400",
-    },
-    otherObservations: {
-        panelClass: "p-4 rounded-lg border bg-gray-500/5 border-gray-500/20",
-        titleIcon: "#IconAlertCircle",
-        titleIconClassName: "text-gray-600 dark:text-gray-400",
-    },
-};
-
-function inspectionFindingsCategoryNodes(): ViewNode[] {
-    return INSPECTION_FINDING_KEYS.map((key) => ({
-        render: "div",
-        dependent: `findings.${key}`,
-        permissions: { read: "findings" },
-        props: { className: INSPECTION_FINDING_META[key].panelClass },
-        children: [
-            {
-                render: "#SheetGroup",
-                permissions: { readAny: ["findings"] },
-                props: {
-                    title: key,
-                    titleIcon: INSPECTION_FINDING_META[key].titleIcon,
-                    titleIconClassName: INSPECTION_FINDING_META[key].titleIconClassName,
-                },
-                children: [
-                    {
-                        render: "#SheetEmbeddedItemsList",
-                        permissions: { read: "findings" },
-                        field: {
-                            name: `findings.${key}`,
-                            widget: "#SheetEmbeddedItemsList",
-                            widgetProps: {
-                                fields: [
-                                    { name: "notes", type: "expandableText" },
-                                    { name: "media", type: "mediaStrip" },
-                                    {
-                                        name: "resolvedBy",
-                                        type: "text",
-                                        valuePath: ["name", "surname"],
-                                        joinSeparator: " ",
-                                        className: "text-xs text-muted-foreground",
-                                        labelKey: "resolvedBy",
-                                    },
-                                    {
-                                        name: "resolvedAt",
-                                        type: "text",
-                                        format: "date",
-                                        className: "text-xs text-muted-foreground",
-                                        labelKey: "resolvedAt",
-                                    },
-                                ],
-                                compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
-                            },
-                        },
-                    },
-                ],
-            },
-        ],
-    }));
-}
 
 export const inspectionSheetView: ViewConfig = {
     model: "inspections",
@@ -501,7 +401,351 @@ export const inspectionSheetView: ViewConfig = {
                         {
                             render: "div",
                             props: { className: "space-y-2" },
-                            children: inspectionFindingsCategoryNodes(),
+                            children: [
+                                {
+                                    render: "div",
+                                    dependent: "findings.structuralIssues",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-red-500/5 border-red-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "structuralIssues",
+                                                titleIcon: "#IconBuildingBridge2",
+                                                titleIconClassName: "text-red-600 dark:text-red-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.structuralIssues",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    render: "div",
+                                    dependent: "findings.electricalIssues",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-yellow-500/5 border-yellow-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "electricalIssues",
+                                                titleIcon: "#IconCircuitGround",
+                                                titleIconClassName: "text-yellow-600 dark:text-yellow-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.electricalIssues",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    render: "div",
+                                    dependent: "findings.plumbingIssues",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-blue-500/5 border-blue-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "plumbingIssues",
+                                                titleIcon: "#IconRipple",
+                                                titleIconClassName: "text-blue-600 dark:text-blue-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.plumbingIssues",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    render: "div",
+                                    dependent: "findings.hvacIssues",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-cyan-500/5 border-cyan-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "hvacIssues",
+                                                titleIcon: "#IconAirConditioning",
+                                                titleIconClassName: "text-cyan-600 dark:text-cyan-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.hvacIssues",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    render: "div",
+                                    dependent: "findings.safetyConcerns",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-orange-500/5 border-orange-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "safetyConcerns",
+                                                titleIcon: "#IconShield",
+                                                titleIconClassName: "text-orange-600 dark:text-orange-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.safetyConcerns",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    render: "div",
+                                    dependent: "findings.cosmeticIssues",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-purple-500/5 border-purple-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "cosmeticIssues",
+                                                titleIcon: "#IconTagStarred",
+                                                titleIconClassName: "text-purple-600 dark:text-purple-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.cosmeticIssues",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    render: "div",
+                                    dependent: "findings.otherObservations",
+                                    permissions: { read: "findings" },
+                                    props: { className: "p-4 rounded-lg border bg-gray-500/5 border-gray-500/20" },
+                                    children: [
+                                        {
+                                            render: "#SheetGroup",
+                                            permissions: { readAny: ["findings"] },
+                                            props: {
+                                                title: "otherObservations",
+                                                titleIcon: "#IconAlertCircle",
+                                                titleIconClassName: "text-gray-600 dark:text-gray-400",
+                                            },
+                                            children: [
+                                                {
+                                                    render: "#SheetEmbeddedItemsList",
+                                                    permissions: { read: "findings" },
+                                                    field: {
+                                                        name: "findings.otherObservations",
+                                                        widget: "#SheetEmbeddedItemsList",
+                                                        widgetProps: {
+                                                            fields: [
+                                                                { name: "notes", type: "expandableText" },
+                                                                { name: "media", type: "mediaStrip" },
+                                                                {
+                                                                    name: "resolvedBy",
+                                                                    type: "text",
+                                                                    valuePath: ["name", "surname"],
+                                                                    joinSeparator: " ",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedBy",
+                                                                },
+                                                                {
+                                                                    name: "resolvedAt",
+                                                                    type: "text",
+                                                                    format: "date",
+                                                                    className: "text-xs text-muted-foreground",
+                                                                    labelKey: "resolvedAt",
+                                                                },
+                                                            ],
+                                                            compactSummaryFields: ["notes", "resolvedBy", "resolvedAt"],
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                            ],
                         },
                     ],
                 },

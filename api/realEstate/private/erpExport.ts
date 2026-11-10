@@ -20,6 +20,10 @@ import type {ErpExportFormType} from "armonia/src/modules/propertyManagement/api
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
+    collectedFieldReader,
+    omitRowKeys,
+    type RowFieldSources,
+    unreadableRowKeys,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 import {
     getErpExportColumnLabel,
@@ -46,6 +50,59 @@ router.post(
 );
 
 type ErpExportParams = AuthenticatedMWType & ErpExportFormType;
+
+/** Field-level read (SEC-09): where each exported column comes from. A hidden column is left out of the file. */
+const SALE_SOURCES: RowFieldSources<ErpSaleRow> = {
+    name: [["sales", "name"]],
+    unitName: [["sales", "unit"]],
+    buyerName: [["sales", "buyer"]],
+    saleDate: [["sales", "saleDate"]],
+    salePrice: [["sales", "finalPrice"]],
+    currency: [["sales", "saleCurrency"]],
+    status: [["sales", "approvalStatus"], ["sales", "paymentType"]],
+};
+
+const COMMISSION_SOURCES: RowFieldSources<ErpCommissionRow> = {
+    agentName: [["commissions", "agent"]],
+    saleId: [["commissions", "sale"]],
+    saleName: [["commissions", "sale"], ["sales", "name"]],
+    amount: [["commissions", "amount"]],
+    currency: [["commissions", "currency"]],
+    status: [["commissions", "status"]],
+};
+
+const INSTALLMENT_SOURCES: RowFieldSources<ErpPaymentPlanRow> = {
+    name: [["paymentplans", "name"]],
+    saleName: [["paymentplans", "sale"], ["sales", "name"]],
+    installmentNumber: [["paymentplans", "installments.installmentNumber"]],
+    dueDate: [["paymentplans", "installments.dueDate"]],
+    amount: [["paymentplans", "installments.amount"]],
+    currency: [["paymentplans", "sale"], ["sales", "saleCurrency"]],
+    status: [["paymentplans", "installments.status"]],
+    paidAt: [["paymentplans", "installments.paidDate"]],
+};
+
+const RENTAL_PAYMENT_SOURCES: RowFieldSources<ErpRentalPaymentRow> = {
+    name: [["rentalpayments", "name"]],
+    leaseName: [["rentalpayments", "lease"], ["leases", "name"]],
+    unitName: [["rentalpayments", "unit"]],
+    dueDate: [["rentalpayments", "dueDate"]],
+    amount: [["rentalpayments", "amount"]],
+    paidAmount: [["rentalpayments", "paidAmount"]],
+    currency: [["rentalpayments", "currency"]],
+    status: [["rentalpayments", "status"]],
+};
+
+const UNIT_COST_SOURCES: RowFieldSources<ErpUnitCostRow> = {
+    name: [["unitcosts", "name"]],
+    unitName: [["unitcosts", "unit"]],
+    projectName: [["unitcosts", "project"]],
+    purchaseDate: [["unitcosts", "purchaseDate"]],
+    totalAmount: [["unitcosts", "expenditureItems"]],
+    currency: [["unitcosts", "currency"]],
+    verificationStatus: [["unitcosts", "verificationStatus"]],
+    paymentStatus: [["unitcosts", "paymentStatus"]],
+};
 
 function toNum(v: unknown): number {
     if (v == null) return 0;
@@ -143,6 +200,7 @@ async function erpExportHandler(
         && canReadCollectedFields(datasetCollections[dataset as keyof typeof datasetCollections], actionUserCtx, languageCode),
     );
     assertAnyCollectedRead(allowedDatasets.length > 0, languageCode);
+    const read = collectedFieldReader(actionUserCtx, languageCode);
 
     const companyId = company._id as ObjectId;
     const {from, to} = parseDateRange(dateFrom, dateTo);
@@ -169,6 +227,7 @@ async function erpExportHandler(
 
         const saleDocs = await saleService.findForErpExport(saleFilter);
 
+        const hidden = unreadableRowKeys(SALE_SOURCES, read);
         result.sales = (saleDocs as Record<string, unknown>[]).map((s): ErpSaleRow => {
             const buyer = s.buyer as {name?: string; surname?: string} | undefined;
             const buyerName = buyer
@@ -186,7 +245,7 @@ async function erpExportHandler(
                 currency: currency?.abbreviation ?? currency?.symbol ?? "",
                 status: String(s.approvalStatus ?? s.paymentType ?? ""),
             };
-        });
+        }).map((row) => omitRowKeys(row, hidden));
     }
 
     // ── Commissions ───────────────────────────────────────────────────────────
@@ -198,6 +257,7 @@ async function erpExportHandler(
 
         const commDocs = await commissionService.findForErpExport(commFilter);
 
+        const hidden = unreadableRowKeys(COMMISSION_SOURCES, read);
         result.commissions = (commDocs as Record<string, unknown>[]).map((c): ErpCommissionRow => {
             const agent = c.agent as {name?: string; surname?: string} | undefined;
             const agentName = agent
@@ -215,7 +275,7 @@ async function erpExportHandler(
                 currency: currency?.abbreviation ?? currency?.symbol ?? "",
                 status: String(c.status ?? ""),
             };
-        });
+        }).map((row) => omitRowKeys(row, hidden));
     }
 
     // ── Payment Plan Installments ──────────────────────────────────────────────
@@ -259,7 +319,8 @@ async function erpExportHandler(
                 });
             }
         }
-        result.paymentPlanInstallments = rows;
+        const hidden = unreadableRowKeys(INSTALLMENT_SOURCES, read);
+        result.paymentPlanInstallments = rows.map((row) => omitRowKeys(row, hidden));
     }
 
     // ── Rental Payments ───────────────────────────────────────────────────────
@@ -271,6 +332,7 @@ async function erpExportHandler(
 
         const rpDocs = await rentalPaymentService.findForErpExport(rpFilter);
 
+        const hidden = unreadableRowKeys(RENTAL_PAYMENT_SOURCES, read);
         result.rentalPayments = (rpDocs as Record<string, unknown>[]).map((rp): ErpRentalPaymentRow => {
             const lease = rp.lease as {name?: string} | undefined;
             const unit = rp.unit as {name?: string; unitNumber?: string} | undefined;
@@ -286,7 +348,7 @@ async function erpExportHandler(
                 currency: currency?.abbreviation ?? currency?.symbol ?? "",
                 status: String(rp.status ?? ""),
             };
-        });
+        }).map((row) => omitRowKeys(row, hidden));
     }
 
     // ── Unit Costs ────────────────────────────────────────────────────────────
@@ -301,6 +363,7 @@ async function erpExportHandler(
 
         const ucDocs = await unitCostService.findForErpExport(ucFilter);
 
+        const hidden = unreadableRowKeys(UNIT_COST_SOURCES, read);
         result.unitCosts = ucDocs.map((uc): ErpUnitCostRow => {
             const unit = uc.unit as {name?: string; unitNumber?: string} | undefined;
             const project = uc.project as {name?: string} | undefined;
@@ -316,7 +379,7 @@ async function erpExportHandler(
                 verificationStatus: String(uc.verificationStatus ?? ""),
                 paymentStatus: String(uc.paymentStatus ?? ""),
             };
-        });
+        }).map((row) => omitRowKeys(row, hidden));
     }
 
     logger.finish("ERP export generated");

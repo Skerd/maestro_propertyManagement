@@ -38,4 +38,7 @@ export function applySaleIndexes(SaleSchema: Schema): void {
     
     // For sorting by creation date
     SaleSchema.index({ createdAt: -1 });
+
+    // The sales list: `{company}` sorted by `saleDate: -1` (the router's default sort, DB-06).
+    SaleSchema.index({ company: 1, saleDate: -1 });
 }

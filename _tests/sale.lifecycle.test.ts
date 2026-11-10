@@ -181,6 +181,12 @@ describe("rejecting and deleting a sale release what it did", {timeout: 60000}, 
         const deleted = await request(app).delete("/api/realEstate/unit/sale").set(callerHeader(admin)).send({_id: saleId.toString()});
         expect(deleted.status).toBe(200);
         expect((await findRaw("units", unitId))!.status).toBe(UnitStatus.RESERVED);
+
+        // A rejected sale is not taken back by restoring it (D111): it stays deleted and the unit stays reserved.
+        const restored = await request(app).patch("/api/realEstate/unit/sale/restore").set(callerHeader(admin)).send({_id: saleId.toString()});
+        expect([restored.status, restored.body.error_code]).toEqual([400, "sale_rejected_cannot_be_restored"]);
+        expect((await findRaw("sales", saleId))!.deletedAt).toBeInstanceOf(Date);
+        expect((await findRaw("units", unitId))!.status).toBe(UnitStatus.RESERVED);
     });
 
     it("deleting does the same, takes the plan with it, and restoring takes the sale back", async () => {

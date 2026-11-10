@@ -45,8 +45,9 @@ import {
     type PaymentPlanInstallmentScheduleInput,
 } from "@propertyManagement/utilities/sale/paymentPlanContractInterest";
 import {
-    isPastExpirationUtcEndOfDay,
-    utcCalendarDaysUntilExpirationDay,
+    calendarDaysUntil,
+    companyToday,
+    isCalendarDayOver,
 } from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import {
     formatDiscountForEmail,
@@ -399,8 +400,9 @@ export class SaleActions {
             const dueFormatted = formatInstallmentDueDateForEmail(dueIso, lang);
             const instAmt = formatMoneyAmountForEmail(inst.amount.toString(), lang);
             const installmentAmountDisplay = saleSym ? `${instAmt} ${saleSym}` : instAmt;
-            const past = isPastExpirationUtcEndOfDay(due);
-            const diff = utcCalendarDaysUntilExpirationDay(due);
+            const today = await companyToday(company._id);
+            const past = isCalendarDayOver(due, today);
+            const diff = calendarDaysUntil(due, today);
 
             const instCommon = {
                 ...base,

@@ -14,6 +14,7 @@ import {
 import type {ClientsListFormType, ContractsListFormType} from "armonia/src/modules/propertyManagement/api/realEstate/private/contractsHub/contractsHub.form.type";
 import type {ClientsListResponseType, ContractsListResponseType} from "armonia/src/modules/propertyManagement/api/realEstate/private/contractsHub/contractsHub.response.type";
 import type {ContractRegistryRow} from "armonia/src/modules/propertyManagement/api/realEstate/private/contractsHub/contractsHub.contract.dto";
+import type {ClientRegistryRow} from "armonia/src/modules/propertyManagement/api/realEstate/private/contractsHub/contractsHub.client.dto";
 import {
     buildClientRegistryRows,
     CONTRACTS_HUB_RESERVATION_POPULATE,
@@ -26,6 +27,10 @@ import {
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
+    collectedFieldReader,
+    omitRowKeys,
+    type RowFieldSources,
+    unreadableRowKeys,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 import {reservationService} from "@propertyManagement/database/schemas/reservation/reservation.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
@@ -56,6 +61,78 @@ router.post(
 );
 
 type HubParams = AuthenticatedMWType & ContractsListFormType;
+
+const RES = "reservations";
+const SALE = "sales";
+const UNIT = "units";
+const PLAN = "paymentplans";
+
+/** Field-level read (SEC-09): where each contract row field comes from, per source record. */
+const RESERVATION_CONTRACT_SOURCES: RowFieldSources<ContractRegistryRow> = {
+    contractNumber: [[RES, "name"]],
+    client: [[RES, "client"]],
+    unit: [[RES, "unit"]],
+    project: [[RES, "unit"]],
+    signatureDate: [[RES, "reservationDate"]],
+    uploadDate: [[RES, "reservationContract"]],
+    agent: [[RES, "reservedBy"]],
+};
+
+const SALE_CONTRACT_SOURCES: RowFieldSources<ContractRegistryRow> = {
+    contractNumber: [[SALE, "name"]],
+    client: [[SALE, "buyer"]],
+    unit: [[SALE, "unit"]],
+    project: [[SALE, "unit"]],
+    signatureDate: [[SALE, "saleDate"]],
+    uploadDate: [[SALE, "purchaseContract"]],
+    agent: [[SALE, "soldBy"]],
+};
+
+/** Field-level read (SEC-09): where each client row field comes from, per source record. */
+const RESERVATION_CLIENT_SOURCES: RowFieldSources<ClientRegistryRow> = {
+    name: [[RES, "client"]],
+    surname: [[RES, "client"]],
+    phone: [[RES, "client"]],
+    email: [[RES, "client"]],
+    unit: [[RES, "unit"]],
+    project: [[RES, "unit"]],
+    typology: [[RES, "unit"], [UNIT, "unitType"]],
+    surface: [[RES, "unit"], [UNIT, "netArea"], [UNIT, "area"]],
+    unitValue: [[RES, "unit"], [UNIT, "price"]],
+    currency: [[RES, "unit"], [UNIT, "priceCurrency"]],
+    paid: [[RES, "unit"], [UNIT, "price"], [RES, "depositAmount"], [RES, "paid"]],
+    remaining: [[RES, "unit"], [UNIT, "price"], [RES, "depositAmount"], [RES, "paid"]],
+    bookingDate: [[RES, "reservationDate"]],
+    agent: [[RES, "reservedBy"]],
+};
+
+const SALE_MONEY: readonly (readonly [string, string])[] = [
+    [SALE, "finalPrice"],
+    [SALE, "paymentType"],
+    [SALE, "paymentPlan"],
+    [PLAN, "totalAmount"],
+    [PLAN, "downPayment"],
+    [PLAN, "downPaymentPaid"],
+    [PLAN, "installments"],
+];
+
+const SALE_CLIENT_SOURCES: RowFieldSources<ClientRegistryRow> = {
+    name: [[SALE, "buyer"]],
+    surname: [[SALE, "buyer"]],
+    phone: [[SALE, "buyer"]],
+    email: [[SALE, "buyer"]],
+    unit: [[SALE, "unit"]],
+    project: [[SALE, "unit"]],
+    typology: [[SALE, "unit"], [UNIT, "unitType"]],
+    surface: [[SALE, "unit"], [UNIT, "netArea"], [UNIT, "area"]],
+    unitValue: [[SALE, "finalPrice"]],
+    currency: [[SALE, "saleCurrency"]],
+    paid: SALE_MONEY,
+    remaining: SALE_MONEY,
+    bookingDate: [[SALE, "reservation"], [RES, "reservationDate"]],
+    contractDate: [[SALE, "saleDate"]],
+    agent: [[SALE, "soldBy"]],
+};
 
 async function resolveUnitIds(
     params: HubParams & {
@@ -153,6 +230,7 @@ async function listContracts(
     const unitIds = await resolveUnitIds({...params, project, edifice, floor, unit});
     const dateRange = parseDateRange(signatureDateFrom, signatureDateTo);
     const rows: ContractRegistryRow[] = [];
+    const read = collectedFieldReader(actionUserCtx, languageCode);
 
     const includeReservations = !contractType || contractType === "reservation";
     const includeSales =
@@ -168,9 +246,11 @@ async function listContracts(
 
         const reservations = await reservationService.findForContractsHub(reservationMatch);
 
+        const hidden = unreadableRowKeys(RESERVATION_CONTRACT_SOURCES, read);
+        const canFilterByDate = read(RES, "reservationDate");
         for (const doc of reservations) {
-            const row = reservationToContractRow(doc as Record<string, unknown>);
-            if (!inDateRange(doc.reservationDate, dateRange)) continue;
+            const row = omitRowKeys(reservationToContractRow(doc as Record<string, unknown>), hidden);
+            if (canFilterByDate && !inDateRange(doc.reservationDate, dateRange)) continue;
             if (
                 !matchesSearch(search, [
                     row.contractNumber,
@@ -194,9 +274,11 @@ async function listContracts(
 
         const sales = await saleService.findForContractsHub(saleMatch);
 
+        const hidden = unreadableRowKeys(SALE_CONTRACT_SOURCES, read);
+        const canFilterByDate = read(SALE, "saleDate");
         for (const doc of sales) {
-            const row = saleToContractRow(doc as Record<string, unknown>);
-            if (!inDateRange(doc.saleDate, dateRange)) continue;
+            const row = omitRowKeys(saleToContractRow(doc as Record<string, unknown>), hidden);
+            if (canFilterByDate && !inDateRange(doc.saleDate, dateRange)) continue;
             if (
                 !matchesSearch(search, [
                     row.contractNumber,
@@ -267,12 +349,16 @@ async function listClients(
             : Promise.resolve([]),
     ]);
 
+    // Masked before the value filters and search below, so hidden contacts and amounts cannot be probed.
+    const read = collectedFieldReader(actionUserCtx, languageCode);
+    const hiddenOnReservation = unreadableRowKeys(RESERVATION_CLIENT_SOURCES, read);
+    const hiddenOnSale = unreadableRowKeys(SALE_CLIENT_SOURCES, read);
     let rows = buildClientRegistryRows(
         sales as Record<string, unknown>[],
         reservations as Record<string, unknown>[],
-    );
+    ).map((row) => omitRowKeys(row, row.sourceType === "sale" ? hiddenOnSale : hiddenOnReservation));
 
-    if (unitTypeId && ObjectId.isValid(unitTypeId)) {
+    if (unitTypeId && ObjectId.isValid(unitTypeId) && read(UNIT, "unitType")) {
         const matchingUnitIds = new Set<string>();
         for (const sale of sales) {
             const unit = sale.unit as {unitType?: {_id?: {toString: () => string}}; _id?: {toString: () => string}} | undefined;

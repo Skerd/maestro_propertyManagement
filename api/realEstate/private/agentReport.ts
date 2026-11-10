@@ -14,6 +14,7 @@ import type {AgentReportFormType} from "armonia/src/modules/propertyManagement/a
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
+    collectedFieldReader,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 import {saleService} from "../../../database/schemas/sale/sale.service";
@@ -42,6 +43,16 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     const canReadReservations = canReadCollectedFields("reservations", params.actionUserCtx, languageCode);
     const canReadCommissions = canReadCollectedFields("commissions", params.actionUserCtx, languageCode);
     assertAnyCollectedRead(canReadSales || canReadReservations || canReadCommissions, languageCode);
+
+    // Field-level read (SEC-09): each figure is grouped by, and counts, fields the caller may read; the rest stay 0.
+    const read = collectedFieldReader(params.actionUserCtx, languageCode);
+    const salesByAgent = canReadSales && read("sales", "soldBy");
+    const salesByType = salesByAgent && read("sales", "paymentType");
+    const reservationsByAgent = canReadReservations && read("reservations", "reservedBy");
+    const reservationsConverted = reservationsByAgent && read("reservations", "status");
+    const commissionsByAgent = canReadCommissions && read("commissions", "agent");
+    const commissionTotals = commissionsByAgent && read("commissions", "amount") && read("commissions", "status");
+    const commissionRates = commissionsByAgent && read("commissions", "ratePercent");
 
     const from = new Date(dateFrom);
     const to   = new Date(dateTo);
@@ -76,7 +87,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     }
 
     // 1. Aggregate sales by soldBy
-    const salesAgg: {_id: ObjectId; total: number; cash: number; pp: number}[] = canReadSales
+    const salesAgg: {_id: ObjectId; total: number; cash: number; pp: number}[] = salesByAgent
         ? await saleService.aggregate([
             {$match: baseMatch},
             {$group: {
@@ -93,7 +104,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     if (agentObjectIds.length > 0) {
         resMatch.reservedBy = {$in: agentObjectIds};
     }
-    const resAgg: {_id: ObjectId; total: number; converted: number}[] = canReadReservations
+    const resAgg: {_id: ObjectId; total: number; converted: number}[] = reservationsByAgent
         ? await reservationService.aggregate([
             {$match: resMatch},
             {$group: {
@@ -109,7 +120,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     if (agentObjectIds.length > 0) {
         commMatch.agent = {$in: agentObjectIds};
     }
-    const commAgg: {_id: ObjectId; paidTotal: number; pendingTotal: number; avgRate: number}[] = canReadCommissions
+    const commAgg: {_id: ObjectId; paidTotal: number; pendingTotal: number; avgRate: number}[] = commissionsByAgent
         ? await commissionService.aggregate([
             {$match: commMatch},
             {$group: {
@@ -156,7 +167,7 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
         const agent = userMap.get(idStr) ?? {_id: idStr};
 
         const totalReservations = res?.total ?? 0;
-        const convertedReservations = res?.converted ?? 0;
+        const convertedReservations = reservationsConverted ? res?.converted ?? 0 : 0;
         const conversionRate = totalReservations > 0
             ? Math.round((convertedReservations / totalReservations) * 100)
             : 0;
@@ -164,14 +175,14 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
         entries.push({
             agent,
             totalSales:             sale?.total ?? 0,
-            cashSales:              sale?.cash ?? 0,
-            paymentPlanSales:       sale?.pp ?? 0,
+            cashSales:              salesByType ? sale?.cash ?? 0 : 0,
+            paymentPlanSales:       salesByType ? sale?.pp ?? 0 : 0,
             totalReservations,
             convertedReservations,
             conversionRate,
-            totalCommissionsPaid:    Math.round((comm?.paidTotal ?? 0) * 100) / 100,
-            totalCommissionsPending: Math.round((comm?.pendingTotal ?? 0) * 100) / 100,
-            averageCommissionRate:   Math.round((comm?.avgRate ?? 0) * 100) / 100,
+            totalCommissionsPaid:    commissionTotals ? Math.round((comm?.paidTotal ?? 0) * 100) / 100 : 0,
+            totalCommissionsPending: commissionTotals ? Math.round((comm?.pendingTotal ?? 0) * 100) / 100 : 0,
+            averageCommissionRate:   commissionRates ? Math.round((comm?.avgRate ?? 0) * 100) / 100 : 0,
         });
     }
 

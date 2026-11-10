@@ -17,8 +17,9 @@ import {
     type RentMoneyRow,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {
-    isPastExpirationUtcEndOfDay,
-    utcCalendarDaysUntilExpirationDay,
+    calendarDaysUntil,
+    companyToday,
+    isCalendarDayOver,
 } from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import type {RentReminderKind} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/sendRentReminder.form.validator";
 
@@ -86,10 +87,11 @@ export function reminderKindToDispatch(
 export function assertRentReminderKindAllowed(
     kind: RentReminderKind,
     dueDate: Date,
+    today: string,
     languageCode: string,
 ): void {
-    const past = isPastExpirationUtcEndOfDay(dueDate);
-    const diff = utcCalendarDaysUntilExpirationDay(dueDate);
+    const past = isCalendarDayOver(dueDate, today);
+    const diff = calendarDaysUntil(dueDate, today);
     switch (kind) {
         case "3d":
             if (diff < 3) throw apiValidationException("manual_rent_email_action_not_allowed", "", null, languageCode);
@@ -201,11 +203,12 @@ export async function sendManualRentReminder(params: {
     }
 
     const due = new Date(payment.dueDate);
-    assertRentReminderKindAllowed(kind, due, languageCode);
+    const today = await companyToday(companyId, {session});
+    assertRentReminderKindAllowed(kind, due, today, languageCode);
 
     const dispatchKind = reminderKindToDispatch(kind);
     const daysRemaining =
-        kind === "remaining_days" ? utcCalendarDaysUntilExpirationDay(due) : undefined;
+        kind === "remaining_days" ? calendarDaysUntil(due, today) : undefined;
     const payload = buildLeaseRentEmailPayload({
         lease,
         payment,

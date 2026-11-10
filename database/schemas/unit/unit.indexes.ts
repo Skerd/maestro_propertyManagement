@@ -61,11 +61,9 @@ export function applyUnitIndexes(UnitSchema: Schema): void {
     UnitSchema.index({ numberOfRooms: 1 });
     UnitSchema.index({ numberOfBathrooms: 1 });
     
-    // Compound index for project + status (most common query)
-    UnitSchema.index({ project: 1, status: 1 });
-    
-    // Compound index for company + status
-    UnitSchema.index({ company: 1, status: 1 });
+    // The units list filtered by project (and status), sorted by `createdAt: -1` (DB-06), and the project
+    // statistics `{company, project}` grouped by status.
+    UnitSchema.index({ company: 1, project: 1, status: 1, createdAt: -1 });
 
     // Homepage featured units
     UnitSchema.index({ company: 1, deletedAt: 1, featuredOnHomepage: 1, featuredSortOrder: 1 });

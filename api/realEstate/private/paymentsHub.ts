@@ -42,6 +42,10 @@ import {matchesSearch, paginateRows} from "../../../utilities/contractsHub/contr
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
+    collectedFieldReader,
+    omitRowKeys,
+    type RowFieldSources,
+    unreadableRowKeys,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 export const basePath = "/api/realEstate/paymentsHub";
@@ -107,6 +111,60 @@ function assertPaymentsHubAccess(params: AuthenticatedMWType): void {
         canReadCollectedFields("sales", params.actionUserCtx, params.languageCode),
         params.languageCode,
     );
+}
+
+const PLAN = "paymentplans";
+const SALE = "sales";
+
+/** Row fields that come from the sale behind the plan, or from the plan as a whole. */
+const SHARED_SOURCES: RowFieldSources<PaymentsHubRow> = {
+    planCode: [[PLAN, "name"]],
+    saleId: [[PLAN, "sale"]],
+    saleCode: [[PLAN, "sale"], [SALE, "name"]],
+    currency: [[PLAN, "sale"], [SALE, "saleCurrency"]],
+    unit: [[PLAN, "sale"], [SALE, "unit"]],
+    project: [[PLAN, "sale"], [SALE, "unit"]],
+};
+
+const DOWN_PAYMENT_SOURCES: RowFieldSources<PaymentsHubRow> = {
+    ...SHARED_SOURCES,
+    dueDate: [[PLAN, "startDate"]],
+    daysOverdue: [[PLAN, "startDate"]],
+    paidDate: [[PLAN, "downPaymentDate"]],
+    amount: [[PLAN, "downPayment"]],
+    paidAmount: [[PLAN, "downPayment"], [PLAN, "downPaymentPaid"]],
+    remaining: [[PLAN, "downPayment"], [PLAN, "downPaymentPaid"]],
+};
+
+const INSTALLMENT_SOURCES: RowFieldSources<PaymentsHubRow> = {
+    ...SHARED_SOURCES,
+    installmentNumber: [[PLAN, "installments.installmentNumber"]],
+    dueDate: [[PLAN, "installments.dueDate"]],
+    daysOverdue: [[PLAN, "installments.dueDate"]],
+    paidDate: [[PLAN, "installments.paidDate"], [PLAN, "installments.paymentReceipts"]],
+    amount: [[PLAN, "installments.amount"]],
+    paidAmount: [[PLAN, "installments.paidAmount"]],
+    remaining: [[PLAN, "installments.amount"], [PLAN, "installments.paidAmount"], [PLAN, "installments.lateFeeAmount"]],
+    lateFeeAmount: [[PLAN, "installments.lateFeeAmount"]],
+};
+
+/**
+ * Field-level read (SEC-09): a row keeps only what the caller may read on the plan and its sale. Applied before
+ * search, filters and totals, so hidden amounts and buyers can neither be listed, searched for nor summed.
+ */
+function rowMasker(params: AuthenticatedMWType): (row: PaymentsHubRow) => PaymentsHubRow {
+    const read = collectedFieldReader(params.actionUserCtx, params.languageCode);
+    const hiddenDownPayment = unreadableRowKeys(DOWN_PAYMENT_SOURCES, read);
+    const hiddenInstallment = unreadableRowKeys(INSTALLMENT_SOURCES, read);
+    const canReadBuyer = read(PLAN, "sale") && read(SALE, "buyer");
+    const canReadBuyerCompany = read(PLAN, "sale") && read(SALE, "buyerCompany");
+    return (row) => {
+        const masked = omitRowKeys(row, row.kind === "down_payment" ? hiddenDownPayment : hiddenInstallment);
+        if (!masked.client) return masked;
+        // The client is the buyer, or (no buyer) the buyer company, which `mapClient` marks with `companyName`.
+        const fromCompany = "companyName" in masked.client;
+        return (fromCompany ? canReadBuyerCompany : canReadBuyer) ? masked : omitRowKeys(masked, ["client"]);
+    };
 }
 
 /** UTC day bounds, so a filter means the same thing wherever the server runs. */
@@ -209,9 +267,10 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
     );
     const truncated = docs.length > PLAN_SCAN_CAP;
     const now = new Date();
+    const mask = rowMasker(params);
     const rows: PaymentsHubRow[] = [];
     for (const doc of docs.slice(0, PLAN_SCAN_CAP)) {
-        rows.push(...planToHubRows(doc as unknown as Record<string, any>, now));
+        rows.push(...planToHubRows(doc as unknown as Record<string, any>, now).map(mask));
     }
     return {rows, truncated};
 }

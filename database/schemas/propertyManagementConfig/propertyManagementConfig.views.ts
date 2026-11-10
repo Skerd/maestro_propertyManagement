@@ -54,29 +54,8 @@ export const propertyManagementConfigSheetView: ViewConfig = {
     ],
 };
 
-function notifyUsersField(name: "notifyOnSales" | "notifyOnReservations", withPermissions: boolean): ViewConfig["nodes"][number] {
-    return {
-        render: "#Field",
-        field: {
-            name,
-            widget: "#ObjectIdChipsInput",
-            label: `form.${name}Label`,
-            widgetProps: {
-                apiUrl: "/api/company/users/select",
-                method: "POST",
-                placeholderKey: "form.selectUser",
-                removeTooltipKey: "form.removeUser",
-                selectPageSizeCreate: 50,
-                selectPageSizeEdit: 200,
-                labelRefFormExtraKey: name,
-            },
-        },
-        ...(withPermissions ? {permissions: {read: name, write: name}} : {}),
-    };
-}
-
-function notificationsSection(withPermissions: boolean): ViewConfig["nodes"][number] {
-    return {
+const propertyManagementConfigCreateFormNodes: ViewConfig["nodes"] = [
+    {
         render: "#TitleWithCollapse",
         props: {title: "notifications"},
         children: [
@@ -84,16 +63,44 @@ function notificationsSection(withPermissions: boolean): ViewConfig["nodes"][num
                 render: "#FormGrid",
                 props: {columns: 1},
                 children: [
-                    notifyUsersField("notifyOnSales", withPermissions),
-                    notifyUsersField("notifyOnReservations", withPermissions),
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "notifyOnSales",
+                            widget: "#ObjectIdChipsInput",
+                            label: "form.notifyOnSalesLabel",
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                placeholderKey: "form.selectUser",
+                                removeTooltipKey: "form.removeUser",
+                                selectPageSizeCreate: 50,
+                                selectPageSizeEdit: 200,
+                                labelRefFormExtraKey: "notifyOnSales",
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "notifyOnReservations",
+                            widget: "#ObjectIdChipsInput",
+                            label: "form.notifyOnReservationsLabel",
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                placeholderKey: "form.selectUser",
+                                removeTooltipKey: "form.removeUser",
+                                selectPageSizeCreate: 50,
+                                selectPageSizeEdit: 200,
+                                labelRefFormExtraKey: "notifyOnReservations",
+                            },
+                        },
+                    },
                 ],
             },
         ],
-    };
-}
-
-const propertyManagementConfigCreateFormNode: ViewConfig["nodes"] = [
-    notificationsSection(false),
+    },
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -132,8 +139,55 @@ const propertyManagementConfigCreateFormNode: ViewConfig["nodes"] = [
     },
 ];
 
-const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
-    notificationsSection(true),
+const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "notifications"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "notifyOnSales",
+                            widget: "#ObjectIdChipsInput",
+                            label: "form.notifyOnSalesLabel",
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                placeholderKey: "form.selectUser",
+                                removeTooltipKey: "form.removeUser",
+                                selectPageSizeCreate: 50,
+                                selectPageSizeEdit: 200,
+                                labelRefFormExtraKey: "notifyOnSales",
+                            },
+                        },
+                        permissions: {read: "notifyOnSales", write: "notifyOnSales"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "notifyOnReservations",
+                            widget: "#ObjectIdChipsInput",
+                            label: "form.notifyOnReservationsLabel",
+                            widgetProps: {
+                                apiUrl: "/api/company/users/select",
+                                method: "POST",
+                                placeholderKey: "form.selectUser",
+                                removeTooltipKey: "form.removeUser",
+                                selectPageSizeCreate: 50,
+                                selectPageSizeEdit: 200,
+                                labelRefFormExtraKey: "notifyOnReservations",
+                            },
+                        },
+                        permissions: {read: "notifyOnReservations", write: "notifyOnReservations"},
+                    },
+                ],
+            },
+        ],
+    },
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
@@ -148,7 +202,8 @@ const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
                             name: "requiresSaleApproval",
                             widget: "#Switch",
                             label: "form.requiresSaleApprovalLabel",
-                        }, permissions: {read: "requiresSaleApproval", write: "requiresSaleApproval"},
+                        },
+                        permissions: {read: "requiresSaleApproval", write: "requiresSaleApproval"},
                     },
                     {
                         render: "#Field",
@@ -156,7 +211,8 @@ const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
                             name: "requiresHandoverPackageForHandover",
                             widget: "#Switch",
                             label: "form.requiresHandoverPackageForHandoverLabel",
-                        }, permissions: {read: "requiresHandoverPackageForHandover", write: "requiresHandoverPackageForHandover"},
+                        },
+                        permissions: {read: "requiresHandoverPackageForHandover", write: "requiresHandoverPackageForHandover"},
                     },
                     {
                         render: "#Field",
@@ -164,7 +220,8 @@ const propertyManagementConfigEditFormNode: ViewConfig["nodes"] = [
                             name: "listedOnPortal",
                             widget: "#Switch",
                             label: "form.listedOnPortalLabel",
-                        }, permissions: {read: "listedOnPortal", write: "listedOnPortal"},
+                        },
+                        permissions: {read: "listedOnPortal", write: "listedOnPortal"},
                     },
                 ],
             },
@@ -179,7 +236,7 @@ export const propertyManagementConfigCreateFormView: ViewConfig = {
     accessModel: "propertymanagementconfigs",
     apiUrl: "/api/realEstate/propertyManagementConfig",
     method: "PUT",
-    nodes: propertyManagementConfigCreateFormNode,
+    nodes: propertyManagementConfigCreateFormNodes,
 };
 
 export const propertyManagementConfigEditFormView: ViewConfig = {
@@ -189,7 +246,7 @@ export const propertyManagementConfigEditFormView: ViewConfig = {
     accessModel: "propertymanagementconfigs",
     apiUrl: "/api/realEstate/propertyManagementConfig",
     method: "PATCH",
-    nodes: propertyManagementConfigEditFormNode,
+    nodes: propertyManagementConfigEditFormNodes,
 };
 
 export const propertyManagementConfigViews: ViewConfig[] = [

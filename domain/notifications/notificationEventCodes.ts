@@ -11,6 +11,8 @@ export const NotificationEventCodes = {
     RESERVATION_PAID: "RESERVATION_PAID",
     RESERVATION_PAYMENT_REVERSED: "RESERVATION_PAYMENT_REVERSED",
     RESERVATION_EXPIRATION_REMINDER: "RESERVATION_EXPIRATION_REMINDER",
+    /** Staff: the reservation's agent + PropertyManagementConfig.notifyOnReservations (D112). */
+    RESERVATION_EXPIRED: "RESERVATION_EXPIRED",
     SALE_CREATED: "SALE_CREATED",
     /** Staff watchers (PropertyManagementConfig.notifyOnSales). */
     SALE_CREATED_STAFF: "SALE_CREATED_STAFF",

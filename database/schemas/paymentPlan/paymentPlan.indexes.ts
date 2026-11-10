@@ -33,7 +33,7 @@ export function applyPaymentPlanIndexes(PaymentPlanSchema: Schema): void {
     // For sorting by creation date
     PaymentPlanSchema.index({ createdAt: -1 });
 
-    // Cron optimization: daily installment reminder job scans for active/overdue plans
-    // with upcoming/past-due installments — this compound index avoids collection scans
-    PaymentPlanSchema.index({ "installments.dueDate": 1, status: 1 });
+    // The installment reminder and overdue sweeps (DB-06): `{company, status: "active", _id: {$gt}}` sorted by `_id`,
+    // paged. Installments are matched after `$unwind` everywhere, so an `installments.dueDate` index serves no query.
+    PaymentPlanSchema.index({ company: 1, status: 1, _id: 1 });
 }

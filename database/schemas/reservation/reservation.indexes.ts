@@ -35,7 +35,6 @@ export function applyReservationIndexes(ReservationSchema: Schema): void {
     ReservationSchema.index({ unit: 1, isActive: 1 });
     ReservationSchema.index({ client: 1, isActive: 1 });
     ReservationSchema.index({ reservedByCompany: 1, isActive: 1 });
-    ReservationSchema.index({ isActive: 1, paid: 1 });
 
     // For finding cancelled reservations
     ReservationSchema.index({ cancelledAt: -1 });
@@ -43,8 +42,13 @@ export function applyReservationIndexes(ReservationSchema: Schema): void {
     // Compound index for unit + active status (most common query)
     ReservationSchema.index({ unit: 1, isActive: 1, createdAt: -1 });
 
-    // Compound index for expiration job: stamp expiredAt for unpaid actives
-    ReservationSchema.index({ isActive: 1, paid: 1, expirationDate: 1, expiredAt: 1 });
+    // Unpaid active reservations by expiration day (DB-06): the expiry cron
+    // `{company, isActive: true, paid: false, status: "active", expirationDate: {$lt}}`, the reminder cron
+    // `{company, isActive: true, paid: false, expirationDate: {$gte, $lt}}` and the dashboard's upcoming expirations.
+    ReservationSchema.index({ company: 1, isActive: 1, paid: 1, status: 1, expirationDate: 1 });
+
+    // The reservations list: `{company}` sorted by `reservationDate: -1` (the router's default sort).
+    ReservationSchema.index({ company: 1, reservationDate: -1 });
 
     // Multi-company: client reservations filtered to a specific company
     ReservationSchema.index({ client: 1, company: 1 });

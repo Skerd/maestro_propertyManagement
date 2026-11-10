@@ -1,6 +1,7 @@
 /**
- * Ending a reservation. Staff cancelling it (the `cancel` action) and the expiry cron (`runReservationExpiredStamp`)
- * end it through the one `endReservation` (BE-02); each trigger adds only its own checks.
+ * Ending a reservation. Staff cancelling it (the `cancel` action), staff sending the "expired" email
+ * (`manualClientEmail` `send_expired`) and the expiry cron (`runReservationExpiredStamp`) end it through the one
+ * `endReservation` (BE-02); each trigger adds only its own checks.
  */
 import type {ClientSession} from "mongoose";
 import {ObjectId} from "mongodb";
@@ -8,7 +9,9 @@ import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/
 import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import type {serverLogger} from "@coreModule/loggers/serverLog";
 import type {UserContext} from "@coreModule/utilities/types/types";
+import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
 import {voidPendingCommission} from "@propertyManagement/utilities/mappers/commissions/commission";
+import {notifyReservationExpired} from "@propertyManagement/utilities/sale/salesStaffNotify";
 import type {IUnit} from "../unit/unit";
 import {unitService} from "../unit/unit.service";
 import {CommissionSourceType} from "../commission/commission";
@@ -31,8 +34,8 @@ export type ReservationTransitionContext = {
 /**
  * Ends an active reservation: it is stamped cancelled or expired, its unpaid commission is voided, and its unit, while
  * still held by it, is freed. A cancelled reservation is no longer active (`isActive: false`); an expired one keeps
- * `isActive`, as the expiry stamp always did (the reservation screens read the status). Returns the unit, or null when
- * it no longer exists.
+ * `isActive`, as the expiry stamp always did (the reservation screens read the status). Once an expiry commits, the
+ * agent and the reservation watchers are told (D112). Returns the unit, or null when it no longer exists.
  */
 export async function endReservation(
     reservation: IReservation,
@@ -74,6 +77,12 @@ export async function endReservation(
             unit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
         }
         await unit.save({session});
+    }
+
+    if (ending.status === ReservationStatus.EXPIRED) {
+        await runAfterCommit(session, async () => {
+            await notifyReservationExpired({companyId, reservationId: reservation._id, languageCode});
+        });
     }
     return unit;
 }

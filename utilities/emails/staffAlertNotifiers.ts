@@ -53,10 +53,19 @@ export type SalesStaffAlertEmail = UnitContext & {
           expirationDateFormatted?: string;
           createdByName?: string;
       }
+    | {
+          kind: "reservation_expired";
+          reservationId: string;
+          reservationCode?: string;
+          clientName?: string;
+          depositDisplay?: string;
+          expirationDateFormatted?: string;
+          agentName?: string;
+      }
 );
 
 /** Copy suffix: `subject{X}`, `heading{X}`, `preheader{X}`, `intro{X}`. */
-type Variant = "Sale" | "SalePending" | "Reservation";
+type Variant = "Sale" | "SalePending" | "Reservation" | "ReservationExpired";
 
 function ctaButtonHtml(label: string, url: string): string {
     if (!url) {
@@ -106,7 +115,7 @@ function unitRows(rows: SummaryRow[], loc: Record<string, string>, data: UnitCon
     pushRow(rows, loc.labelUnitName, data.unitDisplayName);
 }
 
-/** Internal alert to a staff watcher configured under Sales & handover → Notifications. */
+/** Internal alert to a staff watcher configured under Sales & handover → Notifications (and, for an expired reservation, its agent). */
 export async function sendSalesStaffAlertMail(data: SalesStaffAlertEmail): Promise<void> {
     if (!EMAIL.ENABLED) {
         return;
@@ -152,6 +161,20 @@ export async function sendSalesStaffAlertMail(data: SalesStaffAlertEmail): Promi
         scheduleTable = data.paymentType === "payment_plan" ? scheduleTableHtml(loc, data.paymentSchedule) : "";
         pushRow(rows, loc.labelBuyer, data.buyerName);
         pushRow(rows, loc.labelSoldBy, data.soldByName);
+    } else if (data.kind === "reservation_expired") {
+        variant = "ReservationExpired";
+        // The reservation body is generic (intro, summary, button).
+        bodyFile = "body-reservation-created.html";
+        summaryTitle = loc.summaryTitleReservation ?? "";
+        ctaLabel = loc.ctaReservation ?? "";
+        ctaUrl = filteredListUrl(panelHost, "/realEstate/reservations", {code: data.reservationCode, unitId: data.unitId, unitLabel: data.unitNumber});
+
+        pushRow(rows, loc.labelReference, data.reservationCode);
+        unitRows(rows, loc, data);
+        pushRow(rows, loc.labelClient, data.clientName);
+        pushRow(rows, loc.labelDeposit, data.depositDisplay);
+        pushRow(rows, loc.labelExpirationDate, data.expirationDateFormatted);
+        pushRow(rows, loc.labelAgent, data.agentName);
     } else {
         variant = "Reservation";
         bodyFile = "body-reservation-created.html";
@@ -178,7 +201,10 @@ export async function sendSalesStaffAlertMail(data: SalesStaffAlertEmail): Promi
     });
 
     let emailTemplate = fs.readFileSync(path.join(TEMPLATE_DIR, "salesStaffAlert.html"), "utf8");
-    emailTemplate = applyPlaceholders(emailTemplate, layoutStrings(strings, `heading${variant}`, `preheader${variant}`));
+    const layout = layoutStrings(strings, `heading${variant}`, `preheader${variant}`);
+    // The agent may not be on the watcher list, so this footer names both reasons.
+    if (variant === "ReservationExpired") layout.footerNote = loc.footerNoteReservationExpired ?? layout.footerNote;
+    emailTemplate = applyPlaceholders(emailTemplate, layout);
     emailTemplate = applyPlaceholders(emailTemplate, {
         greeting: localized(strings, "greeting", {fullName: escapeHtml(data.fullName)}),
         bodyInner,

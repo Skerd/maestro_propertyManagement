@@ -363,6 +363,39 @@ export function registerRealEstateNotificationEventHandlers(): void {
         }
     });
 
+    notificationEventBus.on(NotificationEventCodes.RESERVATION_EXPIRED, async (event: NotificationEvent) => {
+        const {receiverIds, payload} = event;
+        const opts = langOpts(event);
+        const who = payload.clientName ? ` (${payload.clientName})` : "";
+
+        for (const receiverId of receiverIds) {
+            try {
+                await createAndPushNotification(
+                    {
+                        receiver: new ObjectId(receiverId),
+                        company: new ObjectId(payload.companyId as string),
+                        code: NotificationEventCodes.RESERVATION_EXPIRED,
+                        description: `Reservation expired: Unit ${payload.unitNumber ?? "—"}${who}`,
+                        content: {
+                            reservationId: payload.reservationId,
+                            unitId: payload.unitId,
+                            unitNumber: payload.unitNumber,
+                            clientName: payload.clientName,
+                            agentName: payload.agentName,
+                            expirationDate: payload.expirationDate,
+                        },
+                        importance: NotificationImportance.HIGH,
+                        category: NotificationCategory.FINANCIAL,
+                    },
+                    opts
+                );
+            }
+            catch (e) {
+                logger.err(`Failed to create RESERVATION_EXPIRED notification for ${receiverId}:`, e);
+            }
+        }
+    });
+
     // ─── Payment Plans ─────────────────────────────────────────────────────────
 
     notificationEventBus.on(NotificationEventCodes.PAYMENT_PLAN_DOWN_PAYMENT_PAID, async (event: NotificationEvent) => {
@@ -865,6 +898,48 @@ export function registerRealEstateNotificationEventHandlers(): void {
                                 title: payload.title,
                                 projectId: payload.projectId,
                                 milestoneId: payload.milestoneId,
+                            },
+                            importance: evt.importance,
+                            category: NotificationCategory.COMPANY,
+                        },
+                        opts
+                    );
+                } catch (e) {
+                    logger.err(`Failed to create ${evt.code} notification for ${receiverId}:`, e);
+                }
+            }
+        });
+    }
+
+    // ─── Construction delivery records (propertyDevelopment) ─────────────────────
+    // Emitted with the permit payload shape: {companyId, <record>Id, title, projectId, languageCode}.
+
+    const deliveryRecordEvents: {code: string; idKey: string; description: string; importance: NotificationImportance}[] = [
+        {code: NotificationEventCodes.RFI_OPENED, idKey: "rfiId", description: "RFI opened", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.RFI_ANSWERED, idKey: "rfiId", description: "RFI answered", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.VARIATION_ORDER_APPROVED, idKey: "variationOrderId", description: "Variation order approved", importance: NotificationImportance.HIGH},
+        {code: NotificationEventCodes.VARIATION_ORDER_REJECTED, idKey: "variationOrderId", description: "Variation order rejected", importance: NotificationImportance.HIGH},
+        {code: NotificationEventCodes.BUDGET_APPROVED, idKey: "budgetId", description: "Budget approved", importance: NotificationImportance.HIGH},
+        {code: NotificationEventCodes.PROGRESS_CLAIM_SUBMITTED, idKey: "progressClaimId", description: "Progress claim submitted", importance: NotificationImportance.MEDIUM},
+        {code: NotificationEventCodes.SAFETY_INCIDENT_REPORTED, idKey: "safetyIncidentId", description: "Safety incident reported", importance: NotificationImportance.HIGH},
+    ];
+
+    for (const evt of deliveryRecordEvents) {
+        notificationEventBus.on(evt.code, async (event: NotificationEvent) => {
+            const {receiverIds, payload} = event;
+            const opts = langOpts(event);
+            for (const receiverId of receiverIds) {
+                try {
+                    await createAndPushNotification(
+                        {
+                            receiver: new ObjectId(receiverId),
+                            company: new ObjectId(payload.companyId as string),
+                            code: evt.code,
+                            description: evt.description,
+                            content: {
+                                [evt.idKey]: payload[evt.idKey],
+                                title: payload.title,
+                                projectId: payload.projectId,
                             },
                             importance: evt.importance,
                             category: NotificationCategory.COMPANY,

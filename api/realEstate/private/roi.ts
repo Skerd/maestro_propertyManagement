@@ -27,6 +27,7 @@ import type {
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
+    collectedFieldReader,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 
 import {unitCostService} from "../../../database/schemas/unitCost/unitCost.service";
@@ -115,6 +116,14 @@ router.post(
         const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
         const canReadLeases = canReadCollectedFields("leases", actionUserCtx, languageCode);
         assertAnyCollectedRead(canReadUnits || canReadUnitCosts || canReadSales || canReadLeases, languageCode);
+        // Field-level read (SEC-09): a figure is computed only from fields the caller may read.
+        const read = collectedFieldReader(actionUserCtx, languageCode);
+        const costsReadable = canReadUnitCosts && read("unitcosts", "unit") && read("unitcosts", "expenditureItems");
+        const salePriceReadable = canReadSales && read("sales", "unit") && read("sales", "finalPrice");
+        const saleCurrencyReadable = read("sales", "saleCurrency");
+        const unitCurrencyReadable = read("units", "priceCurrency");
+        const rentReadable = canReadLeases && read("leases", "unit") && read("leases", "status") && read("leases", "monthlyRent");
+        const rentCurrencyReadable = read("leases", "rentCurrency");
         const companyId = company._id as ObjectId;
 
         const projectId  = typeof params.projectId === "string" && ObjectId.isValid(params.projectId)
@@ -144,7 +153,7 @@ router.post(
         const matchedUnitIds = units.map((u: any) => u._id);
 
         // ── Aggregate costs per unit ──────────────────────────────────────────────
-        const costAgg = canReadUnitCosts && matchedUnitIds.length > 0 ? await unitCostService.aggregate([
+        const costAgg = costsReadable && matchedUnitIds.length > 0 ? await unitCostService.aggregate([
             {$match: {unit: {$in: matchedUnitIds}, company: companyId, deletedAt: null}},
             {$unwind: {path: "$expenditureItems", preserveNullAndEmptyArrays: true}},
             {
@@ -169,7 +178,7 @@ router.post(
         }
 
         // ── Fetch sales for sold units ─────────────────────────────────────────────
-        const sales = canReadSales && matchedUnitIds.length > 0
+        const sales = salePriceReadable && matchedUnitIds.length > 0
             ? await saleService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId})
             : [];
         const saleByUnit: Record<string, {price: number; symbol?: string}> = {};
@@ -177,12 +186,12 @@ router.post(
             const uid = (sale.unit as any)?.toString() ?? sale.unit.toString();
             saleByUnit[uid] = {
                 price:  sale.finalPrice ? parseFloat(sale.finalPrice.toString()) : 0,
-                symbol: sale.saleCurrency?.symbol,
+                symbol: saleCurrencyReadable ? sale.saleCurrency?.symbol : undefined,
             };
         }
 
         // ── Fetch active leases for rented units ──────────────────────────────────
-        const leases = canReadLeases && matchedUnitIds.length > 0
+        const leases = rentReadable && matchedUnitIds.length > 0
             ? await leaseService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId, status: "active"})
             : [];
         const rentByUnit: Record<string, {monthly: number; symbol?: string}> = {};
@@ -190,13 +199,14 @@ router.post(
             const uid = (lease.unit as any)?.toString() ?? lease.unit.toString();
             rentByUnit[uid] = {
                 monthly: lease.monthlyRent ? parseFloat(lease.monthlyRent.toString()) : 0,
-                symbol:  lease.rentCurrency?.symbol,
+                symbol:  rentCurrencyReadable ? lease.rentCurrency?.symbol : undefined,
             };
         }
 
         // ── Build per-unit breakdown ───────────────────────────────────────────────
         const unitBreakdowns: RoiUnitBreakdown[] = units.map((u: any) => {
             const uid         = u._id.toString();
+            const unitCurrencySymbol = unitCurrencyReadable ? u.priceCurrency?.symbol : undefined;
             const costs       = costByUnit[uid] ?? 0;
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
@@ -214,9 +224,9 @@ router.post(
                 unitNumber:     u.unitNumber,
                 status:         u.status,
                 salePrice,
-                saleCurrencySymbol: sale?.symbol ?? u.priceCurrency?.symbol,
+                saleCurrencySymbol: sale?.symbol ?? unitCurrencySymbol,
                 totalCosts:     costs,
-                costCurrencySymbol: u.priceCurrency?.symbol,
+                costCurrencySymbol: unitCurrencySymbol,
                 netProfit,
                 roiPercent,
                 monthlyRent,

@@ -1,7 +1,7 @@
 /**
  * Undoing a sale and putting it back. Rejecting a sale (`approveSale`) and deleting it (the sale router's
  * `afterDelete`) release what selling the unit did through the one `releaseSale` (BE-02); restoring a deleted sale
- * takes it back with `retakeSale`.
+ * takes it back with `retakeSale`, unless it was rejected (D111).
  */
 import type {ClientSession} from "mongoose";
 import {ObjectId} from "mongodb";
@@ -11,7 +11,7 @@ import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import type {serverLogger} from "@coreModule/loggers/serverLog";
 import type {UserContext} from "@coreModule/utilities/types/types";
 import {recordCommission, voidPendingCommission} from "@propertyManagement/utilities/mappers/commissions/commission";
-import type {ISale} from "./sale";
+import {type ISale, SaleApprovalStatus} from "./sale";
 import {unitService} from "../unit/unit.service";
 import {paymentPlanService} from "../paymentPlan/paymentPlan.service";
 import {InstallmentStatus, PaymentPlanStatus} from "../paymentPlan/paymentPlan";
@@ -87,6 +87,11 @@ export async function releaseSale(sale: ISale, ctx: SaleTransitionContext): Prom
 export async function retakeSale(sale: ISale, ctx: SaleTransitionContext): Promise<void> {
     const {session, logger, languageCode, actionUserCtx, companyId} = ctx;
     const opts = {session, logger, languageCode, auditUserId: actionUserCtx.userId};
+
+    // A rejected sale was refused, not undone by mistake (D111): a new sale is recorded instead.
+    if (sale.approvalStatus === SaleApprovalStatus.REJECTED) {
+        throw apiValidationException("sale_rejected_cannot_be_restored", "", null, languageCode);
+    }
 
     const unit = await unitService.findOneOrThrow({_id: nestedEntityToRef(sale.unit), company: companyId}, {session, logger, languageCode});
     const reservationId = nestedEntityToRef(sale.reservation);

@@ -59,10 +59,9 @@ export const CONTRACTS_HUB_SALE_POPULATE = [
     {path: "reservation", select: "name reservationDate"},
 ];
 
-function toIsoDate(value: unknown): string | undefined {
-    if (!value) return undefined;
-    const d = value instanceof Date ? value : new Date(value as string);
-    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+/** A stored local day (`YYYY-MM-DD`, D115), or undefined. */
+function dayOf(value: unknown): string | undefined {
+    return typeof value === "string" && value !== "" ? value : undefined;
 }
 
 function mediaUploadDate(media: unknown): string | undefined {
@@ -169,7 +168,7 @@ export function reservationToContractRow(reservation: Record<string, unknown>): 
         ...location,
         contractType: reservationContractType(),
         status: reservationContractStatus(reservation.status as string | undefined),
-        signatureDate: toIsoDate(reservation.reservationDate),
+        signatureDate: dayOf(reservation.reservationDate),
         uploadDate: mediaUploadDate(contracts?.[0]),
         agent: mapSnippet<SimpleBlankUser>()(reservation.reservedBy as object | undefined, SimpleBlankUserSnippet),
         paymentStatus: reservationPaymentStatus(reservation as {paid?: boolean; depositAmount?: unknown}),
@@ -189,7 +188,7 @@ export function saleToContractRow(sale: Record<string, unknown>): ContractRegist
         ...location,
         contractType: saleContractType(sale.paymentType as string | undefined),
         status: "sold",
-        signatureDate: toIsoDate(sale.saleDate),
+        signatureDate: dayOf(sale.saleDate),
         uploadDate: mediaUploadDate(sale.purchaseContract),
         agent: mapSnippet<SimpleBlankUser>()(sale.soldBy as object | undefined, SimpleBlankUserSnippet),
         paymentStatus: salePaymentStatus(sale as {paymentType?: string; paymentPlan?: unknown}),
@@ -291,7 +290,7 @@ export function buildClientRegistryRows(
             unitValue: money.unitValue,
             currency: money.currency,
             status: "reserved",
-            bookingDate: toIsoDate(reservation.reservationDate),
+            bookingDate: dayOf(reservation.reservationDate),
             agent: mapSnippet<SimpleBlankUser>()(reservation.reservedBy as object | undefined, SimpleBlankUserSnippet),
             paid: money.paid,
             remaining: money.remaining,
@@ -315,7 +314,7 @@ export function buildClientRegistryRows(
             netArea?: number;
             area?: number;
         };
-        const linkedReservation = sale.reservation as {reservationDate?: unknown} | undefined;
+        const linkedReservation = sale.reservation as {reservationDate?: string} | undefined;
         const money = computeClientMoney("sold", sale, undefined);
         const existing = rowMap.get(key);
 
@@ -330,8 +329,8 @@ export function buildClientRegistryRows(
             unitValue: money.unitValue,
             currency: money.currency,
             status: "sold",
-            bookingDate: existing?.bookingDate ?? toIsoDate(linkedReservation?.reservationDate),
-            contractDate: toIsoDate(sale.saleDate),
+            bookingDate: existing?.bookingDate ?? (linkedReservation?.reservationDate || undefined),
+            contractDate: dayOf(sale.saleDate),
             agent: mapSnippet<SimpleBlankUser>()(sale.soldBy as object | undefined, SimpleBlankUserSnippet),
             paid: money.paid,
             remaining: money.remaining,

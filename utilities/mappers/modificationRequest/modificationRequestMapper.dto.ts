@@ -63,14 +63,14 @@ function mapFinanceDetails(details: {
         costBreakdown?: unknown;
         media?: unknown;
         notes?: string;
-        estimatedCompletionDate?: Date | string;
+        estimatedCompletionDate?: string;
     };
     totalCost?: unknown;
     currency?: object;
     costBreakdown?: unknown;
     media?: unknown;
     notes?: string;
-    estimatedCompletionDate?: Date | string;
+    estimatedCompletionDate?: string;
 } | null | undefined): FinanceStageDetails | undefined {
     if (!details) return undefined;
 
@@ -126,9 +126,7 @@ function mapFinanceDetails(details: {
             ? (Array.isArray(plainDetails.media) ? plainDetails.media : []).map(mapMedia)
             : undefined,
         notes: plainDetails.notes,
-        estimatedCompletionDate: plainDetails.estimatedCompletionDate
-            ? new Date(plainDetails.estimatedCompletionDate).toISOString()
-            : undefined,
+        estimatedCompletionDate: plainDetails.estimatedCompletionDate || undefined,
     };
 }
 

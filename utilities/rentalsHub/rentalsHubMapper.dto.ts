@@ -54,6 +54,11 @@ function projectFromUnit(unit: {project?: object; floor?: {edifice?: {project?: 
     return mapSnippet<ProjectSimple>()(project as object | undefined, ProjectSimpleSnippet);
 }
 
+/** A stored local day (`YYYY-MM-DD`, D115), or undefined. */
+function dayOf(value: unknown): string | undefined {
+    return typeof value === "string" && value !== "" ? value : undefined;
+}
+
 export function leaseToRegistryRow(
     doc: Record<string, unknown>,
     totals?: {collectedAmount?: number; outstandingAmount?: number},
@@ -64,8 +69,8 @@ export function leaseToRegistryRow(
         _id: String(doc._id),
         name: doc.name as string | undefined,
         status: ((doc.status as string | undefined) ?? "active") as LeaseRegistryStatus,
-        startDate: doc.startDate ? new Date(doc.startDate as Date | string).toISOString() : undefined,
-        endDate: doc.endDate ? new Date(doc.endDate as Date | string).toISOString() : undefined,
+        startDate: dayOf(doc.startDate),
+        endDate: dayOf(doc.endDate),
         monthlyRent: decimalToNumber(doc.monthlyRent),
         collectedAmount: totals?.collectedAmount,
         outstandingAmount: totals?.outstandingAmount,
@@ -92,12 +97,12 @@ export function rentalPaymentToRegistryRow(doc: Record<string, unknown>): Rental
         _id: String(doc._id),
         name: doc.name as string | undefined,
         status: ((doc.status as string | undefined) ?? "pending") as RentalPaymentRegistryStatus,
-        dueDate: doc.dueDate ? new Date(doc.dueDate as Date | string).toISOString() : undefined,
+        dueDate: dayOf(doc.dueDate),
         amount: decimalToNumber(doc.amount),
         paidAmount: decimalToNumber(doc.paidAmount),
         remaining: remainingNumber(money),
         lateFeeAmount: lateFeeNumber(money),
-        paidDate: doc.paidDate ? new Date(doc.paidDate as Date | string).toISOString() : undefined,
+        paidDate: dayOf(doc.paidDate),
         currency: mapSnippet<CurrencySimple>()(doc.currency as object | undefined, CurrencySimpleSnippet),
         lease: mapSnippet<LeaseSimple>()(lease as object | undefined, LeaseSimpleSnippet),
         tenant: tenant ?? undefined,

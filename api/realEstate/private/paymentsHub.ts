@@ -35,9 +35,10 @@ import {
     type CurrencyBucket,
     PAYMENTS_HUB_PLAN_POPULATE,
     planToHubRows,
-    startOfUtcDay,
 } from "../../../utilities/paymentsHub/paymentsHubMapper.dto";
 import {resolveHubUnitIds} from "../../../utilities/hubShared/resolveHubUnitIds";
+import {inDayRange, monthDayRange, parseDayRange} from "../../../utilities/hubShared/dayRange";
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
 import {matchesSearch, paginateRows} from "../../../utilities/contractsHub/contractsHubMapper.dto";
 import {
     assertAnyCollectedRead,
@@ -84,7 +85,6 @@ router.post(
 /** Plans scanned per request; each plan expands to its down payment plus every installment. */
 const PLAN_SCAN_CAP = 5000;
 const CALENDAR_MAX_ROWS = 5000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 type ScopeParams = AuthenticatedMWType & {
     search?: string;
@@ -167,37 +167,9 @@ function rowMasker(params: AuthenticatedMWType): (row: PaymentsHubRow) => Paymen
     };
 }
 
-/** UTC day bounds, so a filter means the same thing wherever the server runs. */
-function parseUtcDateRange(from?: string, to?: string): {from?: Date; to?: Date} {
-    const range: {from?: Date; to?: Date} = {};
-    if (from) {
-        const d = new Date(from);
-        if (!Number.isNaN(d.getTime())) {
-            range.from = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-        }
-    }
-    if (to) {
-        const d = new Date(to);
-        if (!Number.isNaN(d.getTime())) {
-            range.to = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
-        }
-    }
-    return range;
-}
-
-function rowDate(row: PaymentsHubRow, dateField: PaymentsHubDateField): Date | undefined {
-    const raw = dateField === "paidDate" ? row.paidDate : row.dueDate;
-    if (!raw) return undefined;
-    const d = new Date(raw);
-    return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-function inRange(date: Date | undefined, range: {from?: Date; to?: Date}): boolean {
-    if (!range.from && !range.to) return true;
-    if (!date) return false;
-    if (range.from && date < range.from) return false;
-    if (range.to && date > range.to) return false;
-    return true;
+/** The row's due or paid day (`YYYY-MM-DD`, D115). */
+function rowDate(row: PaymentsHubRow, dateField: PaymentsHubDateField): string | undefined {
+    return (dateField === "paidDate" ? row.paidDate : row.dueDate) || undefined;
 }
 
 function rowMatchesSearch(row: PaymentsHubRow, search?: string): boolean {
@@ -266,11 +238,11 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
         0,
     );
     const truncated = docs.length > PLAN_SCAN_CAP;
-    const now = new Date();
+    const today = localDateOf(new Date(), params.companyTimeZone);
     const mask = rowMasker(params);
     const rows: PaymentsHubRow[] = [];
     for (const doc of docs.slice(0, PLAN_SCAN_CAP)) {
-        rows.push(...planToHubRows(doc as unknown as Record<string, any>, now).map(mask));
+        rows.push(...planToHubRows(doc as unknown as Record<string, any>, today).map(mask));
     }
     return {rows, truncated};
 }
@@ -292,8 +264,8 @@ function sortByDate(
 ): PaymentsHubRow[] {
     const direction = sortOrder === "desc" ? -1 : 1;
     return [...rows].sort((a, b) => {
-        const aDate = rowDate(a, dateField)?.getTime();
-        const bDate = rowDate(b, dateField)?.getTime();
+        const aDate = rowDate(a, dateField);
+        const bDate = rowDate(b, dateField);
         // Rows without the date sort last whichever way the list is ordered.
         if (aDate == null && bDate == null) return 0;
         if (aDate == null) return 1;
@@ -330,12 +302,12 @@ async function listPayments(
     assertPaymentsHubAccess(params);
 
     const {rows, truncated} = await loadScopedRows(params);
-    const range = parseUtcDateRange(dateFrom, dateTo);
+    const range = parseDayRange(dateFrom, dateTo);
     const filtered = applyRowFilters(rows, params).filter((row) => {
         const date = rowDate(row, dateField);
         // Listing by payment date only makes sense for rows that were actually paid.
         if (dateField === "paidDate" && !date) return false;
-        return inRange(date, range);
+        return inDayRange(date, range);
     });
 
     const sorted = sortByDate(filtered, dateField, sortOrder);
@@ -353,13 +325,11 @@ async function listPaymentsCalendar(
     logger.start("Listing payments hub calendar...");
     assertPaymentsHubAccess(params);
 
-    const [yearStr, monthStr] = month.split("-");
-    const from = new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, 1));
-    const to = new Date(Date.UTC(Number(yearStr), Number(monthStr), 0, 23, 59, 59, 999));
+    const monthRange = monthDayRange(month);
 
     const {rows, truncated: scanTruncated} = await loadScopedRows(params);
     const monthRows = sortByDate(
-        applyRowFilters(rows, params).filter((row) => inRange(rowDate(row, "dueDate"), {from, to})),
+        applyRowFilters(rows, params).filter((row) => inDayRange(rowDate(row, "dueDate"), monthRange)),
         "dueDate",
         "asc",
     );
@@ -372,25 +342,18 @@ async function listPaymentsCalendar(
     };
 }
 
-/** Monday-based week start, in UTC. */
-function startOfUtcWeek(date: Date): Date {
-    const day = startOfUtcDay(date);
-    const weekday = (day.getUTCDay() + 6) % 7;
-    return new Date(day.getTime() - weekday * DAY_MS);
-}
-
-function periodBounds(date: Date, groupBy: PaymentsHubGroupBy): {start: Date; end: Date} {
+/** The period a day falls in, as its first and last day: the calendar month, the Monday-based week, or the day. */
+function periodBounds(day: string, groupBy: PaymentsHubGroupBy): {start: string; end: string} {
     if (groupBy === "month") {
-        const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-        const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-        return {start, end};
+        const {from, to} = monthDayRange(day.slice(0, 7));
+        return {start: from, end: to};
     }
     if (groupBy === "week") {
-        const start = startOfUtcWeek(date);
-        return {start, end: new Date(start.getTime() + 7 * DAY_MS - 1)};
+        const weekday = (new Date(Date.parse(day)).getUTCDay() + 6) % 7;
+        const start = addLocalDays(day, -weekday);
+        return {start, end: addLocalDays(start, 6)};
     }
-    const start = startOfUtcDay(date);
-    return {start, end: new Date(start.getTime() + DAY_MS - 1)};
+    return {start: day, end: day};
 }
 
 async function summarisePayments(
@@ -406,12 +369,11 @@ async function summarisePayments(
     // of them on purpose; the period table below honours every filter.
     const scoped = applyRowFilters(rows, {...params, status: undefined});
 
-    const now = new Date();
-    const today = startOfUtcDay(now);
-    const in7Days = new Date(today.getTime() + 7 * DAY_MS - 1);
-    const in30Days = new Date(today.getTime() + 30 * DAY_MS - 1);
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+    // "Today", the next 7 / 30 days and this month are the company's (GLB-09).
+    const today = localDateOf(new Date(), params.companyTimeZone);
+    const next7Days = {from: today, to: addLocalDays(today, 6)};
+    const next30Days = {from: today, to: addLocalDays(today, 29)};
+    const thisMonth = monthDayRange(today.slice(0, 7));
 
     const overdue = new Map<string, CurrencyBucket>();
     const dueNext7 = new Map<string, CurrencyBucket>();
@@ -423,25 +385,25 @@ async function summarisePayments(
         if (row.status === "overdue") addToBuckets(overdue, row, row.remaining);
         else if (row.status === "pending" || row.status === "partially_paid") {
             const due = rowDate(row, "dueDate");
-            if (inRange(due, {from: today, to: in7Days})) addToBuckets(dueNext7, row, row.remaining);
-            if (inRange(due, {from: today, to: in30Days})) addToBuckets(dueNext30, row, row.remaining);
+            if (inDayRange(due, next7Days)) addToBuckets(dueNext7, row, row.remaining);
+            if (inDayRange(due, next30Days)) addToBuckets(dueNext30, row, row.remaining);
         }
         const paidOn = rowDate(row, "paidDate");
-        if (paidOn && inRange(paidOn, {from: monthStart, to: monthEnd})) {
+        if (paidOn && inDayRange(paidOn, thisMonth)) {
             addToBuckets(collectedThisMonth, row, row.paidAmount);
         }
     }
 
-    const range = parseUtcDateRange(dateFrom, dateTo);
+    const range = parseDayRange(dateFrom, dateTo);
     const periodRows = applyRowFilters(rows, params).filter((row) => {
         const date = rowDate(row, dateField);
         if (!date) return false;
-        return inRange(date, range);
+        return inDayRange(date, range);
     });
 
     type PeriodAcc = {
-        start: Date;
-        end: Date;
+        start: string;
+        end: string;
         count: number;
         expected: Map<string, CurrencyBucket>;
         paid: Map<string, CurrencyBucket>;
@@ -452,7 +414,7 @@ async function summarisePayments(
         const date = rowDate(row, dateField);
         if (!date) continue;
         const {start, end} = periodBounds(date, groupBy);
-        const key = start.toISOString();
+        const key = start;
         const acc = periods.get(key) ?? {
             start,
             end,
@@ -471,10 +433,10 @@ async function summarisePayments(
     }
 
     const periodList: PaymentsHubPeriodRow[] = [...periods.values()]
-        .sort((a, b) => a.start.getTime() - b.start.getTime())
+        .sort((a, b) => a.start.localeCompare(b.start))
         .map((acc) => ({
-            periodStart: acc.start.toISOString(),
-            periodEnd: acc.end.toISOString(),
+            periodStart: acc.start,
+            periodEnd: acc.end,
             count: acc.count,
             expectedAmount: bucketsToRevenue(acc.expected),
             paidAmount: bucketsToRevenue(acc.paid),

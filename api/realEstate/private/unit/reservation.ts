@@ -243,7 +243,7 @@ export const {router} = createCrudRouter({
         const reservationContractId = Array.isArray(reservationContract)
             ? (reservationContract as string[]).filter(Boolean)[0]
             : (reservationContract != null && String(reservationContract).trim() !== "" ? String(reservationContract) : undefined);
-        const expIso = expirationDate ? new Date(expirationDate).toISOString() : undefined;
+        const expIso: string | undefined = expirationDate || undefined;
         // The client hears about the reservation once it is saved (D06): sent after the commit, then stamped.
         await runAfterCommit(session, async () => {
             try {

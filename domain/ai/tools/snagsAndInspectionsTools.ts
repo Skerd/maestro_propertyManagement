@@ -24,7 +24,7 @@ import {InspectionStatus, InspectionType} from "@propertyManagement/database/sch
 import {
     DEFAULT_RESULTS,
     companyScope,
-    dateRange,
+    dayRange,
     emptyResult,
     findOptions,
     limitArg,
@@ -142,7 +142,7 @@ async function executeInspections(rawArgs: unknown, ctx: AssistantToolContext): 
     if (args.type) query.type = args.type;
     if (args.followUpRequired != null) query.followUpRequired = args.followUpRequired;
 
-    const inspected = dateRange(args.inspectedFrom, args.inspectedTo);
+    const inspected = dayRange(args.inspectedFrom, args.inspectedTo);
     if (inspected) query.inspectionDate = inspected;
 
     const limit = args.limit ?? DEFAULT_RESULTS;

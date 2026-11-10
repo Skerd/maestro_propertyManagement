@@ -268,12 +268,10 @@ export function mapMarketingProjectCatalogSingle(
 
             const mappedUnits = floors.flatMap((floor) => unitsByFloor.get(objectIdToString(floor._id)) ?? []);
             const unitStats = computeUnitCatalogStats(mappedUnits);
-            const toYear = (value: unknown): number | undefined => {
-                if (!value) {
-                    return undefined;
-                }
-                const date = new Date(value as string | Date);
-                return Number.isNaN(date.getTime()) ? undefined : date.getFullYear();
+            // Edifice milestones are local `YYYY-MM-DD` days (D115): the year is the first four characters.
+            const toYear = (value: string | undefined): number | undefined => {
+                const year = value ? Number(value.slice(0, 4)) : NaN;
+                return Number.isFinite(year) && year > 0 ? year : undefined;
             };
             const cityName =
                 typeof edifice.address?.city === "object" && edifice.address?.city?.name

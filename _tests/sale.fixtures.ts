@@ -71,7 +71,7 @@ export async function seedReservation(companyId: ObjectId, input: {unit: ObjectI
     await db().collection("reservations").insertOne({
         _id, company: companyId, unit: input.unit, reservedBy: input.client, reservedByCompany: companyId, client: input.client,
         name: `RES-${_id.toString().slice(-6)}`,
-        reservationDate: new Date("2026-01-10T00:00:00.000Z"), expirationDate: new Date("2026-12-31T00:00:00.000Z"),
+        reservationDate: "2026-01-10", expirationDate: "2026-12-31",
         ...(input.depositAmount ? {depositAmount: dec(input.depositAmount), depositCurrency: input.depositCurrency} : {}),
         paid: input.paid ?? true, isActive: input.isActive ?? true, status: input.status ?? "active",
         deletedAt: null,
@@ -99,7 +99,7 @@ export async function seedLease(companyId: ObjectId, input: {unit: ObjectId; ten
     const _id = new ObjectId();
     await db().collection("leases").insertOne({
         _id, company: companyId, name: `LEASE-${_id.toString().slice(-6)}`, unit: input.unit, tenant: input.tenant,
-        startDate: new Date(input.startDate), endDate: new Date(input.endDate),
+        startDate: input.startDate, endDate: input.endDate,
         monthlyRent: dec(input.monthlyRent ?? "1000.00"), rentCurrency: input.currency,
         gracePeriodDays: input.gracePeriodDays ?? 0, depositPaid: false, status: input.status ?? "active",
         deletedAt: null,
@@ -111,9 +111,9 @@ export async function seedLease(companyId: ObjectId, input: {unit: ObjectId; ten
 export async function seedRentRow(companyId: ObjectId, input: {lease: ObjectId; unit: ObjectId; currency: ObjectId; dueDate: string; amount?: string; status?: string; paidAmount?: string}): Promise<ObjectId> {
     const _id = new ObjectId();
     await db().collection("rentalpayments").insertOne({
-        _id, company: companyId, lease: input.lease, unit: input.unit, dueDate: new Date(input.dueDate),
+        _id, company: companyId, lease: input.lease, unit: input.unit, dueDate: input.dueDate,
         amount: dec(input.amount ?? "1000.00"), currency: input.currency, status: input.status ?? "pending",
-        ...(input.paidAmount ? {paidAmount: dec(input.paidAmount), paymentReceipts: [{amount: dec(input.paidAmount), paidDate: new Date(input.dueDate)}]} : {}),
+        ...(input.paidAmount ? {paidAmount: dec(input.paidAmount), paymentReceipts: [{amount: dec(input.paidAmount), paidDate: input.dueDate}]} : {}),
         deletedAt: null,
     });
     return _id;

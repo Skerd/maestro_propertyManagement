@@ -13,8 +13,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "echo@echo.com"
         },
-        "inspectionDate": "2026-06-28T12:34:03.627Z",
-        "scheduledDate": "2026-06-22T12:34:03.627Z",
+        "inspectionDate": "2026-06-28",
+        "scheduledDate": "2026-06-22",
         "type": "initial",
         "status": "completed",
         "notes": "Demo inspection for A0-01 Floor 0. [pm-demo-seed]",
@@ -40,7 +40,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         },
         "rating": 6,
         "completedAt": "2026-06-28T12:34:03.627Z",
-        "nextInspectionDate": "2026-08-11T12:34:03.627Z"
+        "nextInspectionDate": "2026-08-11"
     },
     {
         "id": "6a5389bc75dbaad1890bb3d1",
@@ -48,8 +48,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "skerd@xhafa.com"
         },
-        "inspectionDate": "2026-07-16T12:34:03.627Z",
-        "scheduledDate": "2026-06-23T12:34:03.627Z",
+        "inspectionDate": "2026-07-16",
+        "scheduledDate": "2026-06-23",
         "type": "routine",
         "status": "scheduled",
         "notes": "Demo inspection for A0-03 Floor 0. [pm-demo-seed]",
@@ -61,8 +61,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "inspectionDate": "2026-07-17T12:34:03.627Z",
-        "scheduledDate": "2026-06-24T12:34:03.627Z",
+        "inspectionDate": "2026-07-17",
+        "scheduledDate": "2026-06-24",
         "type": "pre_sale",
         "status": "in_progress",
         "notes": "Demo inspection for A1-01 Floor 1. [pm-demo-seed]",
@@ -74,8 +74,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "inspectionDate": "2026-07-01T12:34:03.627Z",
-        "scheduledDate": "2026-06-25T12:34:03.627Z",
+        "inspectionDate": "2026-07-01",
+        "scheduledDate": "2026-06-25",
         "type": "follow_up",
         "status": "completed",
         "notes": "Demo inspection for A1-02 Floor 1. [pm-demo-seed]",
@@ -96,7 +96,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         },
         "rating": 9,
         "completedAt": "2026-07-01T12:34:03.627Z",
-        "nextInspectionDate": "2026-08-11T12:34:03.627Z"
+        "nextInspectionDate": "2026-08-11"
     },
     {
         "id": "6a5389bc75dbaad1890bb3d4",
@@ -104,8 +104,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "almir@leka.com"
         },
-        "inspectionDate": "2026-07-19T12:34:03.627Z",
-        "scheduledDate": "2026-06-26T12:34:03.627Z",
+        "inspectionDate": "2026-07-19",
+        "scheduledDate": "2026-06-26",
         "type": "final",
         "status": "scheduled",
         "notes": "Demo inspection for A1-04 Floor 1. [pm-demo-seed]",
@@ -117,8 +117,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "geraldo.cucaj@pronix.com"
         },
-        "inspectionDate": "2026-07-03T12:34:03.627Z",
-        "scheduledDate": "2026-06-27T12:34:03.627Z",
+        "inspectionDate": "2026-07-03",
+        "scheduledDate": "2026-06-27",
         "type": "initial",
         "status": "completed",
         "notes": "Demo inspection for A1-06 Floor 1. [pm-demo-seed]",
@@ -146,13 +146,13 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "echo@echo.com"
         },
-        "inspectionDate": "2026-07-21T12:34:03.627Z",
-        "scheduledDate": "2026-06-28T12:34:03.627Z",
+        "inspectionDate": "2026-07-21",
+        "scheduledDate": "2026-06-28",
         "type": "routine",
         "status": "scheduled",
         "notes": "Demo inspection for A2-01 Floor 2. [pm-demo-seed]",
         "followUpRequired": true,
-        "nextInspectionDate": "2026-08-11T12:34:03.627Z"
+        "nextInspectionDate": "2026-08-11"
     },
     {
         "id": "6a5389bc75dbaad1890bb3d7",
@@ -160,8 +160,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "skerd@xhafa.com"
         },
-        "inspectionDate": "2026-07-22T12:34:03.627Z",
-        "scheduledDate": "2026-06-29T12:34:03.627Z",
+        "inspectionDate": "2026-07-22",
+        "scheduledDate": "2026-06-29",
         "type": "pre_sale",
         "status": "in_progress",
         "notes": "Demo inspection for A2-02 Floor 2. [pm-demo-seed]",
@@ -173,8 +173,8 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "inspectionDate": "2026-07-06T12:34:03.627Z",
-        "scheduledDate": "2026-06-30T12:34:03.627Z",
+        "inspectionDate": "2026-07-06",
+        "scheduledDate": "2026-06-30",
         "type": "follow_up",
         "status": "completed",
         "notes": "Demo inspection for A2-04 Floor 2. [pm-demo-seed]",
@@ -207,12 +207,12 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "inspectedBy": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "inspectionDate": "2026-07-24T12:34:03.627Z",
-        "scheduledDate": "2026-07-01T12:34:03.627Z",
+        "inspectionDate": "2026-07-24",
+        "scheduledDate": "2026-07-01",
         "type": "final",
         "status": "scheduled",
         "notes": "Demo inspection for A3-02 Floor 3. [pm-demo-seed]",
         "followUpRequired": true,
-        "nextInspectionDate": "2026-08-11T12:34:03.627Z"
+        "nextInspectionDate": "2026-08-11"
     }
 ];

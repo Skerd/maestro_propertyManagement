@@ -241,9 +241,7 @@ export const {router} = createCrudRouter({
             }
             if (fdKeys.notes && financeDetails.notes !== undefined) update["financeDetails.notes"] = financeDetails.notes;
             if (fdKeys.estimatedCompletionDate && financeDetails.estimatedCompletionDate !== undefined) {
-                update["financeDetails.estimatedCompletionDate"] = financeDetails.estimatedCompletionDate
-                    ? new Date(financeDetails.estimatedCompletionDate)
-                    : undefined;
+                update["financeDetails.estimatedCompletionDate"] = financeDetails.estimatedCompletionDate || undefined;
             }
             if (fdKeys.costBreakdown?.keys && financeDetails.costBreakdown !== undefined) {
                 update["financeDetails.costBreakdown"] = financeDetails.costBreakdown.map((item: any) => ({

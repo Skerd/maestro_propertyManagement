@@ -66,8 +66,10 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
     const unitIds = availableUnits.map((unit) => unit._id);
 
     const {year, monthIndex, daysInMonth} = parseMonth(month, languageCode);
-    const rangeStart = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0));
-    const rangeEnd = new Date(Date.UTC(year, monthIndex, daysInMonth, 23, 59, 59));
+    // Local days (`YYYY-MM-DD`) sort as text, so the month is a string range.
+    const monthPrefix = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+    const rangeStart = `${monthPrefix}-01`;
+    const rangeEnd = `${monthPrefix}-${String(daysInMonth).padStart(2, "0")}`;
 
     const inspections = unitIds.length > 0
         ? await inspectionService.find({
@@ -78,11 +80,10 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
 
     const bookedByDate = new Map<string, Set<string>>();
     for (const inspection of inspections) {
-        const scheduled = inspection.scheduledDate || inspection.inspectionDate;
-        if (!scheduled) {
+        const dateKey = inspection.scheduledDate || inspection.inspectionDate;
+        if (!dateKey) {
             continue;
         }
-        const dateKey = scheduled.toISOString().slice(0, 10);
         const unitId = objectIdToString((inspection.unit as any)?._id ?? inspection.unit);
         const bucket = bookedByDate.get(dateKey) ?? new Set<string>();
         bucket.add(unitId);
@@ -91,7 +92,7 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
 
     const days = Array.from({length: daysInMonth}, (_, index) => {
         const day = index + 1;
-        const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const dateKey = `${monthPrefix}-${String(day).padStart(2, "0")}`;
         const bookedCount = bookedByDate.get(dateKey)?.size ?? 0;
         const availableSlots = Math.max(totalSlots - bookedCount, 0);
         return {

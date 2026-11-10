@@ -16,6 +16,7 @@ import {
     type RentMoneyRow,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {resolveHubUnitIds} from "../../../utilities/hubShared/resolveHubUnitIds";
+import {inDayRange, monthDayRange, parseDayRange} from "../../../utilities/hubShared/dayRange";
 import type {
     LeasesListResponseType,
     RentalPaymentsListResponseType,
@@ -133,35 +134,6 @@ function rentTotalsAccess(read: CollectedFieldReader): {collected: boolean; outs
     };
 }
 
-function parseDateRange(from?: string, to?: string): {from?: Date; to?: Date} {
-    const result: {from?: Date; to?: Date} = {};
-    if (from) {
-        const d = new Date(from);
-        if (!Number.isNaN(d.getTime())) {
-            d.setHours(0, 0, 0, 0);
-            result.from = d;
-        }
-    }
-    if (to) {
-        const d = new Date(to);
-        if (!Number.isNaN(d.getTime())) {
-            d.setHours(23, 59, 59, 999);
-            result.to = d;
-        }
-    }
-    return result;
-}
-
-function inDateRange(value: unknown, range: {from?: Date; to?: Date}): boolean {
-    if (!range.from && !range.to) return true;
-    if (!value) return false;
-    const d = value instanceof Date ? value : new Date(value as string);
-    if (Number.isNaN(d.getTime())) return false;
-    if (range.from && d < range.from) return false;
-    if (range.to && d > range.to) return false;
-    return true;
-}
-
 async function listLeases(
     params: AuthenticatedMWType & LeasesListFormType,
 ): Promise<LeasesListResponseType> {
@@ -188,7 +160,7 @@ async function listLeases(
 
     const companyId = company._id;
     const unitIds = await resolveHubUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
-    const dateRange = parseDateRange(startDateFrom, startDateTo);
+    const dateRange = parseDayRange(startDateFrom, startDateTo);
 
     const match: Record<string, unknown> = {
         company: companyId,
@@ -209,7 +181,7 @@ async function listLeases(
     const canFilterByStart = read(LEASE, "startDate");
     const matched: LeaseRegistryRow[] = [];
     for (const doc of docs) {
-        if (canFilterByStart && !inDateRange(doc.startDate, dateRange)) continue;
+        if (canFilterByStart && !inDayRange(doc.startDate, dateRange)) continue;
         const row = omitRowKeys(leaseToRegistryRow(doc as unknown as Record<string, unknown>), hidden);
         if (
             !matchesSearch(search, [
@@ -275,7 +247,7 @@ async function listRentalPayments(
 
     const companyId = company._id;
     const unitIds = await resolveHubUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
-    const dateRange = parseDateRange(dueDateFrom, dueDateTo);
+    const dateRange = parseDayRange(dueDateFrom, dueDateTo);
 
     const match: Record<string, unknown> = {
         company: companyId,
@@ -297,7 +269,7 @@ async function listRentalPayments(
     const canFilterByDue = read(RENT, "dueDate");
     const rows: RentalPaymentRegistryRow[] = [];
     for (const doc of docs) {
-        if (canFilterByDue && !inDateRange(doc.dueDate, dateRange)) continue;
+        if (canFilterByDue && !inDayRange(doc.dueDate, dateRange)) continue;
         const row = omitRowKeys(rentalPaymentToRegistryRow(doc as unknown as Record<string, unknown>), hidden);
         if (
             !matchesSearch(search, [
@@ -395,11 +367,7 @@ async function listRentalPaymentsCalendar(
     assertAnyCollectedRead(canReadCollectedFields("rentalpayments", actionUserCtx, languageCode), languageCode);
 
     const unitIds = await resolveHubUnitIds({project, edifice, floor, unit, company, logger, languageCode: params.languageCode});
-    const [yearStr, monthStr] = month.split("-");
-    const year = Number(yearStr);
-    const monthIndex = Number(monthStr) - 1;
-    const from = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
-    const to = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
+    const {from, to} = monthDayRange(month);
 
     const match: Record<string, unknown> = {
         company: company._id,

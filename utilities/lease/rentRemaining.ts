@@ -14,12 +14,12 @@ export type RentMoneyRow = {
     paidAmount?: Decimal128 | string | number | null;
     lateFeeAmount?: Decimal128 | string | number | null;
     status?: string | null;
-    paymentReceipts?: {amount?: unknown; paidDate?: Date; notes?: string; media?: ReadonlyArray<unknown>}[] | null;
+    paymentReceipts?: {amount?: unknown; paidDate?: string; notes?: string; media?: ReadonlyArray<unknown>}[] | null;
 };
 
 export type RentalPaymentReceiptWrite = {
     amount: Decimal128;
-    paidDate: Date;
+    paidDate: string;
     notes?: string;
     media?: ObjectId[];
 };
@@ -28,7 +28,7 @@ export type ApplySliceOk = {
     ok: true;
     paidAmount: Decimal128;
     status: "paid" | "partially_paid";
-    paidDate?: Date;
+    paidDate?: string;
     paymentReceipts: RentalPaymentReceiptWrite[];
 };
 
@@ -126,7 +126,7 @@ export function sliceFitsRemaining(row: RentMoneyRow, slice: Decimal128 | string
 
 export function applyRentalPaymentSlice(
     row: RentMoneyRow,
-    slice: {paidAmount: Decimal128 | string | number; paidDate: Date; notes?: string; media?: string[]},
+    slice: {paidAmount: Decimal128 | string | number; paidDate: string; notes?: string; media?: string[]},
 ): ApplySliceOk | ApplySliceFail {
     if (row.status === "paid" || row.status === "waived") {
         return {ok: false, reason: "not_open"};
@@ -141,7 +141,7 @@ export function applyRentalPaymentSlice(
     const receipts: RentalPaymentReceiptWrite[] = Array.isArray(row.paymentReceipts)
         ? row.paymentReceipts.map((r) => ({
             amount: r.amount instanceof Decimal128 ? r.amount : scaledToDecimal128(moneyToScaled(r.amount as Decimal128 | string | number | null | undefined)),
-            paidDate: r.paidDate instanceof Date ? r.paidDate : new Date(),
+            paidDate: r.paidDate ?? slice.paidDate,
             ...(typeof r.notes === "string" && r.notes !== "" ? {notes: r.notes} : {}),
             ...(r.media?.length ? {media: r.media.map(mediaItemToObjectId)} : {}),
         }))

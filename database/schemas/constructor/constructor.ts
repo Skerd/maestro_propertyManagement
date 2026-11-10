@@ -56,7 +56,7 @@ export interface IConstructor extends Document, IOwnershipPluginFields, ISoftDel
     company: ICompany;
     partyType?: (typeof constructorPartyTypeValues)[number];
     trades?: string;
-    insuranceExpiry?: Date;
+    insuranceExpiry?: string;
     performanceScore?: number;
     preferredLanguage?: SupportedLocale;
 }
@@ -185,8 +185,9 @@ const ConstructorSchema: Schema = new Schema(
             maxlength: CONSTRUCTOR_SHORT_TEXT_MAX,
         },
         insuranceExpiry: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         performanceScore: {
             type: SchemaTypes.Number,

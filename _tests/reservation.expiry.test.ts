@@ -89,7 +89,7 @@ beforeEach(() => asCompany(async () => {
 async function seedHeldReservation(expirationDate: string, input: {paid?: boolean} = {}) {
     const unit = await seedUnit(companyId, {price: "250000.00", priceCurrency: chf, status: UnitStatus.RESERVED});
     const reservation = await seedReservation(companyId, {unit, client, paid: input.paid ?? false});
-    await db().collection("reservations").updateOne({_id: reservation}, {$set: {expirationDate: new Date(expirationDate), reservedBy: agent}});
+    await db().collection("reservations").updateOne({_id: reservation}, {$set: {expirationDate: expirationDate, reservedBy: agent}});
     await db().collection("units").updateOne({_id: unit}, {$set: {reservation}});
     return {unit, reservation};
 }

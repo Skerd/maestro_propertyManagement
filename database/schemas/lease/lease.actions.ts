@@ -1,3 +1,5 @@
+import {localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
 import {ObjectId} from "mongodb";
 import {action} from "@coreModule/api/actionDecorator";
 import {getModelCollectedData} from "@coreModule/database/collections";
@@ -80,7 +82,7 @@ export class LeaseActions {
             throw apiValidationException("lease_not_active", "", null, languageCode);
         }
 
-        const endedAt = terminationDate ? new Date(terminationDate) : new Date();
+        const endedAt: string = terminationDate || localDateOf(new Date(), companyTimeZone(company));
         await leaseService.updateByIdOrThrow(
             existing._id,
             {
@@ -212,7 +214,7 @@ export class LeaseActions {
             );
         }
 
-        const paidAt = paidDate ? new Date(paidDate) : new Date();
+        const paidAt: string = paidDate || localDateOf(new Date(), companyTimeZone(company));
         const byId = new Map(openMonths.map((row) => [row._id.toString(), row]));
         for (const slice of plan.slices) {
             const row = byId.get(slice.id);

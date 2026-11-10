@@ -25,7 +25,7 @@ import {reservationService} from "@propertyManagement/database/schemas/reservati
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
 import {ReservationStatus} from "@propertyManagement/database/schemas/reservation/reservation";
 import {LeaseStatus} from "@propertyManagement/database/schemas/lease/lease";
-import {DEFAULT_RESULTS, MAX_RESULTS, emptyResult, limitParameter, listResult} from "./assistantToolHelpers";
+import {DEFAULT_RESULTS, MAX_RESULTS, dayRange, emptyResult, limitParameter, listResult} from "./assistantToolHelpers";
 
 const RESERVATION_STATUS_VALUES = Object.values(ReservationStatus) as string[];
 const LEASE_STATUS_VALUES = Object.values(LeaseStatus) as string[];
@@ -105,7 +105,7 @@ async function executeReservations(rawArgs: unknown, ctx: AssistantToolContext):
     }
     if (args.status) query.status = args.status;
     if (args.paid != null) query.paid = args.paid;
-    if (args.expiringBefore != null) query.expirationDate = {$lte: args.expiringBefore};
+    if (args.expiringBefore != null) query.expirationDate = dayRange(undefined, args.expiringBefore);
 
     const limit = args.limit ?? DEFAULT_RESULTS;
 
@@ -197,7 +197,7 @@ async function executeLeases(rawArgs: unknown, ctx: AssistantToolContext): Promi
         query.unit = unitId;
     }
     if (args.status) query.status = args.status;
-    if (args.endingBefore != null) query.endDate = {$lte: args.endingBefore};
+    if (args.endingBefore != null) query.endDate = dayRange(undefined, args.endingBefore);
 
     if (args.minRent != null || args.maxRent != null) {
         const rent: Record<string, Decimal128> = {};

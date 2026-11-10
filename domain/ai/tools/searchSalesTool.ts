@@ -28,7 +28,7 @@ import {
     DEFAULT_RESULTS,
     companyObjectId,
     companyScope,
-    dateRange,
+    dayRange,
     emptyResult,
     findOptions,
     limitArg,
@@ -146,7 +146,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     if (args.paymentType) query.paymentType = args.paymentType;
     if (args.approvalStatus) query.approvalStatus = args.approvalStatus;
 
-    const sold = dateRange(args.soldFrom, args.soldTo);
+    const sold = dayRange(args.soldFrom, args.soldTo);
     if (sold) query.saleDate = sold;
 
     const price = numberRange(args.minPrice, args.maxPrice);

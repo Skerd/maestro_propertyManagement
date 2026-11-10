@@ -24,7 +24,7 @@ export type SalePlanSummaryForEmail = {
 
 type InstallmentLike = {
     installmentNumber: number;
-    dueDate: Date | string;
+    dueDate: string;
     amount?: {toString(): string} | null;
     principalAmount?: {toString(): string} | null;
     interestAmount?: {toString(): string} | null;
@@ -44,7 +44,7 @@ export function buildPaymentScheduleForEmail(
     const hasInterest = sorted.some(i => (parseFloat(i.interestAmount?.toString() ?? "0") || 0) > 0);
     return sorted.map(i => ({
         installmentNumber: i.installmentNumber,
-        dueDate: formatReservationExpirationForEmail(new Date(i.dueDate).toISOString(), languageCode) ?? "—",
+        dueDate: formatReservationExpirationForEmail(i.dueDate, languageCode) ?? "—",
         amount: money(i.amount, currencySymbol, languageCode),
         ...(hasInterest
             ? {

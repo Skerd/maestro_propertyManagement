@@ -35,20 +35,20 @@ async function seedPlan(rows: Row[], input: {downPaymentPaid?: boolean; status?:
     const saleId = new ObjectId();
     const unitId = await seedUnit(companyId, {price: input.totalAmount ?? "10000.00", priceCurrency: currency, status: UnitStatus.SOLD, sale: saleId});
     await Sale.collection.insertOne({
-        _id: saleId, company: companyId, unit: unitId, buyer, soldBy: buyer, paymentType: "payment_plan", saleDate: new Date("2026-01-01"),
+        _id: saleId, company: companyId, unit: unitId, buyer, soldBy: buyer, paymentType: "payment_plan", saleDate: "2026-01-01",
         saleCurrency: currency, finalPrice: dec(input.totalAmount ?? "10000.00"), name: "SALE-1", deletedAt: null,
     });
     const plan = await PaymentPlan.create({
         sale: saleId, company: companyId, status: input.status ?? PaymentPlanStatus.ACTIVE,
         totalAmount: dec(input.totalAmount ?? "10000.00"), downPayment: dec("1000.00"), downPaymentPaid: input.downPaymentPaid ?? false,
         remainingBalance: dec("0"), numberOfInstallments: rows.length, installmentAmount: dec("0"), interestRate: 0,
-        startDate: new Date("2026-01-01"), endDate: new Date("2026-12-01"),
+        startDate: "2026-01-01", endDate: "2026-12-01",
         installments: rows.map((row, i) => ({
             installmentNumber: i + 1,
-            dueDate: new Date(row.due ?? `2026-${String(i + 2).padStart(2, "0")}-01`),
+            dueDate: row.due ?? `2026-${String(i + 2).padStart(2, "0")}-01`,
             amount: dec(row.amount), principalAmount: dec(row.principal ?? row.amount), interestAmount: dec(row.interest ?? "0"),
             status: row.status ?? InstallmentStatus.PENDING,
-            ...(row.paid ? {paidAmount: dec(row.paid), paymentReceipts: [{amount: dec(row.paid), paidDate: new Date("2026-02-01")}]} : {}),
+            ...(row.paid ? {paidAmount: dec(row.paid), paymentReceipts: [{amount: dec(row.paid), paidDate: "2026-02-01"}]} : {}),
         })),
     });
     return plan._id;
@@ -132,7 +132,7 @@ describe("restructuring a plan", {timeout: 60000}, () => {
         ]);
         expect(plan.installments[0].paymentReceipts!.length).toBe(1);
         // Still owed: 2,000.00 on row 2 and the 3,000.00 re-planned
-        expect([plan.numberOfInstallments, decString(plan.remainingBalance), plan.startDate.toISOString().slice(0, 10)]).toEqual([4, "5000", "2026-01-01"]);
+        expect([plan.numberOfInstallments, decString(plan.remainingBalance), plan.startDate]).toEqual([4, "5000", "2026-01-01"]);
         expect(plan.restructureHistory![0].previousInstallments).toHaveLength(3);
     });
 

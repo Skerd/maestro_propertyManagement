@@ -43,15 +43,15 @@ export interface IRentalPayment extends Document, IOwnershipPluginFields, ISoftD
     name?: string;
     lease: ILease;
     unit: IUnit;
-    dueDate: Date;
+    dueDate: string;
     amount: Decimal128;
     currency: ICurrency;
     status: RentalPaymentStatus;
-    paidDate?: Date;
+    paidDate?: string;
     paidAmount?: Decimal128;
     remaining?: number;
     lateFeeAmount?: Decimal128;
-    paymentReceipts?: {amount: Decimal128; paidDate: Date; notes?: string; media?: IMedia[]}[];
+    paymentReceipts?: {amount: Decimal128; paidDate: string; notes?: string; media?: IMedia[]}[];
     notes?: string;
     receiptMedia?: IMedia;
     rentReminderEmailAt3d?: Date;
@@ -100,7 +100,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             },
         },
         dueDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,
@@ -149,7 +149,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             },
         },
         paidDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,
@@ -201,7 +201,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
                     },
                 },
                 paidDate: {
-                    type: SchemaTypes.Date,
+                    type: SchemaTypes.String,
                     required: true,
                     dynamicTableConfiguration: {
                         hideColumn: true,

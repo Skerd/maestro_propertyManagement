@@ -74,9 +74,9 @@ export interface IEdifice extends Document, IOwnershipPluginFields, ISoftDeleteP
     propertyTypes: IUnitType[],
     polygonCoordinates?: {x: number; y: number}[],
     project: IProject,
-    constructionStartDate?: Date,
-    expectedCompletionDate?: Date,
-    actualCompletionDate?: Date,
+    constructionStartDate?: string,
+    expectedCompletionDate?: string,
+    actualCompletionDate?: string,
     buildingPermitNumber?: string,
     energyClass?: EdificeEnergyClass,
     /** Public price visibility for this edifice (incl. its price/m²) and everything below it. */
@@ -389,19 +389,22 @@ const EdificeSchema = new Schema<IEdifice>(
             },
         },
         constructionStartDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         expectedCompletionDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         actualCompletionDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         buildingPermitNumber: {
             type: SchemaTypes.String,

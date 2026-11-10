@@ -95,15 +95,15 @@ export interface IInspection extends Document, IOwnershipPluginFields, ISoftDele
     name: string;
     unit: IUnit;
     inspectedBy: IUser;
-    inspectionDate: Date;
-    scheduledDate?: Date;
+    inspectionDate: string;
+    scheduledDate?: string;
     type: InspectionType;
     status: InspectionStatus;
     notes?: string;
     findings?: IInspectionFindings;
     rating?: number;
     media: IMedia[];
-    nextInspectionDate?: Date;
+    nextInspectionDate?: string;
     followUpRequired: boolean;
     followUpInspection?: Types.ObjectId | IInspection;
     followedUpByInspection?: Types.ObjectId | IInspection;
@@ -211,14 +211,16 @@ const InspectionSchema = new Schema<IInspection>(
             },
         },
         inspectionDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         scheduledDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         type: {
             type: SchemaTypes.String,
@@ -274,9 +276,10 @@ const InspectionSchema = new Schema<IInspection>(
             dynamicTableConfiguration: {hideColumn: true},
         },
         nextInspectionDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         followUpRequired: {
             type: SchemaTypes.Boolean,
@@ -374,7 +377,7 @@ InspectionSchema.pre("save", function (next) {
     }
 
     if (inspection.isNew && !inspection.name) {
-        const datePart = dayjs(inspection.inspectionDate).format("YYYYMMDD");
+        const datePart = inspection.inspectionDate ? inspection.inspectionDate.replace(/-/g, "") : dayjs().format("YYYYMMDD");
         const randomPart = crypto.randomBytes(4).toString("hex");
         inspection.name = `INSP-${datePart}-${randomPart}`.toUpperCase();
     }

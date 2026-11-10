@@ -11,7 +11,7 @@
 import {CONSTANTS} from "@coreModule/environment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ObjectId} from "mongodb";
-import {addLocalDays, localDateOf, localDayInterval} from "@coreModule/utilities/time/timeWindows";
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
 import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
 import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
 import {leaseService} from "../../database/schemas/lease/lease.service";
@@ -74,10 +74,9 @@ export async function runRentalMaintenance(company: ObjectId, parentLogger?: ser
                     _id?: ObjectId;
                 };
                 const graceDays = typeof lease?.gracePeriodDays === "number" ? lease.gracePeriodDays : 0;
-                const dueDate = new Date(payment.dueDate);
-                if (Number.isNaN(dueDate.getTime())) continue;
+                if (!payment.dueDate) continue;
                 // Overdue once the last grace day (due day + grace days) is before the company's today.
-                if (addLocalDays(localDateOf(dueDate, "UTC"), graceDays) >= today) continue;
+                if (addLocalDays(payment.dueDate, graceDays) >= today) continue;
 
                 const $set: Record<string, unknown> = {status: RentalPaymentStatus.OVERDUE};
                 const pct = typeof lease?.lateFeePercentage === "number" ? lease.lateFeePercentage : 0;
@@ -99,12 +98,12 @@ export async function runRentalMaintenance(company: ObjectId, parentLogger?: ser
 
         let expiredCount = 0;
         let expireLast: ObjectId | undefined;
-        const todayStart = localDayInterval(today, "UTC").start;
         while (true) {
             const filter: Record<string, unknown> = {
                 company,
                 status: LeaseStatus.ACTIVE,
-                endDate: {$lt: todayStart},
+                // Lease days are local `YYYY-MM-DD` strings (D115): they compare as text.
+                endDate: {$lt: today},
             };
             if (expireLast) filter._id = {$gt: expireLast};
             const leases = await leaseService.find(
@@ -123,7 +122,7 @@ export async function runRentalMaintenance(company: ObjectId, parentLogger?: ser
                     const done = await runInTransaction(logger, async (session) => {
                         // Re-read inside the transaction: it may have been terminated or extended meanwhile.
                         const lease = await leaseService.findOne(
-                            {_id, company, status: LeaseStatus.ACTIVE, endDate: {$lt: todayStart}},
+                            {_id, company, status: LeaseStatus.ACTIVE, endDate: {$lt: today}},
                             {session, logger, languageCode, timeOperations: false},
                         );
                         if (!lease) return false;

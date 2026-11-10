@@ -10,6 +10,8 @@ import {restructurePaymentPlanFormSchema} from "armonia/src/modules/propertyMana
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import {recordTitleTransferFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/sale/recordTitleTransfer.form.validator";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
+import {localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
 import {
     assertTitleTransferAllowed,
     salesWithHandoverContext,
@@ -395,8 +397,8 @@ export class SaleActions {
             if (!inst) {
                 throw apiValidationException("manual_sale_email_action_not_allowed", "", null, languageCode);
             }
-            const due = new Date(inst.dueDate);
-            const dueIso = due.toISOString();
+            const due: string = inst.dueDate;
+            const dueIso = due;
             const dueFormatted = formatInstallmentDueDateForEmail(dueIso, lang);
             const instAmt = formatMoneyAmountForEmail(inst.amount.toString(), lang);
             const installmentAmountDisplay = saleSym ? `${instAmt} ${saleSym}` : instAmt;
@@ -489,7 +491,7 @@ export class SaleActions {
         }
 
         installment.paidAmount = decimal128FromMinor(newPaidMinor);
-        const receiptPaidDate = new Date();
+        const receiptPaidDate = localDateOf(new Date(), companyTimeZone(company));
         if (newPaidMinor === amountMinor) {
             installment.status = InstallmentStatus.PAID;
             installment.paidDate = receiptPaidDate;
@@ -614,7 +616,7 @@ export class SaleActions {
         }
 
         existingPlan.downPaymentPaid = true;
-        if (!existingPlan.downPaymentDate) existingPlan.downPaymentDate = new Date();
+        if (!existingPlan.downPaymentDate) existingPlan.downPaymentDate = localDateOf(new Date(), companyTimeZone(company));
 
         const allInstallmentsPaid = existingPlan.installments.every(
             (inst: any) => inst.status === InstallmentStatus.PAID,
@@ -719,7 +721,7 @@ export class SaleActions {
             ...keptInstallments,
             ...allocation.installments.map((row) => ({
                 installmentNumber: row.installmentNumber,
-                dueDate:           new Date(`${row.dueDate}T00:00:00.000Z`),
+                dueDate:           row.dueDate,
                 amount:            decimal128FromMinor(toMinor(row.amount)),
                 principalAmount:   decimal128FromMinor(toMinor(row.principalAmount)),
                 interestAmount:    decimal128FromMinor(toMinor(row.interestAmount)),
@@ -755,8 +757,8 @@ export class SaleActions {
                     installmentAmount:    decimal128FromMinor(totalInstallmentMinor),
                     remainingBalance:     Decimal128.fromString(newRemainingBalance.toString()),
                     // With paid rows kept, the plan still starts where it started.
-                    ...(keptInstallments.length === 0 && {startDate: new Date(`${parseIsoDatePrefix(startDate)}T00:00:00.000Z`)}),
-                    endDate:              new Date(`${parseIsoDatePrefix(endDate)}T00:00:00.000Z`),
+                    ...(keptInstallments.length === 0 && {startDate: parseIsoDatePrefix(startDate)}),
+                    endDate:              parseIsoDatePrefix(endDate),
                     ...(interestRate !== undefined && {interestRate}),
                 },
                 $push: {restructureHistory: historyEntry},
@@ -797,7 +799,7 @@ export class SaleActions {
 
         const certificateRaw = Array.isArray(titleTransferCertificate) ? titleTransferCertificate[0] : titleTransferCertificate;
         const $set: Record<string, unknown> = {
-            titleTransferDate: new Date(titleTransferDate),
+            titleTransferDate,
         };
         if (typeof deedNumber === "string" && deedNumber.trim() !== "") $set.deedNumber = deedNumber.trim();
         if (typeof notaryName === "string" && notaryName.trim() !== "") $set.notaryName = notaryName.trim();

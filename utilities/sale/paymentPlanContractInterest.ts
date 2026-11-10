@@ -51,11 +51,6 @@ export function paymentPlanScheduleErrorKey(code: "invalid_schedule" | "installm
     return "payment_plan_schedule_invalid";
 }
 
-/** UTC yyyy-MM-dd from a JS Date (calendar components in UTC). */
-export function toIsoDateUtc(d: Date): string {
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-}
-
 export function parseIsoDatePrefix(v: unknown): string {
     return String(v ?? "").trim().split("T")[0];
 }

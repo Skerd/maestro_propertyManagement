@@ -26,7 +26,6 @@ const uploadMW = mediaUploadMW({
     maxFileSize: 25 * 1024 * 1024,
 });
 
-const dateTransform  = (v: unknown) => new Date(v as string);
 const moneyTransform = (v: unknown) => Decimal128.fromString(String(v));
 
 async function leaseExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -98,8 +97,6 @@ export const {router} = createCrudRouter({
         const data = buildCreateDataFromSchemaDef(LeaseSchemaDef, {
             monthlyRent:   moneyTransform,
             depositAmount: moneyTransform,
-            startDate:     dateTransform,
-            endDate:       dateTransform,
         })(rest);
         data.status = LeaseStatus.ACTIVE;
         return data;
@@ -108,8 +105,6 @@ export const {router} = createCrudRouter({
         const data = buildUpdateDataFromSchemaDef(LeaseSchemaDef, {
             monthlyRent:   moneyTransform,
             depositAmount: moneyTransform,
-            startDate:     dateTransform,
-            endDate:       dateTransform,
         })(params, writeFields);
         // status is action-only
         delete data.status;

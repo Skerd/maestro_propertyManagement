@@ -65,8 +65,8 @@ export interface IUnitCost extends Document, IOwnershipPluginFields, ISoftDelete
     edifice?: IEdifice;
     project?: IProject;
     purchasePerson: IUser;
-    purchaseDate: Date;
-    paymentDate?: Date;
+    purchaseDate: string;
+    paymentDate?: string;
     notes?: string;
     verificationStatus: (typeof UNIT_COST_VERIFICATION_STATUS_VALUES)[number];
     paymentStatus: (typeof UNIT_COST_PAYMENT_STATUS_VALUES)[number];
@@ -152,7 +152,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             },
         },
         purchaseDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
             index: true,
             dynamicTableConfiguration: {
@@ -160,7 +160,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             },
         },
         paymentDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             index: true,
             dynamicTableConfiguration: {
@@ -375,7 +375,7 @@ UnitCostSchema.pre("validate", function (next) {
 
 UnitCostSchema.pre("save", function (next) {
     if (this.isNew && !this.name) {
-        const datePart = dayjs(this.purchaseDate || new Date()).format("YYYYMMDD");
+        const datePart = this.purchaseDate ? this.purchaseDate.replace(/-/g, "") : dayjs().format("YYYYMMDD");
         const randomPart = crypto.randomBytes(4).toString("hex");
         this.name = `COST-${datePart}-${randomPart}`.toUpperCase();
     }

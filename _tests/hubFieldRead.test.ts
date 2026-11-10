@@ -69,11 +69,11 @@ async function seedPlanWithSale(): Promise<void> {
     await db.collection("paymentplans").insertOne({
         _id: new ObjectId(), company: companyId, name: "PLAN-0001", sale: saleId, status: "active",
         totalAmount: dec("200000.00"), downPayment: dec("50000.00"), downPaymentPaid: true,
-        downPaymentDate: new Date("2026-01-15T00:00:00.000Z"), remainingBalance: dec("150000.00"),
+        downPaymentDate: "2026-01-15", remainingBalance: dec("150000.00"),
         numberOfInstallments: 1, installmentAmount: dec("150000.00"),
-        startDate: new Date("2026-01-15T00:00:00.000Z"), endDate: new Date("2026-12-15T00:00:00.000Z"),
+        startDate: "2026-01-15", endDate: "2026-12-15",
         installments: [{
-            installmentNumber: 1, dueDate: new Date("2026-12-15T00:00:00.000Z"),
+            installmentNumber: 1, dueDate: "2026-12-15",
             amount: dec("150000.00"), principalAmount: dec("150000.00"), interestAmount: dec("0.00"),
             status: "pending", paidAmount: dec("1000.00"),
         }],

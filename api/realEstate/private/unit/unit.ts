@@ -453,7 +453,7 @@ import {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unitAvailability.form.validator";
 import {assertAnyCollectedRead, canReadCollectedFields} from "@propertyManagement/utilities/security/canReadCollectedFields";
 
-const DAY_MS = 24 * 3600 * 1000;
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
 
 router.post(
     "/availability",
@@ -466,9 +466,15 @@ router.post(
         const canReadReservations = canReadCollectedFields("reservations", actionUserCtx, languageCode);
         const canReadSales = canReadCollectedFields("sales", actionUserCtx, languageCode);
 
-        // Calendar days, both included: from the start of `dateFrom` to the end of `dateTo` (UTC, as the calendar shows them).
-        const from = dateFrom ? new Date(`${dateFrom}T00:00:00.000Z`) : new Date(Date.now() - 90 * DAY_MS);
-        const to   = dateTo   ? new Date(`${dateTo}T23:59:59.999Z`)   : new Date(Date.now() + 365 * DAY_MS);
+        // Calendar days (`YYYY-MM-DD`, D115), both included; without a range, 90 days back to a year ahead of the
+        // company's today. Reservation and sale days compare as text; an end that is an instant (cancelled, expired)
+        // counts on its company day.
+        const timeZone = params.companyTimeZone;
+        const today = localDateOf(new Date(), timeZone);
+        const from = dateFrom || addLocalDays(today, -90);
+        const to   = dateTo   || addLocalDays(today, 365);
+        const endDay = (end: Date | string | undefined): string | undefined =>
+            end instanceof Date ? localDateOf(end, timeZone) : end || undefined;
 
         const unitFilter: Record<string, unknown> = {company: company._id};
         if (unitId)    unitFilter._id     = new ObjectId(unitId);
@@ -479,7 +485,7 @@ router.post(
 
         const unitIds  = units.map((u: any) => u._id);
         if (unitIds.length === 0) {
-            return {entries: [], dateFrom: from.toISOString(), dateTo: to.toISOString()};
+            return {entries: [], dateFrom: from, dateTo: to};
         }
 
         // Windows that start before the range ends; those that also end before it starts are dropped below.
@@ -495,8 +501,8 @@ router.post(
         const resByUnit   = new Map<string, any[]>();
         const saleByUnit  = new Map<string, any[]>();
         for (const r of reservations) {
-            const end = r.cancelledAt ?? r.expiredAt ?? r.expirationDate;
-            if (end && new Date(end) < from) continue;
+            const end = endDay(r.cancelledAt ?? r.expiredAt ?? r.expirationDate);
+            if (end && end < from) continue;
             const key = r.unit.toString();
             if (!resByUnit.has(key)) resByUnit.set(key, []);
             resByUnit.get(key)!.push(r);
@@ -512,14 +518,13 @@ router.post(
             const windows: UnitAvailabilityResponse["entries"][number]["windows"] = [];
 
             for (const r of resByUnit.get(unitKey) ?? []) {
-                const start = r.reservationDate ? new Date(r.reservationDate) : undefined;
-                const end   = r.cancelledAt ?? r.expiredAt ?? r.expirationDate;
+                const start: string | undefined = r.reservationDate || undefined;
                 if (!start) continue;
                 windows.push({
                     type:      "reserved",
                     status:    r.status ?? "active",
-                    start:     start.toISOString(),
-                    end:       end ? new Date(end).toISOString() : undefined,
+                    start,
+                    end:       endDay(r.cancelledAt ?? r.expiredAt ?? r.expirationDate),
                     reference: r.name,
                 });
             }
@@ -528,12 +533,12 @@ router.post(
                 windows.push({
                     type:      "sold",
                     status:    s.status ?? "sold",
-                    start:     s.saleDate ? new Date(s.saleDate).toISOString() : new Date().toISOString(),
+                    start:     s.saleDate || today,
                     reference: s.name,
                 });
             }
 
-            windows.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+            windows.sort((a, b) => a.start.localeCompare(b.start));
 
             return {
                 unit: {
@@ -548,7 +553,7 @@ router.post(
             };
         });
 
-        return {entries, dateFrom: from.toISOString(), dateTo: to.toISOString()};
+        return {entries, dateFrom: from, dateTo: to};
     }),
 );
 

@@ -1,4 +1,4 @@
-import {afterAll, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
+import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import mongoose from "mongoose";
 import {ObjectId} from "mongodb";
 import request from "supertest";
@@ -208,5 +208,63 @@ describe("rejecting and deleting a sale release what it did", {timeout: 60000}, 
         expect([unit!.status, String(unit!.sale), reservation!.status]).toEqual([UnitStatus.SOLD, saleId.toString(), "converted"]);
         expect([restoredPlan!.status, restoredPlan!.deletedAt ?? null]).toEqual(["active", null]);
         expect(commission!.status).toBe("pending");
+    });
+});
+
+describe("the sale date is judged in the company's timezone (D116)", {timeout: 60000}, () => {
+    // 00:30 on 2 March in Zurich, still 1 March in UTC.
+    beforeEach(() => {
+        vi.useFakeTimers({now: new Date("2026-03-01T23:30:00Z"), toFake: ["Date"]});
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    const saleDated = async (caller: TestCaller, saleDate: string) => {
+        const unitId = await asCompany(() => seedUnit(companyId, {price: "1000.00", priceCurrency: chf}));
+        return request(app).put("/api/realEstate/unit/sale").set(callerHeader(caller)).send({
+            paymentType: "cash", soldBy: seller.toString(), buyer: buyer.toString(), saleDate, saleCurrency: chf.toString(), unit: unitId.toString(),
+        });
+    };
+
+    it("accepts a sale dated today in Zurich for a Zurich company, though that day has not begun in UTC", async () => {
+        const response = await saleDated({...admin, timeZone: "Europe/Zurich"}, "2026-03-02");
+
+        expect([response.status, response.body.error_code ?? "ok"]).toEqual([200, "ok"]);
+        expect((await storedSale(response.body._id)).saleDate).toBe("2026-03-02");
+    });
+
+    it("refuses the same date for a company on UTC, where it is still tomorrow", async () => {
+        const response = await saleDated({...admin, timeZone: "UTC"}, "2026-03-02");
+
+        expect([response.status, response.body.error_code]).toEqual([400, "form_not_correct"]);
+        expect((response.body.content as {path: string}[]).map((error) => error.path)).toEqual(["saleDate"]);
+        expect(await asCompany(() => Sale.countDocuments())).toBe(0);
+    });
+});
+
+describe("sale and plan days are local YYYY-MM-DD strings (D115)", {timeout: 60000}, () => {
+    it("stores and returns the sale, plan and installment days as sent", async () => {
+        const unitId = await asCompany(() => seedUnit(companyId, {price: "9000.00", priceCurrency: chf}));
+        const response = await createSale({
+            unit: unitId.toString(), paymentType: "payment_plan", downPayment: 1000, interestRate: 0, numberOfInstallments: 2,
+            saleDate: "2026-01-31", startDate: "2026-01-31", endDate: "2026-03-31",
+            installments: [{installmentNumber: 1, dueDate: "2026-02-28", amount: 4000}, {installmentNumber: 2, dueDate: "2026-03-31", amount: 4000}],
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.body.saleDate).toBe("2026-01-31");
+        const sale = await storedSale(response.body._id);
+        const plan = (await asCompany(() => findRaw("paymentplans", sale.paymentPlan as unknown as ObjectId)))!;
+        expect([sale.saleDate, plan.startDate, plan.endDate]).toEqual(["2026-01-31", "2026-01-31", "2026-03-31"]);
+        expect(plan.installments.map((row: {dueDate: unknown}) => row.dueDate)).toEqual(["2026-02-28", "2026-03-31"]);
+    });
+
+    it("refuses a sale day that carries a time", async () => {
+        const unitId = await asCompany(() => seedUnit(companyId, {price: "1000.00", priceCurrency: chf}));
+        const response = await createSale({unit: unitId.toString(), saleDate: "2026-03-01T00:00:00.000Z"});
+
+        expect([response.status, response.body.error_code]).toEqual([400, "form_not_correct"]);
+        expect((response.body.content as {path: string}[]).map((error) => error.path)).toEqual(["saleDate"]);
     });
 });

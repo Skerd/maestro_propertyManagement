@@ -33,8 +33,7 @@ export function reservationToSelect(reservation: IReservation): ApiSelectDatum {
     }
 
     if (reservation.reservationDate) {
-        const d = new Date(reservation.reservationDate as Date).toLocaleDateString();
-        label = label ? `${label} (${d})` : d;
+        label = label ? `${label} (${reservation.reservationDate})` : reservation.reservationDate;
     }
 
     if (!label) {

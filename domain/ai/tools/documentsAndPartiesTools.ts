@@ -28,7 +28,9 @@ import {
     listResult,
     regexClause,
     shortText,
+    dayRange,
 } from "./assistantToolHelpers";
+import {companyToday} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 
 const PARTY_TYPE_VALUES = [...constructorPartyTypeValues];
 
@@ -78,11 +80,12 @@ async function executeContractors(rawArgs: unknown, ctx: AssistantToolContext): 
     // Mongo matches any element, so this reads as "covers this trade".
     if (args.trade != null) query.trades = regexClause(args.trade);
     if (args.insuranceExpiringBefore != null) {
-        query.insuranceExpiry = {$lte: args.insuranceExpiringBefore};
+        query.insuranceExpiry = dayRange(undefined, args.insuranceExpiringBefore);
     }
 
     const limit = args.limit ?? DEFAULT_RESULTS;
 
+    const today = await companyToday(ctx.companyId);
     const contractors = await constructorService.find(
         query,
         findOptions(ctx),
@@ -102,7 +105,7 @@ async function executeContractors(rawArgs: unknown, ctx: AssistantToolContext): 
         website: c.website ?? null,
         vat: c.vat ?? null,
         insuranceExpiry: c.insuranceExpiry ?? null,
-        insuranceExpired: c.insuranceExpiry != null && new Date(c.insuranceExpiry) < new Date(),
+        insuranceExpired: !!c.insuranceExpiry && c.insuranceExpiry < today,
         performanceScore: c.performanceScore ?? null,
         description: shortText(c.description, 200)
     }));

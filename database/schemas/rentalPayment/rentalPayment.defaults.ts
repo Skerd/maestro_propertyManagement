@@ -4,7 +4,7 @@ import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {rentalPaymentsSeed} from "@propertyManagement/database/seeds/operations/rentalPayments.seed";
 import {
-    optDate,
+    opt,
     optDecimal,
     resolveCurrency,
     type OperationsRefs,
@@ -46,11 +46,11 @@ export async function createRentalPayments(
             const payload = {
                 lease,
                 unit,
-                dueDate: new Date(row.dueDate),
+                dueDate: row.dueDate,
                 amount: Decimal128.fromString(row.amount),
                 currency,
                 status: row.status as RentalPaymentStatus,
-                ...optDate("paidDate", row.paidDate),
+                ...opt("paidDate", row.paidDate),
                 ...optDecimal("paidAmount", row.paidAmount),
                 notes: row.notes,
                 company: company._id,

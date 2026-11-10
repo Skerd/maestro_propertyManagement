@@ -150,7 +150,7 @@ export interface IApprovalStage {
         item: string;
         quantity?: number;
         unit?: string;
-        notes?: string;
+    notes?: string;
         pricePerUnit?: Decimal128;
         currency?: ICurrency;
     }[];
@@ -173,7 +173,7 @@ export interface IFinanceStageDetails {
     }[];
     media: IMedia[];
     notes?: string;
-    estimatedCompletionDate?: Date;
+    estimatedCompletionDate?: string;
 }
 
 /**
@@ -479,7 +479,7 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                     maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
                 },
                 estimatedCompletionDate: {
-                    type: SchemaTypes.Date,
+                    type: SchemaTypes.String,
                     required: false
                 },
             },

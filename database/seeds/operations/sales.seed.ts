@@ -17,7 +17,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "soldBy": {
             "$user": "echo@echo.com"
         },
-        "saleDate": "2026-06-27T12:39:44.041Z",
+        "saleDate": "2026-06-27",
         "listedUnitPrice": "290592",
         "listedUnitCurrency": {
             "$currency": "EUR"
@@ -42,7 +42,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "soldBy": {
             "$user": "echo@echo.com"
         },
-        "saleDate": "2026-06-02T12:39:44.041Z",
+        "saleDate": "2026-06-02",
         "listedUnitPrice": "340880",
         "listedUnitCurrency": {
             "$currency": "EUR"
@@ -55,12 +55,12 @@ export const salesSeed: readonly SaleSeedRow[] = [
         },
         "notes": "Demo sale for A1-02 Floor 1. [pm-demo-seed]",
         "transactionReference": "TX-DEMO-2000",
-        "handoverDate": "2026-06-12T12:39:44.041Z",
+        "handoverDate": "2026-06-12",
         "handedOverBy": {
             "$user": "echo@echo.com"
         },
         "handoverNotes": "Keys and manuals handed over to buyer.",
-        "titleTransferDate": "2026-06-07T12:39:44.041Z",
+        "titleTransferDate": "2026-06-07",
         "deedNumber": "DEED-DEMO-3000",
         "notaryName": "Notary Office Dhërmi"
     },
@@ -74,7 +74,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "soldBy": {
             "$user": "echo@echo.com"
         },
-        "saleDate": "2026-06-30T12:40:06.097Z",
+        "saleDate": "2026-06-30",
         "listedUnitPrice": "333696",
         "listedUnitCurrency": {
             "$currency": "EUR"
@@ -105,7 +105,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "soldBy": {
             "$user": "echo@echo.com"
         },
-        "saleDate": "2026-05-28T12:40:23.197Z",
+        "saleDate": "2026-05-28",
         "listedUnitPrice": "419808",
         "listedUnitCurrency": {
             "$currency": "EUR"
@@ -130,7 +130,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "soldBy": {
             "$user": "echo@echo.com"
         },
-        "saleDate": "2026-06-17T12:40:23.197Z",
+        "saleDate": "2026-06-17",
         "listedUnitPrice": "499312",
         "listedUnitCurrency": {
             "$currency": "EUR"

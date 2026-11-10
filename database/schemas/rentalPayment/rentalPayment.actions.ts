@@ -1,3 +1,5 @@
+import {localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
 import {ObjectId} from "mongodb";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {LeaseStatus} from "../lease/lease";
@@ -74,7 +76,7 @@ export class RentalPaymentActions {
         schema:      markRentalPaymentPaidFormSchema,
     })
     async markPaid(params: Record<string, any>): Promise<RentalPaymentData | undefined> {
-        const {logger, languageCode, session, actionUserCtx, _id, paidAmount, paidDate, notes, fileIds} = params;
+        const {logger, languageCode, session, actionUserCtx, company, _id, paidAmount, paidDate, notes, fileIds} = params;
 
         logger.start(`Recording rental payment ${_id}...`);
 
@@ -92,7 +94,7 @@ export class RentalPaymentActions {
             throw apiValidationException("rental_payment_already_paid", "", null, languageCode);
         }
 
-        const paidAt = paidDate ? new Date(paidDate) : new Date();
+        const paidAt: string = paidDate || localDateOf(new Date(), companyTimeZone(company));
         const applied = applyRentalPaymentSlice(existing, {
             paidAmount: decimal128FromNumber(paidAmount),
             paidDate: paidAt,

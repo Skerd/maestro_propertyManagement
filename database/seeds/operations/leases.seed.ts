@@ -13,8 +13,8 @@ export const leasesSeed: readonly LeaseSeedRow[] = [
         "tenant": {
             "$user": "skerd@xhafa.com"
         },
-        "startDate": "2026-04-13T12:39:44.041Z",
-        "endDate": "2027-04-13T12:39:44.041Z",
+        "startDate": "2026-04-13",
+        "endDate": "2027-04-13",
         "monthlyRent": "1200",
         "rentCurrency": {
             "$currency": "EUR"
@@ -31,8 +31,8 @@ export const leasesSeed: readonly LeaseSeedRow[] = [
         "tenant": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "startDate": "2026-05-28T12:39:44.041Z",
-        "endDate": "2027-05-28T12:39:44.041Z",
+        "startDate": "2026-05-28",
+        "endDate": "2027-05-28",
         "monthlyRent": "950",
         "rentCurrency": {
             "$currency": "EUR"
@@ -49,8 +49,8 @@ export const leasesSeed: readonly LeaseSeedRow[] = [
         "tenant": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "startDate": "2025-06-07T12:39:44.041Z",
-        "endDate": "2026-06-12T12:39:44.041Z",
+        "startDate": "2025-06-07",
+        "endDate": "2026-06-12",
         "monthlyRent": "800",
         "rentCurrency": {
             "$currency": "EUR"
@@ -67,8 +67,8 @@ export const leasesSeed: readonly LeaseSeedRow[] = [
         "tenant": {
             "$user": "almir@leka.com"
         },
-        "startDate": "2025-12-24T12:39:44.041Z",
-        "endDate": "2026-06-02T12:39:44.041Z",
+        "startDate": "2025-12-24",
+        "endDate": "2026-06-02",
         "monthlyRent": "1100",
         "rentCurrency": {
             "$currency": "EUR"
@@ -78,7 +78,7 @@ export const leasesSeed: readonly LeaseSeedRow[] = [
         "depositReturnedAt": null,
         "status": "terminated",
         "notes": "Demo lease for A1-04 Floor 1. [pm-demo-seed]",
-        "terminationDate": "2026-06-02T12:39:44.041Z",
+        "terminationDate": "2026-06-02",
         "terminationReason": "Early termination by mutual agreement"
     }
 ];

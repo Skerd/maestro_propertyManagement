@@ -26,6 +26,7 @@ import {ChannelLeadChatSnippet} from "@coreModule/database/schemas/channel/chann
 import {ProjectSimpleSnippet} from "../project/project.snippets";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export enum LeadStatus {
     NEW         = "new",
@@ -82,7 +83,7 @@ export interface ILead extends Document, IOwnershipPluginFields, ISoftDeletePlug
     notes?: string;
     chat?: IChannel;
     assignedTo?: IUser;
-    followUpDate?: Date;
+    followUpDate?: string;
     convertedAt?: Date;
     lostReason?: string;
     activityLog: ILeadActivityEntry[];
@@ -215,7 +216,7 @@ const LeadSchema = new Schema<ILead>(
                 refDisplayKey: ["name", "surname"],
             },
         },
-        followUpDate: {type: SchemaTypes.Date, required: false},
+        followUpDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         convertedAt:  {
             type:        SchemaTypes.Date,
             required:    false,

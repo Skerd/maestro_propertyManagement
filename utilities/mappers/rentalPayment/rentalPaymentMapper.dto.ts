@@ -24,7 +24,7 @@ export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
     const receipts = Array.isArray(payment.paymentReceipts)
         ? payment.paymentReceipts.map((r) => ({
             amount: moneyNumber(r.amount),
-            paidDate: r.paidDate ? new Date(r.paidDate).toISOString().split("T")[0] : "",
+            paidDate: r.paidDate || "",
             ...(r.notes ? {notes: r.notes} : {}),
             ...(currency ? {currency} : {}),
             ...(r.media?.length ? {media: r.media.map(mapMedia)} : {}),
@@ -35,11 +35,11 @@ export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
         name:     payment.name,
         lease:    mapSnippet<LeaseSimple>()(payment.lease, LeaseSimpleSnippet),
         unit:     mapSnippet<UnitSimple>()(payment.unit, UnitSimpleSnippet),
-        dueDate:  payment.dueDate ? new Date(payment.dueDate).toISOString().split("T")[0] : "",
+        dueDate:  payment.dueDate || "",
         amount:   moneyNumber(payment.amount),
         currency,
         status:   payment.status || undefined,
-        paidDate: payment.paidDate   ? new Date(payment.paidDate).toISOString().split("T")[0] : undefined,
+        paidDate: payment.paidDate || undefined,
         paidAmount: paidAmountNumber(payment),
         remaining: remainingNumber(payment),
         lateFeeAmount: lateFeeNumber(payment),

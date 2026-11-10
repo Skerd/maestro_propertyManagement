@@ -18,8 +18,8 @@ describe("buildPaymentScheduleForEmail", () => {
     it("sorts by installment number and omits principal/interest without interest", () => {
         const rows = buildPaymentScheduleForEmail(
             [
-                {installmentNumber: 2, dueDate: "2027-02-01T00:00:00Z", amount: "500", principalAmount: "500", interestAmount: "0"},
-                {installmentNumber: 1, dueDate: "2027-01-01T00:00:00Z", amount: "500", principalAmount: "500", interestAmount: "0"},
+                {installmentNumber: 2, dueDate: "2027-02-01", amount: "500", principalAmount: "500", interestAmount: "0"},
+                {installmentNumber: 1, dueDate: "2027-01-01", amount: "500", principalAmount: "500", interestAmount: "0"},
             ],
             "€",
             "en-US",
@@ -33,8 +33,8 @@ describe("buildPaymentScheduleForEmail", () => {
     it("adds principal and interest to every row when the plan carries interest", () => {
         const rows = buildPaymentScheduleForEmail(
             [
-                {installmentNumber: 1, dueDate: "2027-01-01T00:00:00Z", amount: "510", principalAmount: "500", interestAmount: "10"},
-                {installmentNumber: 2, dueDate: "2027-02-01T00:00:00Z", amount: "500", principalAmount: "500", interestAmount: "0"},
+                {installmentNumber: 1, dueDate: "2027-01-01", amount: "510", principalAmount: "500", interestAmount: "10"},
+                {installmentNumber: 2, dueDate: "2027-02-01", amount: "500", principalAmount: "500", interestAmount: "0"},
             ],
             undefined,
             "en-US",

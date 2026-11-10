@@ -23,6 +23,7 @@ import {
     SETTLE_THRESHOLD_SCALED,
 } from "@propertyManagement/utilities/lease/rentRemaining";
 import {InstallmentStatus, PaymentPlanStatus} from "../../database/schemas/paymentPlan/paymentPlan";
+import {calendarDaysUntil} from "../reservation/reservationExpirationCalendar";
 
 /**
  * Sale-side data every hub row needs: unit, project, buyer and currency. Populated
@@ -52,17 +53,9 @@ export const PAYMENTS_HUB_PLAN_POPULATE = [
     },
 ];
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** UTC midnight of the day `now` falls on. Due dates are stored as UTC dates. */
-export function startOfUtcDay(now: Date): Date {
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
-function toIso(value: unknown): string | undefined {
-    if (!value) return undefined;
-    const d = value instanceof Date ? value : new Date(value as string);
-    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+/** A stored local day (`YYYY-MM-DD`, D115), or undefined when the row has none. */
+function dayOf(value: unknown): string | undefined {
+    return typeof value === "string" && value !== "" ? value : undefined;
 }
 
 function projectFromUnit(unit: {project?: object; floor?: {edifice?: {project?: object}}} | null | undefined) {
@@ -83,23 +76,20 @@ function mapClient(sale: {buyer?: object; buyerCompany?: {_id?: unknown; name?: 
     return undefined;
 }
 
-/** Latest receipt date, used when an installment has receipts but no `paidDate`. */
-function lastReceiptDate(receipts: unknown): Date | undefined {
+/** Latest receipt day, used when an installment has receipts but no `paidDate`. Days compare as text. */
+function lastReceiptDate(receipts: unknown): string | undefined {
     if (!Array.isArray(receipts) || receipts.length === 0) return undefined;
-    let latest: Date | undefined;
+    let latest: string | undefined;
     for (const receipt of receipts) {
-        const raw = (receipt as {paidDate?: unknown})?.paidDate;
-        if (!raw) continue;
-        const d = raw instanceof Date ? raw : new Date(raw as string);
-        if (Number.isNaN(d.getTime())) continue;
-        if (!latest || d > latest) latest = d;
+        const day = dayOf((receipt as {paidDate?: unknown})?.paidDate);
+        if (day && (!latest || day > latest)) latest = day;
     }
     return latest;
 }
 
 export type DerivableRow = {
     storedStatus?: string | null;
-    dueDate?: Date | string | null;
+    dueDate?: string | null;
     amountScaled: bigint;
     paidScaled: bigint;
     remainingScaled: bigint;
@@ -110,34 +100,31 @@ export type DerivableRow = {
  * Status as the hub shows it. Worked out from the amounts and the due date rather
  * than read from the stored status, which the daily cron only refreshes once a day
  * and which a partial payment overwrites. Grace days are deliberately ignored: a
- * payment is late here the day after it was due.
+ * payment is late here the day after it was due. `today` is the company's day (`YYYY-MM-DD`).
  */
-export function derivePaymentsHubStatus(row: DerivableRow, now: Date): PaymentsHubStatus {
+export function derivePaymentsHubStatus(row: DerivableRow, today: string): PaymentsHubStatus {
     if (row.storedStatus === InstallmentStatus.CANCELLED) return "cancelled";
     if (row.amountScaled > 0n && isSettledRemaining(row.remainingScaled)) return "paid";
     if (row.storedStatus === InstallmentStatus.PAID) return "paid";
     if (row.planCancelled) return "cancelled";
 
-    const due = row.dueDate instanceof Date ? row.dueDate : row.dueDate ? new Date(row.dueDate) : undefined;
-    const isOverdue = !!due && !Number.isNaN(due.getTime()) && due < startOfUtcDay(now);
-    if (isOverdue) return "overdue";
+    if (row.dueDate && row.dueDate < today) return "overdue";
     if (row.paidScaled > SETTLE_THRESHOLD_SCALED) return "partially_paid";
     return "pending";
 }
 
-function daysOverdueOf(dueDate: unknown, status: PaymentsHubStatus, now: Date): number | undefined {
-    if (status !== "overdue" || !dueDate) return undefined;
-    const due = dueDate instanceof Date ? dueDate : new Date(dueDate as string);
-    if (Number.isNaN(due.getTime())) return undefined;
-    const diff = startOfUtcDay(now).getTime() - startOfUtcDay(due).getTime();
-    return diff > 0 ? Math.floor(diff / DAY_MS) : undefined;
+function daysOverdueOf(dueDate: unknown, status: PaymentsHubStatus, today: string): number | undefined {
+    const due = dayOf(dueDate);
+    if (status !== "overdue" || !due) return undefined;
+    const days = -calendarDaysUntil(due, today);
+    return days > 0 ? days : undefined;
 }
 
 /**
  * Flatten one payment plan into its hub rows: the down payment (when the plan has
- * one) followed by every installment.
+ * one) followed by every installment. `today` is the company's day (`YYYY-MM-DD`).
  */
-export function planToHubRows(plan: Record<string, any>, now: Date): PaymentsHubRow[] {
+export function planToHubRows(plan: Record<string, any>, today: string): PaymentsHubRow[] {
     const sale = plan.sale as any;
     const planId = plan._id.toString();
     const planCancelled = plan.status === PaymentPlanStatus.CANCELLED;
@@ -169,19 +156,19 @@ export function planToHubRows(plan: Record<string, any>, now: Date): PaymentsHub
                 remainingScaled: remaining,
                 planCancelled,
             },
-            now,
+            today,
         );
         rows.push({
             _id: `${planId}:down_payment:0`,
             kind: "down_payment",
             status,
             ...shared,
-            dueDate: toIso(plan.startDate),
-            paidDate: paid ? toIso(plan.downPaymentDate) : undefined,
+            dueDate: dayOf(plan.startDate),
+            paidDate: paid ? dayOf(plan.downPaymentDate) : undefined,
             amount: moneyNumber(scaledToDecimal128(downPaymentScaled)),
             paidAmount: moneyNumber(scaledToDecimal128(paidScaled)),
             remaining: moneyNumber(scaledToDecimal128(remaining)),
-            daysOverdue: daysOverdueOf(plan.startDate, status, now),
+            daysOverdue: daysOverdueOf(plan.startDate, status, today),
         });
     }
 
@@ -207,7 +194,7 @@ export function planToHubRows(plan: Record<string, any>, now: Date): PaymentsHub
                 remainingScaled: remaining,
                 planCancelled,
             },
-            now,
+            today,
         );
         rows.push({
             _id: `${planId}:installment:${installment?.installmentNumber ?? rows.length}`,
@@ -215,15 +202,15 @@ export function planToHubRows(plan: Record<string, any>, now: Date): PaymentsHub
             status,
             ...shared,
             installmentNumber: installment?.installmentNumber,
-            dueDate: toIso(installment?.dueDate),
-            paidDate: toIso(installment?.paidDate ?? lastReceiptDate(installment?.paymentReceipts)),
+            dueDate: dayOf(installment?.dueDate),
+            paidDate: dayOf(installment?.paidDate) ?? lastReceiptDate(installment?.paymentReceipts),
             amount: decimalToNumber(installment?.amount),
             paidAmount: decimalToNumber(installment?.paidAmount),
             remaining: moneyNumber(scaledToDecimal128(remaining)),
             lateFeeAmount: installment?.lateFeeAmount != null
                 ? decimalToNumber(installment.lateFeeAmount)
                 : undefined,
-            daysOverdue: daysOverdueOf(installment?.dueDate, status, now),
+            daysOverdue: daysOverdueOf(installment?.dueDate, status, today),
         });
     }
 

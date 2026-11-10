@@ -220,11 +220,11 @@ export const {router} = createCrudRouter({
             ...(scope.edifice ? {edifice: scope.edifice} : {}),
             ...(scope.project ? {project: scope.project} : {}),
             purchasePerson: new ObjectId(purchasePerson),
-            purchaseDate: new Date(purchaseDate),
+            purchaseDate,
             currency: new ObjectId(currency),
             verificationStatus: verificationStatus ?? "pending_verification",
             paymentStatus: paymentStatus ?? "unpaid",
-            paymentDate: paymentDate ? new Date(paymentDate) : undefined,
+            paymentDate: paymentDate || undefined,
             notes: notes || "",
             tag: tag?.trim() ? tag.trim().toLowerCase() : undefined,
             invoiceNumber: invoiceNumber?.trim() || undefined,
@@ -266,11 +266,11 @@ export const {router} = createCrudRouter({
         const update: Record<string, any> = {};
 
         if (purchasePerson !== undefined && writeFields.purchasePerson)   update.purchasePerson = new ObjectId(purchasePerson);
-        if (purchaseDate  !== undefined && writeFields.purchaseDate)       update.purchaseDate = new Date(purchaseDate);
+        if (purchaseDate  !== undefined && writeFields.purchaseDate)       update.purchaseDate = purchaseDate;
         if (currency      !== undefined && writeFields.currency)           update.currency = new ObjectId(currency);
         if (verificationStatus !== undefined && writeFields.verificationStatus) update.verificationStatus = verificationStatus;
         if (paymentStatus !== undefined && writeFields.paymentStatus)      update.paymentStatus = paymentStatus;
-        if (paymentDate   !== undefined && writeFields.paymentDate)        update.paymentDate = paymentDate ? new Date(paymentDate) : null;
+        if (paymentDate   !== undefined && writeFields.paymentDate)        update.paymentDate = paymentDate || null;
         if (notes         !== undefined && writeFields.notes)              update.notes = notes;
         if (tag           !== undefined && writeFields.tag)                update.tag = tag?.trim() ? tag.trim().toLowerCase() : null;
         if (invoiceNumber !== undefined && writeFields.invoiceNumber)      update.invoiceNumber = invoiceNumber?.trim() || null;

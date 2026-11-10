@@ -110,11 +110,11 @@ describe("unit availability", {timeout: 60000}, () => {
             const id = await seedUnit(hqId, {price: "1000.00", priceCurrency: currency, status: UnitStatus.SOLD});
             const inRange = await seedReservation(hqId, {unit: id, client, status: "converted"});
             const before = await seedReservation(hqId, {unit: id, client, status: "cancelled", isActive: false});
-            await Reservation.collection.updateOne({_id: inRange}, {$set: {name: "IN", reservationDate: new Date("2026-03-01"), expirationDate: new Date("2026-04-30")}});
-            await Reservation.collection.updateOne({_id: before}, {$set: {name: "BEFORE", reservationDate: new Date("2026-01-01"), cancelledAt: new Date("2026-01-20")}});
+            await Reservation.collection.updateOne({_id: inRange}, {$set: {name: "IN", reservationDate: "2026-03-01", expirationDate: "2026-04-30"}});
+            await Reservation.collection.updateOne({_id: before}, {$set: {name: "BEFORE", reservationDate: "2026-01-01", cancelledAt: new Date("2026-01-20")}});
             await Sale.collection.insertMany([
-                {company: hqId, unit: id, name: "SOLD-IN", saleDate: new Date("2026-04-15"), deletedAt: null},
-                {company: hqId, unit: id, name: "SOLD-AFTER", saleDate: new Date("2026-06-01"), deletedAt: null},
+                {company: hqId, unit: id, name: "SOLD-IN", saleDate: "2026-04-15", deletedAt: null},
+                {company: hqId, unit: id, name: "SOLD-AFTER", saleDate: "2026-06-01", deletedAt: null},
             ]);
             return id;
         });
@@ -122,7 +122,7 @@ describe("unit availability", {timeout: 60000}, () => {
         const response = await availability({unitId: unitId.toString(), dateFrom: "2026-02-01", dateTo: "2026-04-30"});
         expect(response.status).toBe(200);
         expect(response.body.entries[0].windows.map((w: {reference: string}) => w.reference)).toEqual(["IN", "SOLD-IN"]);
-        expect([response.body.dateFrom, response.body.dateTo]).toEqual(["2026-02-01T00:00:00.000Z", "2026-04-30T23:59:59.999Z"]);
+        expect([response.body.dateFrom, response.body.dateTo]).toEqual(["2026-02-01", "2026-04-30"]);
     });
 });
 
@@ -131,8 +131,8 @@ describe("payment plan PDF", {timeout: 60000}, () => {
         const planId = await asHq(async () => (await PaymentPlan.create({
             sale: new ObjectId(), company: hqId, status: PaymentPlanStatus.ACTIVE, totalAmount: dec("1000.00"), downPayment: dec("0"),
             downPaymentPaid: false, remainingBalance: dec("0"), numberOfInstallments: 1, installmentAmount: dec("1000.00"),
-            startDate: new Date("2026-01-01"), endDate: new Date("2026-02-01"),
-            installments: [{installmentNumber: 1, dueDate: new Date("2026-02-01"), amount: dec("1000.00"), principalAmount: dec("1000.00"), interestAmount: dec("0"), status: InstallmentStatus.PENDING}],
+            startDate: "2026-01-01", endDate: "2026-02-01",
+            installments: [{installmentNumber: 1, dueDate: "2026-02-01", amount: dec("1000.00"), principalAmount: dec("1000.00"), interestAmount: dec("0"), status: InstallmentStatus.PENDING}],
         }))._id);
         const pdf = (body: Record<string, unknown>, caller = admin) =>
             request(saleApp).post("/api/realEstate/unit/sale/paymentPlan/pdf").set(callerHeader(caller)).send(body);

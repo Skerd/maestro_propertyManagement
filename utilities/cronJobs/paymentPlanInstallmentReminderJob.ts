@@ -47,7 +47,8 @@ const PHASES: {
 
 type InstallmentLike = {
     installmentNumber: number;
-    dueDate: Date;
+    /** Local `YYYY-MM-DD` (D115). */
+    dueDate: string;
     status: InstallmentStatus;
     amount: {toString: () => string};
     principalAmount: {toString: () => string};
@@ -112,7 +113,7 @@ function buildDispatchPayload(params: {
     const finalAmt = sale.finalPrice != null ? formatMoneyAmountForEmail(sale.finalPrice.toString(), lang) : "";
     const finalPriceDisplay = saleSym ? `${finalAmt} ${saleSym}` : finalAmt;
 
-    const dueIso = new Date(installment.dueDate).toISOString();
+    const dueIso = installment.dueDate;
     const instAmt = formatMoneyAmountForEmail(installment.amount.toString(), lang);
     const installmentAmountDisplay = saleSym ? `${instAmt} ${saleSym}` : instAmt;
 
@@ -189,11 +190,10 @@ export async function runPaymentPlanInstallmentReminders(company: ObjectId, pare
                     continue;
                 }
 
-                const due = new Date(inst.dueDate);
-                if (Number.isNaN(due.getTime())) {
+                const dueDay = inst.dueDate;
+                if (!dueDay) {
                     continue;
                 }
-                const dueDay = localDateOf(due, "UTC");
 
                 for (const {phase, daysUntilDue, field} of PHASES) {
                     if ((inst as any)[field]) {
@@ -291,13 +291,12 @@ async function runPaymentPlanInstallmentOverdueMarkings(company: ObjectId, paren
                     continue;
                 }
 
-                const dueDate = new Date(inst.dueDate);
-                if (Number.isNaN(dueDate.getTime())) {
+                if (!inst.dueDate) {
                     continue;
                 }
 
                 // Overdue once the last grace day (due day + gracePeriodDays) is before the company's today.
-                if (addLocalDays(localDateOf(dueDate, "UTC"), graceDays) >= today) {
+                if (addLocalDays(inst.dueDate, graceDays) >= today) {
                     continue;
                 }
 

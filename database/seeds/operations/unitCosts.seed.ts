@@ -16,8 +16,8 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "echo@echo.com"
         },
-        "purchaseDate": "2026-06-02T12:34:03.627Z",
-        "paymentDate": "2026-06-22T12:34:03.627Z",
+        "purchaseDate": "2026-06-02",
+        "paymentDate": "2026-06-22",
         "notes": "Finish package for A0-01 Floor 0. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "paid",
@@ -54,7 +54,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "skerd@xhafa.com"
         },
-        "purchaseDate": "2026-06-05T12:34:03.627Z",
+        "purchaseDate": "2026-06-05",
         "paymentDate": null,
         "notes": "Finish package for A0-01 Floor 0. [pm-demo-seed]",
         "verificationStatus": "pending_verification",
@@ -92,8 +92,8 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "purchaseDate": "2026-06-08T12:34:03.627Z",
-        "paymentDate": "2026-06-24T12:34:03.627Z",
+        "purchaseDate": "2026-06-08",
+        "paymentDate": "2026-06-24",
         "notes": "Finish package for A0-02 Floor 0. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "paid",
@@ -130,7 +130,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "purchaseDate": "2026-06-11T12:34:03.627Z",
+        "purchaseDate": "2026-06-11",
         "paymentDate": null,
         "notes": "Finish package for A0-02 Floor 0. [pm-demo-seed]",
         "verificationStatus": "pending_verification",
@@ -168,8 +168,8 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "almir@leka.com"
         },
-        "purchaseDate": "2026-06-14T12:34:03.627Z",
-        "paymentDate": "2026-06-26T12:34:03.627Z",
+        "purchaseDate": "2026-06-14",
+        "paymentDate": "2026-06-26",
         "notes": "Finish package for A0-03 Floor 0. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "paid",
@@ -206,7 +206,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "geraldo.cucaj@pronix.com"
         },
-        "purchaseDate": "2026-06-17T12:34:03.627Z",
+        "purchaseDate": "2026-06-17",
         "paymentDate": null,
         "notes": "Finish package for A0-03 Floor 0. [pm-demo-seed]",
         "verificationStatus": "pending_verification",
@@ -243,7 +243,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "purchaseDate": "2026-05-18T12:34:03.627Z",
+        "purchaseDate": "2026-05-18",
         "notes": "Shared corridor fit-out — Floor 0. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "partially_paid",
@@ -272,7 +272,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "purchaseDate": "2026-05-18T12:34:03.627Z",
+        "purchaseDate": "2026-05-18",
         "notes": "Shared corridor fit-out — Floor -1. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "partially_paid",
@@ -301,7 +301,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "almir@leka.com"
         },
-        "purchaseDate": "2026-05-18T12:34:03.627Z",
+        "purchaseDate": "2026-05-18",
         "notes": "Shared corridor fit-out — Floor 1. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "partially_paid",
@@ -329,8 +329,8 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "echo@echo.com"
         },
-        "purchaseDate": "2026-05-03T12:34:03.627Z",
-        "paymentDate": "2026-05-23T12:34:03.627Z",
+        "purchaseDate": "2026-05-03",
+        "paymentDate": "2026-05-23",
         "notes": "Crane hire & site logistics — Aria A. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "paid",
@@ -358,8 +358,8 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "echo@echo.com"
         },
-        "purchaseDate": "2026-05-03T12:34:03.627Z",
-        "paymentDate": "2026-05-23T12:34:03.627Z",
+        "purchaseDate": "2026-05-03",
+        "paymentDate": "2026-05-23",
         "notes": "Crane hire & site logistics — Aria B. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "paid",
@@ -386,8 +386,8 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "purchasePerson": {
             "$user": "skerd@xhafa.com"
         },
-        "purchaseDate": "2026-04-13T12:34:03.627Z",
-        "paymentDate": "2026-04-23T12:34:03.627Z",
+        "purchaseDate": "2026-04-13",
+        "paymentDate": "2026-04-23",
         "notes": "Building permits and municipal fees. [pm-demo-seed]",
         "verificationStatus": "verified",
         "paymentStatus": "paid",

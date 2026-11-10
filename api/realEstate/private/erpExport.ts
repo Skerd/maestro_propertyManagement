@@ -35,6 +35,8 @@ import {commissionService} from "@propertyManagement/database/schemas/commission
 import {paymentPlanService} from "@propertyManagement/database/schemas/paymentPlan/paymentPlan.service";
 import {rentalPaymentService} from "@propertyManagement/database/schemas/rentalPayment/rentalPayment.service";
 import {unitCostService} from "@propertyManagement/database/schemas/unitCost/unitCost.service";
+import {localDayInterval} from "@coreModule/utilities/time/timeWindows";
+import {type DayRange, inDayRange, parseDayRange} from "../../../utilities/hubShared/dayRange";
 
 export const basePath = "/api/realEstate/erpExport";
 
@@ -113,33 +115,26 @@ function toNum(v: unknown): number {
     return parseFloat(String(v)) || 0;
 }
 
-function toIso(v: unknown): string {
-    if (!v) return "";
-    try {
-        return new Date(v as string | number | Date).toISOString();
-    } catch {
-        return "";
-    }
+/** A stored local day (`YYYY-MM-DD`, D115) as exported, or "" when there is none. */
+function dayOf(v: unknown): string {
+    return typeof v === "string" ? v : "";
 }
 
-function parseDateRange(dateFrom?: string, dateTo?: string): {from?: Date; to?: Date} {
-    const range: {from?: Date; to?: Date} = {};
-    if (dateFrom) {
-        range.from = new Date(dateFrom);
-    }
-    if (dateTo) {
-        const to = new Date(dateTo);
-        to.setHours(23, 59, 59, 999);
-        range.to = to;
-    }
-    return range;
+/** A Mongo range on a local-day field; days compare as text. */
+function dateFilter(field: string, range: DayRange): Record<string, unknown> {
+    if (!range.from && !range.to) return {};
+    const clause: Record<string, string> = {};
+    if (range.from) clause.$gte = range.from;
+    if (range.to) clause.$lte = range.to;
+    return {[field]: clause};
 }
 
-function dateFilter(field: string, from?: Date, to?: Date): Record<string, unknown> {
-    if (!from && !to) return {};
+/** A Mongo range on an instant field that covers the company's days `range.from` through `range.to`. */
+function instantFilter(field: string, range: DayRange, timeZone: string): Record<string, unknown> {
+    if (!range.from && !range.to) return {};
     const clause: Record<string, Date> = {};
-    if (from) clause.$gte = from;
-    if (to) clause.$lte = to;
+    if (range.from) clause.$gte = localDayInterval(range.from, timeZone).start;
+    if (range.to) clause.$lt = localDayInterval(range.to, timeZone).end;
     return {[field]: clause};
 }
 
@@ -203,7 +198,7 @@ async function erpExportHandler(
     const read = collectedFieldReader(actionUserCtx, languageCode);
 
     const companyId = company._id as ObjectId;
-    const {from, to} = parseDateRange(dateFrom, dateTo);
+    const range = parseDayRange(dateFrom, dateTo);
     const baseMatch = {company: companyId, deletedAt: null};
 
     let projectUnitIds: ObjectId[] | null = null;
@@ -219,7 +214,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("sales")) {
         const saleFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("saleDate", from, to),
+            ...dateFilter("saleDate", range),
         };
         if (projectUnitIds) {
             saleFilter.unit = {$in: projectUnitIds};
@@ -240,7 +235,7 @@ async function erpExportHandler(
                 name: String(s.name ?? ""),
                 unitName: unit?.name ?? unit?.unitNumber ?? "",
                 buyerName,
-                saleDate: toIso(s.saleDate),
+                saleDate: dayOf(s.saleDate),
                 salePrice: toNum(s.finalPrice),
                 currency: currency?.abbreviation ?? currency?.symbol ?? "",
                 status: String(s.approvalStatus ?? s.paymentType ?? ""),
@@ -252,7 +247,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("commissions")) {
         const commFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("createdAt", from, to),
+            ...instantFilter("createdAt", range, params.companyTimeZone),
         };
 
         const commDocs = await commissionService.findForErpExport(commFilter);
@@ -303,19 +298,18 @@ async function erpExportHandler(
             const saleName = sale?.name ?? "";
 
             for (const inst of (pp.installments as Record<string, unknown>[]) ?? []) {
-                const due = inst.dueDate ? new Date(inst.dueDate as string | Date) : null;
-                if (from && due && due < from) continue;
-                if (to && due && due > to) continue;
+                const due = dayOf(inst.dueDate);
+                if (due && !inDayRange(due, range)) continue;
                 rows.push({
                     id: `${pp._id}_${inst.installmentNumber}`,
                     name: String(pp.name ?? ""),
                     saleName,
                     installmentNumber: Number(inst.installmentNumber),
-                    dueDate: toIso(inst.dueDate),
+                    dueDate: due,
                     amount: toNum(inst.amount),
                     currency: currencyLabel,
                     status: String(inst.status ?? ""),
-                    paidAt: inst.paidDate ? toIso(inst.paidDate) : undefined,
+                    paidAt: dayOf(inst.paidDate) || undefined,
                 });
             }
         }
@@ -327,7 +321,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("rentalPayments")) {
         const rpFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("dueDate", from, to),
+            ...dateFilter("dueDate", range),
         };
 
         const rpDocs = await rentalPaymentService.findForErpExport(rpFilter);
@@ -342,7 +336,7 @@ async function erpExportHandler(
                 name: String(rp.name ?? ""),
                 leaseName: lease?.name ?? "",
                 unitName: unit?.name ?? unit?.unitNumber ?? "",
-                dueDate: toIso(rp.dueDate),
+                dueDate: dayOf(rp.dueDate),
                 amount: toNum(rp.amount),
                 paidAmount: rp.paidAmount != null ? toNum(rp.paidAmount) : undefined,
                 currency: currency?.abbreviation ?? currency?.symbol ?? "",
@@ -355,7 +349,7 @@ async function erpExportHandler(
     if (allowedDatasets.includes("unitCosts")) {
         const ucFilter: Record<string, unknown> = {
             ...baseMatch,
-            ...dateFilter("purchaseDate", from, to),
+            ...dateFilter("purchaseDate", range),
         };
         if (projectId && ObjectId.isValid(projectId)) {
             ucFilter.project = new ObjectId(projectId);
@@ -373,7 +367,7 @@ async function erpExportHandler(
                 name: String(uc.name ?? ""),
                 unitName: unit?.name ?? unit?.unitNumber ?? undefined,
                 projectName: project?.name ?? undefined,
-                purchaseDate: toIso(uc.purchaseDate),
+                purchaseDate: dayOf(uc.purchaseDate),
                 totalAmount: computeUnitCostSubtotal(uc),
                 currency: currency?.abbreviation ?? currency?.symbol ?? "",
                 verificationStatus: String(uc.verificationStatus ?? ""),

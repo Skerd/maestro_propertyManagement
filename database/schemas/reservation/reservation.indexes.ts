@@ -44,7 +44,8 @@ export function applyReservationIndexes(ReservationSchema: Schema): void {
 
     // Unpaid active reservations by expiration day (DB-06): the expiry cron
     // `{company, isActive: true, paid: false, status: "active", expirationDate: {$lt}}`, the reminder cron
-    // `{company, isActive: true, paid: false, expirationDate: {$gte, $lt}}` and the dashboard's upcoming expirations.
+    // `{company, isActive: true, paid: false, expirationDate: "<day>"}` and the dashboard's upcoming expirations
+    // (expiration days are `YYYY-MM-DD` strings, D115).
     ReservationSchema.index({ company: 1, isActive: 1, paid: 1, status: 1, expirationDate: 1 });
 
     // The reservations list: `{company}` sorted by `reservationDate: -1` (the router's default sort).

@@ -70,8 +70,8 @@ export async function createInspections(
             const payload = {
                 unit,
                 inspectedBy,
-                inspectionDate: new Date(row.inspectionDate),
-                scheduledDate: new Date(row.scheduledDate),
+                inspectionDate: row.inspectionDate,
+                scheduledDate: row.scheduledDate,
                 type: row.type as InspectionType,
                 status: row.status as InspectionStatus,
                 notes: row.notes,
@@ -80,7 +80,7 @@ export async function createInspections(
                 ...opt("rating", row.rating),
                 media: [],
                 ...optDate("completedAt", row.completedAt),
-                ...optDate("nextInspectionDate", row.nextInspectionDate),
+                ...opt("nextInspectionDate", row.nextInspectionDate),
                 company: company._id,
                 createdBy: company.createdBy,
             };

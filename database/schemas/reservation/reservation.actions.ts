@@ -145,7 +145,7 @@ export class ReservationActions {
         const idOf = (ref: unknown) =>
             ref instanceof ObjectId ? ref.toString() : (ref as {_id?: ObjectId} | undefined)?._id?.toString();
         const listing = reservationClientEmailListingFieldsFromLoadedReservation(reservation, lang);
-        const expIso = reservation.expirationDate ? new Date(reservation.expirationDate).toISOString() : undefined;
+        const expIso: string | undefined = reservation.expirationDate || undefined;
 
         const recipients = await notifyReservationWatchers({
             companyId: company._id,
@@ -227,8 +227,8 @@ export class ReservationActions {
         const unitNumber = unitRef?.unitNumber != null ? String(unitRef.unitNumber) : undefined;
 
         const today = await companyToday(company._id);
-        const exp = reservation.expirationDate ? new Date(reservation.expirationDate) : undefined;
-        const expIso = exp ? exp.toISOString() : undefined;
+        const exp: string | undefined = reservation.expirationDate || undefined;
+        const expIso = exp;
         const lang = languageCode ?? "en-US";
         const expFormatted = formatReservationExpirationForEmail(expIso, lang);
         const listing = reservationClientEmailListingFieldsFromLoadedReservation(reservation, lang);
@@ -552,9 +552,7 @@ export class ReservationActions {
             UNIT_EMAIL_POPULATE,
             UNIT_EMAIL_SELECT,
         );
-        const payExpIso = existingReservation.expirationDate
-            ? new Date(existingReservation.expirationDate).toISOString()
-            : undefined;
+        const payExpIso: string | undefined = existingReservation.expirationDate || undefined;
         const paySym = (existingReservation.depositCurrency as {symbol?: string} | undefined)?.symbol;
         const payLang = languageCode ?? "en-US";
         let payUnitPriceDisplay: string | undefined;

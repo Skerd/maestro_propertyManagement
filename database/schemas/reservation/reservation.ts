@@ -47,8 +47,8 @@ export interface IReservation extends Document, IOwnershipPluginFields, ISoftDel
     reservedBy: IUser;              // User who made the reservation
     reservedByCompany: ICompany;   // Company that made the reservation
     client: IUser;                  // Client (buyer) user
-    reservationDate: Date;          // When reservation was made
-    expirationDate: Date;           // When the reservation expires
+    reservationDate: string;        // When reservation was made
+    expirationDate: string;         // When the reservation expires
     reservationNotes?: string;      // Notes about the reservation
     depositAmount?: Decimal128;     // Optional deposit amount
     depositCurrency?: ICurrency;    // Currency for deposit
@@ -153,13 +153,14 @@ const ReservationSchema = new Schema<IReservation>(
             },
         },
         reservationDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
-            default: Date.now,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         expirationDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         reservationNotes: {
             type: SchemaTypes.String,
@@ -345,18 +346,13 @@ ReservationSchema.pre('save', function(next) {
 
     // Auto-generate unique name for new reservations: RES-YYYYMMDD-XXXXXXXX
     if (reservation.isNew && !reservation.name) {
-        const date = reservation.reservationDate ? new Date(reservation.reservationDate) : new Date();
-        const datePart = dayjs(date).format('YYYYMMDD');
+        const datePart = reservation.reservationDate ? reservation.reservationDate.replace(/-/g, "") : dayjs().format('YYYYMMDD');
         const randomPart = crypto.randomBytes(4).toString('hex');
         reservation.name = `RES-${datePart}-${randomPart}`.toUpperCase();
     }
 
     if (reservation.isModified('isActive') && !reservation.isActive && !reservation.cancelledAt) {
         reservation.cancelledAt = new Date();
-    }
-
-    if (!reservation.reservationDate) {
-        reservation.reservationDate = new Date();
     }
 
     next();

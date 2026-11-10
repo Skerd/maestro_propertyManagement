@@ -13,7 +13,7 @@ vi.mock("@propertyManagement/database/schemas/constructionProgress/constructionP
                         String(r.project) === String(filter.project)
                         && (!filter.edifice || String(r.edifice) === String(filter.edifice))
                         && (!filter._id || String(r._id) !== String(filter._id.$ne)));
-                    rows.sort((a, b) => b.updateDate - a.updateDate || b.createdAt - a.createdAt);
+                    rows.sort((a, b) => b.updateDate.localeCompare(a.updateDate) || b.createdAt - a.createdAt);
                     return rows[0] ?? null;
                 },
             }),
@@ -28,7 +28,7 @@ const project = new ObjectId();
 const edifice = new ObjectId();
 
 function report(o: Partial<any>) {
-    return {_id: new ObjectId(), project, phase: "structure", progressPercent: 40, updateDate: new Date("2027-01-01"), createdAt: new Date("2027-01-01"), ...o};
+    return {_id: new ObjectId(), project, phase: "structure", progressPercent: 40, updateDate: "2027-01-01", createdAt: new Date("2027-01-01"), ...o};
 }
 
 describe("isConstructionAdvance", () => {
@@ -50,8 +50,8 @@ describe("isConstructionAdvance", () => {
 
 describe("findLatestConstructionProgress", () => {
     it("returns the newest report in scope, excluding the given one", async () => {
-        const newest = report({progressPercent: 80, updateDate: new Date("2027-05-01")});
-        mocks.reports = [report({progressPercent: 50}), newest, report({edifice, progressPercent: 90, updateDate: new Date("2027-06-01")})];
+        const newest = report({progressPercent: 80, updateDate: "2027-05-01"});
+        mocks.reports = [report({progressPercent: 50}), newest, report({edifice, progressPercent: 90, updateDate: "2027-06-01"})];
         expect((await findLatestConstructionProgress({company, project}, {excludeId: newest._id}))?.progressPercent).toBe(90);
         expect((await findLatestConstructionProgress({company, project, edifice}))?.progressPercent).toBe(90);
         mocks.reports.pop();

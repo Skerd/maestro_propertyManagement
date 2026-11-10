@@ -1,5 +1,6 @@
 import {Document, model, Schema, SchemaTypes} from 'mongoose';
 import {Decimal128, ObjectId} from "mongodb";
+import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {normalizeSchemaPermissions} from "@coreModule/database/utilities";
 import ownershipPlugin from "@coreModule/database/plugins/ownershipPlugin";
 import auditPlugin from "@coreModule/database/plugins/auditPlugin";
@@ -48,13 +49,13 @@ export enum PaymentPlanStatus {
  */
 export interface IPaymentPlanInstallment {
     installmentNumber: number;       // Installment number (1, 2, 3, etc.)
-    dueDate: Date;                   // When payment is due
+    dueDate: string;                 // When payment is due
     amount: Decimal128;              // Amount due for this installment
     principalAmount: Decimal128;     // Principal portion
     interestAmount: Decimal128;      // Interest portion (if applicable)
     status: InstallmentStatus;       // Payment status
     paidAmount?: Decimal128;         // Amount paid (for partial payments)
-    paidDate?: Date;                 // When payment was made
+    paidDate?: string;               // When payment was made
     transactionId?: string;          // Reference to payment transaction
     notes?: string;                  // Notes about this installment
     installmentReminderEmailAt3d?: Date;
@@ -62,7 +63,7 @@ export interface IPaymentPlanInstallment {
     installmentReminderEmailAt0d?: Date;
     installmentOverdueNoticeEmailAt?: Date;
     lateFeeAmount?: Decimal128;
-    paymentReceipts?: { amount: Decimal128; paidDate: Date; transactionId?: string; notes?: string }[];
+    paymentReceipts?: { amount: Decimal128; paidDate: string; transactionId?: string; notes?: string }[];
 }
 
 export interface IRestructureHistoryEntry {
@@ -71,8 +72,8 @@ export interface IRestructureHistoryEntry {
     reason?: string;
     previousInstallments: IPaymentPlanInstallment[];
     previousNumberOfInstallments: number;
-    previousStartDate: Date;
-    previousEndDate: Date;
+    previousStartDate: string;
+    previousEndDate: string;
     previousInterestRate?: number;
 }
 
@@ -87,13 +88,13 @@ export interface IPaymentPlan extends Document, IOwnershipPluginFields, ISoftDel
     totalAmount: Decimal128;         // Total amount to be paid
     downPayment: Decimal128;         // Initial down payment amount
     downPaymentPaid: boolean;        // if down payment has been fully paid
-    downPaymentDate?: Date;          // When down payment was made
+    downPaymentDate?: string;        // When down payment was made
     remainingBalance: Decimal128;    // Remaining balance to be paid
     numberOfInstallments: number;    // Total number of installments
     installmentAmount: Decimal128;   // Amount per installment
     interestRate?: number;           // Annual interest rate (if applicable)
-    startDate: Date;                 // When payment plan starts
-    endDate: Date;                   // Expected completion date
+    startDate: string;               // When payment plan starts
+    endDate: string;                 // Expected completion date
     installments: IPaymentPlanInstallment[]; // List of all installments
     gracePeriodDays?: number;       // Grace period for late payments (in days)
     lateFeePercentage?: number;      // Late fee percentage (if applicable)
@@ -209,8 +210,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
             required: true,
         },
         downPaymentDate: {
-            type: SchemaTypes.Date,
-            required: false
+            type: SchemaTypes.String,
+            required: false,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         remainingBalance: {
             type: SchemaTypes.Decimal128,
@@ -264,12 +266,14 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
             max: [100, 'Interest rate cannot exceed 100%']
         },
         startDate: {
-            type: SchemaTypes.Date,
-            required: true
+            type: SchemaTypes.String,
+            required: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         endDate: {
-            type: SchemaTypes.Date,
-            required: true
+            type: SchemaTypes.String,
+            required: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         installments: {
             type: [{
@@ -279,7 +283,7 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                     min: [1, 'Installment number must be at least 1']
                 },
                 dueDate: {
-                    type: SchemaTypes.Date,
+                    type: SchemaTypes.String,
                     required: true
                 },
                 amount: {
@@ -362,7 +366,7 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                     }
                 },
                 paidDate: {
-                    type: SchemaTypes.Date,
+                    type: SchemaTypes.String,
                     required: false
                 },
                 transactionId: {
@@ -436,7 +440,7 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                                 return Decimal128.fromString(v.toString());
                             },
                         },
-                        paidDate: {type: SchemaTypes.Date, required: true},
+                        paidDate: {type: SchemaTypes.String, required: true},
                         transactionId: {type: SchemaTypes.String, required: false, trim: true},
                         notes: {type: SchemaTypes.String, required: false, trim: true},
                     }],
@@ -491,8 +495,8 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 },
                 reason:                      {type: SchemaTypes.String,   required: false, trim: true},
                 previousNumberOfInstallments:{type: SchemaTypes.Number,   required: true},
-                previousStartDate:           {type: SchemaTypes.Date,     required: true},
-                previousEndDate:             {type: SchemaTypes.Date,     required: true},
+                previousStartDate:           {type: SchemaTypes.String,     required: true},
+                previousEndDate:             {type: SchemaTypes.String,     required: true},
                 previousInterestRate:        {type: SchemaTypes.Number,   required: false},
                 previousInstallments:        {type: SchemaTypes.Mixed,    required: true},
             }],
@@ -526,8 +530,7 @@ PaymentPlanSchema.pre('save', function(next) {
     const plan = this as unknown as IPaymentPlan;
 
     if (plan.isNew && !plan.name) {
-        const date = plan.startDate ? new Date(plan.startDate) : new Date();
-        const datePart = dayjs(date).format('YYYYMMDD');
+        const datePart = plan.startDate ? plan.startDate.replace(/-/g, "") : dayjs().format('YYYYMMDD');
         const randomPart = crypto.randomBytes(4).toString('hex');
         plan.name = `PAYMENTS_SALE-${datePart}-${randomPart}`.toUpperCase();
     }
@@ -571,11 +574,8 @@ normalizeSchemaPermissions(PaymentPlan);
 export default PaymentPlan;
 
 addModelData(PaymentPlan, paymentPlanViews);
-// startDate/endDate are required Dates with no schemaDefBuilder equivalent;
-// installments is a required embedded array with Date/Decimal128 sub-fields
+// installments is a required embedded array with local-day/Decimal128 sub-fields
 validateSchemaDefAgainstMongoose(PaymentPlanSchema, PaymentPlanSchemaDef, "PaymentPlan", [
-    "startDate",
-    "endDate",
     "installments",
     "restructureHistory",
 ]);

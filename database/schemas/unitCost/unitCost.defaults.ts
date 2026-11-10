@@ -1,4 +1,7 @@
 import {Decimal128, ObjectId} from "mongodb";
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
+import {monthDayRange} from "@propertyManagement/utilities/hubShared/dayRange";
 import UnitCost from "./unitCost";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
@@ -21,23 +24,18 @@ export {unitCostsSeed as defaultUnitCosts};
 
 const PURCHASE_LEAD_DAYS = 20;
 
-function addDays(d: Date, days: number): Date {
-    const next = new Date(d);
-    next.setDate(next.getDate() + days);
-    return next;
-}
-
 /**
  * Payment calendar lists by `paymentDate` in the visible month (current month on first
  * open). Exported seed dates sit in Apr–Jun 2026 and several rows omit `paymentDate`,
- * so those documents would never appear. Spread each row across the current month and
- * always persist a due date.
+ * so those documents would never appear. Spread each row across the company's current
+ * month and always persist a due date. Days are local `YYYY-MM-DD` strings (D115).
  */
-function demoCalendarDates(index: number, now: Date): {purchaseDate: Date; paymentDate: Date} {
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+function demoCalendarDates(index: number, today: string): {purchaseDate: string; paymentDate: string} {
+    const {to} = monthDayRange(today.slice(0, 7));
+    const lastDay = Number(to.slice(8, 10));
     const day = 1 + ((index * 2) % lastDay);
-    const paymentDate = new Date(now.getFullYear(), now.getMonth(), day, 12, 0, 0, 0);
-    return {purchaseDate: addDays(paymentDate, -PURCHASE_LEAD_DAYS), paymentDate};
+    const paymentDate = `${today.slice(0, 7)}-${String(day).padStart(2, "0")}`;
+    return {purchaseDate: addLocalDays(paymentDate, -PURCHASE_LEAD_DAYS), paymentDate};
 }
 
 /**
@@ -59,7 +57,7 @@ export async function createUnitCosts(
     logger.start(`Creating unit costs (${unitCostsSeed.length})...`);
 
     const created = new Map<string, ObjectId>();
-    const now = new Date();
+    const today = localDateOf(new Date(), companyTimeZone(company));
 
     for (const [index, row] of unitCostsSeed.entries()) {
         try {
@@ -87,7 +85,7 @@ export async function createUnitCosts(
             }
 
             const costId = new ObjectId(row.id);
-            const {purchaseDate, paymentDate} = demoCalendarDates(index, now);
+            const {purchaseDate, paymentDate} = demoCalendarDates(index, today);
             const payload = {
                 ...opt("unit", unit),
                 ...opt("floor", floor),

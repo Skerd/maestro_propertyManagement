@@ -267,7 +267,7 @@ export async function notifyReservationExpired(input: NotifyReservationExpiredIn
         const company = await companyService.findById(companyId, {}, undefined, "name");
         const unit = reservation.unit as {_id?: ObjectId; unitNumber?: string | number; name?: string} | undefined;
         const unitNumber = unit?.unitNumber != null ? String(unit.unitNumber) : undefined;
-        const expirationDateFormatted = formatReservationExpirationForEmail(reservation.expirationDate?.toISOString(), languageCode);
+        const expirationDateFormatted = formatReservationExpirationForEmail(reservation.expirationDate, languageCode);
         const depositDisplay = formatReservationDepositForEmailDisplay(
             reservation.depositAmount,
             (reservation.depositCurrency as {symbol?: string} | undefined)?.symbol,

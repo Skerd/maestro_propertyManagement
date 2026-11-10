@@ -56,11 +56,11 @@ beforeEach(() => asCompany(async () => {
     client = await seedUser(companyId, "Client");
 }));
 
-/** An unpaid reservation holding its unit, expiring on `expirationDate` (a calendar day stored at midnight UTC). */
+/** An unpaid reservation holding its unit, expiring on `expirationDate` (a local `YYYY-MM-DD` day, D115). */
 async function seedHeldReservation(expirationDate: string, input: {paid?: boolean} = {}) {
     const unit = await seedUnit(companyId, {price: "250000.00", priceCurrency: chf, status: UnitStatus.RESERVED});
     const reservation = await seedReservation(companyId, {unit, client, paid: input.paid ?? false});
-    await db().collection("reservations").updateOne({_id: reservation}, {$set: {expirationDate: new Date(expirationDate)}});
+    await db().collection("reservations").updateOne({_id: reservation}, {$set: {expirationDate: expirationDate}});
     await db().collection("units").updateOne({_id: unit}, {$set: {reservation}});
     return {unit, reservation};
 }
@@ -119,16 +119,16 @@ describe("installment reminders", {timeout: 60000}, () => {
         const saleId = new ObjectId();
         const unit = await seedUnit(companyId, {price: "30000.00", priceCurrency: chf, status: UnitStatus.SOLD, sale: saleId});
         await Sale.collection.insertOne({
-            _id: saleId, company: companyId, unit, buyer: client, soldBy: client, paymentType: "payment_plan", saleDate: new Date("2026-01-01"),
+            _id: saleId, company: companyId, unit, buyer: client, soldBy: client, paymentType: "payment_plan", saleDate: "2026-01-01",
             saleCurrency: chf, finalPrice: dec("30000.00"), name: "SALE-1", deletedAt: null,
         });
         const dues = ["2026-03-09", "2026-03-10", "2026-03-11"];
         const plan = await PaymentPlan.create({
             sale: saleId, company: companyId, status: PaymentPlanStatus.ACTIVE, totalAmount: dec("30000.00"), downPayment: dec("0"), downPaymentPaid: true,
             remainingBalance: dec("0"), numberOfInstallments: dues.length, installmentAmount: dec("10000.00"), interestRate: 0, gracePeriodDays: 0,
-            startDate: new Date("2026-01-01"), endDate: new Date("2026-12-01"),
+            startDate: "2026-01-01", endDate: "2026-12-01",
             installments: dues.map((due, i) => ({
-                installmentNumber: i + 1, dueDate: new Date(due), amount: dec("10000.00"), principalAmount: dec("10000.00"), interestAmount: dec("0"),
+                installmentNumber: i + 1, dueDate: due, amount: dec("10000.00"), principalAmount: dec("10000.00"), interestAmount: dec("0"),
                 status: InstallmentStatus.PENDING,
             })),
         });

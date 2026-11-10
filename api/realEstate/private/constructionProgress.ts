@@ -18,8 +18,6 @@ import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils
 
 import {edificeService} from "../../../database/schemas/edifice/edifice.service";
 const uploadMW = mediaUploadMW({maxFiles: 20, maxFileSize: 50 * 1024 * 1024});
-const dateTransform = (v: unknown) => new Date(v as string);
-const optionalDateTransform = (v: unknown) => (v ? new Date(v as string) : undefined);
 
 function mergePhotoIds(kept: unknown, fileIds?: string[]) {
     const keptIds = Array.isArray(kept)
@@ -62,10 +60,7 @@ export const {router} = createCrudRouter({
     buildCreateData: async (params: any) => {
         const {fileIds, ...rest} = params;
         await assertEdificeInProject(params, rest.project, rest.edifice);
-        const data = buildCreateDataFromSchemaDef(ConstructionProgressSchemaDef, {
-            updateDate: dateTransform,
-            expectedCompletionDate: optionalDateTransform,
-        })(rest);
+        const data = buildCreateDataFromSchemaDef(ConstructionProgressSchemaDef)(rest);
         if (!validId(rest.edifice)) delete data.edifice;
         if (fileIds?.length > 0) data.photos = fileIds.map((id: string) => new ObjectId(id));
         return data;
@@ -76,10 +71,7 @@ export const {router} = createCrudRouter({
             const current = await constructionProgressService.findById(rest._id, {session: params.session ?? undefined}, undefined, "project");
             await assertEdificeInProject(params, rest.project ?? current?.project, rest.edifice);
         }
-        const data = buildUpdateDataFromSchemaDef(ConstructionProgressSchemaDef, {
-            updateDate: dateTransform,
-            expectedCompletionDate: optionalDateTransform,
-        })({...rest, photos}, writeFields);
+        const data = buildUpdateDataFromSchemaDef(ConstructionProgressSchemaDef)({...rest, photos}, writeFields);
 
         if (writeFields.photos && (photos !== undefined || fileIds?.length > 0)) {
             data.photos = mergePhotoIds(photos, fileIds);

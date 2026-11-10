@@ -15,7 +15,7 @@ import {CONSTANTS} from "@coreModule/environment";
 import {emitNotificationEvent} from "@coreModule/domain/notifications/notificationEventBus";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
-import {addLocalDays, localDateOf, localDayInterval} from "@coreModule/utilities/time/timeWindows";
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
 import {companyTimeZoneOf} from "@coreModule/utilities/time/companyTimeZone";
 import {runInTransaction} from "@coreModule/utilities/middlewares/runInTransaction";
 import {reservationService} from "../../database/schemas/reservation/reservation.service";
@@ -39,11 +39,6 @@ type ReminderPhase = "3" | "1" | "0";
 /** When the job runs; tests pin it. "Today" is taken in the company's timezone (D91). */
 export type ReservationExpiryClock = {now?: Date};
 
-/** The stored instants of one expiration calendar day (`YYYY-MM-DD`). */
-function expirationDayBounds(day: string): {start: Date; end: Date} {
-    return localDayInterval(day, "UTC");
-}
-
 const PHASES: {phase: ReminderPhase; daysUntilExpiration: number; field: "expirationReminderEmailAt3d" | "expirationReminderEmailAt1d" | "expirationReminderEmailAt0d"}[] = [
     {phase: "3", daysUntilExpiration: 3, field: "expirationReminderEmailAt3d"},
     {phase: "1", daysUntilExpiration: 1, field: "expirationReminderEmailAt1d"},
@@ -63,7 +58,8 @@ export async function runReservationExpiredStamp(company: ObjectId, parentLogger
         isActive: true,
         paid: false,
         status: ReservationStatus.ACTIVE,
-        expirationDate: {$lt: expirationDayBounds(today).start},
+        // Expiration days are local `YYYY-MM-DD` strings (D115): they compare as text with the company's today.
+        expirationDate: {$lt: today},
     };
 
     let ended = 0;
@@ -112,13 +108,11 @@ export async function runReservationExpirationReminders(company: ObjectId, paren
     const today = localDateOf(clock.now ?? new Date(), await companyTimeZoneOf(company));
 
     for (const {phase, daysUntilExpiration, field} of PHASES) {
-        const {start, end} = expirationDayBounds(addLocalDays(today, daysUntilExpiration));
-
         const baseFilter: Record<string, unknown> = {
             company,
             isActive: true,
             paid: false,
-            expirationDate: {$gte: start, $lt: end},
+            expirationDate: addLocalDays(today, daysUntilExpiration),
             [field]: {$exists: false},
         };
 
@@ -151,7 +145,7 @@ export async function runReservationExpirationReminders(company: ObjectId, paren
 
                 const companyName = res.company?.name;
                 const unitNumber = res.unit?.unitNumber;
-                const expIso = new Date(res.expirationDate).toISOString();
+                const expIso = res.expirationDate;
                 const location = unitLocationForEmail(res.unit);
 
                 try {

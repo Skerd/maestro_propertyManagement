@@ -11,7 +11,6 @@ import {leadService} from "../../../database/schemas/lead/lead.service";
 import {leadToDTO, leadsToDTO} from "../../../utilities/mappers/lead/leadMapper.dto";
 import {leadsToSelect} from "../../../utilities/mappers/lead/leadMapper.select";
 
-const dateTransform  = (v: unknown) => new Date(v as string);
 const budgetTransform = (v: unknown) => Decimal128.fromString(String(v));
 
 export const {router} = createCrudRouter({
@@ -27,11 +26,9 @@ export const {router} = createCrudRouter({
     selectSort:     {firstName: 1},
     buildCreateData: buildCreateDataFromSchemaDef(LeadSchemaDef, {
         budget:      budgetTransform,
-        followUpDate: dateTransform,
     }),
     buildUpdateData: buildUpdateDataFromSchemaDef(LeadSchemaDef, {
         budget:      budgetTransform,
-        followUpDate: dateTransform,
     }),
     afterCreate: async (created, {session, logger, languageCode, actionUserCtx}) => {
         await leadService.updateByIdOrThrow(

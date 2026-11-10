@@ -86,7 +86,7 @@ export function reminderKindToDispatch(
 
 export function assertRentReminderKindAllowed(
     kind: RentReminderKind,
-    dueDate: Date,
+    dueDate: string,
     today: string,
     languageCode: string,
 ): void {
@@ -134,7 +134,7 @@ export function buildLeaseRentEmailPayload(params: {
         unit?: unknown;
     };
     payment: RentMoneyRow & {
-        dueDate: Date;
+        dueDate: string;
         currency?: {_id?: unknown; symbol?: string} | null;
         unit?: unknown;
     };
@@ -166,7 +166,7 @@ export function buildLeaseRentEmailPayload(params: {
     const sym = params.payment.currency?.symbol ?? "";
     const rentRemainingDisplay = sym ? `${remainingFmt} ${sym}` : remainingFmt;
 
-    const dueIso = new Date(params.payment.dueDate).toISOString();
+    const dueIso = params.payment.dueDate;
 
     return {
         clientUserId: tenantId,
@@ -202,7 +202,7 @@ export async function sendManualRentReminder(params: {
         throw apiValidationException("rental_payment_already_paid", "", null, languageCode);
     }
 
-    const due = new Date(payment.dueDate);
+    const due = payment.dueDate;
     const today = await companyToday(companyId, {session});
     assertRentReminderKindAllowed(kind, due, today, languageCode);
 

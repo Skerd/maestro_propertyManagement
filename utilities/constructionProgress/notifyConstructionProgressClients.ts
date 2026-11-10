@@ -15,7 +15,7 @@ type Ref = {_id?: ObjectId; name?: string} | ObjectId | null | undefined;
 
 const idOf = (ref: Ref): ObjectId | undefined => (ref instanceof ObjectId ? ref : ref?._id);
 const nameOf = (ref: Ref): string | undefined => (ref instanceof ObjectId ? undefined : ref?.name);
-const dateText = (d: Date | undefined, lang: string) => (d ? formatReservationExpirationForEmail(new Date(d).toISOString(), lang) : undefined);
+const dateText = (day: string | undefined, lang: string) => (day ? formatReservationExpirationForEmail(day, lang) : undefined);
 
 /**
  * Tells every client holding a unit in the report's scope (buyers + active reservations) about it:

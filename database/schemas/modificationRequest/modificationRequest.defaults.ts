@@ -112,9 +112,7 @@ export async function createModificationRequests(
                               })),
                               media: [],
                               notes: row.financeDetails.notes,
-                              estimatedCompletionDate: new Date(
-                                  row.financeDetails.estimatedCompletionDate,
-                              ),
+                              estimatedCompletionDate: row.financeDetails.estimatedCompletionDate,
                           },
                       }
                     : {}),

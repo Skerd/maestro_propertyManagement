@@ -125,11 +125,10 @@ export async function runLeaseRentReminders(company: ObjectId, parentLogger?: se
                 continue;
             }
 
-            const due = new Date(payment.dueDate);
-            if (Number.isNaN(due.getTime())) {
+            const dueDay = payment.dueDate;
+            if (!dueDay) {
                 continue;
             }
-            const dueDay = localDateOf(due, "UTC");
 
             for (const {phase, daysUntilDue, field} of PHASES) {
                 if (payment[field]) {

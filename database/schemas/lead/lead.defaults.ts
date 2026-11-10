@@ -47,7 +47,7 @@ export async function createLeads(
                 ...opt("budgetCurrency", resolveCurrency(refs, row.budgetCurrency)),
                 ...opt("notes", row.notes),
                 ...opt("assignedTo", resolveUser(refs, row.assignedTo)),
-                ...optDate("followUpDate", row.followUpDate),
+                ...opt("followUpDate", row.followUpDate),
                 ...optDate("convertedAt", row.convertedAt),
                 activityLog: row.activityLog.map((entry) => ({
                     action: entry.action,

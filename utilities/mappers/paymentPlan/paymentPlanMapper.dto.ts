@@ -15,13 +15,13 @@ import {decimalToNumber, mapSnippet} from "@coreModule/utilities/mappers/common.
 
 function mapInstallment(installment: {
     installmentNumber: number;
-    dueDate?: Date | string;
+    dueDate: string;
     amount?: unknown;
     principalAmount?: unknown;
     interestAmount?: unknown;
     status: string;
     paidAmount?: unknown;
-    paidDate?: Date | string;
+    paidDate?: string;
     transactionId?: string;
     notes?: string;
     installmentReminderEmailAt3d?: Date | string;
@@ -31,13 +31,13 @@ function mapInstallment(installment: {
 }): PaymentPlanInstallment {
     return {
         installmentNumber: installment.installmentNumber,
-        dueDate: installment.dueDate ? new Date(installment.dueDate).toISOString() : new Date().toISOString(),
+        dueDate: installment.dueDate,
         amount: decimalToNumber(installment.amount),
         principalAmount: decimalToNumber(installment.principalAmount),
         interestAmount: decimalToNumber(installment.interestAmount),
         status: installment.status,
         paidAmount: decimalToNumber(installment.paidAmount),
-        paidDate: installment.paidDate ? new Date(installment.paidDate).toISOString() : undefined,
+        paidDate: installment.paidDate || undefined,
         transactionId: installment.transactionId,
         notes: installment.notes,
         installmentReminderEmailAt3d: installment.installmentReminderEmailAt3d
@@ -69,13 +69,13 @@ export function paymentPlanToDTO(plan: IPaymentPlan): PaymentPlan {
         totalAmount: decimalToNumber(plan.totalAmount),
         downPayment: decimalToNumber(plan.downPayment),
         downPaymentPaid: plan.downPaymentPaid,
-        downPaymentDate: plan.downPaymentDate ? new Date(plan.downPaymentDate).toISOString() : undefined,
+        downPaymentDate: plan.downPaymentDate || undefined,
         remainingBalance: decimalToNumber(plan.remainingBalance),
         numberOfInstallments: plan.numberOfInstallments,
         installmentAmount: decimalToNumber(plan.installmentAmount),
         interestRate: plan.interestRate,
-        startDate: plan.startDate ? new Date(plan.startDate).toISOString() : new Date().toISOString(),
-        endDate: plan.endDate ? new Date(plan.endDate).toISOString() : new Date().toISOString(),
+        startDate: plan.startDate,
+        endDate: plan.endDate,
         installments: plan.installments ? plan.installments.map(mapInstallment) : [],
         gracePeriodDays: plan.gracePeriodDays,
         lateFeePercentage: plan.lateFeePercentage,
@@ -88,12 +88,8 @@ export function paymentPlanToDTO(plan: IPaymentPlan): PaymentPlan {
                 restructuredBy: mapSnippet<SimpleBlankUser>()(entry.restructuredBy as object | undefined, SimpleBlankUserSnippet),
                 reason: entry.reason,
                 previousNumberOfInstallments: entry.previousNumberOfInstallments,
-                previousStartDate: entry.previousStartDate
-                    ? new Date(entry.previousStartDate).toISOString()
-                    : "",
-                previousEndDate: entry.previousEndDate
-                    ? new Date(entry.previousEndDate).toISOString()
-                    : "",
+                previousStartDate: entry.previousStartDate || "",
+                previousEndDate: entry.previousEndDate || "",
                 previousInterestRate: entry.previousInterestRate,
                 previousInstallments: Array.isArray(entry.previousInstallments)
                     ? entry.previousInstallments.map(mapInstallment)

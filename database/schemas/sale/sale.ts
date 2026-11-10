@@ -84,7 +84,7 @@ export interface ISale extends Document, IOwnershipPluginFields, ISoftDeletePlug
     buyer?: IUser;                          // Buyer (shared for cash and payment plan)
     buyerCompany?: ICompany;                // Optional buyer company (shared)
     soldBy: IUser;                          // User who processed the sale
-    saleDate: Date;                         // Date of sale
+    saleDate: string;                       // Date of sale
 
     listedUnitPrice?: Decimal128;           // Unit price snapshot used for derived sale pricing
     listedUnitCurrency?: ICurrency;         // Unit currency snapshot used for derived sale pricing
@@ -116,7 +116,7 @@ export interface ISale extends Document, IOwnershipPluginFields, ISoftDeletePlug
     saleApproval?: IApprovalStage;
 
     // FEAT-004 — handover tracking
-    handoverDate?: Date;
+    handoverDate?: string;
     handoverCertificate?: IMedia;
     handedOverBy?: IUser;
     handoverNotes?: string;
@@ -127,7 +127,7 @@ export interface ISale extends Document, IOwnershipPluginFields, ISoftDeletePlug
     handoverChecklistItems?: ISaleHandoverChecklistItem[];
 
     // FEAT-014 — title transfer tracking
-    titleTransferDate?: Date;
+    titleTransferDate?: string;
     deedNumber?: string;
     notaryName?: string;
     titleTransferCertificate?: IMedia;
@@ -188,10 +188,10 @@ const SaleSchema = new Schema<ISale>(
             },
         },
         saleDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
-            default: Date.now,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
         },
         saleCurrency: {
             type: SchemaTypes.ObjectId,
@@ -472,7 +472,7 @@ const SaleSchema = new Schema<ISale>(
             },
         },
         // FEAT-004 — handover tracking
-        handoverDate: {type: SchemaTypes.Date, required: false},
+        handoverDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         handoverCertificate: {
             type: SchemaTypes.ObjectId,
             ref: "Media",
@@ -526,7 +526,7 @@ const SaleSchema = new Schema<ISale>(
             permissions: noWrite,
         },
         // FEAT-014 — title transfer tracking
-        titleTransferDate: {type: SchemaTypes.Date, required: false},
+        titleTransferDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
         notaryName: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
         titleTransferCertificate: {
@@ -548,8 +548,7 @@ SaleSchema.pre('save', function(next) {
     
     // Auto-generate unique name for new sales: SALE-YYYYMMDD-XXXXXXXX
     if (sale.isNew && !sale.name) {
-        const date = sale.saleDate ? new Date(sale.saleDate) : new Date();
-        const datePart = dayjs(date).format('YYYYMMDD');
+        const datePart = sale.saleDate ? sale.saleDate.replace(/-/g, "") : dayjs().format('YYYYMMDD');
         const randomPart = crypto.randomBytes(4).toString('hex');
         sale.name = `SALE-${datePart}-${randomPart}`.toUpperCase();
     }

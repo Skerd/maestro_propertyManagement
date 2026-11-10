@@ -256,7 +256,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
                 }
             ],
             "notes": "Demo finance estimate",
-            "estimatedCompletionDate": "2026-08-11T12:39:44.041Z"
+            "estimatedCompletionDate": "2026-08-11"
         },
         "clientCostApproval": {
             "decision": "pending"
@@ -345,7 +345,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
                 }
             ],
             "notes": "Demo finance estimate",
-            "estimatedCompletionDate": "2026-08-11T12:39:44.041Z"
+            "estimatedCompletionDate": "2026-08-11"
         },
         "clientCostApproval": {
             "decision": "approved",

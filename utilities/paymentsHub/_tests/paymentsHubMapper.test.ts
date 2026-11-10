@@ -3,7 +3,8 @@ import {Decimal128, ObjectId} from "mongodb";
 import {addToBuckets, bucketsToRevenue, type CurrencyBucket, planToHubRows} from "../paymentsHubMapper.dto";
 import type {PaymentsHubRow} from "armonia/src/modules/propertyManagement/api/realEstate/private/paymentsHub/paymentsHub.dto";
 
-const NOW = new Date("2026-09-22T09:00:00.000Z");
+/** The company's day the hub runs on (D115: due and paid days are local `YYYY-MM-DD` strings). */
+const TODAY = "2026-09-22";
 const dec = (value: string) => Decimal128.fromString(value);
 
 const currency = {_id: new ObjectId(), name: "Euro", symbol: "€", abbreviation: "EUR"};
@@ -15,7 +16,7 @@ function makePlan(overrides: Record<string, any> = {}): Record<string, any> {
         status: "active",
         downPayment: dec("0"),
         downPaymentPaid: false,
-        startDate: new Date("2026-01-15T00:00:00.000Z"),
+        startDate: "2026-01-15",
         installments: [],
         sale: {
             _id: new ObjectId(),
@@ -36,7 +37,7 @@ function makePlan(overrides: Record<string, any> = {}): Record<string, any> {
 function installment(overrides: Record<string, any> = {}): Record<string, any> {
     return {
         installmentNumber: 1,
-        dueDate: new Date("2026-10-15T00:00:00.000Z"),
+        dueDate: "2026-10-15",
         amount: dec("1000"),
         status: "pending",
         ...overrides,
@@ -46,10 +47,10 @@ function installment(overrides: Record<string, any> = {}): Record<string, any> {
 describe("planToHubRows — derived status", () => {
     it("marks an unpaid installment overdue the day after it was due, whatever the stored status says", () => {
         const plan = makePlan({
-            installments: [installment({dueDate: new Date("2026-09-21T00:00:00.000Z"), status: "pending"})],
+            installments: [installment({dueDate: "2026-09-21", status: "pending"})],
         });
 
-        const [row] = planToHubRows(plan, NOW);
+        const [row] = planToHubRows(plan, TODAY);
 
         expect(row.status).toBe("overdue");
         expect(row.daysOverdue).toBe(1);
@@ -58,22 +59,22 @@ describe("planToHubRows — derived status", () => {
 
     it("leaves an installment due today as pending", () => {
         const plan = makePlan({
-            installments: [installment({dueDate: new Date("2026-09-22T00:00:00.000Z")})],
+            installments: [installment({dueDate: "2026-09-22"})],
         });
 
-        expect(planToHubRows(plan, NOW)[0].status).toBe("pending");
+        expect(planToHubRows(plan, TODAY)[0].status).toBe("pending");
     });
 
     it("reports a part-paid overdue installment as overdue, not partially_paid", () => {
         const plan = makePlan({
             installments: [installment({
-                dueDate: new Date("2026-08-15T00:00:00.000Z"),
+                dueDate: "2026-08-15",
                 paidAmount: dec("400"),
                 status: "partially_paid",
             })],
         });
 
-        const [row] = planToHubRows(plan, NOW);
+        const [row] = planToHubRows(plan, TODAY);
 
         expect(row.status).toBe("overdue");
         expect(row.remaining).toBe(600);
@@ -84,19 +85,19 @@ describe("planToHubRows — derived status", () => {
             installments: [installment({paidAmount: dec("400"), status: "pending"})],
         });
 
-        expect(planToHubRows(plan, NOW)[0].status).toBe("partially_paid");
+        expect(planToHubRows(plan, TODAY)[0].status).toBe("partially_paid");
     });
 
     it("treats a fully covered installment as paid even when the stored status is stale", () => {
         const plan = makePlan({
             installments: [installment({
-                dueDate: new Date("2026-08-15T00:00:00.000Z"),
+                dueDate: "2026-08-15",
                 paidAmount: dec("1000"),
                 status: "overdue",
             })],
         });
 
-        const [row] = planToHubRows(plan, NOW);
+        const [row] = planToHubRows(plan, TODAY);
 
         expect(row.status).toBe("paid");
         expect(row.remaining).toBe(0);
@@ -105,10 +106,10 @@ describe("planToHubRows — derived status", () => {
 
     it("keeps cancelled installments cancelled and owing nothing", () => {
         const plan = makePlan({
-            installments: [installment({dueDate: new Date("2026-08-15T00:00:00.000Z"), status: "cancelled"})],
+            installments: [installment({dueDate: "2026-08-15", status: "cancelled"})],
         });
 
-        const [row] = planToHubRows(plan, NOW);
+        const [row] = planToHubRows(plan, TODAY);
 
         expect(row.status).toBe("cancelled");
         expect(row.remaining).toBe(0);
@@ -117,12 +118,12 @@ describe("planToHubRows — derived status", () => {
     it("counts the late fee as part of what is still owed", () => {
         const plan = makePlan({
             installments: [installment({
-                dueDate: new Date("2026-08-15T00:00:00.000Z"),
+                dueDate: "2026-08-15",
                 lateFeeAmount: dec("50"),
             })],
         });
 
-        const [row] = planToHubRows(plan, NOW);
+        const [row] = planToHubRows(plan, TODAY);
 
         expect(row.remaining).toBe(1050);
         expect(row.lateFeeAmount).toBe(50);
@@ -134,13 +135,13 @@ describe("planToHubRows — derived status", () => {
                 paidAmount: dec("1000"),
                 status: "paid",
                 paymentReceipts: [
-                    {amount: dec("600"), paidDate: new Date("2026-09-01T00:00:00.000Z")},
-                    {amount: dec("400"), paidDate: new Date("2026-09-10T00:00:00.000Z")},
+                    {amount: dec("600"), paidDate: "2026-09-01"},
+                    {amount: dec("400"), paidDate: "2026-09-10"},
                 ],
             })],
         });
 
-        expect(planToHubRows(plan, NOW)[0].paidDate).toBe("2026-09-10T00:00:00.000Z");
+        expect(planToHubRows(plan, TODAY)[0].paidDate).toBe("2026-09-10");
     });
 });
 
@@ -148,11 +149,11 @@ describe("planToHubRows — down payment", () => {
     it("adds a down-payment row due on the plan start date", () => {
         const plan = makePlan({downPayment: dec("5000"), installments: [installment()]});
 
-        const rows = planToHubRows(plan, NOW);
+        const rows = planToHubRows(plan, TODAY);
 
         expect(rows).toHaveLength(2);
         expect(rows[0].kind).toBe("down_payment");
-        expect(rows[0].dueDate).toBe("2026-01-15T00:00:00.000Z");
+        expect(rows[0].dueDate).toBe("2026-01-15");
         expect(rows[0].amount).toBe(5000);
         // Start date is in the past and it is unpaid.
         expect(rows[0].status).toBe("overdue");
@@ -163,19 +164,19 @@ describe("planToHubRows — down payment", () => {
         const plan = makePlan({
             downPayment: dec("5000"),
             downPaymentPaid: true,
-            downPaymentDate: new Date("2026-01-20T00:00:00.000Z"),
+            downPaymentDate: "2026-01-20",
         });
 
-        const [row] = planToHubRows(plan, NOW);
+        const [row] = planToHubRows(plan, TODAY);
 
         expect(row.status).toBe("paid");
         expect(row.paidAmount).toBe(5000);
         expect(row.remaining).toBe(0);
-        expect(row.paidDate).toBe("2026-01-20T00:00:00.000Z");
+        expect(row.paidDate).toBe("2026-01-20");
     });
 
     it("adds no row when the plan has no down payment", () => {
-        const rows = planToHubRows(makePlan({installments: [installment()]}), NOW);
+        const rows = planToHubRows(makePlan({installments: [installment()]}), TODAY);
 
         expect(rows.map((row) => row.kind)).toEqual(["installment"]);
     });
@@ -183,7 +184,7 @@ describe("planToHubRows — down payment", () => {
     it("carries unit, project, client and sale code onto every row", () => {
         const plan = makePlan({downPayment: dec("5000"), installments: [installment()]});
 
-        for (const row of planToHubRows(plan, NOW)) {
+        for (const row of planToHubRows(plan, TODAY)) {
             expect(row.unit?.unitNumber).toBe("3B");
             expect(row.project?.name).toBe("Riverside");
             expect(row.client).toMatchObject({name: "Arta", surname: "Hoxha"});
@@ -202,7 +203,7 @@ describe("planToHubRows — down payment", () => {
             installments: [installment()],
         });
 
-        expect(planToHubRows(plan, NOW)[0].client?.companyName).toBe("Hoxha Invest sh.p.k.");
+        expect(planToHubRows(plan, TODAY)[0].client?.companyName).toBe("Hoxha Invest sh.p.k.");
     });
 
     it("cancels open rows of a cancelled plan but keeps paid ones paid", () => {
@@ -214,7 +215,7 @@ describe("planToHubRows — down payment", () => {
             ],
         });
 
-        const rows = planToHubRows(plan, NOW);
+        const rows = planToHubRows(plan, TODAY);
 
         expect(rows[0].status).toBe("paid");
         expect(rows[1].status).toBe("cancelled");

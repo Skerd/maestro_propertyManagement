@@ -21,7 +21,7 @@ import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {LeadStatus, LeadSource} from "@propertyManagement/database/schemas/lead/lead";
-import {DEFAULT_RESULTS, MAX_RESULTS, limitParameter, listResult} from "./assistantToolHelpers";
+import {DEFAULT_RESULTS, MAX_RESULTS, dayRange, limitParameter, listResult} from "./assistantToolHelpers";
 
 const LEAD_STATUS_VALUES = Object.values(LeadStatus) as string[];
 const LEAD_SOURCE_VALUES = Object.values(LeadSource) as string[];
@@ -95,7 +95,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     }
     if (args.status) query.status = args.status;
     if (args.source) query.source = args.source;
-    if (args.followUpBefore != null) query.followUpDate = {$lte: args.followUpBefore};
+    if (args.followUpBefore != null) query.followUpDate = dayRange(undefined, args.followUpBefore);
     // "My leads" — scoped from the trusted context, never from a model-supplied id.
     if (args.assignedToMe === true) query.assignedTo = new ObjectId(ctx.userId);
 

@@ -679,8 +679,8 @@ export const edificesSeed: readonly EdificeSeedRow[] = [
                 "y": 0.10246458780880774
             }
         ],
-        "constructionStartDate": "2023-03-01T00:00:00.000Z",
-        "expectedCompletionDate": "2027-12-01T00:00:00.000Z",
+        "constructionStartDate": "2023-03-01",
+        "expectedCompletionDate": "2027-12-01",
         "distanceFromCityCenter": 1200,
         "energyClass": "A",
         "greenArea": 4200,

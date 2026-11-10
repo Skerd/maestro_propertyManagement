@@ -363,7 +363,7 @@ const {router} = createCrudRouter({
 
             const installments: any[] = allocation.installments.map((row) => ({
                 installmentNumber: row.installmentNumber,
-                dueDate:           new Date(`${row.dueDate}T00:00:00.000Z`),
+                dueDate:           row.dueDate,
                 amount:            Decimal128.fromString(row.amount.toString()),
                 principalAmount:   Decimal128.fromString(row.principalAmount.toString()),
                 interestAmount:    Decimal128.fromString(row.interestAmount.toString()),
@@ -373,14 +373,9 @@ const {router} = createCrudRouter({
 
             const totalInstallmentAmount = addMoney(...allocation.installments.map((r) => r.amount));
 
-            const planDateFromForm = (v: unknown): Date | null => {
-                const p = parseIsoDatePrefix(v);
-                if (!p) return null;
-                const d = new Date(`${p}T00:00:00.000Z`);
-                return Number.isNaN(d.getTime()) ? null : d;
-            };
-            const startDate = planDateFromForm(startDateField) ?? installments[0]?.dueDate ?? new Date();
-            const endDate   = planDateFromForm(endDateField)   ?? installments[installments.length - 1]?.dueDate ?? new Date();
+            // Plan days are local `YYYY-MM-DD` strings (D115); without them the schedule's first and last due days.
+            const startDate: string = parseIsoDatePrefix(startDateField) || installments[0].dueDate;
+            const endDate: string   = parseIsoDatePrefix(endDateField)   || installments[installments.length - 1].dueDate;
 
             const remainingBalance = computePaymentPlanRemainingBalance({
                 downPayment:     fromMinor(downPaymentMinor, saleDecimals),
@@ -395,7 +390,7 @@ const {router} = createCrudRouter({
                     totalAmount:          decimal128FromMinor(pricing.finalPriceMinor, saleDecimals),
                     downPayment:          decimal128FromMinor(downPaymentMinor, saleDecimals),
                     downPaymentPaid:      !!downPaymentPaid,
-                    downPaymentDate:      downPaymentDate ? new Date(downPaymentDate) : undefined,
+                    downPaymentDate:      downPaymentDate || undefined,
                     remainingBalance:     Decimal128.fromString(remainingBalance.toString()),
                     numberOfInstallments: installmentsArray.length,
                     installmentAmount:    Decimal128.fromString(totalInstallmentAmount.toString()),
@@ -426,7 +421,7 @@ const {router} = createCrudRouter({
             buyerCompany:               buyerCompany ? new ObjectId(buyerCompany) : undefined,
             soldBy:                     soldByDoc,
             saleCurrency:               saleCurrencyDoc,
-            saleDate:                   new Date(saleDate),
+            saleDate,
             listedUnitPrice:            foundUnit.price,
             listedUnitCurrency:         foundUnit.priceCurrency,
             saleExchangeRate:           pricing.saleExchangeRate,

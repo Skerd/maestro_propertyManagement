@@ -14,7 +14,8 @@ const COLOR_OVERDUE   = rgb(0.75, 0.15, 0.15);
 function fmtDate(iso: string | undefined): string {
     if (!iso) return "—";
     const d = new Date(iso);
-    return d.toLocaleDateString("en-GB", {day: "2-digit", month: "short", year: "numeric"});
+    // Plan days are local `YYYY-MM-DD` strings (D115), read as UTC midnight: print them in UTC so the day never shifts.
+    return d.toLocaleDateString("en-GB", {day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"});
 }
 
 function fmtMoney(amount: number | undefined, symbol?: string): string {

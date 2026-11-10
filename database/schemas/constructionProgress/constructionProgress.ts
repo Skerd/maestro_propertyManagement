@@ -41,10 +41,10 @@ export interface IConstructionProgress extends Document, IOwnershipPluginFields,
     edifice?: IEdifice;
     phase: ConstructionPhase;
     progressPercent: number;
-    updateDate: Date;
+    updateDate: string;
     title: string;
     description?: string;
-    expectedCompletionDate?: Date;
+    expectedCompletionDate?: string;
     photos: IMedia[];
     notifyClients?: boolean;
     clientsNotifiedAt?: Date;
@@ -66,7 +66,7 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
         edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, refAllowlist: EdificeSimpleSnippet},
         phase: {type: SchemaTypes.String, required: true, enum: CONSTRUCTION_PHASE_VALUES},
         progressPercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100},
-        updateDate: {type: SchemaTypes.Date, required: true},
+        updateDate: {type: SchemaTypes.String, required: true, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         title: {
             type: SchemaTypes.String,
             required: true,
@@ -80,7 +80,7 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
             trim: true,
             maxlength: CONSTRUCTION_PROGRESS_LONG_TEXT_MAX,
         },
-        expectedCompletionDate: {type: SchemaTypes.Date, required: false},
+        expectedCompletionDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         photos: {
             type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
             default: [],

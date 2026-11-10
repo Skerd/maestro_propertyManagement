@@ -1,4 +1,5 @@
 import {Router} from "express";
+import {inDayRange, parseDayRange} from "../../../utilities/hubShared/dayRange";
 import {ObjectId} from "mongodb";
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
 import authMW, {AuthenticatedMWType} from "@coreModule/utilities/middlewares/authMW";
@@ -171,35 +172,6 @@ async function resolveUnitIds(
     return units.map((u) => u._id as ObjectId);
 }
 
-function parseDateRange(from?: string, to?: string): {from?: Date; to?: Date} {
-    const result: {from?: Date; to?: Date} = {};
-    if (from) {
-        const d = new Date(from);
-        if (!Number.isNaN(d.getTime())) {
-            d.setHours(0, 0, 0, 0);
-            result.from = d;
-        }
-    }
-    if (to) {
-        const d = new Date(to);
-        if (!Number.isNaN(d.getTime())) {
-            d.setHours(23, 59, 59, 999);
-            result.to = d;
-        }
-    }
-    return result;
-}
-
-function inDateRange(value: unknown, range: {from?: Date; to?: Date}): boolean {
-    if (!range.from && !range.to) return true;
-    if (!value) return false;
-    const d = value instanceof Date ? value : new Date(value as string);
-    if (Number.isNaN(d.getTime())) return false;
-    if (range.from && d < range.from) return false;
-    if (range.to && d > range.to) return false;
-    return true;
-}
-
 async function listContracts(
     params: HubParams & ContractsListFormType,
 ): Promise<ContractsListResponseType> {
@@ -228,7 +200,7 @@ async function listContracts(
 
     const companyId = company._id;
     const unitIds = await resolveUnitIds({...params, project, edifice, floor, unit});
-    const dateRange = parseDateRange(signatureDateFrom, signatureDateTo);
+    const dateRange = parseDayRange(signatureDateFrom, signatureDateTo);
     const rows: ContractRegistryRow[] = [];
     const read = collectedFieldReader(actionUserCtx, languageCode);
 
@@ -250,7 +222,7 @@ async function listContracts(
         const canFilterByDate = read(RES, "reservationDate");
         for (const doc of reservations) {
             const row = omitRowKeys(reservationToContractRow(doc as Record<string, unknown>), hidden);
-            if (canFilterByDate && !inDateRange(doc.reservationDate, dateRange)) continue;
+            if (canFilterByDate && !inDayRange(doc.reservationDate, dateRange)) continue;
             if (
                 !matchesSearch(search, [
                     row.contractNumber,
@@ -278,7 +250,7 @@ async function listContracts(
         const canFilterByDate = read(SALE, "saleDate");
         for (const doc of sales) {
             const row = omitRowKeys(saleToContractRow(doc as Record<string, unknown>), hidden);
-            if (canFilterByDate && !inDateRange(doc.saleDate, dateRange)) continue;
+            if (canFilterByDate && !inDayRange(doc.saleDate, dateRange)) continue;
             if (
                 !matchesSearch(search, [
                     row.contractNumber,
@@ -293,9 +265,7 @@ async function listContracts(
     }
 
     rows.sort((a, b) => {
-        const aTime = a.signatureDate ? new Date(a.signatureDate).getTime() : 0;
-        const bTime = b.signatureDate ? new Date(b.signatureDate).getTime() : 0;
-        return bTime - aTime;
+        return (b.signatureDate ?? "").localeCompare(a.signatureDate ?? "");
     });
 
     const paginated = paginateRows(rows, page, limit);

@@ -257,7 +257,7 @@ export class ModificationRequestActions {
                 currency: currencyDoc,
                 media: mediaIds.length > 0 ? mediaIds.map((id: string) => new ObjectId(id)) : undefined,
                 notes,
-                estimatedCompletionDate: estimatedCompletionDate ? new Date(estimatedCompletionDate) : undefined,
+                estimatedCompletionDate: estimatedCompletionDate || undefined,
                 costBreakdown: ((costBreakdown && costBreakdown.length > 0 ? costBreakdown : seededBreakdown) || []).map((item: any) => ({
                     item: item.item, cost: item.cost, quantity: item.quantity, unit: item.unit, source: item.source || "manual",
                 })),

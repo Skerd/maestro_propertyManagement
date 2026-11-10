@@ -4,7 +4,7 @@ import Sale from "@propertyManagement/database/schemas/sale/sale";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {paymentPlansSeed} from "@propertyManagement/database/seeds/operations/paymentPlans.seed";
-import {opt, optDate} from "@propertyManagement/database/seeds/operations/operationsRefs";
+import {opt} from "@propertyManagement/database/seeds/operations/operationsRefs";
 
 export {paymentPlansSeed as defaultPaymentPlans};
 
@@ -41,16 +41,16 @@ export async function createPaymentPlans(
                 totalAmount: Decimal128.fromString(row.totalAmount),
                 downPayment: Decimal128.fromString(row.downPayment),
                 downPaymentPaid: row.downPaymentPaid,
-                ...optDate("downPaymentDate", row.downPaymentDate),
+                ...opt("downPaymentDate", row.downPaymentDate),
                 remainingBalance: Decimal128.fromString(row.remainingBalance),
                 numberOfInstallments: row.numberOfInstallments,
                 installmentAmount: Decimal128.fromString(row.installmentAmount),
                 interestRate: row.interestRate,
-                startDate: new Date(row.startDate),
-                endDate: new Date(row.endDate),
+                startDate: row.startDate,
+                endDate: row.endDate,
                 installments: row.installments.map((installment) => ({
                     installmentNumber: installment.installmentNumber,
-                    dueDate: new Date(installment.dueDate),
+                    dueDate: installment.dueDate,
                     amount: Decimal128.fromString(installment.amount),
                     principalAmount: Decimal128.fromString(installment.principalAmount),
                     interestAmount: Decimal128.fromString(installment.interestAmount),
@@ -58,7 +58,7 @@ export async function createPaymentPlans(
                     ...(installment.paidAmount != null
                         ? {paidAmount: Decimal128.fromString(installment.paidAmount)}
                         : {}),
-                    ...optDate("paidDate", installment.paidDate),
+                    ...opt("paidDate", installment.paidDate),
                     ...opt("notes", installment.notes),
                 })),
                 gracePeriodDays: row.gracePeriodDays,

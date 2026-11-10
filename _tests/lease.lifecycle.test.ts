@@ -128,24 +128,24 @@ describe("resyncing the rent schedule after an edit", {timeout: 60000}, () => {
 
     it("refuses a term longer than 600 months", () => asCompany(async () => {
         const {lease} = await seedWithPaidJanuary();
-        const resync = await editLease(lease, {endDate: new Date("2077-01-01")});
+        const resync = await editLease(lease, {endDate: "2077-01-01"});
         await expect(resync()).rejects.toMatchObject({error_code: "lease_term_too_long"});
     }));
 
     it("refuses to move the start once rent was collected", () => asCompany(async () => {
         const {lease, rows} = await seedWithPaidJanuary();
-        const resync = await editLease(lease, {startDate: new Date("2026-02-01")});
+        const resync = await editLease(lease, {startDate: "2026-02-01"});
         await expect(resync()).rejects.toMatchObject({error_code: "lease_start_after_collected_rent"});
         expect(await db().collection("rentalpayments").countDocuments({lease})).toBe(rows.length);
     }));
 
     it("refuses to end the lease before a collected month, and waives the months a shorter lease drops", () => asCompany(async () => {
         const {lease, rows} = await seedWithPaidJanuary();
-        const tooShort = await editLease(lease, {endDate: new Date("2025-12-31")});
+        const tooShort = await editLease(lease, {endDate: "2025-12-31"});
         await expect(tooShort()).rejects.toMatchObject({error_code: "lease_end_before_collected_rent"});
 
-        await db().collection("leases").updateOne({_id: lease}, {$set: {endDate: new Date("2026-03-31")}});
-        const shorter = await editLease(lease, {endDate: new Date("2026-01-31")});
+        await db().collection("leases").updateOne({_id: lease}, {$set: {endDate: "2026-03-31"}});
+        const shorter = await editLease(lease, {endDate: "2026-01-31"});
         await shorter();
         expect((await rowsOf(rows)).map(([status]) => status)).toEqual(["paid", "waived", "waived"]);
     }));

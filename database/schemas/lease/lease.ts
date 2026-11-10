@@ -40,8 +40,8 @@ export interface ILease extends Document, IOwnershipPluginFields, ISoftDeletePlu
     name?: string;
     unit: IUnit;
     tenant: IUser;
-    startDate: Date;
-    endDate: Date;
+    startDate: string;
+    endDate: string;
     monthlyRent: Decimal128;
     rentCurrency: ICurrency;
     depositAmount?: Decimal128;
@@ -50,7 +50,7 @@ export interface ILease extends Document, IOwnershipPluginFields, ISoftDeletePlu
     depositPaid: boolean;
     depositReturnedAt?: Date;
     status: LeaseStatus;
-    terminationDate?: Date;
+    terminationDate?: string;
     terminationReason?: string;
     notes?: string;
     contractMedia?: IMedia;
@@ -93,7 +93,7 @@ const LeaseSchema = new Schema<ILease>(
             },
         },
         startDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,
@@ -101,7 +101,7 @@ const LeaseSchema = new Schema<ILease>(
             },
         },
         endDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: true,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,
@@ -190,7 +190,7 @@ const LeaseSchema = new Schema<ILease>(
             },
         },
         terminationDate: {
-            type: SchemaTypes.Date,
+            type: SchemaTypes.String,
             required: false,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,

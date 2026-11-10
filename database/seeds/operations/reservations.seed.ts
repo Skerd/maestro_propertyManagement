@@ -16,8 +16,8 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "client": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "reservationDate": "2026-07-07T12:39:44.041Z",
-        "expirationDate": "2026-08-06T12:39:44.041Z",
+        "reservationDate": "2026-07-07",
+        "expirationDate": "2026-08-06",
         "reservationNotes": "Demo reservation for A0-05 Floor 0. [pm-demo-seed]",
         "depositAmount": "15000",
         "depositCurrency": {
@@ -41,8 +41,8 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "client": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "reservationDate": "2026-07-10T12:39:44.041Z",
-        "expirationDate": "2026-08-09T12:39:44.041Z",
+        "reservationDate": "2026-07-10",
+        "expirationDate": "2026-08-09",
         "reservationNotes": "Demo reservation for A1-01 Floor 1. [pm-demo-seed]",
         "depositAmount": "10000",
         "depositCurrency": {
@@ -66,8 +66,8 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "client": {
             "$user": "almir@leka.com"
         },
-        "reservationDate": "2026-07-02T12:39:44.041Z",
-        "expirationDate": "2026-08-01T12:39:44.041Z",
+        "reservationDate": "2026-07-02",
+        "expirationDate": "2026-08-01",
         "reservationNotes": "Demo reservation for A1-01 Floor 1. [pm-demo-seed]",
         "depositAmount": "20000",
         "depositCurrency": {
@@ -91,8 +91,8 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "client": {
             "$user": "geraldo.cucaj@pronix.com"
         },
-        "reservationDate": "2026-05-28T12:39:44.041Z",
-        "expirationDate": "2026-07-07T12:39:44.041Z",
+        "reservationDate": "2026-05-28",
+        "expirationDate": "2026-07-07",
         "reservationNotes": "Demo reservation for A1-01 Floor 1. [pm-demo-seed]",
         "depositAmount": "12000",
         "depositCurrency": {
@@ -116,8 +116,8 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "client": {
             "$user": "echo@echo.com"
         },
-        "reservationDate": "2026-06-22T12:39:44.041Z",
-        "expirationDate": "2026-07-22T12:39:44.041Z",
+        "reservationDate": "2026-06-22",
+        "expirationDate": "2026-07-22",
         "reservationNotes": "Demo reservation for A1-02 Floor 1. [pm-demo-seed]",
         "depositAmount": "8000",
         "depositCurrency": {
@@ -141,8 +141,8 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "client": {
             "$user": "skerd@xhafa.com"
         },
-        "reservationDate": "2026-06-12T12:39:44.041Z",
-        "expirationDate": "2026-07-17T12:39:44.041Z",
+        "reservationDate": "2026-06-12",
+        "expirationDate": "2026-07-17",
         "reservationNotes": "Demo reservation for A1-02 Floor 1. [pm-demo-seed]",
         "depositAmount": "25000",
         "depositCurrency": {

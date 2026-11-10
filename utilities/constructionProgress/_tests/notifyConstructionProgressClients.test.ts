@@ -38,7 +38,7 @@ describe("notifyConstructionProgressClients", () => {
     beforeEach(() => {
         mocks.progress = {
             _id: new ObjectId(), company, project: {_id: project, name: "Riverside"}, edifice: undefined,
-            phase: "structure", progressPercent: 75, updateDate: new Date("2027-01-01"), title: "Roof", photos: [new ObjectId()],
+            phase: "structure", progressPercent: 75, updateDate: "2027-01-01", title: "Roof", photos: [new ObjectId()],
         };
         for (const m of [mocks.recipients, mocks.emit, mocks.sendMail, mocks.loadPhotos, mocks.stamp]) m.mockReset();
         mocks.sendMail.mockResolvedValue(undefined);

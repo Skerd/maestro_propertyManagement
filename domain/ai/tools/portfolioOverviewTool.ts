@@ -18,6 +18,8 @@
  * @module portfolioOverviewTool
  */
 
+import {addLocalDays} from "@coreModule/utilities/time/timeWindows";
+import {companyToday} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
@@ -78,12 +80,12 @@ async function unitBreakdown(ctx: AssistantToolContext): Promise<{total: number;
 
 /** Sum sales in the window, grouped by currency (never blended into one figure). */
 async function salesInWindow(
-    since: Date,
+    sinceDay: string,
     ctx: AssistantToolContext
 ): Promise<{count: number; revenue: Array<{currency: string | null; amount: number}>}> {
     const rows: any[] = await saleService.aggregate(
         [
-            {$match: {company: companyObjectId(ctx), deletedAt: null, saleDate: {$gte: since}}},
+            {$match: {company: companyObjectId(ctx), deletedAt: null, saleDate: {$gte: sinceDay}}},
             {$group: {_id: "$saleCurrency", amount: {$sum: {$toDouble: "$finalPrice"}}, count: {$sum: 1}}},
             {$lookup: {from: "currencies", localField: "_id", foreignField: "_id", as: "currency"}}
         ],
@@ -100,7 +102,7 @@ async function salesInWindow(
 }
 
 /** Overdue sale instalments: how many, and how much is still outstanding. */
-async function installmentArrears(ctx: AssistantToolContext): Promise<{count: number; outstanding: number}> {
+async function installmentArrears(today: string, ctx: AssistantToolContext): Promise<{count: number; outstanding: number}> {
     const rows: any[] = await paymentPlanService.aggregate(
         [
             {$match: {company: companyObjectId(ctx), deletedAt: null}},
@@ -110,7 +112,7 @@ async function installmentArrears(ctx: AssistantToolContext): Promise<{count: nu
                     "installments.status": {
                         $in: [InstallmentStatus.PENDING, InstallmentStatus.OVERDUE, InstallmentStatus.PARTIALLY_PAID]
                     },
-                    "installments.dueDate": {$lt: new Date()}
+                    "installments.dueDate": {$lt: today}
                 }
             },
             {
@@ -137,6 +139,8 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     const windowDays = args.windowDays ?? DEFAULT_WINDOW_DAYS;
     const now = new Date();
     const since = new Date(now.getTime() - windowDays * MS_PER_DAY);
+    // Sale and due days are local `YYYY-MM-DD` strings (D115), compared with the company's today.
+    const today = await companyToday(ctx.companyId);
 
     const scope = companyScope(ctx);
     const countOptions = {logger: ctx.logger, withDeleted: false};
@@ -153,14 +157,14 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         overdueRent,
     ] = await Promise.all([
         unitBreakdown(ctx),
-        salesInWindow(since, ctx),
-        installmentArrears(ctx),
+        salesInWindow(addLocalDays(today, -windowDays), ctx),
+        installmentArrears(today, ctx),
         leadService.count({...scope, createdAt: {$gte: since}}, countOptions),
         leadService.count({...scope, status: {$nin: ["won", "lost"]}}, countOptions),
         reservationService.count({...scope, status: "active"}, countOptions),
         leaseService.count({...scope, status: "active"}, countOptions),
         rentalPaymentService.count(
-            {...scope, status: {$in: ["pending", "overdue"]}, dueDate: {$lt: now}},
+            {...scope, status: {$in: ["pending", "overdue"]}, dueDate: {$lt: today}},
             countOptions
         ),
     ]);

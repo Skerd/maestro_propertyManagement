@@ -250,7 +250,7 @@ async function clientPortalOverview(
                 const downAmount = moneyNumber(plan.downPayment);
                 nextPayments.push({
                     kind: "down_payment",
-                    dueDate: (plan.startDate ?? new Date()).toISOString(),
+                    dueDate: plan.startDate,
                     amount: downAmount,
                     remaining: downAmount,
                     ...currency,
@@ -265,7 +265,7 @@ async function clientPortalOverview(
                 const paidAmount = moneyNumber(installment.paidAmount);
                 nextPayments.push({
                     kind: "installment",
-                    dueDate: installment.dueDate.toISOString(),
+                    dueDate: installment.dueDate,
                     amount,
                     remaining: Math.max(0, amount - paidAmount),
                     ...currency,
@@ -403,7 +403,7 @@ async function clientPortalPortfolio(
                 phase: row.phase,
                 progressPercent: row.progressPercent,
                 title: row.title,
-                updateDate: row.updateDate.toISOString(),
+                updateDate: row.updateDate,
             };
         });
     }
@@ -532,8 +532,8 @@ async function clientPortalReservations(
             ...(unitRef?.name ? {unitName: unitRef.name} : {}),
             ...(project?.name ? {projectName: project.name} : {}),
             ...(edifice?.name ? {edificeName: edifice.name} : {}),
-            reservationDate: reservation.reservationDate.toISOString(),
-            expirationDate: reservation.expirationDate.toISOString(),
+            reservationDate: reservation.reservationDate,
+            expirationDate: reservation.expirationDate,
             ...(deposit != null ? {depositAmount: deposit} : {}),
             ...(currency ? currency : {}),
         };

@@ -30,8 +30,7 @@ export function saleToSelect(sale: ISale): ApiSelectDatum {
     }
 
     if (sale.saleDate) {
-        const d = new Date(sale.saleDate as Date).toLocaleDateString();
-        label = label ? `${label} (${d})` : d;
+        label = label ? `${label} (${sale.saleDate})` : sale.saleDate;
     }
 
     if (sale.paymentType && PAYMENT_TYPE_LABEL[sale.paymentType as SalePaymentType]) {

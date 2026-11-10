@@ -18,7 +18,6 @@ import {unitService} from "../../../database/schemas/unit/unit.service";
 import {hasCollectedCash} from "../../../utilities/lease/rentRemaining";
 
 const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 25 * 1024 * 1024});
-const dateTransform  = (v: unknown) => new Date(v as string);
 const moneyTransform = (v: unknown) => Decimal128.fromString(String(v));
 
 async function rentalPaymentExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -99,7 +98,6 @@ export const {router} = createCrudRouter({
         const leaseUnitId = (lease.unit as any)?._id ?? lease.unit;
         const data = buildCreateDataFromSchemaDef(RentalPaymentSchemaDef, {
             amount:  moneyTransform,
-            dueDate: dateTransform,
         })(rest);
         const clash = await rentalPaymentService.findOne(
             {
@@ -120,7 +118,6 @@ export const {router} = createCrudRouter({
     buildUpdateData: async ({fileIds, existing, ...params}: any, writeFields) => {
         const data = buildUpdateDataFromSchemaDef(RentalPaymentSchemaDef, {
             amount:  moneyTransform,
-            dueDate: dateTransform,
         })(params, writeFields);
         delete data.status;
         delete data.paidAmount;

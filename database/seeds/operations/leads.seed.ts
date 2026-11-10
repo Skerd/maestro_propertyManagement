@@ -25,7 +25,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "assignedTo": {
             "$user": "skerd@xhafa.com"
         },
-        "followUpDate": "2026-07-15T12:34:03.627Z",
+        "followUpDate": "2026-07-15",
         "convertedAt": null,
         "activityLog": [
             {
@@ -64,7 +64,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "assignedTo": {
             "$user": "eniada.halebi@pronix.com"
         },
-        "followUpDate": "2026-07-16T12:34:03.627Z",
+        "followUpDate": "2026-07-16",
         "convertedAt": null,
         "activityLog": [
             {
@@ -103,7 +103,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "assignedTo": {
             "$user": "gerald.habilaj@pronix.com"
         },
-        "followUpDate": "2026-07-17T12:34:03.627Z",
+        "followUpDate": "2026-07-17",
         "convertedAt": null,
         "activityLog": [
             {
@@ -142,7 +142,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "assignedTo": {
             "$user": "almir@leka.com"
         },
-        "followUpDate": "2026-07-18T12:34:03.627Z",
+        "followUpDate": "2026-07-18",
         "convertedAt": null,
         "activityLog": [
             {
@@ -259,7 +259,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "assignedTo": {
             "$user": "skerd@xhafa.com"
         },
-        "followUpDate": "2026-07-21T12:34:03.627Z",
+        "followUpDate": "2026-07-21",
         "convertedAt": null,
         "activityLog": [
             {
@@ -298,7 +298,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         "assignedTo": {
             "$user": "echo@echo.com"
         },
-        "followUpDate": "2026-07-14T12:34:03.627Z",
+        "followUpDate": "2026-07-14",
         "convertedAt": null,
         "activityLog": [
             {

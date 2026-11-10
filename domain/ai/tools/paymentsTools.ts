@@ -32,8 +32,7 @@ import {
     DEFAULT_RESULTS,
     companyObjectId,
     companyScope,
-    dateRange,
-    daysOverdue,
+    dayRange,
     emptyResult,
     findOptions,
     limitArg,
@@ -44,6 +43,7 @@ import {
     toNumber,
     userDisplayName
 } from "./assistantToolHelpers";
+import {calendarDaysUntil, companyToday} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 import {roundToCurrency, subtractMoney} from "armonia/src/modules/core/helpers/money";
 
 const INSTALLMENT_STATUS_VALUES = Object.values(InstallmentStatus) as string[];
@@ -92,6 +92,8 @@ const installmentParameters = {
 async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext): Promise<unknown> {
     const args = SearchInstallmentsArgs.parse(rawArgs ?? {});
     const limit = args.limit ?? DEFAULT_RESULTS;
+    // Due days are local `YYYY-MM-DD` strings (D115), compared with the company's today.
+    const today = await companyToday(ctx.companyId);
 
     // Stage 1 — which payment plans are in scope. Company-scoped, soft-deletes out.
     const planMatch: Record<string, unknown> = {company: companyObjectId(ctx), deletedAt: null};
@@ -126,9 +128,9 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
         installmentMatch["installments.status"] = {
             $in: [InstallmentStatus.PENDING, InstallmentStatus.OVERDUE, InstallmentStatus.PARTIALLY_PAID]
         };
-        installmentMatch["installments.dueDate"] = {$lt: new Date()};
+        installmentMatch["installments.dueDate"] = {$lt: today};
     } else {
-        const due = dateRange(args.dueFrom, args.dueTo);
+        const due = dayRange(args.dueFrom, args.dueTo);
         if (due) installmentMatch["installments.dueDate"] = due;
     }
 
@@ -183,7 +185,7 @@ async function executeInstallments(rawArgs: unknown, ctx: AssistantToolContext):
     const results = rows.map((row) => {
         const installment = row.installments ?? {};
         const sale = saleById.get(row.sale?.toString());
-        const overdueDays = daysOverdue(installment.dueDate);
+        const overdueDays = installment.dueDate ? -calendarDaysUntil(installment.dueDate, today) : null;
         const isSettled = installment.status === InstallmentStatus.PAID
             || installment.status === InstallmentStatus.CANCELLED;
         return {
@@ -270,6 +272,7 @@ const rentalParameters = {
 };
 
 async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext): Promise<unknown> {
+    const today = await companyToday(ctx.companyId);
     const args = SearchRentalPaymentsArgs.parse(rawArgs ?? {});
 
     // Hard company scope — the only scope the tool is allowed to read.
@@ -283,10 +286,10 @@ async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext
 
     if (args.overdueOnly === true) {
         query.status = {$in: ["pending", "overdue", "partially_paid"]};
-        query.dueDate = {$lt: new Date()};
+        query.dueDate = {$lt: today};
     } else {
         if (args.status) query.status = args.status;
-        const due = dateRange(args.dueFrom, args.dueTo);
+        const due = dayRange(args.dueFrom, args.dueTo);
         if (due) query.dueDate = due;
     }
 
@@ -306,7 +309,7 @@ async function executeRentalPayments(rawArgs: unknown, ctx: AssistantToolContext
     );
 
     const results = payments.map((p: any) => {
-        const overdueDays = daysOverdue(p.dueDate);
+        const overdueDays = p.dueDate ? -calendarDaysUntil(p.dueDate, today) : null;
         const settled = p.status === "paid" || p.status === "waived";
         return {
             id: p._id?.toString(),

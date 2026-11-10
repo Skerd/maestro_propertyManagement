@@ -153,7 +153,7 @@ export const inspectionSheetView: ViewConfig = {
                                 name: "scheduledDate",
                                 widget: "#DisplayCard",
                                 label: "scheduledDate",
-                                widgetProps: { icon: "#Clock", format: "dateTime" , type: "dateTime"},
+                                widgetProps: { icon: "#Clock", format: "date", type: "date"},
                             },
                         },
                         {
@@ -163,7 +163,7 @@ export const inspectionSheetView: ViewConfig = {
                                 name: "inspectionDate",
                                 widget: "#DisplayCard",
                                 label: "inspectionDate",
-                                widgetProps: { icon: "#Calendar", format: "dateTime" , type: "dateTime"},
+                                widgetProps: { icon: "#Calendar", format: "date", type: "date"},
                             },
                         },
                         {
@@ -173,7 +173,7 @@ export const inspectionSheetView: ViewConfig = {
                                 name: "nextInspectionDate",
                                 widget: "#DisplayCard",
                                 label: "nextInspectionDate",
-                                widgetProps: { icon: "#CalendarClock", format: "dateTime" , type: "dateTime"},
+                                widgetProps: { icon: "#CalendarClock", format: "date", type: "date"},
                             },
                         },
                         {

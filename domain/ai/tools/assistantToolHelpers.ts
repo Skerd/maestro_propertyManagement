@@ -27,6 +27,7 @@ import {
 import {projectService} from "@propertyManagement/database/schemas/project/project.service";
 import {edificeService} from "@propertyManagement/database/schemas/edifice/edifice.service";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {localDateOf} from "@coreModule/utilities/time/timeWindows";
 
 // The generic toolkit, surfaced under this module's import path so tool files
 // need only one import line.
@@ -107,4 +108,17 @@ export async function resolveUnitIdsForEdifice(name: string, ctx: AssistantToolC
         MAX_SCOPE_UNITS
     );
     return units.map((u: any) => u._id).filter(Boolean);
+}
+
+/**
+ * Inclusive range on a local-day field (`YYYY-MM-DD`: due, sale, expiry days, D115), from model-supplied dates.
+ * `z.coerce.date()` reads `2026-03-01` as UTC midnight, so the bound's day is its UTC date. `undefined` when
+ * neither bound was supplied.
+ */
+export function dayRange(from?: Date, to?: Date): Record<string, string> | undefined {
+    if (!from && !to) return undefined;
+    const clause: Record<string, string> = {};
+    if (from) clause.$gte = localDateOf(from, "UTC");
+    if (to) clause.$lte = localDateOf(to, "UTC");
+    return clause;
 }

@@ -7,12 +7,7 @@ import {
     hasCollectedCash,
     moneyToScaled,
 } from "./rentRemaining";
-import {
-    buildMonthlyRentDueDates,
-    dueDateKey,
-    rentScheduleExceedsCap,
-    utcDateOnly,
-} from "./rentalPaymentSchedule";
+import {buildMonthlyRentDueDates, rentScheduleExceedsCap} from "./rentalPaymentSchedule";
 
 type Ctx = {
     session?: any;
@@ -30,17 +25,13 @@ function idString(value: unknown): string {
     return String(value);
 }
 
-function asDate(value: Date | string): Date {
-    return value instanceof Date ? value : new Date(value);
-}
-
 function isDuplicateKeyError(err: unknown): boolean {
     return typeof err === "object" && err != null && "code" in err && (err as {code: number}).code === 11000;
 }
 
 async function createPendingRows(
     lease: ILease,
-    dueDates: Date[],
+    dueDates: string[],
     existingKeys: Set<string>,
     ctx: Ctx,
 ): Promise<void> {
@@ -51,7 +42,7 @@ async function createPendingRows(
     const currency = (lease.rentCurrency as any)?._id ?? lease.rentCurrency;
     const leaseUnit = (lease.unit as any)?._id ?? lease.unit;
     const rows = dueDates
-        .filter((dueDate) => !existingKeys.has(dueDateKey(dueDate)))
+        .filter((dueDate) => !existingKeys.has(dueDate))
         .map((dueDate) => ({
             lease: lease._id,
             unit: leaseUnit,
@@ -100,14 +91,13 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
         throw apiValidationException("lease_currency_change_with_payments", "", null, languageCode);
     }
 
-    const startDate = asDate(current.startDate);
-    const endDate = asDate(current.endDate);
+    const {startDate, endDate} = current;
     if (rentScheduleExceedsCap(startDate, endDate) && moneyToScaled(current.monthlyRent)) {
         throw apiValidationException("lease_term_too_long", "", null, languageCode);
     }
 
-    const startChanged = utcDateOnly(asDate(previous.startDate)).getTime() !== utcDateOnly(startDate).getTime();
-    const endChanged = utcDateOnly(asDate(previous.endDate)).getTime() !== utcDateOnly(endDate).getTime();
+    const startChanged = previous.startDate !== startDate;
+    const endChanged = previous.endDate !== endDate;
     const rentChanged = moneyToScaled(previous.monthlyRent) !== moneyToScaled(current.monthlyRent);
 
     if (startChanged) {
@@ -124,11 +114,9 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
     }
 
     if (endChanged) {
-        const newEnd = utcDateOnly(endDate);
-        const prevEnd = utcDateOnly(asDate(previous.endDate));
-        if (newEnd.getTime() < prevEnd.getTime()) {
+        if (endDate < previous.endDate) {
             for (const payment of payments) {
-                if (utcDateOnly(payment.dueDate).getTime() <= newEnd.getTime()) continue;
+                if (payment.dueDate <= endDate) continue;
                 if (
                     hasCollectedCash(payment)
                     || payment.status === RentalPaymentStatus.PAID
@@ -141,7 +129,7 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
                 {
                     lease: current._id,
                     company: company._id,
-                    dueDate: {$gt: newEnd},
+                    dueDate: {$gt: endDate},
                     status: {$in: [RentalPaymentStatus.PENDING, RentalPaymentStatus.OVERDUE]},
                 },
                 {$set: {status: RentalPaymentStatus.WAIVED}},
@@ -149,7 +137,7 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
             );
         } else {
             const dueDates = buildMonthlyRentDueDates(startDate, endDate);
-            const existingKeys = new Set(payments.map((p) => dueDateKey(p.dueDate)));
+            const existingKeys = new Set(payments.map((p) => p.dueDate));
             await createPendingRows(current, dueDates, existingKeys, ctx);
         }
     }
@@ -169,8 +157,7 @@ export async function resyncLeaseSchedule(previous: ILease, current: ILease, ctx
 }
 
 export async function generateLeaseSchedule(lease: ILease, ctx: Ctx): Promise<void> {
-    const startDate = asDate(lease.startDate);
-    const endDate = asDate(lease.endDate);
+    const {startDate, endDate} = lease;
     if (!moneyToScaled(lease.monthlyRent)) return;
     if (rentScheduleExceedsCap(startDate, endDate)) {
         throw apiValidationException("lease_term_too_long", "", null, ctx.languageCode);

@@ -11,22 +11,6 @@ import {inspectionChecklistTemplateToDTO, inspectionChecklistTemplatesToDTO} fro
 import {inspectionChecklistTemplatesToSelect} from "../../../utilities/mappers/inspectionChecklistTemplate/inspectionChecklistTemplateMapper.select";
 
 
-const transforms: Record<string, (v: unknown) => unknown> = {
-    issuedAt: (v) => new Date(v as string),
-    plannedStart: (v) => new Date(v as string),
-    plannedEnd: (v) => new Date(v as string),
-    startDate: (v) => new Date(v as string),
-    endDate: (v) => new Date(v as string),
-    claimPeriodStart: (v) => new Date(v as string),
-    claimPeriodEnd: (v) => new Date(v as string),
-    dueDate: (v) => new Date(v as string),
-    diaryDate: (v) => new Date(v as string),
-    incidentDate: (v) => new Date(v as string),
-    retentionReleaseDate: (v) => new Date(v as string),
-    testDate: (v) => new Date(v as string),
-    decidedAt: (v) => new Date(v as string),
-    expiresAt: (v) => new Date(v as string),
-};
 
 export const {router} = createCrudRouter({
     collectionName: "inspectionchecklisttemplates",
@@ -49,13 +33,13 @@ export const {router} = createCrudRouter({
         return filter;
     },
     buildCreateData: async ({fileIds, ...params}: any) => {
-        const data = buildCreateDataFromSchemaDef(InspectionChecklistTemplateSchemaDef, transforms)(params);
+        const data = buildCreateDataFromSchemaDef(InspectionChecklistTemplateSchemaDef)(params);
         data.status = "active";
         
         return data;
     },
     buildUpdateData: async ({fileIds, media, ...params}: any, writeFields) => {
-        const data = buildUpdateDataFromSchemaDef(InspectionChecklistTemplateSchemaDef, transforms)({...params, media}, writeFields);
+        const data = buildUpdateDataFromSchemaDef(InspectionChecklistTemplateSchemaDef)({...params, media}, writeFields);
         if (Array.isArray(data.items) && Array.isArray(params.items)) {
             data.items = data.items.map((item: Record<string, unknown>, index: number) => {
                 const rawId = params.items[index]?._id;

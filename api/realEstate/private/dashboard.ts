@@ -9,6 +9,8 @@
  * @module f_endpoints/realEstate/realEstate/dashboard
  */
 
+import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {calendarDaysUntil} from "../../../utilities/reservation/reservationExpirationCalendar";
 import {Router} from "express";
 import {ObjectId} from "mongodb";
 import {asyncHandler} from "@coreModule/utilities/middlewares/asyncHandler";
@@ -365,17 +367,22 @@ async function getDashboardStats(
         ? await resolveHierarchySetsFromUnitIds(companyUnitIds, opts)
         : {projectIds: [], edificeIds: [], floorIds: []} as UnitCostHierarchyIdSets;
 
+    // Sale, due and expiry days are local `YYYY-MM-DD` strings (D115): bounds are days, compared as text, and
+    // "today" is the company's.
+    const today = localDateOf(new Date(), params.companyTimeZone);
+    const fromDay = from ? from.slice(0, 10) : undefined;
+    const toDay = to ? to.slice(0, 10) : undefined;
     const saleFilter: any = { unit: { $in: companyUnitIds } };
     const dateFilter: any = {};
-    if (from) dateFilter.$gte = new Date(from);
-    if (to) dateFilter.$lte = new Date(to);
+    if (fromDay) dateFilter.$gte = fromDay;
+    if (toDay) dateFilter.$lte = toDay;
     if (Object.keys(dateFilter).length) saleFilter.saleDate = dateFilter;
 
     const periodMonths = period === "week" ? 3 : 12;
-    const startPeriod = new Date();
-    startPeriod.setMonth(startPeriod.getMonth() - periodMonths);
-    const periodStart = from ? new Date(from) : startPeriod;
-    const periodEnd = to ? new Date(to) : new Date();
+    const [todayYear, todayMonth, todayDate] = today.split("-").map(Number);
+    const startPeriod = localDateOf(new Date(Date.UTC(todayYear, todayMonth - 1 - periodMonths, todayDate)), "UTC");
+    const periodStart = fromDay ?? startPeriod;
+    const periodEnd = toDay ?? today;
 
     const saleIdsForPaymentPlans = access.paymentPlans
         ? await saleService.find(
@@ -393,9 +400,8 @@ async function getDashboardStats(
     const none: never[] = [];
     const zero = 0;
 
-    const now = new Date();
-    const expiringEnd = new Date(now);
-    expiringEnd.setDate(expiringEnd.getDate() + 7);
+    const expiringEnd = addLocalDays(today, 7);
+    const alertHorizon = addLocalDays(today, 30);
 
     const [
         totalSalesCount,
@@ -459,14 +465,12 @@ async function getDashboardStats(
                 },
                 {
                     $group: {
-                        _id: {
-                            year: { $year: "$saleDate" },
-                            month: { $month: "$saleDate" },
-                        },
+                        // The month of a `YYYY-MM-DD` day is its first seven characters.
+                        _id: { $substrBytes: ["$saleDate", 0, 7] },
                         totalRevenue: { $sum: "$finalPrice" },
                     },
                 },
-                { $sort: { "_id.year": 1, "_id.month": 1 } },
+                { $sort: { _id: 1 } },
             ],
             opts
         ) : Promise.resolve(none),
@@ -480,14 +484,11 @@ async function getDashboardStats(
                 },
                 {
                     $group: {
-                        _id: {
-                            year: { $year: "$saleDate" },
-                            month: { $month: "$saleDate" },
-                        },
+                        _id: { $substrBytes: ["$saleDate", 0, 7] },
                         count: { $sum: 1 },
                     },
                 },
-                { $sort: { "_id.year": 1, "_id.month": 1 } },
+                { $sort: { _id: 1 } },
             ],
             opts
         ) : Promise.resolve(none),
@@ -553,7 +554,7 @@ async function getDashboardStats(
                               $or: [
                                   { "installments.status": InstallmentStatus.OVERDUE },
                                   {
-                                      "installments.dueDate": { $lt: new Date() },
+                                      "installments.dueDate": { $lt: today },
                                       "installments.status": { $nin: [InstallmentStatus.PAID, InstallmentStatus.CANCELLED] },
                                   },
                               ],
@@ -606,7 +607,7 @@ async function getDashboardStats(
                 unit: {$in: companyUnitIds},
                 isActive: true,
                 status: ReservationStatus.ACTIVE,
-                expirationDate: {$exists: true, $gte: now, $lte: expiringEnd},
+                expirationDate: {$exists: true, $gte: today, $lte: expiringEnd},
             },
             opts
         ) : Promise.resolve(zero),
@@ -633,7 +634,7 @@ async function getDashboardStats(
                       {
                           $match: {
                               "installments.status": { $nin: [InstallmentStatus.PAID, InstallmentStatus.CANCELLED] },
-                              "installments.dueDate": { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+                              "installments.dueDate": { $lte: alertHorizon },
                           },
                       },
                       // A deleted sale's installments are not due; its unit is shown even when deleted (DB-04).
@@ -673,7 +674,7 @@ async function getDashboardStats(
                         expirationDate: {
                             $exists: true,
                             $ne: null,
-                            $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                            $lte: alertHorizon,
                         },
                     },
                 },
@@ -757,12 +758,12 @@ async function getDashboardStats(
     }));
 
     const revenueByPeriod: PeriodDatum[] = revenueByMonthAgg.map((r: any) => ({
-        month: `${r._id?.year}-${String(r._id?.month ?? 0).padStart(2, "0")}`,
+        month: String(r._id ?? ""),
         totalRevenue: toNumber(r.totalRevenue),
     }));
 
     const salesByPeriod: PeriodDatum[] = salesByMonthAgg.map((r: any) => ({
-        month: `${r._id?.year}-${String(r._id?.month ?? 0).padStart(2, "0")}`,
+        month: String(r._id ?? ""),
         count: r.count ?? 0,
     }));
 
@@ -899,7 +900,7 @@ async function getDashboardStats(
               }
             : { _id: "", name: undefined, unitNumber: undefined },
         finalPrice: toNumber(s.finalPrice),
-        saleDate: s.saleDate ? new Date(s.saleDate).toISOString() : "",
+        saleDate: s.saleDate ?? "",
         soldBy: s.soldBy
             ? {
                   _id: s.soldBy._id?.toString() ?? "",
@@ -914,9 +915,6 @@ async function getDashboardStats(
             : { _id: "", name: undefined },
     }));
 
-    const nowMs = Date.now();
-    const oneDayMs = 24 * 60 * 60 * 1000;
-    const rentAlertHorizon = nowMs + 30 * oneDayMs;
 
     const mapAlertClient = (row: {
         clientId?: unknown;
@@ -935,8 +933,8 @@ async function getDashboardStats(
         row: any,
         kind: "installment" | "reservation" | "rent"
     ): PaymentAlertItem => {
-        const dueDate = row.dueDate ? new Date(row.dueDate) : new Date();
-        const daysUntilDue = Math.ceil((dueDate.getTime() - nowMs) / oneDayMs);
+        const dueDate: string = row.dueDate || today;
+        const daysUntilDue = calendarDaysUntil(dueDate, today);
         const client = mapAlertClient(row);
         return {
             kind,
@@ -948,7 +946,7 @@ async function getDashboardStats(
             ...(client ? {client} : {}),
             installment: {
                 amount: toNumber(row.amount),
-                dueDate: dueDate.toISOString(),
+                dueDate,
             },
             daysUntilDue,
             ...(kind === "reservation"
@@ -964,9 +962,7 @@ async function getDashboardStats(
         .filter((p) => {
             if (p.status === RentalPaymentStatus.WAIVED || p.status === RentalPaymentStatus.PAID) return false;
             if (remainingNumber(p) <= 0) return false;
-            const due = p.dueDate ? new Date(p.dueDate).getTime() : NaN;
-            if (Number.isNaN(due)) return false;
-            return due <= rentAlertHorizon;
+            return !!p.dueDate && p.dueDate <= alertHorizon;
         })
         .map((p) => {
             const unit = p.unit as unknown as {_id?: unknown; unitNumber?: string; name?: string} | undefined;
@@ -974,7 +970,7 @@ async function getDashboardStats(
                 tenant?: {_id?: unknown; name?: string; surname?: string};
             } | undefined;
             const tenant = lease?.tenant;
-            const dueDate = p.dueDate ? new Date(p.dueDate) : new Date();
+            const dueDate = p.dueDate || today;
             const client =
                 tenant?._id != null
                     ? {
@@ -993,9 +989,9 @@ async function getDashboardStats(
                 ...(client ? {client} : {}),
                 installment: {
                     amount: remainingNumber(p),
-                    dueDate: dueDate.toISOString(),
+                    dueDate,
                 },
-                daysUntilDue: Math.ceil((dueDate.getTime() - nowMs) / oneDayMs),
+                daysUntilDue: calendarDaysUntil(dueDate, today),
                 rentalPaymentId: p._id != null ? String(p._id) : undefined,
             };
         });

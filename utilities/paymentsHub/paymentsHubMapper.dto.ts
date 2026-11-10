@@ -51,7 +51,7 @@ export const PAYMENTS_HUB_PLAN_POPULATE = [
             },
             {path: "buyer", select: "name surname email username"},
             {path: "buyerCompany", select: "name"},
-            {path: "saleCurrency", select: "name symbol abbreviation"},
+            {path: "saleCurrency", select: "name symbol abbreviation decimalPlaces"},
         ],
     },
 ];
@@ -88,6 +88,11 @@ function lastReceiptDate(receipts: unknown): string | undefined {
         if (day && (!latest || day > latest)) latest = day;
     }
     return latest;
+}
+
+/** The day an installment was paid: its `paidDate`, or its latest receipt's day when it has none. */
+export function installmentPaidDay(installment: {paidDate?: unknown; paymentReceipts?: unknown} | undefined): string | undefined {
+    return dayOf(installment?.paidDate) ?? lastReceiptDate(installment?.paymentReceipts);
 }
 
 export type DerivableRow = {
@@ -214,7 +219,7 @@ export function planToHubRows(plan: Record<string, any>, today: string, read: Co
             ...shared,
             installmentNumber: installment?.installmentNumber,
             dueDate: dayOf(installment?.dueDate),
-            paidDate: dayOf(installment?.paidDate) ?? lastReceiptDate(installment?.paymentReceipts),
+            paidDate: installmentPaidDay(installment),
             amount: decimalToNumber(installment?.amount),
             paidAmount: decimalToNumber(installment?.paidAmount),
             remaining: moneyNumber(scaledToDecimal128(remaining)),
@@ -232,6 +237,7 @@ export type CurrencyBucket = {
     currencyId: string;
     currencyName?: string;
     currencySymbol?: string;
+    currencyDecimalPlaces?: number;
     scaled: bigint;
 };
 
@@ -248,6 +254,7 @@ export function addToBuckets(
         currencyId,
         currencyName: row.currency?.name,
         currencySymbol: row.currency?.symbol,
+        currencyDecimalPlaces: row.currency?.decimalPlaces,
         scaled: 0n,
     };
     prev.scaled += scaled;
@@ -261,6 +268,7 @@ export function bucketsToRevenue(map: Map<string, CurrencyBucket>): RevenueByCur
             currencyId: bucket.currencyId,
             currencyName: bucket.currencyName,
             currencySymbol: bucket.currencySymbol,
+            ...(bucket.currencyDecimalPlaces != null ? {currencyDecimalPlaces: bucket.currencyDecimalPlaces} : {}),
             value: moneyNumber(scaledToDecimal128(bucket.scaled)),
         }));
 }

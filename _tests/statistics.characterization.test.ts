@@ -16,6 +16,10 @@
  * - Statistics currencies carry `decimalPlaces` when the currency has it, so a rollup rounds at the right precision.
  * - Payment alerts carry their currency (TD-B171). Having a `currency`, they are now sorted like money rows below, so
  *   their order in the snapshot changed; the alerts themselves did not.
+ *
+ * Re-pinned on 2026-11-10 (TD-B176): the summary has `collected` (money received: CHF 200000.10 cash + 5000.00 paid
+ * deposit, EUR 50000.00 down payment + 100000.00 + 25000.55 installment payments); the partly paid installment's alert
+ * shows what is left (74999.45, not 100000.00); dashboard money rows carry `currencyDecimalPlaces`.
  */
 import {afterAll, beforeAll, describe, expect, it, vi} from "vitest";
 import mongoose from "mongoose";
@@ -208,10 +212,10 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                   "name": "EUR",
                   "symbol": "EUR",
                 },
-                "daysUntilDue": 5,
+                "daysUntilDue": -14,
                 "installment": {
-                  "amount": 100000,
-                  "dueDate": "2026-06-20",
+                  "amount": 50000,
+                  "dueDate": "2026-06-01",
                 },
                 "kind": "installment",
                 "saleId": "sale-plan",
@@ -234,10 +238,10 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                   "name": "EUR",
                   "symbol": "EUR",
                 },
-                "daysUntilDue": -14,
+                "daysUntilDue": 5,
                 "installment": {
-                  "amount": 50000,
-                  "dueDate": "2026-06-01",
+                  "amount": 74999.45,
+                  "dueDate": "2026-06-20",
                 },
                 "kind": "installment",
                 "saleId": "sale-plan",
@@ -373,6 +377,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                 "month": "2026-03",
                 "revenue": [
                   {
+                    "currencyDecimalPlaces": 2,
                     "currencyId": "EUR",
                     "currencyName": "EUR",
                     "currencySymbol": "EUR",
@@ -384,6 +389,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                 "month": "2026-05",
                 "revenue": [
                   {
+                    "currencyDecimalPlaces": 2,
                     "currencyId": "CHF",
                     "currencyName": "CHF",
                     "currencySymbol": "CHF",
@@ -406,16 +412,34 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               "activeReservations": 2,
               "averageSalePrice": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "CHF",
                   "currencyName": "CHF",
                   "currencySymbol": "CHF",
                   "value": 200000.1,
                 },
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "EUR",
                   "currencyName": "EUR",
                   "currencySymbol": "EUR",
                   "value": 300000,
+                },
+              ],
+              "collected": [
+                {
+                  "currencyDecimalPlaces": 2,
+                  "currencyId": "CHF",
+                  "currencyName": "CHF",
+                  "currencySymbol": "CHF",
+                  "value": 205000.1,
+                },
+                {
+                  "currencyDecimalPlaces": 2,
+                  "currencyId": "EUR",
+                  "currencyName": "EUR",
+                  "currencySymbol": "EUR",
+                  "value": 175000.55,
                 },
               ],
               "expiringReservationsCount": 1,
@@ -428,12 +452,14 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               },
               "inventoryValue": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "CHF",
                   "currencyName": "CHF",
                   "currencySymbol": "CHF",
                   "value": 249999.99,
                 },
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "EUR",
                   "currencyName": "EUR",
                   "currencySymbol": "EUR",
@@ -458,6 +484,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                 "overdueInstallmentsCount": 1,
                 "totalOutstanding": [
                   {
+                    "currencyDecimalPlaces": 2,
                     "currencyId": "EUR",
                     "currencyName": "EUR",
                     "currencySymbol": "EUR",
@@ -469,6 +496,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               "paymentPlansDefaulted": 0,
               "pendingVerificationUnitCosts": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "EUR",
                   "currencyName": "EUR",
                   "currencySymbol": "EUR",
@@ -479,6 +507,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                 "activeLeases": 1,
                 "collectedAmount": [
                   {
+                    "currencyDecimalPlaces": 2,
                     "currencyId": "CHF",
                     "currencyName": "CHF",
                     "currencySymbol": "CHF",
@@ -487,6 +516,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                 ],
                 "outstandingAmount": [
                   {
+                    "currencyDecimalPlaces": 2,
                     "currencyId": "CHF",
                     "currencyName": "CHF",
                     "currencySymbol": "CHF",
@@ -495,6 +525,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
                 ],
                 "overdueAmount": [
                   {
+                    "currencyDecimalPlaces": 2,
                     "currencyId": "CHF",
                     "currencyName": "CHF",
                     "currencySymbol": "CHF",
@@ -513,12 +544,14 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               "totalProjects": 1,
               "totalReservationDeposits": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "CHF",
                   "currencyName": "CHF",
                   "currencySymbol": "CHF",
                   "value": 5000,
                 },
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "EUR",
                   "currencyName": "EUR",
                   "currencySymbol": "EUR",
@@ -527,12 +560,14 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               ],
               "totalRevenue": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "CHF",
                   "currencyName": "CHF",
                   "currencySymbol": "CHF",
                   "value": 200000.1,
                 },
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "EUR",
                   "currencyName": "EUR",
                   "currencySymbol": "EUR",
@@ -551,6 +586,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               },
               "verifiedOutstandingUnitCosts": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "CHF",
                   "currencyName": "CHF",
                   "currencySymbol": "CHF",
@@ -559,6 +595,7 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               ],
               "verifiedPaidUnitCosts": [
                 {
+                  "currencyDecimalPlaces": 2,
                   "currencyId": "CHF",
                   "currencyName": "CHF",
                   "currencySymbol": "CHF",
@@ -568,6 +605,24 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
             },
           }
         `);
+    });
+
+    it("collected is the money received in the period, and needs sales, plans and reservations read (TD-B176)", async () => {
+        const collected = async (caller: TestCaller, body: Record<string, unknown>) => {
+            const res = await request(app).post("/api/realEstate/dashboard").set(callerHeader(caller)).send(body);
+            expect(res.status).toBe(200);
+            return (stable(res.body) as {summary: {collected: {currencyId: string; value: number}[]}}).summary.collected
+                .map(({currencyId, value}) => [currencyId, value]);
+        };
+        // May: the cash sale (2 May) and the first installment (paid 19 May). The down payment and the second
+        // installment have no paid day and the deposit was taken on 1 June, so they fall outside any period.
+        expect(await collected(manager, {from: "2026-05-01", to: "2026-05-31"})).toEqual([["CHF", 200000.1], ["EUR", 100000]]);
+        expect(await collected(manager, {from: "2026-06-01", to: "2026-06-30"})).toEqual([["CHF", 5000]]);
+        const withoutReservations: TestCaller = {
+            ...manager,
+            permissions: allPermissionTags([Unit, Sale, PaymentPlan, UnitCost, RentalPayment, Lease, Inspection, ModificationRequest, Project, Edifice, Floor]),
+        };
+        expect(await collected(withoutReservations, {from: "2026-05-01", to: "2026-05-31"})).toEqual([]);
     });
 
     it("unitService.calculateStatistics returns exact money, a plan's collected from its payments", async () => {

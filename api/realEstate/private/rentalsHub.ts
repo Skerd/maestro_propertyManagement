@@ -326,12 +326,15 @@ function leaseIdOf(lease: unknown): string | undefined {
     return String(lease);
 }
 
+/** One currency's rent total while it is summed, exactly (scaled). */
+type RentBucket = {currencyId: string; currencyName?: string; currencySymbol?: string; currencyDecimalPlaces?: number; scaled: bigint};
+
 function addRevenue(
-    map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>,
+    map: Map<string, RentBucket>,
     payment: RentMoneyRow & {currency?: unknown},
     kind: "collected" | "outstanding" | "overdue",
 ): void {
-    const currency = payment.currency as {_id?: unknown; name?: string; symbol?: string} | undefined;
+    const currency = payment.currency as {_id?: unknown; name?: string; symbol?: string; decimalPlaces?: number} | undefined;
     const currencyId = currency?._id != null ? String(currency._id) : "_none";
     let add = 0n;
     if (kind === "collected") add = moneyToScaled(payment.paidAmount);
@@ -345,6 +348,7 @@ function addRevenue(
         currencyId,
         currencyName: currency?.name,
         currencySymbol: currency?.symbol,
+        currencyDecimalPlaces: currency?.decimalPlaces,
         scaled: 0n,
     };
     prev.scaled += add;
@@ -352,7 +356,7 @@ function addRevenue(
 }
 
 function revenueMapToList(
-    map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>,
+    map: Map<string, RentBucket>,
 ): RevenueByCurrency[] {
     return [...map.values()]
         .filter((row) => row.scaled !== 0n)
@@ -360,6 +364,7 @@ function revenueMapToList(
             currencyId: row.currencyId,
             currencyName: row.currencyName,
             currencySymbol: row.currencySymbol,
+            ...(row.currencyDecimalPlaces != null ? {currencyDecimalPlaces: row.currencyDecimalPlaces} : {}),
             value: moneyNumber(scaledToDecimal128(row.scaled)),
         }));
 }
@@ -382,14 +387,14 @@ async function listRentalPaymentsCalendar(
     const kpiPayments = await rentalPaymentService.find(
         match,
         {logger, languageCode: params.languageCode, withDeleted: false},
-        [{path: "currency", select: "name symbol abbreviation"}],
+        [{path: "currency", select: "name symbol abbreviation decimalPlaces"}],
         "amount paidAmount lateFeeAmount status currency",
     );
     const read = collectedFieldReader(actionUserCtx, languageCode);
     const totalsAccess = rentTotalsAccess(read);
-    const collected = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
-    const outstanding = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
-    const overdue = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
+    const collected = new Map<string, RentBucket>();
+    const outstanding = new Map<string, RentBucket>();
+    const overdue = new Map<string, RentBucket>();
     for (const payment of kpiPayments) {
         if (totalsAccess.collected) addRevenue(collected, payment, "collected");
         if (totalsAccess.outstanding) addRevenue(outstanding, payment, "outstanding");

@@ -73,11 +73,12 @@ import {
     type UnitCostHierarchyIdSets,
 } from "../../../database/schemas/unitCost/unitCostHierarchy.util";
 import {UNIT_COST_DOC_SUBTOTAL_STAGE} from "../../../database/schemas/unitCost/unitCostInheritedPipelines.util";
-import {DEFAULT_DECIMAL_PLACES, minorToNumber, prorateMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import {DEFAULT_DECIMAL_PLACES, type MoneyInput, minorToNumber, prorateMinor, subtractMoney, toMinor} from "armonia/src/modules/core/helpers/money";
 import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
 import {
+    addMoney,
     addMoneyLines,
     aggregateCurrencyFields,
     type AggregateMoneyLine,
@@ -85,6 +86,8 @@ import {
     type MoneyTotals,
     revenueRowsOf,
 } from "../../../utilities/statistics/moneyTotals";
+import {installmentPaidDay} from "../../../utilities/paymentsHub/paymentsHubMapper.dto";
+import {type DayRange, inDayRange} from "../../../utilities/hubShared/dayRange";
 
 const router = Router();
 
@@ -177,39 +180,44 @@ function dashboardReadAccess(actionUserCtx: UserContext, languageCode: string) {
     };
 }
 
+/** One currency's rent total while it is summed, exactly (scaled). */
+type RentBucket = {currencyId: string; currencyName?: string; currencySymbol?: string; currencyDecimalPlaces?: number; scaled: bigint};
+
 function rentalsFromPayments(
     payments: (RentMoneyRow & {currency?: unknown})[],
     activeLeases: number,
 ) {
-    const collected = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
-    const outstanding = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
-    const overdue = new Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>();
+    const collected = new Map<string, RentBucket>();
+    const outstanding = new Map<string, RentBucket>();
+    const overdue = new Map<string, RentBucket>();
     let overdueCount = 0;
 
     const add = (
-        map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>,
+        map: Map<string, RentBucket>,
         payment: {currency?: unknown},
         scaled: bigint,
     ) => {
-        const currency = payment.currency as {_id?: unknown; name?: string; symbol?: string} | undefined;
+        const currency = payment.currency as {_id?: unknown; name?: string; symbol?: string; decimalPlaces?: number} | undefined;
         const currencyId = currency?._id != null ? String(currency._id) : "_none";
         const prev = map.get(currencyId) ?? {
             currencyId,
             currencyName: currency?.name,
             currencySymbol: currency?.symbol,
+            currencyDecimalPlaces: currency?.decimalPlaces,
             scaled: 0n,
         };
         prev.scaled += scaled;
         map.set(currencyId, prev);
     };
 
-    const toList = (map: Map<string, {currencyId: string; currencyName?: string; currencySymbol?: string; scaled: bigint}>): RevenueByCurrency[] =>
+    const toList = (map: Map<string, RentBucket>): RevenueByCurrency[] =>
         [...map.values()]
             .filter((row) => row.scaled !== 0n)
             .map((row) => ({
                 currencyId: row.currencyId,
                 currencyName: row.currencyName,
                 currencySymbol: row.currencySymbol,
+                ...(row.currencyDecimalPlaces != null ? {currencyDecimalPlaces: row.currencyDecimalPlaces} : {}),
                 value: moneyNumber(scaledToDecimal128(row.scaled)),
             }));
 
@@ -236,8 +244,8 @@ function rentalsFromPayments(
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildDashboardCacheKey(companyId: string, params: {projectId?: string; edificeId?: string; period?: string; from?: string; to?: string; recentSalesLimit?: number}): string {
-    // v2: money is per currency (TD-B166); a v1 entry has the old number fields and is never read back.
-    return `dashboard:v2:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
+    // v3: the summary has `collected` (TD-B176); an older entry lacks it and is never read back.
+    return `dashboard:v3:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
 }
 
 /**
@@ -285,7 +293,9 @@ type AlertSourceRow = Omit<AggregateMoneyLine, "value"> & {
     unitId?: unknown;
     unitNumber?: string;
     unitName?: string;
-    amount?: unknown;
+    amount?: MoneyInput;
+    /** An installment's payments so far; the alert shows what is left. */
+    paidAmount?: MoneyInput;
     dueDate?: string;
     clientId?: unknown;
     clientName?: string;
@@ -326,7 +336,7 @@ function averageSalePriceOf(lines: (AggregateMoneyLine & {count?: number})[]): R
         if (!currency || !line.count) return [];
         const decimals = currency.decimalPlaces ?? DEFAULT_DECIMAL_PLACES;
         const average = prorateMinor(toMinor(String(line.value ?? 0), decimals), [1], line.count);
-        return [{currencyId: currency._id, currencyName: currency.name, currencySymbol: currency.symbol, value: minorToNumber(average, decimals)}];
+        return [{currencyId: currency._id, currencyName: currency.name, currencySymbol: currency.symbol, currencyDecimalPlaces: decimals, value: minorToNumber(average, decimals)}];
     });
 }
 
@@ -679,6 +689,7 @@ async function paymentPlanStats({access, opts, unitIds, today, alertHorizon}: Da
                         unitNumber: "$unitDoc.unitNumber",
                         unitName: "$unitDoc.name",
                         amount: "$installments.amount",
+                        paidAmount: "$installments.paidAmount",
                         dueDate: "$installments.dueDate",
                         clientId: "$buyerDoc._id",
                         clientName: "$buyerDoc.name",
@@ -705,6 +716,88 @@ async function paymentPlanStats({access, opts, unitIds, today, alertHorizon}: Da
         overdueInstallmentsCount: overdueAgg.length > 0 && overdueAgg[0].count != null ? overdueAgg[0].count : 0,
         alertRows,
     };
+}
+
+/** A payment-plan sale's plan with the sale's currency (a plan stores none): what was paid on it and when. */
+type PlanPaymentsRow = AggregateMoneyLine & {
+    plan: {
+        downPayment?: MoneyInput;
+        downPaymentPaid?: boolean;
+        downPaymentDate?: string;
+        installments?: {paidAmount?: MoneyInput; paidDate?: string; paymentReceipts?: {paidDate?: string}[]}[];
+    };
+};
+
+/**
+ * Money received in the period, per currency (TD-B176): cash sales on their sale day, payment-plan down payments and
+ * installment payments on the day they were paid (an installment without a paid day: its last receipt's, as in the
+ * payments hub), and the paid deposits of active reservations on their reservation day, since a reservation records
+ * no payment day. Without a period, everything received so far. Rent has its own figure (`rentals.collectedAmount`).
+ * It spans sales, plans and reservations, so it needs read access to all three; a partial sum is never shown.
+ */
+async function collectedStats({access, opts, unitIds, saleDays}: DashboardScope): Promise<RevenueByCurrency[]> {
+    if (!access.sales || !access.paymentPlans || !access.reservations) return [];
+    const days: DayRange = {from: saleDays.$gte, to: saleDays.$lte};
+    const dayMatch = (field: string) => (Object.keys(saleDays).length ? {[field]: saleDays} : {});
+    const [cashLines, planRows, depositLines] = await Promise.all([
+        saleService.aggregate(
+            [
+                {$match: {unit: {$in: unitIds}, paymentType: SalePaymentType.CASH, ...dayMatch("saleDate")}},
+                {$group: {_id: "$saleCurrency", total: {$sum: {$toDecimal: {$ifNull: ["$finalPrice", 0]}}}}},
+                ...CURRENCY_LINE_STAGES,
+            ],
+            opts,
+        ),
+        saleService.aggregate(
+            [
+                {$match: {unit: {$in: unitIds}, paymentType: SalePaymentType.PAYMENT_PLAN, paymentPlan: {$exists: true, $ne: null}}},
+                {
+                    $lookup: {
+                        from: "paymentplans",
+                        localField: "paymentPlan",
+                        foreignField: "_id",
+                        // The soft-delete hook filters only the outer pipeline (DB-04).
+                        pipeline: [
+                            {$match: {deletedAt: null}},
+                            {$project: {downPayment: 1, downPaymentPaid: 1, downPaymentDate: 1, "installments.paidAmount": 1, "installments.paidDate": 1, "installments.paymentReceipts.paidDate": 1}},
+                        ],
+                        as: "plan",
+                    },
+                },
+                {$unwind: "$plan"},
+                {$lookup: {from: "currencies", localField: "saleCurrency", foreignField: "_id", as: "currencyInfo"}},
+                {$unwind: {path: "$currencyInfo", preserveNullAndEmptyArrays: true}},
+                {$project: {_id: 0, plan: 1, currencyId: "$saleCurrency", ...aggregateCurrencyFields("currencyInfo")}},
+            ],
+            opts,
+        ),
+        reservationService.aggregate(
+            [
+                {$match: {unit: {$in: unitIds}, isActive: true, paid: true, deletedAt: null, depositAmount: {$exists: true, $ne: null}, ...dayMatch("reservationDate")}},
+                {$group: {_id: "$depositCurrency", total: {$sum: {$toDecimal: "$depositAmount"}}}},
+                ...CURRENCY_LINE_STAGES,
+            ],
+            opts,
+        ),
+    ]);
+
+    const totals: MoneyTotals = new Map();
+    addMoneyLines(totals, cashLines);
+    addMoneyLines(totals, depositLines);
+    addPlanPayments(totals, planRows, days);
+    return revenueRowsOf(totals);
+}
+
+/** Adds each plan's down payment and installment payments made on a day in `days` to its sale currency's total. */
+function addPlanPayments(totals: MoneyTotals, rows: PlanPaymentsRow[], days: DayRange): void {
+    for (const {plan, ...line} of rows) {
+        const currency = currencyOfLine(line);
+        if (!currency) continue;
+        if (plan.downPaymentPaid && inDayRange(plan.downPaymentDate, days)) addMoney(totals, currency, plan.downPayment);
+        for (const installment of plan.installments ?? []) {
+            if (installment.paidAmount != null && inDayRange(installmentPaidDay(installment), days)) addMoney(totals, currency, installment.paidAmount);
+        }
+    }
 }
 
 /** Inspections per status and those needing a follow-up. */
@@ -849,6 +942,11 @@ async function rentalStats({access, opts, unitIds, today, alertHorizon}: Dashboa
     return {rentals: rentalsFromPayments(rentalPayments, typeof activeLeases === "number" ? activeLeases : 0), rentAlerts};
 }
 
+/** What is left on an installment: its amount less what was paid on it, at its currency's decimals (GLB-08). */
+function installmentLeft(row: AlertSourceRow): number {
+    return subtractMoney(row.amount, row.paidAmount, currencyOfLine(row)?.decimalPlaces ?? DEFAULT_DECIMAL_PLACES);
+}
+
 /** An installment or reservation alert from its source row. */
 function alertOf(row: AlertSourceRow, kind: "installment" | "reservation", today: string): PaymentAlertItem {
     const dueDate: string = row.dueDate || today;
@@ -865,7 +963,7 @@ function alertOf(row: AlertSourceRow, kind: "installment" | "reservation", today
         },
         ...(client ? {client} : {}),
         installment: {
-            amount: toNumber(row.amount),
+            amount: kind === "installment" ? installmentLeft(row) : toNumber(row.amount),
             dueDate,
         },
         ...(currency ? {currency} : {}),
@@ -882,7 +980,8 @@ function alertOf(row: AlertSourceRow, kind: "installment" | "reservation", today
 /** Installments, reservation deposits and rent coming due, soonest first, at most 50. */
 function paymentAlertsOf(installmentRows: AlertSourceRow[], reservationRows: AlertSourceRow[], rentAlerts: PaymentAlertItem[], today: string): PaymentAlertItem[] {
     return [
-        ...installmentRows.map((row) => alertOf(row, "installment", today)),
+        // A fully paid installment whose status lags behind owes nothing, so it raises no alert.
+        ...installmentRows.filter((row) => installmentLeft(row) > 0).map((row) => alertOf(row, "installment", today)),
         ...reservationRows.map((row) => alertOf(row, "reservation", today)),
         ...rentAlerts,
     ]
@@ -983,7 +1082,7 @@ async function getDashboardStats(
         alertHorizon: addLocalDays(today, 30),
     };
 
-    const [counts, sales, units, reservations, paymentPlans, inspections, modificationRequestsByStatus, unitCosts, rentals] = await Promise.all([
+    const [counts, sales, units, reservations, paymentPlans, inspections, modificationRequestsByStatus, unitCosts, rentals, collected] = await Promise.all([
         hierarchyCounts(scope),
         salesStats(scope),
         unitStats(scope),
@@ -993,6 +1092,7 @@ async function getDashboardStats(
         modificationRequestStats(scope),
         unitCostStats(scope),
         rentalStats(scope),
+        collectedStats(scope),
     ]);
 
     const totalUnitsCount = unitIds.length;
@@ -1006,6 +1106,7 @@ async function getDashboardStats(
 
     const summary: DashboardSummary = {
         totalRevenue: sales.totalRevenue,
+        collected,
         totalSales: sales.totalSales,
         totalUnits: unitIds.length,
         totalProjects: counts.projects,
@@ -1066,6 +1167,7 @@ async function getDashboardStats(
 function buildEmptySummary(): DashboardSummary {
     return {
         totalRevenue: [],
+        collected: [],
         totalSales: 0,
         totalUnits: 0,
         totalProjects: 0,
@@ -1111,6 +1213,9 @@ function sanitizeDashboardSummary(
         out.totalSales = 0;
         out.averageSalePrice = [];
         out.salesByPaymentType = { cash: 0, payment_plan: 0 };
+    }
+    if (!access.sales || !access.paymentPlans || !access.reservations) {
+        out.collected = [];
     }
     if (!access.units) {
         out.unitsByStatus = { available: 0, unavailable: 0, reserved: 0, sold: 0, leased: 0 };

@@ -92,12 +92,13 @@ export function sumMoneyRows(rows: readonly EdificeMoneyByCurrency[]): EdificeMo
     return moneyRowsOf(totals);
 }
 
-/** The totals as dashboard rows (`{currencyId, currencyName, currencySymbol, value}`). */
+/** The totals as dashboard rows (`{currencyId, currencyName, currencySymbol, currencyDecimalPlaces, value}`). */
 export function revenueRowsOf(totals: MoneyTotals): RevenueByCurrency[] {
     return [...totals.values()].map(({currency, decimals, minor}) => ({
         currencyId: currency._id,
         currencyName: currency.name,
         currencySymbol: currency.symbol,
+        currencyDecimalPlaces: decimals,
         value: minorToNumber(minor, decimals),
     }));
 }

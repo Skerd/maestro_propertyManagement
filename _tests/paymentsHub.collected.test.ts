@@ -232,3 +232,45 @@ describe("payments hub: cash sales and reservation deposits (TD-B180)", {timeout
         expect((hub.body.data as PaymentsHubRow[]).some((row) => row.saleId === seeded.rejectedCash.toString())).toBe(false);
     }));
 });
+
+describe("payments hub and Collected agree on the edge cases (TD-B182, TD-B183)", {timeout: 60000}, () => {
+    const collected = async (caller: TestCaller, body: Record<string, unknown>) => {
+        const response = await request(app).post("/api/realEstate/dashboard").set(callerHeader(caller)).send(body);
+        expect(response.status).toBe(200);
+        return values(response.body.summary.collected);
+    };
+
+    it("leaves out a plan whose sale was deleted, as Collected does", () => asCompany(async () => {
+        const seeded = await seedMay();
+        await db().collection("sales").updateOne({_id: seeded.planSale}, {$set: {deletedAt: new Date()}});
+        // Not an administrator: an administrator sees deleted records everywhere, by design.
+        const staff: TestCaller = {...manager, isAdmin: false};
+        const edifice = seeded.edifice.toString();
+
+        const hub = await list(staff, {dateField: "paidDate", ...MAY, edifice});
+
+        expect(hub.status).toBe(200);
+        expect((hub.body.data as PaymentsHubRow[]).some((row) => row.planId === seeded.planId.toString())).toBe(false);
+        // 1000.50 + 200 cash and the 300 deposit; the deleted sale's 500 of plan payments in neither.
+        expect(values(hub.body.totals.paidAmount)).toEqual([[seeded.chf.toString(), 1500.5]]);
+        expect(await collected(staff, {from: MAY.dateFrom, to: MAY.dateTo, edificeId: edifice})).toEqual([[seeded.chf.toString(), 1500.5]]);
+    }));
+
+    it("without a period, keeps money received on a row that records no paid day", () => asCompany(async () => {
+        const seeded = await seedMay();
+        await db().collection("paymentplans").updateOne({_id: seeded.planId}, {$unset: {"installments.0.paidDate": ""}});
+        const edifice = seeded.edifice.toString();
+
+        const hub = await list(manager, {dateField: "paidDate", edifice});
+
+        expect(hub.status).toBe(200);
+        expect((hub.body.data as PaymentsHubRow[]).some((row) => row.planId === seeded.planId.toString() && row.installmentNumber === 1)).toBe(true);
+        expect(values(hub.body.totals.paidAmount)).toEqual(await collected(manager, {edificeId: edifice}));
+    }));
+
+    it("queries a money field against null without failing", () => asCompany(async () => {
+        await seedMay();
+        await expect(Reservation.find({depositAmount: {$ne: null}}).lean()).resolves.toHaveLength(3);
+        await expect(Sale.find({finalPrice: null}).lean()).resolves.toHaveLength(0);
+    }));
+});

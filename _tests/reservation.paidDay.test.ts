@@ -119,6 +119,16 @@ describe("the reservation's paid day", {timeout: 60000}, () => {
             expect(untouched?.paid).toBe(false);
             expect(untouched).not.toHaveProperty("paidDate");
         });
+
+        // TD-B183: the fixture's reservation day is 10 January.
+        it("refuses a paid day before the reservation day", async () => {
+            const reservationId = await unpaidReservation();
+            const refused = await pay({_id: reservationId.toString(), paidDate: "2026-01-09"});
+            expect([refused.status, refused.body.error_code]).toEqual([400, "reservation_paid_before_reserved"]);
+            expect((await stored(reservationId))?.paid).toBe(false);
+
+            expect((await pay({_id: reservationId.toString(), paidDate: "2026-01-10"})).status).toBe(200);
+        });
     });
 });
 

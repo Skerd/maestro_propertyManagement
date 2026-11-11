@@ -194,8 +194,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
         totalAmount: {
             type: SchemaTypes.Decimal128,
             required: true,
-            set: (v: number | string | Decimal128) => {
-                if (v instanceof Decimal128) return v;
+            set: (v: number | string | Decimal128 | null | undefined) => {
+                // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                if (v == null || v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
             },
             validate: {
@@ -210,8 +211,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
         downPayment: {
             type: SchemaTypes.Decimal128,
             required: true,
-            set: (v: number | string | Decimal128) => {
-                if (v instanceof Decimal128) return v;
+            set: (v: number | string | Decimal128 | null | undefined) => {
+                // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                if (v == null || v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
             },
             validate: {
@@ -235,8 +237,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
         remainingBalance: {
             type: SchemaTypes.Decimal128,
             required: true,
-            set: (v: number | string | Decimal128) => {
-                if (v instanceof Decimal128) return v;
+            set: (v: number | string | Decimal128 | null | undefined) => {
+                // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                if (v == null || v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
             },
             validate: {
@@ -264,8 +267,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
         installmentAmount: {
             type: SchemaTypes.Decimal128,
             required: true,
-            set: (v: number | string | Decimal128) => {
-                if (v instanceof Decimal128) return v;
+            set: (v: number | string | Decimal128 | null | undefined) => {
+                // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                if (v == null || v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
             },
             validate: {
@@ -307,8 +311,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 amount: {
                     type: SchemaTypes.Decimal128,
                     required: true,
-                    set: (v: number | string | Decimal128) => {
-                        if (v instanceof Decimal128) return v;
+                    set: (v: number | string | Decimal128 | null | undefined) => {
+                        // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                        if (v == null || v instanceof Decimal128) return v;
                         return Decimal128.fromString(v.toString());
                     },
                     validate: {
@@ -323,8 +328,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 principalAmount: {
                     type: SchemaTypes.Decimal128,
                     required: true,
-                    set: (v: number | string | Decimal128) => {
-                        if (v instanceof Decimal128) return v;
+                    set: (v: number | string | Decimal128 | null | undefined) => {
+                        // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                        if (v == null || v instanceof Decimal128) return v;
                         return Decimal128.fromString(v.toString());
                     },
                     validate: {
@@ -339,8 +345,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 interestAmount: {
                     type: SchemaTypes.Decimal128,
                     required: true,
-                    set: (v: number | string | Decimal128) => {
-                        if (v instanceof Decimal128) return v;
+                    set: (v: number | string | Decimal128 | null | undefined) => {
+                        // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                        if (v == null || v instanceof Decimal128) return v;
                         return Decimal128.fromString(v.toString());
                     },
                     validate: {
@@ -370,8 +377,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 paidAmount: {
                     type: SchemaTypes.Decimal128,
                     required: false,
-                    set: (v: number | string | Decimal128) => {
-                        if (v instanceof Decimal128) return v;
+                    set: (v: number | string | Decimal128 | null | undefined) => {
+                        // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                        if (v == null || v instanceof Decimal128) return v;
                         return Decimal128.fromString(v.toString());
                     },
                     validate: {
@@ -432,8 +440,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                 lateFeeAmount: {
                     type: SchemaTypes.Decimal128,
                     required: false,
-                    set: (v: number | string | Decimal128) => {
-                        if (v instanceof Decimal128) return v;
+                    set: (v: number | string | Decimal128 | null | undefined) => {
+                        // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                        if (v == null || v instanceof Decimal128) return v;
                         return Decimal128.fromString(v.toString());
                     },
                     validate: {
@@ -453,8 +462,9 @@ const PaymentPlanSchema = new Schema<IPaymentPlan>(
                         amount: {
                             type: SchemaTypes.Decimal128,
                             required: true,
-                            set: (v: number | string | Decimal128) => {
-                                if (v instanceof Decimal128) return v;
+                            set: (v: number | string | Decimal128 | null | undefined) => {
+                                // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                                if (v == null || v instanceof Decimal128) return v;
                                 return Decimal128.fromString(v.toString());
                             },
                         },

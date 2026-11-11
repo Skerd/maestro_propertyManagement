@@ -510,6 +510,11 @@ export class ReservationActions {
             throw apiValidationException("reservation_not_active", "", null, languageCode);
         }
 
+        // Money is not received before the unit is reserved (TD-B183); both are local days, compared as text.
+        if (givenPaidDate && givenPaidDate < existingReservation.reservationDate) {
+            throw apiValidationException("reservation_paid_before_reserved", "paidDate", null, languageCode);
+        }
+
         // Collected counts the deposit on this day (TD-B178); staff may give an earlier day, else the company's today (TD-B180).
         const paidDate = givenPaidDate ?? await companyTodayOf(company._id, {session});
         await reservationService.updateByIdOrThrow(

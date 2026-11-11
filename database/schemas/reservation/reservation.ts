@@ -173,8 +173,9 @@ const ReservationSchema = new Schema<IReservation>(
         depositAmount: {
             type: SchemaTypes.Decimal128,
             required: false,
-            set: (v: number | string | Decimal128) => {
-                if (v instanceof Decimal128) return v;
+            set: (v: number | string | Decimal128 | null | undefined) => {
+                // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                if (v == null || v instanceof Decimal128) return v;
                 return Decimal128.fromString(v.toString());
             },
             validate: {

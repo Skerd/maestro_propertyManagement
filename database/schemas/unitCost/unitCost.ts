@@ -302,8 +302,9 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
                 pricePerUnit: {
                     type: SchemaTypes.Decimal128,
                     required: true,
-                    set: (v: number | string | Decimal128) => {
-                        if (v instanceof Decimal128) return v;
+                    set: (v: number | string | Decimal128 | null | undefined) => {
+                        // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
+                        if (v == null || v instanceof Decimal128) return v;
                         return Decimal128.fromString(String(v));
                     },
                     validate: {

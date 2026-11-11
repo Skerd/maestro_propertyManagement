@@ -321,8 +321,8 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
             : Promise.resolve([]),
         loadDeposits
             ? reservationService.find(
-                // A stored deposit, as "Collected" matches it; `$type` because the amount's setter cannot cast `$ne: null`.
-                {company: company._id, ...unitMatch, paid: true, depositAmount: {$type: "decimal"}},
+                // A stored deposit, as "Collected" matches it.
+                {company: company._id, ...unitMatch, paid: true, depositAmount: {$ne: null}},
                 opts as Parameters<typeof reservationService.find>[1],
                 PAYMENTS_HUB_RESERVATION_POPULATE,
                 undefined,
@@ -335,6 +335,8 @@ async function loadScopedRows(params: ScopeParams): Promise<{rows: PaymentsHubRo
     const truncated = [planDocs, cashSales, deposits].some((docs) => docs.length > PLAN_SCAN_CAP);
     const rows: PaymentsHubRow[] = [];
     for (const doc of planDocs.slice(0, PLAN_SCAN_CAP)) {
+        // A plan whose sale was deleted populates no sale (soft delete): "Collected" reads plans through live sales only (TD-B183).
+        if (!doc.sale) continue;
         rows.push(...planToHubRows(doc as unknown as Record<string, any>, today, read).map(mask));
     }
     for (const doc of cashSales.slice(0, PLAN_SCAN_CAP)) rows.push(mask(cashSaleToHubRow(doc)));
@@ -412,8 +414,9 @@ async function listPayments(
     const range = parseDayRange(dateFrom, dateTo);
     const filtered = applyRowFilters(rows, params).filter((row) => {
         const date = rowDate(row, dateField);
-        // Listing by payment date only makes sense for rows that were actually paid.
-        if (dateField === "paidDate" && !date) return false;
+        // Listing by payment date only makes sense for rows that were actually paid. Without a range, money received on a
+        // row that records no paid day still counts, as it does in "Collected" (TD-B183).
+        if (dateField === "paidDate" && !date) return !range.from && !range.to && (row.paidAmount ?? 0) > 0;
         return inDayRange(date, range);
     });
 

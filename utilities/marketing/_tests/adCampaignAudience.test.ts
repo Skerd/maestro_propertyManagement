@@ -1,5 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {ObjectId} from "mongodb";
+import {CONSTANTS} from "@coreModule/environment";
 import {dedupeByEmail, leadCandidates, leadInterestFilter, toUserCandidate, type AudienceCandidate} from "../adCampaignAudience";
 
 const oid = () => new ObjectId();
@@ -94,6 +95,16 @@ describe("leadInterestFilter", () => {
 
     it("is empty when the campaign has no inventory scope", () => {
         expect(leadInterestFilter([], [])).toEqual({});
+    });
+});
+
+// TD-B181: every client got the platform default language.
+describe("recipient language", () => {
+    it("gives a client their preferred language, else the instance default", () => {
+        const swiss = toUserCandidate({_id: oid(), username: "ana@x.com", preferredLanguage: "de-CH"}, {recordInactive: true, recipient: true});
+        const unset = toUserCandidate({_id: oid(), username: "bea@x.com"}, {recordInactive: true, recipient: true});
+        expect(swiss?.languageCode).toBe("de-CH");
+        expect(unset?.languageCode).toBe(CONSTANTS.DEFAULT_LANGUAGE || "en-US");
     });
 });
 

@@ -28,8 +28,8 @@ import {applyAdCampaignTemplateIndexes} from "./adCampaignTemplate.indexes";
  *
  * One row is one *locale* of a template: the siblings of a template share
  * `name` + `campaignType` and differ by `locale`. The sender picks the row
- * matching each recipient's language and falls back to `en-US`, which is why a
- * partially translated template is safe to ship.
+ * matching each recipient's language and falls back to the row the campaign
+ * picked, which is why a partially translated template is safe to ship.
  *
  * `bodyHtml` is author-supplied markup. It is sanitized on write and again on
  * render — see `adCampaignHtmlSanitizer`. Never interpolate it into a page or a

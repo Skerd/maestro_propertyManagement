@@ -23,6 +23,8 @@ import {adCampaignSendConfig, bulkSendBlockedReason, effectiveRecipient} from ".
 
 import {adCampaignRecipientService} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service";
 import {companyService} from "@coreModule/database/schemas/company/company.service";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 export type SenderContext = {
     company: ObjectId;
     logger?: {info?: (m: string) => void; warn?: (m: string) => void; err?: (m: string) => void};
@@ -92,13 +94,41 @@ async function shouldStop(campaignId: ObjectId, company: ObjectId, ctx: SenderCo
  * tick retries it. Retrying across ticks rather than looping in-process means a
  * worker crash loses at most one attempt instead of stranding the row.
  */
+/**
+ * The language a recipient's email is written in (TD-B181): their own (`row.languageCode`, a client's preferred language
+ * or the instance default), narrowed to one the emails support; the template then picks that language's version when it
+ * has one. A campaign with its own subject or body was written in one language, so all of it goes out in the language
+ * of the template it picked, or the greeting and footer would not match the text.
+ */
+export function campaignRecipientLocale(
+    campaign: Pick<IAdCampaign, "subjectOverride" | "bodyHtmlOverride">,
+    templateLocale: SupportedLocale | undefined,
+    rowLanguage: string | undefined,
+): SupportedLocale {
+    if ((campaign.subjectOverride || campaign.bodyHtmlOverride) && templateLocale) return templateLocale;
+    return resolveRecipientLocale(rowLanguage);
+}
+
+/** The campaign's prices and offer date formatted for one language, worked out once per language and reused. */
+export function contentTokensByLocale(resolve: (locale: SupportedLocale) => Promise<AdCampaignTokenValues>) {
+    const byLocale = new Map<SupportedLocale, Promise<AdCampaignTokenValues>>();
+    return (locale: SupportedLocale): Promise<AdCampaignTokenValues> => {
+        let tokens = byLocale.get(locale);
+        if (!tokens) {
+            tokens = resolve(locale);
+            byLocale.set(locale, tokens);
+        }
+        return tokens;
+    };
+}
+
 async function sendBatch(
     campaign: IAdCampaign,
     company: ObjectId,
     batch: IAdCampaignRecipient[],
     session: PooledMailSession,
     ctx: SenderContext,
-    contentTokens: AdCampaignTokenValues,
+    language: {templateLocale: SupportedLocale | undefined; contentTokens: (locale: SupportedLocale) => Promise<AdCampaignTokenValues>},
 ): Promise<{sent: number; failed: number; suppressed: number}> {
     const config = adCampaignSendConfig();
     const counts = {sent: 0, failed: 0, suppressed: 0};
@@ -123,7 +153,8 @@ async function sendBatch(
         }
 
         try {
-            const locale = resolveRecipientLocale(row.languageCode);
+            const locale = campaignRecipientLocale(campaign, language.templateLocale, row.languageCode);
+            const contentTokens = await language.contentTokens(locale);
             const template = await adCampaignTemplateService.resolveForLocale({
                 company,
                 templateId: campaign.template as unknown as ObjectId,
@@ -197,12 +228,16 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
 
     const session = await createPooledMailSession(company);
     const companyDoc = await companyService.findById(company, {}, undefined, "name");
-    const contentTokens = await resolveCampaignContentTokens({
+    const templateId = nestedEntityToRef(campaign.template);
+    const templateLocale = templateId ? await adCampaignTemplateService.findLocale({company, templateId}) : undefined;
+    const contentTokens = contentTokensByLocale((locale) => resolveCampaignContentTokens({
         campaign,
         company,
-        languageCode: "en-US",
+        languageCode: locale,
         companyName: companyDoc?.name ?? "",
-    });
+    }));
+    // Resolved before the first batch, as before: a campaign whose content cannot be built fails here, not per recipient.
+    await contentTokens(campaignRecipientLocale(campaign, templateLocale, undefined));
     try {
         while (true) {
             if (await shouldStop(campaignId, company, ctx)) {
@@ -213,7 +248,7 @@ export async function drainCampaign(campaign: IAdCampaign, ctx: SenderContext): 
             const batch = await claimRecipientBatch(campaignId, company, batchSize);
             if (!batch.length) break;
 
-            const counts = await sendBatch(campaign, company, batch, session, ctx, contentTokens);
+            const counts = await sendBatch(campaign, company, batch, session, ctx, {templateLocale, contentTokens});
             await adCampaignService.updateOne({_id: campaignId, company}, {
                     $inc: {
                         "stats.sent": counts.sent,

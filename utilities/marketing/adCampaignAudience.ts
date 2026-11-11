@@ -15,6 +15,7 @@ import type {
     AdCampaignType,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaign/adCampaign.constants";
 import {clientEmailRecipients, findClientHoldings} from "./clientAudience";
+import {receiverLanguage} from "@coreModule/domain/notifications/notificationTexts";
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {adCampaignRecipientService} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service";
 import {userService} from "@coreModule/database/schemas/user/user.service";
@@ -42,17 +43,13 @@ export type UserLite = {
     name?: string;
     surname?: string;
     fullName?: string;
+    preferredLanguage?: string | null;
 };
 export type LeadLite = {_id: ObjectId; email?: string; firstName?: string; lastName?: string};
 
 /**
- * Recipient language.
- *
- * Core `User` stores no language or locale — `languageCode` only ever travels
- * as a request parameter — so there is nothing per-person to read. Everyone
- * therefore gets the platform default, and the template resolver falls back to
- * the campaign's chosen locale. Giving `User` a stored preference is the change
- * that would make per-recipient localization real.
+ * A lead's language: leads record none, so they get the platform default (the template then falls back to the version
+ * the campaign picked). A client user gets their own preferred language (`receiverLanguage`, TD-B181).
  */
 function defaultLanguage(): string {
     return CONSTANTS.DEFAULT_LANGUAGE || "en-US";
@@ -113,7 +110,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; rec
             audienceKind: "user",
             user: u._id,
             ...identity,
-            languageCode: defaultLanguage(),
+            languageCode: receiverLanguage(u),
             skipReason: "no_email",
         };
     }
@@ -124,7 +121,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; rec
             audienceKind: "user",
             user: u._id,
             ...identity,
-            languageCode: defaultLanguage(),
+            languageCode: receiverLanguage(u),
             skipReason: "inactive",
         };
     }
@@ -133,7 +130,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; rec
         audienceKind: "user",
         user: u._id,
         ...identity,
-        languageCode: defaultLanguage(),
+        languageCode: receiverLanguage(u),
     };
 }
 
@@ -149,7 +146,7 @@ async function clientUserCandidates(campaign: IAdCampaign, company: ObjectId): P
     // Every holder is tied to a unit, so their membership status does not matter (D131).
     const users = await userService.find({
         _id: {$in: [...holdings.keys()].map(id => new ObjectId(id))},
-    }, {}, undefined, "_id username name surname fullName");
+    }, {}, undefined, "_id username name surname fullName preferredLanguage");
 
     return users
         .map(u => toUserCandidate(u, {recordInactive: true, recipient: true}))
@@ -209,7 +206,7 @@ export async function resolveAudienceCandidates(
             const users = await userService.find({
                 _id: {$in: userIds},
                 companies: company,
-            }, {}, undefined, "_id username name surname fullName");
+            }, {}, undefined, "_id username name surname fullName preferredLanguage");
             const recipients = await clientEmailRecipients(company, users.map(u => u._id));
             candidates.push(
                 ...users

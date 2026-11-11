@@ -43,6 +43,14 @@ export class AdCampaignTemplateService extends BaseCrudService<IAdCampaignTempla
 
         return sibling ?? chosen;
     }
+
+    /** The language of the template a campaign picked: the language a campaign with its own subject or body is written in. */
+    async findLocale(params: {company: ObjectId; templateId: ObjectId}): Promise<SupportedLocale | undefined> {
+        const chosen = await AdCampaignTemplate.findOne({_id: params.templateId, company: params.company})
+            .select("locale")
+            .lean<{locale?: SupportedLocale}>();
+        return chosen?.locale;
+    }
 }
 
 export const adCampaignTemplateService = new AdCampaignTemplateService();

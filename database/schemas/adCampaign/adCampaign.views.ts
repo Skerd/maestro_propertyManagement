@@ -26,17 +26,12 @@ export const adCampaignSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             props: {title: "overview"},
-            permissions: {readAny: ["name", "title", "campaignType", "status", "template", "scheduledAt", "startedAt", "completedAt"]},
+            permissions: {readAny: ["campaignType", "status", "template", "scheduledAt", "startedAt", "completedAt"]},
             children: [
                 {
                     render: "#SheetGrid",
                     props: {columns: 3},
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {name: "name", widget: "#DisplayCard", label: "name", widgetProps: {icon: "#Hash"}},
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "campaignType"},
@@ -65,18 +60,21 @@ export const adCampaignSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "scheduledAt",
                             permissions: {read: "scheduledAt"},
-                            field: {name: "scheduledAt", widget: "#DisplayCard", label: "scheduledAt", widgetProps: {icon: "#IconCalendarBolt", format: "datetime", type: "date"}},
+                            field: {name: "scheduledAt", widget: "#DisplayCard", label: "scheduledAt", widgetProps: {icon: "#IconCalendarBolt", format: "dateTime", type: "dateTime"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "startedAt",
                             permissions: {read: "startedAt"},
-                            field: {name: "startedAt", widget: "#DisplayCard", label: "startedAt", widgetProps: {icon: "#Play", format: "datetime", type: "date"}},
+                            field: {name: "startedAt", widget: "#DisplayCard", label: "startedAt", widgetProps: {icon: "#Play", format: "dateTime", type: "dateTime"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "completedAt",
                             permissions: {read: "completedAt"},
-                            field: {name: "completedAt", widget: "#DisplayCard", label: "completedAt", widgetProps: {icon: "#CircleCheck", format: "datetime", type: "date"}},
+                            field: {name: "completedAt", widget: "#DisplayCard", label: "completedAt", widgetProps: {icon: "#CircleCheck", format: "dateTime", type: "dateTime"}},
                         },
                     ],
                 },
@@ -86,6 +84,7 @@ export const adCampaignSheetView: ViewConfig = {
             render: "#SheetGroup",
             props: {title: "content"},
             permissions: {readAny: ["contentUnit", "contentProject", "offerTitle", "offerEndsAt", "ctaUrl", "subjectOverride", "bodyHtmlOverride", "fromName", "replyTo"]},
+            dependentAny: ["contentUnit", "contentProject", "offerTitle", "offerEndsAt", "ctaUrl", "subjectOverride", "bodyHtmlOverride", "fromName", "replyTo"],
             children: [
                 {
                     render: "#SheetGrid",
@@ -93,6 +92,7 @@ export const adCampaignSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "contentUnit",
                             permissions: {read: "contentUnit"},
                             field: {
                                 name: "contentUnit",
@@ -109,6 +109,7 @@ export const adCampaignSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "contentProject",
                             permissions: {read: "contentProject"},
                             field: {
                                 name: "contentProject",
@@ -125,31 +126,37 @@ export const adCampaignSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "offerTitle",
                             permissions: {read: "offerTitle"},
                             field: {name: "offerTitle", widget: "#DisplayCard", label: "offerTitle", widgetProps: {icon: "#Tag"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "offerEndsAt",
                             permissions: {read: "offerEndsAt"},
-                            field: {name: "offerEndsAt", widget: "#DisplayCard", label: "offerEndsAt", widgetProps: {icon: "#IconCalendarBolt", format: "datetime", type: "date"}},
+                            field: {name: "offerEndsAt", widget: "#DisplayCard", label: "offerEndsAt", widgetProps: {icon: "#IconCalendarBolt", format: "dateTime", type: "dateTime"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "ctaUrl",
                             permissions: {read: "ctaUrl"},
                             field: {name: "ctaUrl", widget: "#DisplayCard", label: "ctaUrl", widgetProps: {icon: "#Link"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "fromName",
                             permissions: {read: "fromName"},
                             field: {name: "fromName", widget: "#DisplayCard", label: "fromName", widgetProps: {icon: "#User"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "replyTo",
                             permissions: {read: "replyTo"},
                             field: {name: "replyTo", widget: "#DisplayCard", label: "replyTo", widgetProps: {icon: "#Mail"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "subjectOverride",
                             permissions: {read: "subjectOverride"},
                             field: {name: "subjectOverride", widget: "#DisplayCard", label: "subjectOverride", widgetProps: {icon: "#Type"}},
                         },
@@ -157,6 +164,7 @@ export const adCampaignSheetView: ViewConfig = {
                 },
                 {
                     render: "#Field",
+                    dependent: "bodyHtmlOverride",
                     permissions: {read: "bodyHtmlOverride"},
                     field: {
                         name: "bodyHtmlOverride",
@@ -183,11 +191,13 @@ export const adCampaignSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "includeClientUsers",
                             permissions: {read: "includeClientUsers"},
                             field: {name: "includeClientUsers", widget: "#DisplayCard", label: "includeClientUsers", widgetProps: {icon: "#User", type: "boolean"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "includeLeads",
                             permissions: {read: "includeLeads"},
                             field: {name: "includeLeads", widget: "#DisplayCard", label: "includeLeads", widgetProps: {icon: "#Users", type: "boolean"}},
                         },
@@ -237,6 +247,7 @@ export const adCampaignSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "lastError",
                             permissions: {read: "lastError"},
                             field: {name: "lastError", widget: "#DisplayCard", label: "lastError", widgetProps: {icon: "#TriangleAlert"}},
                         },
@@ -301,7 +312,7 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.scheduledAtLabel",
                             placeholder: "form.scheduledAtPlaceholder",
-                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm", companyTimeZone: true},
                         },
                     },
                 ],
@@ -368,7 +379,7 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     label: "form.offerEndsAtLabel",
                                     placeholder: "form.offerEndsAtPlaceholder",
                                     required: true,
-                                    widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
+                                    widgetProps: {valueFormat: "YYYY-MM-DD HH:mm", companyTimeZone: true},
                                 },
                             },
                             {
@@ -563,7 +574,7 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        props: {title: "contentOverrides"},
+        props: {title: "contentOverrides", defaultOpen: false},
         children: [
             {
                 render: "#FormGrid",
@@ -605,7 +616,7 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        props: {title: "delivery"},
+        props: {title: "delivery", defaultOpen: false},
         children: [
             {
                 render: "#FormGrid",
@@ -708,7 +719,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                             widget: "#DateInput",
                             label: "form.scheduledAtLabel",
                             placeholder: "form.scheduledAtPlaceholder",
-                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm", companyTimeZone: true},
                         },
                         permissions: {read: "scheduledAt", write: "scheduledAt"},
                     },
@@ -779,7 +790,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     label: "form.offerEndsAtLabel",
                                     placeholder: "form.offerEndsAtPlaceholder",
                                     required: true,
-                                    widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
+                                    widgetProps: {valueFormat: "YYYY-MM-DD HH:mm", companyTimeZone: true},
                                 },
                                 permissions: {read: "offerEndsAt", write: "offerEndsAt"},
                             },
@@ -987,7 +998,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        props: {title: "contentOverrides"},
+        props: {title: "contentOverrides", defaultOpen: false},
         permissions: {readAny: ["subjectOverride", "bodyHtmlOverride"], writeAny: ["subjectOverride", "bodyHtmlOverride"]},
         children: [
             {
@@ -1032,7 +1043,7 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        props: {title: "delivery"},
+        props: {title: "delivery", defaultOpen: false},
         permissions: {readAny: ["batchSize", "fromName", "replyTo"], writeAny: ["batchSize", "fromName", "replyTo"]},
         children: [
             {

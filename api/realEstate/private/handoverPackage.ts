@@ -10,6 +10,7 @@ import {handoverPackageService} from "../../../database/schemas/handoverPackage/
 import {HandoverPackageActions} from "../../../database/schemas/handoverPackage/handoverPackage.actions";
 import {handoverPackageToDTO, handoverPackagesToDTO} from "../../../utilities/mappers/handoverPackage/handoverPackageMapper.dto";
 import {handoverPackagesToSelect} from "../../../utilities/mappers/handoverPackage/handoverPackageMapper.select";
+import {edificeSelectFilter} from "@propertyManagement/utilities/edifice/edificeSelectFilter";
 import {
     assertHandoverPackageScopeAvailable,
     resolveAndFillHandoverPackageScope,
@@ -29,6 +30,8 @@ export const {router} = createCrudRouter({
     toSelect: handoverPackagesToSelect,
     defaultSort: {createdAt: -1},
     selectSearchField: "title",
+    // PD forms post the picked project, so the picker lists only its packages (the same scope as the building picker).
+    extraSelectFilter: async ({project}) => edificeSelectFilter({project}),
     createMiddleware: [uploadMW], editMiddleware: [uploadMW],
     actions: HandoverPackageActions,
     extraListFilter: async ({projectId, edificeId, floorId, unit, unitId}: Record<string, unknown>) => {

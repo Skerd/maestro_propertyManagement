@@ -116,6 +116,7 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             trim: true,
             maxlength: AD_CAMPAIGN_NAME_MAX,
             permissions: SYSTEM_WRITE,
+            dynamicTableConfiguration: {visible: false},
         },
         title: {
             type: SchemaTypes.String,
@@ -131,6 +132,19 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             enum: AD_CAMPAIGN_STATUS_VALUES,
             default: "draft",
             permissions: SYSTEM_WRITE,
+            // The meaning of each state; the panel paints the card, sheet and table badges from it (UX-02).
+            dynamicTableConfiguration: {
+                enumTones: {
+                    draft: "neutral",
+                    materializing: "info",
+                    scheduled: "info",
+                    sending: "info",
+                    paused: "warning",
+                    completed: "success",
+                    cancelled: "neutral",
+                    failed: "danger",
+                },
+            },
         },
 
         template: {
@@ -149,6 +163,7 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             type: SchemaTypes.String,
             required: false,
             maxlength: AD_CAMPAIGN_BODY_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
 
         audienceMode: {
@@ -160,10 +175,12 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
         recipients: {
             type: [{type: SchemaTypes.ObjectId, ref: "User", refAllowlist: SimpleUserSnippet}],
             default: [],
+            dynamicTableConfiguration: {visible: false},
         },
         leadRecipients: {
             type: [{type: SchemaTypes.ObjectId, ref: "Lead"}],
             default: [],
+            dynamicTableConfiguration: {visible: false},
         },
         includeClientUsers: {type: SchemaTypes.Boolean, required: false, default: true},
         includeLeads: {type: SchemaTypes.Boolean, required: false, default: false},
@@ -213,28 +230,32 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             default: AD_CAMPAIGN_BATCH_SIZE_DEFAULT,
             min: AD_CAMPAIGN_BATCH_SIZE_MIN,
             max: AD_CAMPAIGN_BATCH_SIZE_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         fromName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 120},
         replyTo: {type: SchemaTypes.String, required: false, trim: true, lowercase: true, maxlength: 320},
 
         stats: {
             type: {
-                total: {type: SchemaTypes.Number, default: 0},
-                pending: {type: SchemaTypes.Number, default: 0},
-                sent: {type: SchemaTypes.Number, default: 0},
-                failed: {type: SchemaTypes.Number, default: 0},
-                skipped: {type: SchemaTypes.Number, default: 0},
+                total: {type: SchemaTypes.Number, default: 0, dynamicTableConfiguration: {visible: false}},
+                pending: {type: SchemaTypes.Number, default: 0, dynamicTableConfiguration: {visible: false}},
+                sent: {type: SchemaTypes.Number, default: 0, dynamicTableConfiguration: {visible: false}},
+                failed: {type: SchemaTypes.Number, default: 0, dynamicTableConfiguration: {visible: false}},
+                skipped: {type: SchemaTypes.Number, default: 0, dynamicTableConfiguration: {visible: false}},
             },
             default: () => ({total: 0, pending: 0, sent: 0, failed: 0, skipped: 0}),
             permissions: SYSTEM_WRITE,
+            dynamicTableConfiguration: {visible: false},
         },
         lastError: {
             type: SchemaTypes.String,
             required: false,
             maxlength: AD_CAMPAIGN_ERROR_MAX,
             permissions: SYSTEM_WRITE,
+            dynamicTableConfiguration: {visible: false},
         },
-        claimToken: {type: SchemaTypes.ObjectId, required: false, permissions: SYSTEM_WRITE},
+        // The sender's lock, never a column (UX-12).
+        claimToken: {type: SchemaTypes.ObjectId, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {hideColumn: true}},
     },
     {accessMode: "loose"},
 );

@@ -28,165 +28,202 @@ const leadInterestOptions = [
 ];
 
 const leadCreateFormNodes: ViewConfig["nodes"] = [
+    // Grouped in the order a lead is worked: who it is, what they want, who follows up, then notes (UX-04).
     {
-        render: "#FormGrid",
-        props:  {columns: 2},
+        render: "#TitleWithCollapse",
+        props:  {title: "form.contactSectionTitle"},
         children: [
             {
-                render: "#Field",
-                field: {
-                    name:        "firstName",
-                    widget:      "#Input",
-                    label:       "form.firstNameLabel",
-                    placeholder: "form.firstNamePlaceholder",
-                    required:    true,
-                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "lastName",
-                    widget:      "#Input",
-                    label:       "form.lastNameLabel",
-                    placeholder: "form.lastNamePlaceholder",
-                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "email",
-                    widget:      "#Input",
-                    label:       "form.emailLabel",
-                    placeholder: "form.emailPlaceholder",
-                    widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "phone",
-                    widget:      "#Input",
-                    label:       "form.phoneLabel",
-                    placeholder: "form.phonePlaceholder",
-                    widgetProps: {maxLength: LEAD_PHONE_MAX},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "source",
-                    widget:      "#SimpleSelect",
-                    label:       "form.sourceLabel",
-                    placeholder: "form.sourcePlaceholder",
-                    widgetProps: {options: leadSourceOptions, className: "grow w-full"},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "interest",
-                    widget:      "#SimpleSelect",
-                    label:       "form.interestLabel",
-                    placeholder: "form.interestPlaceholder",
-                    widgetProps: {options: leadInterestOptions, className: "grow w-full"},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "projectInterest",
-                    widget:      "#ApiSelect",
-                    label:       "form.projectInterestLabel",
-                    placeholder: "form.projectInterestPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/realEstate/project/select",
-                        method:                  "POST",
-                        normalizeEmptyToUndefined: true,
-                        cascadeClearFormFields:  ["unitInterest"],
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "firstName",
+                            widget:      "#Input",
+                            label:       "form.firstNameLabel",
+                            placeholder: "form.firstNamePlaceholder",
+                            required:    true,
+                            widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
+                        },
                     },
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "unitInterest",
-                    widget:      "#ApiSelect",
-                    label:       "form.unitInterestLabel",
-                    placeholder: "form.unitInterestPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/realEstate/unit/select",
-                        method:                  "POST",
-                        normalizeEmptyToUndefined: true,
-                        postBodyFromFormFields:  [{field: "projectInterest", paramName: "project"}],
-                        enableWhenFormFieldsNonEmpty: ["projectInterest"],
-                        remountKeyFormField:     "projectInterest",
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "lastName",
+                            widget:      "#Input",
+                            label:       "form.lastNameLabel",
+                            placeholder: "form.lastNamePlaceholder",
+                            widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
+                        },
                     },
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "budget",
-                    widget:      "#Input",
-                    label:       "form.budgetLabel",
-                    placeholder: "form.budgetPlaceholder",
-                    widgetProps: {type: "number", min: 0, step: 0.01},
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "budgetCurrency",
-                    widget:      "#ApiSelect",
-                    label:       "form.budgetCurrencyLabel",
-                    placeholder: "form.budgetCurrencyPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/finance/currency/select",
-                        method:                  "GET",
-                        normalizeEmptyToUndefined: true,
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "email",
+                            widget:      "#Input",
+                            label:       "form.emailLabel",
+                            placeholder: "form.emailPlaceholder",
+                            widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
+                        },
                     },
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "assignedTo",
-                    widget:      "#ApiSelect",
-                    label:       "form.assignedToLabel",
-                    placeholder: "form.assignedToPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/company/users/select",
-                        method:                  "POST",
-                        postBody:                { administration: true },
-                        normalizeEmptyToUndefined: true,
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "phone",
+                            widget:      "#Input",
+                            label:       "form.phoneLabel",
+                            placeholder: "form.phonePlaceholder",
+                            widgetProps: {maxLength: LEAD_PHONE_MAX},
+                        },
                     },
-                },
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "followUpDate",
-                    widget:      "#DateInput",
-                    label:       "form.followUpDateLabel",
-                    widgetProps: {valueFormat: "YYYY-MM-DD"},
-                },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "source",
+                            widget:      "#SimpleSelect",
+                            label:       "form.sourceLabel",
+                            placeholder: "form.sourcePlaceholder",
+                            widgetProps: {options: leadSourceOptions, className: "grow w-full"},
+                        },
+                    },
+                ],
             },
         ],
     },
     {
-        render: "#Field",
-        field: {
-            name:        "notes",
-            widget:      "#Textarea",
-            label:       "form.notesLabel",
-            placeholder: "form.notesPlaceholder",
-            widgetProps: {
-                className: "resize-none max-h-[250px] overflow-y-auto",
-                maxLength: LEAD_LONG_TEXT_MAX,
+        render: "#TitleWithCollapse",
+        props:  {title: "form.interestSectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "interest",
+                            widget:      "#SimpleSelect",
+                            label:       "form.interestLabel",
+                            placeholder: "form.interestPlaceholder",
+                            widgetProps: {options: leadInterestOptions, className: "grow w-full"},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "projectInterest",
+                            widget:      "#ApiSelect",
+                            label:       "form.projectInterestLabel",
+                            placeholder: "form.projectInterestPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/realEstate/project/select",
+                                method:                  "POST",
+                                normalizeEmptyToUndefined: true,
+                                cascadeClearFormFields:  ["unitInterest"],
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "unitInterest",
+                            widget:      "#ApiSelect",
+                            label:       "form.unitInterestLabel",
+                            placeholder: "form.unitInterestPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/realEstate/unit/select",
+                                method:                  "POST",
+                                normalizeEmptyToUndefined: true,
+                                postBodyFromFormFields:  [{field: "projectInterest", paramName: "project"}],
+                                enableWhenFormFieldsNonEmpty: ["projectInterest"],
+                                remountKeyFormField:     "projectInterest",
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "budget",
+                            widget:      "#Input",
+                            label:       "form.budgetLabel",
+                            placeholder: "form.budgetPlaceholder",
+                            widgetProps: {type: "number", min: 0, step: 0.01},
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "budgetCurrency",
+                            widget:      "#ApiSelect",
+                            label:       "form.budgetCurrencyLabel",
+                            placeholder: "form.budgetCurrencyPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/finance/currency/select",
+                                method:                  "GET",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                ],
             },
-        },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.followUpSectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "assignedTo",
+                            widget:      "#ApiSelect",
+                            label:       "form.assignedToLabel",
+                            placeholder: "form.assignedToPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/company/users/select",
+                                method:                  "POST",
+                                postBody:                { administration: true },
+                                normalizeEmptyToUndefined: true,
+                            },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "followUpDate",
+                            widget:      "#DateInput",
+                            label:       "form.followUpDateLabel",
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.notesSectionTitle", defaultOpen: false},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name:        "notes",
+                    widget:      "#Textarea",
+                    label:       "form.notesLabel",
+                    placeholder: "form.notesPlaceholder",
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: LEAD_LONG_TEXT_MAX,
+                    },
+                },
+            },
+        ],
     },
 ];
 
@@ -206,169 +243,206 @@ const leadEditFormHiddenId: ViewConfig["nodes"] = [
 
 const leadEditFormNodes: ViewConfig["nodes"] = [
     ...leadEditFormHiddenId,
+    // Grouped in the order a lead is worked: who it is, what they want, who follows up, then notes (UX-04).
     {
-        render: "#FormGrid",
-        props:  {columns: 2},
-        permissions: {
-            readAny: ["firstName", "lastName", "email", "phone", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
-            writeAny: ["firstName", "lastName", "email", "phone", "source", "interest", "projectInterest", "unitInterest", "budget", "budgetCurrency", "assignedTo", "followUpDate"],
-        },
+        render: "#TitleWithCollapse",
+        props:  {title: "form.contactSectionTitle"},
+        permissions: {readAny: ["firstName", "lastName", "email", "phone", "source"], writeAny: ["firstName", "lastName", "email", "phone", "source"]},
         children: [
             {
-                render: "#Field",
-                field: {
-                    name:        "firstName",
-                    widget:      "#Input",
-                    label:       "form.firstNameLabel",
-                    placeholder: "form.firstNamePlaceholder",
-                    required:    true,
-                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
-                }, permissions: {read: "firstName", write: "firstName"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "lastName",
-                    widget:      "#Input",
-                    label:       "form.lastNameLabel",
-                    placeholder: "form.lastNamePlaceholder",
-                    widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
-                }, permissions: {read: "lastName", write: "lastName"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "email",
-                    widget:      "#Input",
-                    label:       "form.emailLabel",
-                    placeholder: "form.emailPlaceholder",
-                    widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
-                }, permissions: {read: "email", write: "email"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "phone",
-                    widget:      "#Input",
-                    label:       "form.phoneLabel",
-                    placeholder: "form.phonePlaceholder",
-                    widgetProps: {maxLength: LEAD_PHONE_MAX},
-                }, permissions: {read: "phone", write: "phone"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "source",
-                    widget:      "#SimpleSelect",
-                    label:       "form.sourceLabel",
-                    placeholder: "form.sourcePlaceholder",
-                    widgetProps: {options: leadSourceOptions, className: "grow w-full"},
-                }, permissions: {read: "source", write: "source"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "interest",
-                    widget:      "#SimpleSelect",
-                    label:       "form.interestLabel",
-                    placeholder: "form.interestPlaceholder",
-                    widgetProps: {options: leadInterestOptions, className: "grow w-full"},
-                }, permissions: {read: "interest", write: "interest"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "projectInterest",
-                    widget:      "#ApiSelect",
-                    label:       "form.projectInterestLabel",
-                    placeholder: "form.projectInterestPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/realEstate/project/select",
-                        method:                  "POST",
-                        normalizeEmptyToUndefined: true,
-                        cascadeClearFormFields:  ["unitInterest"],
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "firstName",
+                            widget:      "#Input",
+                            label:       "form.firstNameLabel",
+                            placeholder: "form.firstNamePlaceholder",
+                            required:    true,
+                            widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
+                        }, permissions: {read: "firstName", write: "firstName"},
                     },
-                }, permissions: {read: "projectInterest", write: "projectInterest"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "unitInterest",
-                    widget:      "#ApiSelect",
-                    label:       "form.unitInterestLabel",
-                    placeholder: "form.unitInterestPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/realEstate/unit/select",
-                        method:                  "POST",
-                        normalizeEmptyToUndefined: true,
-                        postBodyFromFormFields:  [{field: "projectInterest", paramName: "project"}],
-                        enableWhenFormFieldsNonEmpty: ["projectInterest"],
-                        remountKeyFormField:     "projectInterest",
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "lastName",
+                            widget:      "#Input",
+                            label:       "form.lastNameLabel",
+                            placeholder: "form.lastNamePlaceholder",
+                            widgetProps: {maxLength: LEAD_SHORT_TEXT_MAX},
+                        }, permissions: {read: "lastName", write: "lastName"},
                     },
-                }, permissions: {read: "unitInterest", write: "unitInterest"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "budget",
-                    widget:      "#Input",
-                    label:       "form.budgetLabel",
-                    placeholder: "form.budgetPlaceholder",
-                    widgetProps: {type: "number", min: 0, step: 0.01},
-                }, permissions: {read: "budget", write: "budget"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "budgetCurrency",
-                    widget:      "#ApiSelect",
-                    label:       "form.budgetCurrencyLabel",
-                    placeholder: "form.budgetCurrencyPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/finance/currency/select",
-                        method:                  "GET",
-                        normalizeEmptyToUndefined: true,
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "email",
+                            widget:      "#Input",
+                            label:       "form.emailLabel",
+                            placeholder: "form.emailPlaceholder",
+                            widgetProps: {type: "email", maxLength: LEAD_EMAIL_MAX},
+                        }, permissions: {read: "email", write: "email"},
                     },
-                }, permissions: {read: "budgetCurrency", write: "budgetCurrency"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "assignedTo",
-                    widget:      "#ApiSelect",
-                    label:       "form.assignedToLabel",
-                    placeholder: "form.assignedToPlaceholder",
-                    widgetProps: {
-                        apiUrl:                  "/api/company/users/select",
-                        method:                  "POST",
-                        postBody:                { administration: true },
-                        normalizeEmptyToUndefined: true,
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "phone",
+                            widget:      "#Input",
+                            label:       "form.phoneLabel",
+                            placeholder: "form.phonePlaceholder",
+                            widgetProps: {maxLength: LEAD_PHONE_MAX},
+                        }, permissions: {read: "phone", write: "phone"},
                     },
-                }, permissions: {read: "assignedTo", write: "assignedTo"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name:        "followUpDate",
-                    widget:      "#DateInput",
-                    label:       "form.followUpDateLabel",
-                    widgetProps: {valueFormat: "YYYY-MM-DD"},
-                }, permissions: {read: "followUpDate", write: "followUpDate"},
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "source",
+                            widget:      "#SimpleSelect",
+                            label:       "form.sourceLabel",
+                            placeholder: "form.sourcePlaceholder",
+                            widgetProps: {options: leadSourceOptions, className: "grow w-full"},
+                        }, permissions: {read: "source", write: "source"},
+                    },
+                ],
             },
         ],
     },
     {
-        render: "#Field",
-        field: {
-            name:        "notes",
-            widget:      "#Textarea",
-            label:       "form.notesLabel",
-            placeholder: "form.notesPlaceholder",
-            widgetProps: {
-                className: "resize-none max-h-[250px] overflow-y-auto",
-                maxLength: LEAD_LONG_TEXT_MAX,
+        render: "#TitleWithCollapse",
+        props:  {title: "form.interestSectionTitle"},
+        permissions: {readAny: ["interest", "projectInterest", "unitInterest", "budget", "budgetCurrency"], writeAny: ["interest", "projectInterest", "unitInterest", "budget", "budgetCurrency"]},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "interest",
+                            widget:      "#SimpleSelect",
+                            label:       "form.interestLabel",
+                            placeholder: "form.interestPlaceholder",
+                            widgetProps: {options: leadInterestOptions, className: "grow w-full"},
+                        }, permissions: {read: "interest", write: "interest"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "projectInterest",
+                            widget:      "#ApiSelect",
+                            label:       "form.projectInterestLabel",
+                            placeholder: "form.projectInterestPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/realEstate/project/select",
+                                method:                  "POST",
+                                normalizeEmptyToUndefined: true,
+                                cascadeClearFormFields:  ["unitInterest"],
+                            },
+                        }, permissions: {read: "projectInterest", write: "projectInterest"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "unitInterest",
+                            widget:      "#ApiSelect",
+                            label:       "form.unitInterestLabel",
+                            placeholder: "form.unitInterestPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/realEstate/unit/select",
+                                method:                  "POST",
+                                normalizeEmptyToUndefined: true,
+                                postBodyFromFormFields:  [{field: "projectInterest", paramName: "project"}],
+                                enableWhenFormFieldsNonEmpty: ["projectInterest"],
+                                remountKeyFormField:     "projectInterest",
+                            },
+                        }, permissions: {read: "unitInterest", write: "unitInterest"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "budget",
+                            widget:      "#Input",
+                            label:       "form.budgetLabel",
+                            placeholder: "form.budgetPlaceholder",
+                            widgetProps: {type: "number", min: 0, step: 0.01},
+                        }, permissions: {read: "budget", write: "budget"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "budgetCurrency",
+                            widget:      "#ApiSelect",
+                            label:       "form.budgetCurrencyLabel",
+                            placeholder: "form.budgetCurrencyPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/finance/currency/select",
+                                method:                  "GET",
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "budgetCurrency", write: "budgetCurrency"},
+                    },
+                ],
             },
-        }, permissions: {read: "notes", write: "notes"},
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.followUpSectionTitle"},
+        permissions: {readAny: ["assignedTo", "followUpDate"], writeAny: ["assignedTo", "followUpDate"]},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "assignedTo",
+                            widget:      "#ApiSelect",
+                            label:       "form.assignedToLabel",
+                            placeholder: "form.assignedToPlaceholder",
+                            widgetProps: {
+                                apiUrl:                  "/api/company/users/select",
+                                method:                  "POST",
+                                postBody:                { administration: true },
+                                normalizeEmptyToUndefined: true,
+                            },
+                        }, permissions: {read: "assignedTo", write: "assignedTo"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name:        "followUpDate",
+                            widget:      "#DateInput",
+                            label:       "form.followUpDateLabel",
+                            widgetProps: {valueFormat: "YYYY-MM-DD"},
+                        }, permissions: {read: "followUpDate", write: "followUpDate"},
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.notesSectionTitle", defaultOpen: false},
+        permissions: {readAny: ["notes"], writeAny: ["notes"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name:        "notes",
+                    widget:      "#Textarea",
+                    label:       "form.notesLabel",
+                    placeholder: "form.notesPlaceholder",
+                    widgetProps: {
+                        className: "resize-none max-h-[250px] overflow-y-auto",
+                        maxLength: LEAD_LONG_TEXT_MAX,
+                    },
+                }, permissions: {read: "notes", write: "notes"},
+            },
+        ],
     },
 ];
 
@@ -418,7 +492,6 @@ export const leadSheetView: ViewConfig = {
                     "projectInterest",
                     "unitInterest",
                     "budget",
-                    "budgetCurrency",
                     "assignedTo",
                     "followUpDate",
                     "convertedAt",
@@ -444,6 +517,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "lastName",
                             permissions: {read: "lastName"},
                             field: {
                                 name:        "lastName",
@@ -463,11 +537,11 @@ export const leadSheetView: ViewConfig = {
                                     icon:                 "#CircleDot",
                                     languageKeyCategory:  "statuses", type: "enum",
                                     variantLookupField:   "status",
+                                    // The same reading as the schema's enumTones, so the card agrees with the header badge.
                                     variantLookupMap: {
                                         new:         "info",
-                                        contacted:   "warning",
-                                        qualified:   "success",
-                                        proposal:    "info",
+                                        qualified:   "info",
+                                        proposal:    "warning",
                                         negotiation: "warning",
                                         won:         "success",
                                         lost:        "destructive",
@@ -477,6 +551,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "source",
                             permissions: {read: "source"},
                             field: {
                                 name:        "source",
@@ -490,6 +565,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "chat",
                             permissions: {read: "chat"},
                             field: {
                                 name:        "chat",
@@ -507,6 +583,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "interest",
                             permissions: {read: "interest"},
                             field: {
                                 name:        "interest",
@@ -520,6 +597,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "email",
                             permissions: {read: "email"},
                             field: {
                                 name:        "email",
@@ -530,6 +608,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "phone",
                             permissions: {read: "phone"},
                             field: {
                                 name:        "phone",
@@ -540,6 +619,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "projectInterest",
                             permissions: {read: "projectInterest"},
                             field: {
                                 name:        "projectInterest",
@@ -558,6 +638,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "unitInterest",
                             permissions: {read: "unitInterest"},
                             field: {
                                 name:        "unitInterest",
@@ -577,6 +658,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "budget",
                             permissions: {readAny: ["budget", "budgetCurrency"]},
                             field: {
                                 name:        "budget",
@@ -597,24 +679,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "budgetCurrency"},
-                            field: {
-                                name:        "budgetCurrency",
-                                widget:      "#DisplayCard",
-                                label:       "budgetCurrency",
-                                widgetProps: {
-                                    icon:                  "#IconCurrencyDollar",
-                                    valuePath:             ["budgetCurrency.symbol", "budgetCurrency.name"],
-                                    joinSeparator:         " ",
-                                    linkedRefPath:         "budgetCurrency",
-                                    linkedSheetModel:      "currencies",
-                                    linkedSheetWidget:     "#CurrencySheetView",
-                                    linkedSheetEntityProp: "currency",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
+                            dependent: "assignedTo",
                             permissions: {read: "assignedTo"},
                             field: {
                                 name:        "assignedTo",
@@ -631,6 +696,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "followUpDate",
                             permissions: {read: "followUpDate"},
                             field: {
                                 name:        "followUpDate",
@@ -641,6 +707,7 @@ export const leadSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "convertedAt",
                             permissions: {read: "convertedAt"},
                             field: {
                                 name:        "convertedAt",
@@ -662,6 +729,7 @@ export const leadSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "notes",
                             permissions: {read: "notes"},
                             field: {
                                 name:        "notes",
@@ -712,6 +780,7 @@ export const leadSheetView: ViewConfig = {
             children: [
                 {
                     render:    "#SheetGroup",
+                    dependent: "activityLog",
                     permissions: {readAny: ["activityLog"]},
                     props:     {
                         title:        "activityLog",

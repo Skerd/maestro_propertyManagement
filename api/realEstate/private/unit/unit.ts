@@ -287,13 +287,14 @@ export const { router } = createCrudRouter({
     defaultSort:    { unitNumber: 1 },
     selectSort:     { unitNumber: 1 },
     overrideSelectHandler: async (params) => {
-        const { logger, languageCode, actionUserCtx, company, name, page, limit, notId, notConnected, dslFilterQuery } = params;
+        const { logger, languageCode, actionUserCtx, company, name, page, limit, notId, notConnected, dslFilterQuery, project, edifice, floor } = params;
         logger.start(`Fetching units for select...`);
 
         const sanitizedFields = SchemaGuard.sanitizeFields(Unit, { name: {}, unitNumber: {}, unitType: { keys: { name: {} } } }, "read", actionUserCtx, languageCode);
         const populate = SchemaGuard.generatePopulate(sanitizedFields, Unit.schema);
 
-        const filter: any = { company: company._id };
+        // Forms post the picked project, building and floor so the picker lists only their units.
+        const filter: any = { company: company._id, ...unitSelectFilter({ project, edifice, floor }) };
 
         if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
@@ -461,6 +462,7 @@ import {
     unitAvailabilityFormSchema,
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unitAvailability.form.validator";
 import {assertAnyCollectedRead, canReadCollectedFields} from "@propertyManagement/utilities/security/canReadCollectedFields";
+import {unitSelectFilter} from "@propertyManagement/utilities/unit/unitSelectFilter";
 
 import {addLocalDays, localDateOf} from "@coreModule/utilities/time/timeWindows";
 

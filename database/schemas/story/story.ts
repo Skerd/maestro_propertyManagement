@@ -58,6 +58,7 @@ const StorySchema = new Schema<IStory>(
             required: true,
             trim: true,
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.STRING,
@@ -137,6 +138,7 @@ const StorySchema = new Schema<IStory>(
             minlength: 1,
             maxlength: STORY_CONTENT_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -199,6 +201,7 @@ const StorySchema = new Schema<IStory>(
             required: false,
             default: 0,
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.NUMBER,

@@ -18,6 +18,7 @@ export const storySheetView: ViewConfig = {
     },
     nodes: [
         {
+            // The title names the story; its code and sort order stay off the sheet (UX-03).
             render: "#SheetGroup",
             permissions: {
                 readAny: [
@@ -26,10 +27,7 @@ export const storySheetView: ViewConfig = {
                     "unit",
                     "storyType",
                     "publishedAt",
-                    "sortOrder",
-                    "name",
                     "published",
-                    "title",
                     "excerpt",
                     "content",
                 ],
@@ -57,6 +55,7 @@ export const storySheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "edifice",
                             permissions: {read: "edifice"},
                             field: {
                                 name: "edifice.name",
@@ -73,6 +72,7 @@ export const storySheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "unit",
                             permissions: {read: "unit"},
                             field: {
                                 name: "unit.name",
@@ -111,38 +111,13 @@ export const storySheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "publishedAt",
                             permissions: {read: "publishedAt"},
                             field: {
                                 name: "publishedAt",
                                 widget: "#DisplayCard",
                                 label: "publishedAt",
-                                widgetProps: {icon: "#Calendar", format: "datetime", type: "date"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "sortOrder"},
-                            field: {
-                                name: "sortOrder",
-                                widget: "#DisplayCard",
-                                label: "sortOrder",
-                                widgetProps: {icon: "#ListOrdered", type: "number"},
-                            },
-                        },
-                    ],
-                },
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 3},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#IconLabel"},
+                                widgetProps: {icon: "#Calendar", format: "dateTime", type: "dateTime"},
                             },
                         },
                         {
@@ -163,22 +138,7 @@ export const storySheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "title"},
-                            field: {
-                                name: "title",
-                                widget: "#DisplayCard",
-                                label: "title",
-                                widgetProps: {icon: "#IconLabel"},
-                            },
-                        },
-                    ],
-                },
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 1},
-                    children: [
-                        {
-                            render: "#DisplayCard",
+                            dependent: "excerpt",
                             permissions: {read: "excerpt"},
                             field: {
                                 name: "excerpt",
@@ -218,6 +178,7 @@ export const storySheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: {readAny: ["mainImage", "imageGallery", "videoGallery"]},
+            dependentAny: ["mainImage", "imageGallery", "videoGallery"],
             props: {title: "gallery"},
             children: [
                 {
@@ -323,21 +284,11 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
-                            name: "sortOrder",
-                            widget: "#Input",
-                            label: "form.sortOrderLabel",
-                            placeholder: "form.sortOrderPlaceholder",
-                            widgetProps: {type: "number"},
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
                             name: "publishedAt",
                             widget: "#DateInput",
                             label: "form.publishedAtLabel",
                             placeholder: "form.publishedAtPlaceholder",
-                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm", companyTimeZone: true},
                         },
                     },
                 ]
@@ -384,20 +335,6 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                                 style: { maxHeight: 250 },
                                 maxLength: STORY_CONTENT_MAX,
                             },
-                        },
-                    },
-                ]
-            },
-            {
-                render: "#FormGrid",
-                props: {columns: 3},
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "published",
-                            widget: "#Switch",
-                            label: "form.publishedLabel",
                         },
                     },
                 ]
@@ -449,6 +386,37 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
             },
         ],
     },
+    // ── Visibility: on the website and its order there, last (UX-04) ─────────
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.visibilitySectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "published",
+                            widget: "#Switch",
+                            label: "form.publishedLabel",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "sortOrder",
+                            widget: "#Input",
+                            label: "form.sortOrderLabel",
+                            placeholder: "form.sortOrderPlaceholder",
+                            widgetProps: {type: "number"},
+                        },
+                    },
+                ],
+            },
+        ],
+    },
 ];
 
 const storyEditFormNodes: ViewConfig["nodes"] = [
@@ -461,24 +429,20 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                 "edifice",
                 "unit",
                 "storyType",
-                "sortOrder",
                 "publishedAt",
                 "title",
                 "excerpt",
                 "content",
-                "published",
             ],
             writeAny: [
                 "project",
                 "edifice",
                 "unit",
                 "storyType",
-                "sortOrder",
                 "publishedAt",
                 "title",
                 "excerpt",
                 "content",
-                "published",
             ],
         },
         children: [
@@ -564,21 +528,11 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                     {
                         render: "#Field",
                         field: {
-                            name: "sortOrder",
-                            widget: "#Input",
-                            label: "form.sortOrderLabel",
-                            placeholder: "form.sortOrderPlaceholder",
-                            widgetProps: {type: "number"},
-                        }, permissions: {read: "sortOrder", write: "sortOrder"},
-                    },
-                    {
-                        render: "#Field",
-                        field: {
                             name: "publishedAt",
                             widget: "#DateInput",
                             label: "form.publishedAtLabel",
                             placeholder: "form.publishedAtPlaceholder",
-                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm"},
+                            widgetProps: {valueFormat: "YYYY-MM-DD HH:mm", companyTimeZone: true},
                         }, permissions: {read: "publishedAt", write: "publishedAt"},
                     },
                 ]
@@ -629,20 +583,6 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                     },
                 ]
             },
-            {
-                render: "#FormGrid",
-                props: {columns: 3},
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "published",
-                            widget: "#Switch",
-                            label: "form.publishedLabel",
-                        }, permissions: {read: "published", write: "published"},
-                    },
-                ]
-            },
         ],
     },
     {
@@ -690,6 +630,38 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                     label: "form.videoGalleryLabel",
                     widgetProps: {mediaType: "video", mode: "multiple", maxCount: 10},
                 }, permissions: {read: "videoGallery", write: "videoGallery"},
+            },
+        ],
+    },
+    // ── Visibility: on the website and its order there, last (UX-04) ─────────
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.visibilitySectionTitle"},
+        permissions: {readAny: ["published", "sortOrder"], writeAny: ["published", "sortOrder"]},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "published",
+                            widget: "#Switch",
+                            label: "form.publishedLabel",
+                        }, permissions: {read: "published", write: "published"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "sortOrder",
+                            widget: "#Input",
+                            label: "form.sortOrderLabel",
+                            placeholder: "form.sortOrderPlaceholder",
+                            widgetProps: {type: "number"},
+                        }, permissions: {read: "sortOrder", write: "sortOrder"},
+                    },
+                ],
             },
         ],
     },

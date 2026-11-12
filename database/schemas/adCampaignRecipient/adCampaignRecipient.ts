@@ -119,6 +119,17 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             enum: AD_CAMPAIGN_RECIPIENT_STATUS_VALUES,
             default: "pending",
             permissions: SYSTEM_WRITE,
+            // The meaning of each delivery state; the panel paints the card and table badges from it (UX-02).
+            dynamicTableConfiguration: {
+                enumTones: {
+                    pending: "neutral",
+                    queued: "info",
+                    sent: "success",
+                    failed: "danger",
+                    skipped: "warning",
+                    suppressed: "warning",
+                },
+            },
         },
         skipReason: {
             type: SchemaTypes.String,
@@ -127,10 +138,11 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             permissions: SYSTEM_WRITE,
         },
         attempts: {type: SchemaTypes.Number, required: false, default: 0, min: 0, permissions: SYSTEM_WRITE},
-        claimedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
-        claimToken: {type: SchemaTypes.ObjectId, required: false, permissions: SYSTEM_WRITE},
+        // The sender's bookkeeping: off the table by default, the lock never a column (UX-12).
+        claimedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false}},
+        claimToken: {type: SchemaTypes.ObjectId, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {hideColumn: true}},
         sentAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
-        messageId: {type: SchemaTypes.String, required: false, trim: true, maxlength: 255, permissions: SYSTEM_WRITE},
+        messageId: {type: SchemaTypes.String, required: false, trim: true, maxlength: 255, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
         lastError: {
             type: SchemaTypes.String,
             required: false,

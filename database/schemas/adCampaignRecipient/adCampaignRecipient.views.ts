@@ -29,6 +29,7 @@ export const adCampaignRecipientSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "fullName",
                             permissions: {read: "fullName"},
                             field: {name: "fullName", widget: "#DisplayCard", label: "fullName", widgetProps: {icon: "#User"}},
                         },
@@ -44,8 +45,9 @@ export const adCampaignRecipientSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "languageCode",
                             permissions: {read: "languageCode"},
-                            field: {name: "languageCode", widget: "#DisplayCard", label: "languageCode", widgetProps: {icon: "#Languages"}},
+                            field: {name: "languageCode", widget: "#DisplayCard", label: "languageCode", widgetProps: {icon: "#Languages", languageKeyCategory: "languageValues", type: "enum"}},
                         },
                         {
                             render: "#DisplayCard",
@@ -83,6 +85,7 @@ export const adCampaignRecipientSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "skipReason",
                             permissions: {read: "skipReason"},
                             field: {name: "skipReason", widget: "#DisplayCard", label: "skipReason", widgetProps: {icon: "#CircleSlash", languageKeyCategory: "skipReasonEnum", type: "enum"}},
                         },
@@ -93,16 +96,19 @@ export const adCampaignRecipientSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "sentAt",
                             permissions: {read: "sentAt"},
-                            field: {name: "sentAt", widget: "#DisplayCard", label: "sentAt", widgetProps: {icon: "#IconCalendarBolt", format: "datetime", type: "date"}},
+                            field: {name: "sentAt", widget: "#DisplayCard", label: "sentAt", widgetProps: {icon: "#IconCalendarBolt", format: "dateTime", type: "dateTime"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "unsubscribedAt",
                             permissions: {read: "unsubscribedAt"},
-                            field: {name: "unsubscribedAt", widget: "#DisplayCard", label: "unsubscribedAt", widgetProps: {icon: "#BellOff", format: "datetime", type: "date"}},
+                            field: {name: "unsubscribedAt", widget: "#DisplayCard", label: "unsubscribedAt", widgetProps: {icon: "#BellOff", format: "dateTime", type: "dateTime"}},
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "messageId",
                             permissions: {read: "messageId"},
                             field: {name: "messageId", widget: "#DisplayCard", label: "messageId", widgetProps: {icon: "#Hash"}},
                         },
@@ -114,6 +120,7 @@ export const adCampaignRecipientSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "lastError",
                             permissions: {read: "lastError"},
                             field: {name: "lastError", widget: "#DisplayCard", label: "lastError", widgetProps: {icon: "#TriangleAlert"}},
                         },

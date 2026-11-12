@@ -1,8 +1,7 @@
 /**
- * Leases. Active ones move their unit to rented_unit.
+ * Leases. Each one rents its unit out; its rent rows are generated from the lease, not listed here.
  *
- * GENERATED from the live database by the Phase 2 export — regenerate rather than
- * hand-editing, unless you are deliberately curating the shipped defaults.
+ * Curated by hand (TD-B206): the tenants are the demo clients in `demoClients.ts`.
  */
 import type {LeaseSeedRow} from "./types";
 
@@ -11,74 +10,34 @@ export const leasesSeed: readonly LeaseSeedRow[] = [
         "id": "6a538b10d4b6b1160814e37d",
         "unit": "6a501e2588c85ab828436111",
         "tenant": {
-            "$user": "skerd@xhafa.com"
+            "$user": "sofia.keller@example.com"
         },
         "startDate": "2026-04-13",
-        "endDate": "2027-04-13",
+        "endDate": "2027-04-12",
         "monthlyRent": "1200",
         "rentCurrency": {
             "$currency": "EUR"
         },
         "depositAmount": "2400",
         "depositPaid": true,
-        "depositReturnedAt": null,
-        "status": "active",
-        "notes": "Demo lease for A1-03 Floor 1. [pm-demo-seed]"
+        "notes": "Demo lease for A1-03 Floor 1. [pm-demo-seed]",
+        "unpaidDueMonths": 1
     },
     {
         "id": "6a538b10d4b6b1160814e37e",
         "unit": "6a501f4c88c85ab828436acf",
         "tenant": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "marco.bianchi@example.com"
         },
         "startDate": "2026-05-28",
-        "endDate": "2027-05-28",
+        "endDate": "2027-05-27",
         "monthlyRent": "950",
         "rentCurrency": {
             "$currency": "EUR"
         },
         "depositAmount": "1900",
         "depositPaid": true,
-        "depositReturnedAt": null,
-        "status": "active",
-        "notes": "Demo lease for A1-03 Floor 1. [pm-demo-seed]"
-    },
-    {
-        "id": "6a538b10d4b6b1160814e37f",
-        "unit": "6a501f4c88c85ab828436aed",
-        "tenant": {
-            "$user": "gerald.habilaj@pronix.com"
-        },
-        "startDate": "2025-06-07",
-        "endDate": "2026-06-12",
-        "monthlyRent": "800",
-        "rentCurrency": {
-            "$currency": "EUR"
-        },
-        "depositAmount": "1600",
-        "depositPaid": true,
-        "depositReturnedAt": "2026-06-22T12:39:44.041Z",
-        "status": "expired",
-        "notes": "Demo lease for A1-04 Floor 1. [pm-demo-seed]"
-    },
-    {
-        "id": "6a538b10d4b6b1160814e380",
-        "unit": "6a501b3388c85ab828433d01",
-        "tenant": {
-            "$user": "almir@leka.com"
-        },
-        "startDate": "2025-12-24",
-        "endDate": "2026-06-02",
-        "monthlyRent": "1100",
-        "rentCurrency": {
-            "$currency": "EUR"
-        },
-        "depositAmount": "2200",
-        "depositPaid": true,
-        "depositReturnedAt": null,
-        "status": "terminated",
-        "notes": "Demo lease for A1-04 Floor 1. [pm-demo-seed]",
-        "terminationDate": "2026-06-02",
-        "terminationReason": "Early termination by mutual agreement"
+        "notes": "Demo lease for A1-03 Floor 1. [pm-demo-seed]",
+        "unpaidDueMonths": 0
     }
 ];

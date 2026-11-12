@@ -16,6 +16,7 @@ import {ICompany} from "@coreModule/database/schemas/company/company";
 import {createHierarchyMedia} from "@propertyManagement/database/seeds/hierarchy/hierarchyMedia";
 import {createStoryMedia} from "@propertyManagement/database/seeds/operations/storyMedia";
 import {loadOperationsRefs} from "@propertyManagement/database/seeds/operations/operationsRefs";
+import {createDemoClients} from "@propertyManagement/database/seeds/operations/demoClients";
 import {applyUnitOperationalState} from "@propertyManagement/database/seeds/operations/unitOperationalState";
 import {createProjects} from "@propertyManagement/database/schemas/project/project.defaults";
 import {createEdifices} from "@propertyManagement/database/schemas/edifice/edifice.defaults";
@@ -60,13 +61,15 @@ export async function seedPropertyManagementDemoData(
                 `${floorIds.size} floors, ${unitIds.size} units.`,
         );
 
-        const refs = await loadOperationsRefs();
+        // Before the refs load: the reservations, sales and leases name these clients.
+        await createDemoClients(logger, company);
+        const refs = await loadOperationsRefs(company);
 
         const reservationIds = await createReservations(logger, company, refs, unitIds);
         const saleIds = await createSales(logger, company, refs, unitIds, reservationIds);
         await createPaymentPlans(logger, company, saleIds);
         const leaseIds = await createLeases(logger, company, refs, unitIds);
-        await createRentalPayments(logger, company, refs, unitIds, leaseIds);
+        await createRentalPayments(logger, company, leaseIds);
         await createCommissions(logger, company, refs, reservationIds, saleIds);
 
         const inspectionIds = await createInspections(logger, company, refs, unitIds);

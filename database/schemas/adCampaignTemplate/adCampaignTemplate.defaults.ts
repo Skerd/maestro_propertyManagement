@@ -11,8 +11,7 @@ export {adCampaignTemplatesSeed as defaultAdCampaignTemplates};
  * Seeds the three shipped campaign templates, one per campaign type.
  *
  * Lookup is by preserved id, then by the **natural key**
- * (`company` + `name` + `campaignType` + `locale`) — deliberately not the
- * `upsertByName` helper the workflow seeds use, because a template's `name` is
+ * (`company` + `name` + `campaignType` + `locale`), because a template's `name` is
  * shared by its locale siblings and is therefore not unique on its own. Looking
  * up by name alone would make an `en-US` seed overwrite a company's `de-CH`
  * translation of the same template.

@@ -1,8 +1,8 @@
 /**
  * Sales. Every sale moves its unit to sold_unit.
  *
- * GENERATED from the live database by the Phase 2 export — regenerate rather than
- * hand-editing, unless you are deliberately curating the shipped defaults.
+ * GENERATED from the live database by the Phase 2 export, then curated (TD-B206): the
+ * buyers are the demo clients in `demoClients.ts`.
  */
 import type {SaleSeedRow} from "./types";
 
@@ -12,7 +12,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "unit": "6a501e2588c85ab8284360f5",
         "paymentType": "cash",
         "buyer": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "elira.daka@example.com"
         },
         "soldBy": {
             "$user": "echo@echo.com"
@@ -37,7 +37,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "unit": "6a5018e588c85ab828431b85",
         "paymentType": "cash",
         "buyer": {
-            "$user": "skerd@xhafa.com"
+            "$user": "marco.bianchi@example.com"
         },
         "soldBy": {
             "$user": "echo@echo.com"
@@ -69,7 +69,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "unit": "6a501f4c88c85ab828436aaf",
         "paymentType": "cash",
         "buyer": {
-            "$user": "skerd@xhafa.com"
+            "$user": "sofia.keller@example.com"
         },
         "soldBy": {
             "$user": "echo@echo.com"
@@ -100,7 +100,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "unit": "6a501b3388c85ab828433c4e",
         "paymentType": "payment_plan",
         "buyer": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "elira.daka@example.com"
         },
         "soldBy": {
             "$user": "echo@echo.com"
@@ -125,7 +125,7 @@ export const salesSeed: readonly SaleSeedRow[] = [
         "unit": "6a501b3388c85ab828433c31",
         "paymentType": "payment_plan",
         "buyer": {
-            "$user": "skerd@xhafa.com"
+            "$user": "marco.bianchi@example.com"
         },
         "soldBy": {
             "$user": "echo@echo.com"

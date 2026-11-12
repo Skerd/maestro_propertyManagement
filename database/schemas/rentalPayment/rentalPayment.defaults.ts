@@ -1,77 +1,64 @@
-import {Decimal128, ObjectId} from "mongodb";
-import RentalPayment, {RentalPaymentStatus} from "./rentalPayment";
+import {ObjectId} from "mongodb";
+import RentalPayment from "./rentalPayment";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
-import {rentalPaymentsSeed} from "@propertyManagement/database/seeds/operations/rentalPayments.seed";
-import {
-    opt,
-    optDecimal,
-    resolveCurrency,
-    type OperationsRefs,
-} from "@propertyManagement/database/seeds/operations/operationsRefs";
+import {CONSTANTS} from "@coreModule/environment";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
+import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
+import {localDateOf} from "@coreModule/utilities/time/timeWindows";
+import {leasesSeed} from "@propertyManagement/database/seeds/operations/leases.seed";
+import {LeaseActions} from "@propertyManagement/database/schemas/lease/lease.actions";
+import {hasCollectedCash, moneyNumber} from "@propertyManagement/utilities/lease/rentRemaining";
 
-export {rentalPaymentsSeed as defaultRentalPayments};
-
-/** Seeds the rent schedule of each demo lease — paid, pending, overdue and waived months. */
+/**
+ * Pays the demo leases' rent the way staff record it, through the lease's record-payment action: each month already
+ * due is paid on its due day, except the latest `unpaidDueMonths`, which stay open. The rent rows themselves come from
+ * the lease schedule (`createLeases`). A lease that has collected any rent is left alone, so a re-run pays nothing twice.
+ */
 export async function createRentalPayments(
     parentLogger: serverLogger,
     company: ICompany,
-    refs: OperationsRefs,
-    unitIds: Map<string, ObjectId>,
     leaseIds: Map<string, ObjectId>,
-): Promise<Map<string, ObjectId>> {
+): Promise<number> {
     const logger = getLogger("mongoDbInitialization-createRentalPayments", parentLogger);
-    logger.start(`Creating rental payments (${rentalPaymentsSeed.length})...`);
+    logger.start("Recording demo rent payments...");
 
-    const created = new Map<string, ObjectId>();
+    const creator = nestedEntityToRef(company.createdBy);
+    if (!creator) {
+        logger.warn(`'${company.name}' has no creator to record the rent payments as; skipping.`);
+        return 0;
+    }
+    const companyId = company._id.toString();
+    const today = localDateOf(new Date(), companyTimeZone(company));
+    const params = {
+        logger,
+        languageCode: CONSTANTS.DEFAULT_LANGUAGE ?? "en-US",
+        company,
+        actionUserCtx: {userId: creator.toString(), orgId: companyId, isAdmin: true, isSelf: false, permissions: []},
+    };
+    const leases = new LeaseActions();
+    let recorded = 0;
 
-    for (const row of rentalPaymentsSeed) {
+    for (const row of leasesSeed) {
+        const leaseId = leaseIds.get(row.id);
+        if (!leaseId) continue;
         try {
-            const lease = leaseIds.get(row.lease);
-            const unit = unitIds.get(row.unit);
-            if (!lease || !unit) {
-                logger.warn(`Skipping rental payment ${row.id}: its lease or unit was not seeded.`);
+            const months = await RentalPayment.find({lease: leaseId, company: company._id}).sort({dueDate: 1});
+            if (months.some((month) => hasCollectedCash(month))) {
+                logger.info(`Lease ${row.id} already has rent paid; leaving it.`);
                 continue;
             }
-
-            const currency = resolveCurrency(refs, row.currency);
-            if (!currency) {
-                logger.warn(
-                    `Skipping rental payment ${row.id}: currency "${row.currency.$currency}" not found.`,
-                );
-                continue;
+            const due = months.filter((month) => month.dueDate <= today);
+            for (const month of due.slice(0, Math.max(0, due.length - row.unpaidDueMonths))) {
+                await leases.recordRentPayment({...params, _id: leaseId.toString(), paidAmount: moneyNumber(month.amount), paidDate: month.dueDate});
+                recorded += 1;
             }
-
-            const paymentId = new ObjectId(row.id);
-            const payload = {
-                lease,
-                unit,
-                dueDate: row.dueDate,
-                amount: Decimal128.fromString(row.amount),
-                currency,
-                status: row.status as RentalPaymentStatus,
-                ...opt("paidDate", row.paidDate),
-                ...optDecimal("paidAmount", row.paidAmount),
-                notes: row.notes,
-                company: company._id,
-                createdBy: company.createdBy,
-            };
-
-            const existing = await RentalPayment.findById(paymentId);
-            if (existing) {
-                existing.set(payload);
-                await existing.save();
-            } else {
-                await RentalPayment.create({_id: paymentId, ...payload});
-            }
-
-            created.set(row.id, paymentId);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
-            logger.err(`Error creating rental payment ${row.id}: ${message}`);
+            logger.err(`Error recording rent for lease ${row.id}: ${message}`);
         }
     }
 
-    logger.finish("Finished creating rental payments!", created.size);
-    return created;
+    logger.finish("Finished recording demo rent payments!", recorded);
+    return recorded;
 }

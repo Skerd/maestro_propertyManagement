@@ -2,8 +2,7 @@ import {ObjectId} from "mongodb";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {
-    pmDemoName,
-    upsertByName,
+    upsertDemoRecord,
     aria,
     type WorkflowCtx,
 } from "@propertyManagement/database/seeds/workflow/workflowDemo";
@@ -22,8 +21,7 @@ export async function createHandoverPackages(
 
     if (ariaProject) {
         const seedKey = "handover-a102";
-        const name = pmDemoName(seedKey);
-        const doc = await upsertByName(HandoverPackage, company, name, {
+        const doc = await upsertDemoRecord(HandoverPackage, company, seedKey, {
             title: "Aria handover checklist",
             project: ariaProject,
             edifice: null,

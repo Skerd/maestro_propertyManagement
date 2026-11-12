@@ -10,17 +10,20 @@
 import {Decimal128, ObjectId} from "mongodb";
 import User from "@coreModule/database/schemas/user/user";
 import Currency from "@coreModule/database/schemas/currency/currency";
-import type {CurrencyRef, UserRef} from "./types";
+import type {ICompany} from "@coreModule/database/schemas/company/company";
+import {addLocalDays, localToUtc} from "@coreModule/utilities/time/timeWindows";
+import type {CurrencyRef, SeedDay, UserRef} from "./types";
 
 export type OperationsRefs = {
     userByUsername: Map<string, ObjectId>;
     currencyByCode: Map<string, ObjectId>;
 };
 
-export async function loadOperationsRefs(): Promise<OperationsRefs> {
+/** Currencies are the company's own: every company has its own EUR row, and a ref to another company's is refused. */
+export async function loadOperationsRefs(company: Pick<ICompany, "_id">): Promise<OperationsRefs> {
     const [users, currencies] = await Promise.all([
         User.find({}).select("_id username").lean(),
-        Currency.find({}).select("_id abbreviation").lean(),
+        Currency.find({company: company._id}).select("_id abbreviation").lean(),
     ]);
 
     return {
@@ -46,6 +49,23 @@ export function resolveCurrency(refs: OperationsRefs, ref: CurrencyRef | undefin
 /** `{field: new Date(iso)}` when the export carried a date, `{}` when it carried null. */
 export function optDate<K extends string>(key: K, iso: string | null | undefined): {[P in K]?: Date} {
     return (iso ? {[key]: new Date(iso)} : {}) as {[P in K]?: Date};
+}
+
+/** A seed day as `YYYY-MM-DD`: a fixed day as is, a `{$day}` counted from `today`, the company's day. */
+export function seedDay(value: SeedDay, today: string): string {
+    return typeof value === "string" ? value : addLocalDays(today, value.$day);
+}
+
+/** `{field: Date}` for a seed instant (an ISO string, or a `{$day}` at noon in the company zone), `{}` for null. */
+export function optSeedInstant<K extends string>(
+    key: K,
+    value: SeedDay | null | undefined,
+    today: string,
+    timeZone: string,
+): {[P in K]?: Date} {
+    if (value == null) return {};
+    const instant = typeof value === "string" ? new Date(value) : localToUtc(seedDay(value, today), "12:00", timeZone);
+    return (instant ? {[key]: instant} : {}) as {[P in K]?: Date};
 }
 
 /** `{field: Decimal128}` when the export carried an amount, `{}` when it carried null. */

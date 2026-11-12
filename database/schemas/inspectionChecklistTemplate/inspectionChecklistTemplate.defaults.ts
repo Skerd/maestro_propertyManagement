@@ -2,8 +2,7 @@ import {ObjectId} from "mongodb";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {
-    pmDemoName,
-    upsertByName,
+    upsertDemoRecord,
     garda,
     gardaEdifice,
     aria,
@@ -41,8 +40,7 @@ export async function createInspectionChecklistTemplates(
 
     {
         const seedKey = "chk-handover";
-        const name = pmDemoName(seedKey);
-        const doc = await upsertByName(InspectionChecklistTemplate, company, name, {
+        const doc = await upsertDemoRecord(InspectionChecklistTemplate, company, seedKey, {
             title: "Unit handover checklist",
             trade: "finishes",
             stage: "handover",

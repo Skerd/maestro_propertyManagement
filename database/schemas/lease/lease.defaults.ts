@@ -4,20 +4,19 @@ import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {leasesSeed} from "@propertyManagement/database/seeds/operations/leases.seed";
 import {
-    opt,
-    optDate,
     optDecimal,
     resolveCurrency,
     resolveUser,
     type OperationsRefs,
 } from "@propertyManagement/database/seeds/operations/operationsRefs";
+import {CONSTANTS} from "@coreModule/environment";
+import {generateLeaseSchedule, resyncLeaseSchedule} from "@propertyManagement/utilities/lease/leaseScheduleResync";
 
 export {leasesSeed as defaultLeases};
 
 /**
- * Seeds the demo leases. Only `status: "active"` leases rent their unit out; expired
- * and terminated ones deliberately leave the unit free, which is what reproduces the
- * live availability split.
+ * Seeds the demo leases, active like a lease the API creates. Their rent rows come from the
+ * API's own schedule: generated when the lease is created, resynced when a re-run changes it.
  */
 export async function createLeases(
     parentLogger: serverLogger,
@@ -29,6 +28,7 @@ export async function createLeases(
     logger.start(`Creating leases (${leasesSeed.length})...`);
 
     const created = new Map<string, ObjectId>();
+    const ctx = {logger, languageCode: CONSTANTS.DEFAULT_LANGUAGE ?? "en-US", company: {_id: company._id}};
 
     for (const row of leasesSeed) {
         try {
@@ -60,21 +60,22 @@ export async function createLeases(
                 rentCurrency,
                 ...optDecimal("depositAmount", row.depositAmount),
                 depositPaid: row.depositPaid,
-                ...optDate("depositReturnedAt", row.depositReturnedAt),
-                status: row.status as LeaseStatus,
-                ...opt("terminationDate", row.terminationDate),
-                ...opt("terminationReason", row.terminationReason),
+                status: LeaseStatus.ACTIVE,
                 notes: row.notes,
                 company: company._id,
                 createdBy: company.createdBy,
             };
 
-            const existing = await Lease.findById(leaseId);
-            if (existing) {
+            const previous = await Lease.findById(leaseId);
+            if (previous) {
+                // A second copy: the resync compares the lease before and after, as the API's update does.
+                const existing = await Lease.findById(leaseId);
+                if (!existing) continue;
                 existing.set(payload);
                 await existing.save();
+                await resyncLeaseSchedule(previous, existing, ctx);
             } else {
-                await Lease.create({_id: leaseId, ...payload});
+                await generateLeaseSchedule(await Lease.create({_id: leaseId, ...payload}), ctx);
             }
 
             created.set(row.id, leaseId);

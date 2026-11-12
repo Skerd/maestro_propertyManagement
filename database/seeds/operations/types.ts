@@ -8,6 +8,8 @@
  *  - `{$user}` / `{$currency}` / `{$storyType}` are **business keys** resolved at seed
  *    time against `User.username`, `Currency.abbreviation` and `StoryType.slug`,
  *    because an init re-mints those documents.
+ *  - `{$day}` is a calendar day counted from the company's today at seed time, for rows
+ *    that must stay current (an active reservation would otherwise expire on a fixed day).
  *  - Decimal128 values are carried as strings so the literals stay exact.
  *  - Dates are ISO strings.
  *  - Media references are not exported for these entities (no binaries shipped), with
@@ -20,6 +22,10 @@ import type {AdCampaignType} from "armonia/src/modules/propertyManagement/api/re
 export type UserRef = {$user: string};
 export type CurrencyRef = {$currency: string};
 export type StoryTypeRef = {$storyType: string};
+/** Days from the company's today: `{$day: -3}` is three days ago. */
+export type RelativeDay = {$day: number};
+/** A fixed `YYYY-MM-DD` day, or one relative to the seed day. */
+export type SeedDay = string | RelativeDay;
 
 /** A preserved ObjectId hex string. */
 export type PreservedId = string;
@@ -29,8 +35,8 @@ export type ReservationSeedRow = {
     unit: PreservedId;
     reservedBy: UserRef;
     client: UserRef;
-    reservationDate: string;
-    expirationDate: string;
+    reservationDate: SeedDay;
+    expirationDate: SeedDay;
     reservationNotes: string;
     depositAmount: string;
     depositCurrency: CurrencyRef;
@@ -38,13 +44,14 @@ export type ReservationSeedRow = {
     source: string;
     paid: boolean;
     /** The day a paid deposit was received; null while unpaid. */
-    paidDate: string | null;
+    paidDate: SeedDay | null;
     isActive: boolean;
     /** active | expired | cancelled | converted — only `active` reserves the unit. */
     status: string;
-    cancelledAt: string | null;
+    /** An ISO instant, or a relative day (stored at noon in the company zone). */
+    cancelledAt: SeedDay | null;
     cancellationReason: string | null;
-    expiredAt: string | null;
+    expiredAt: SeedDay | null;
 };
 
 export type SaleSeedRow = {
@@ -109,6 +116,10 @@ export type PaymentPlanSeedRow = {
     restructureHistory: unknown[];
 };
 
+/**
+ * An active lease. It is created the way the API creates one, so its rent rows come from the
+ * lease's own schedule and the months already paid go through the record-payment action.
+ */
 export type LeaseSeedRow = {
     id: PreservedId;
     unit: PreservedId;
@@ -119,25 +130,9 @@ export type LeaseSeedRow = {
     rentCurrency: CurrencyRef;
     depositAmount: string;
     depositPaid: boolean;
-    depositReturnedAt: string | null;
-    /** active | expired | terminated — only `active` rents the unit. */
-    status: string;
     notes: string;
-    terminationDate?: string;
-    terminationReason?: string;
-};
-
-export type RentalPaymentSeedRow = {
-    id: PreservedId;
-    lease: PreservedId;
-    unit: PreservedId;
-    dueDate: string;
-    amount: string;
-    currency: CurrencyRef;
-    status: string;
-    notes: string;
-    paidDate?: string;
-    paidAmount?: string;
+    /** How many of the months already due stay unpaid (the latest ones); each earlier month is paid on its due day. */
+    unpaidDueMonths: number;
 };
 
 export type CommissionSeedRow = {

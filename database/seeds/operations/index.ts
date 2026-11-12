@@ -3,7 +3,6 @@ export {reservationsSeed} from "./reservations.seed";
 export {salesSeed} from "./sales.seed";
 export {paymentPlansSeed} from "./paymentPlans.seed";
 export {leasesSeed} from "./leases.seed";
-export {rentalPaymentsSeed} from "./rentalPayments.seed";
 export {commissionsSeed} from "./commissions.seed";
 export {leadsSeed} from "./leads.seed";
 export {unitCostsSeed} from "./unitCosts.seed";

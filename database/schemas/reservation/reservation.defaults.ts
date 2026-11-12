@@ -5,11 +5,14 @@ import {ICompany} from "@coreModule/database/schemas/company/company";
 import {reservationsSeed} from "@propertyManagement/database/seeds/operations/reservations.seed";
 import {
     opt,
-    optDate,
+    optSeedInstant,
     resolveCurrency,
     resolveUser,
+    seedDay,
     type OperationsRefs,
 } from "@propertyManagement/database/seeds/operations/operationsRefs";
+import {companyTimeZone} from "@coreModule/utilities/time/companyTimeZone";
+import {localDateOf} from "@coreModule/utilities/time/timeWindows";
 import type {ReservationSource} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.constants";
 
 export {reservationsSeed as defaultReservations};
@@ -20,7 +23,7 @@ export {reservationsSeed as defaultReservations};
  * `name` (RES-…) is auto-generated and immutable, so it is not exported and not set
  * here; idempotency keys on the preserved `_id` instead. Only `status: "active"`
  * reservations occupy their unit — the unit-status pass derives that from what
- * actually landed, not from this file.
+ * actually landed, not from this file. `{$day}` days count from the company's today.
  */
 export async function createReservations(
     parentLogger: serverLogger,
@@ -32,6 +35,8 @@ export async function createReservations(
     logger.start(`Creating reservations (${reservationsSeed.length})...`);
 
     const created = new Map<string, ObjectId>();
+    const timeZone = companyTimeZone(company);
+    const today = localDateOf(new Date(), timeZone);
 
     for (const row of reservationsSeed) {
         try {
@@ -57,20 +62,20 @@ export async function createReservations(
                 reservedBy,
                 reservedByCompany: company._id,
                 client,
-                reservationDate: row.reservationDate,
-                expirationDate: row.expirationDate,
+                reservationDate: seedDay(row.reservationDate, today),
+                expirationDate: seedDay(row.expirationDate, today),
                 reservationNotes: row.reservationNotes,
                 depositAmount: Decimal128.fromString(row.depositAmount),
                 ...opt("depositCurrency", resolveCurrency(refs, row.depositCurrency)),
                 paymentMethod: row.paymentMethod,
                 source: row.source as ReservationSource,
                 paid: row.paid,
-                ...opt("paidDate", row.paidDate),
+                ...opt("paidDate", row.paidDate == null ? undefined : seedDay(row.paidDate, today)),
                 isActive: row.isActive,
                 status: row.status as ReservationStatus,
-                ...optDate("cancelledAt", row.cancelledAt),
+                ...optSeedInstant("cancelledAt", row.cancelledAt, today, timeZone),
                 ...opt("cancellationReason", row.cancellationReason),
-                ...optDate("expiredAt", row.expiredAt),
+                ...optSeedInstant("expiredAt", row.expiredAt, today, timeZone),
                 company: company._id,
                 createdBy: company.createdBy,
             };

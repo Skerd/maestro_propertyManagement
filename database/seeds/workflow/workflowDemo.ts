@@ -1,3 +1,4 @@
+import {createHash} from "crypto";
 import type {HydratedDocument, Model} from "mongoose";
 import {ObjectId} from "mongodb";
 import Constructor from "@propertyManagement/database/schemas/constructor/constructor";
@@ -15,8 +16,14 @@ export const SOLD_UNIT_ID = "6a501e2588c85ab8284360f5";
 export const BUILDER_VAT = "VAT001234567";
 export const BUILDER2_VAT = "VAT002345678";
 
-export function pmDemoName(seedKey: string): string {
-    return `${PM_DEMO_PREFIX}:${seedKey}`;
+/**
+ * The fixed `_id` of a workflow demo record: the company id's time bytes plus a hash of model, company and seed key.
+ * The id is the seed key's home, so re-runs find the record again while `name` stays the code the pre-validate hook
+ * generates (a seed key there showed as the record's code, TD-B206).
+ */
+export function demoRecordId(modelName: string, companyId: ObjectId, seedKey: string): ObjectId {
+    const hash = createHash("sha256").update(`${PM_DEMO_PREFIX}:${modelName}:${companyId.toString()}:${seedKey}`).digest("hex");
+    return new ObjectId(companyId.toString().slice(0, 8) + hash.slice(0, 16));
 }
 
 export type WorkflowCtx = {
@@ -91,39 +98,34 @@ export function almir(ctx: WorkflowCtx): ObjectId | undefined {
 }
 
 /**
- * Upsert on the stable `pm-demo:<key>` name. `name` is unique (globally or per
- * company) on every workflow schema, and the pre-validate hook only mints a
- * date-suffixed code when name is empty — so we always set it.
+ * Upserts a workflow demo record on its fixed id ({@link demoRecordId}). `name` is left out, so a new record gets
+ * its generated code and an existing one keeps it.
  */
-export async function upsertByName<T extends {name?: string}>(
+export async function upsertDemoRecord<T>(
     Model: Model<T>,
     company: ICompany,
-    name: string,
+    seedKey: string,
     payload: Record<string, unknown>,
     logger: serverLogger,
     label: string,
 ): Promise<HydratedDocument<T> | null> {
+    const _id = demoRecordId(Model.modelName, company._id, seedKey);
     try {
         const body = {
             ...payload,
-            name,
             company: company._id,
             createdBy: company.createdBy,
         };
-        let existing = await Model.findOne({name});
-        if (!existing) {
-            existing = await Model.findOne({company: company._id, name});
-        }
+        const existing = await Model.findById(_id);
         if (existing) {
             existing.set(body);
             await existing.save();
-        } else {
-            existing = await Model.create(body);
+            return existing;
         }
-        return existing;
+        return await Model.create({_id, ...body});
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        logger.err(`Error creating ${label} '${name}': ${message}`);
+        logger.err(`Error creating ${label} '${seedKey}': ${message}`);
         return null;
     }
 }

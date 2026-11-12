@@ -1,8 +1,10 @@
 /**
  * Reservations. Active ones move their unit to reserved_unit.
  *
- * GENERATED from the live database by the Phase 2 export — regenerate rather than
- * hand-editing, unless you are deliberately curating the shipped defaults.
+ * GENERATED from the live database by the Phase 2 export, then curated (TD-B206): the
+ * clients are the demo clients in `demoClients.ts`, and every reservation but the
+ * converted one counts its days from the seed day (`{$day}`), so the active ones stay
+ * active and the expired and cancelled ones stay in the past.
  */
 import type {ReservationSeedRow} from "./types";
 
@@ -14,10 +16,14 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
             "$user": "echo@echo.com"
         },
         "client": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "elira.daka@example.com"
         },
-        "reservationDate": "2026-07-07",
-        "expirationDate": "2026-08-06",
+        "reservationDate": {
+            "$day": -6
+        },
+        "expirationDate": {
+            "$day": 24
+        },
         "reservationNotes": "Demo reservation for A0-05 Floor 0. [pm-demo-seed]",
         "depositAmount": "15000",
         "depositCurrency": {
@@ -26,7 +32,9 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "paymentMethod": "bank_transfer",
         "source": "agent",
         "paid": true,
-        "paidDate": "2026-07-09",
+        "paidDate": {
+            "$day": -4
+        },
         "isActive": true,
         "status": "active",
         "cancelledAt": null,
@@ -37,13 +45,17 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "id": "6a538b10d4b6b1160814e376",
         "unit": "6a501b3388c85ab828433c9f",
         "reservedBy": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "client": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "marco.bianchi@example.com"
         },
-        "reservationDate": "2026-07-10",
-        "expirationDate": "2026-08-09",
+        "reservationDate": {
+            "$day": -28
+        },
+        "expirationDate": {
+            "$day": 2
+        },
         "reservationNotes": "Demo reservation for A1-01 Floor 1. [pm-demo-seed]",
         "depositAmount": "10000",
         "depositCurrency": {
@@ -63,13 +75,17 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "id": "6a538b10d4b6b1160814e377",
         "unit": "6a5018e588c85ab828431b65",
         "reservedBy": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "client": {
-            "$user": "almir@leka.com"
+            "$user": "sofia.keller@example.com"
         },
-        "reservationDate": "2026-07-02",
-        "expirationDate": "2026-08-01",
+        "reservationDate": {
+            "$day": -12
+        },
+        "expirationDate": {
+            "$day": 18
+        },
         "reservationNotes": "Demo reservation for A1-01 Floor 1. [pm-demo-seed]",
         "depositAmount": "20000",
         "depositCurrency": {
@@ -78,7 +94,9 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "paymentMethod": "bank_transfer",
         "source": "walk_in",
         "paid": true,
-        "paidDate": "2026-07-03",
+        "paidDate": {
+            "$day": -11
+        },
         "isActive": true,
         "status": "active",
         "cancelledAt": null,
@@ -89,13 +107,17 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "id": "6a538b10d4b6b1160814e378",
         "unit": "6a501e2588c85ab8284360da",
         "reservedBy": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "client": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "marco.bianchi@example.com"
         },
-        "reservationDate": "2026-05-28",
-        "expirationDate": "2026-07-07",
+        "reservationDate": {
+            "$day": -70
+        },
+        "expirationDate": {
+            "$day": -30
+        },
         "reservationNotes": "Demo reservation for A1-01 Floor 1. [pm-demo-seed]",
         "depositAmount": "12000",
         "depositCurrency": {
@@ -104,24 +126,32 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "paymentMethod": "bank_transfer",
         "source": "referral",
         "paid": true,
-        "paidDate": "2026-05-30",
+        "paidDate": {
+            "$day": -68
+        },
         "isActive": false,
         "status": "expired",
         "cancelledAt": null,
         "cancellationReason": null,
-        "expiredAt": "2026-07-07T12:39:44.041Z"
+        "expiredAt": {
+            "$day": -30
+        }
     },
     {
         "id": "6a538b10d4b6b1160814e379",
         "unit": "6a501b3388c85ab828433cc1",
         "reservedBy": {
-            "$user": "almir@leka.com"
-        },
-        "client": {
             "$user": "echo@echo.com"
         },
-        "reservationDate": "2026-06-22",
-        "expirationDate": "2026-07-22",
+        "client": {
+            "$user": "elira.daka@example.com"
+        },
+        "reservationDate": {
+            "$day": -50
+        },
+        "expirationDate": {
+            "$day": -20
+        },
         "reservationNotes": "Demo reservation for A1-02 Floor 1. [pm-demo-seed]",
         "depositAmount": "8000",
         "depositCurrency": {
@@ -133,7 +163,9 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "paidDate": null,
         "isActive": false,
         "status": "cancelled",
-        "cancelledAt": "2026-07-04T12:39:44.041Z",
+        "cancelledAt": {
+            "$day": -40
+        },
         "cancellationReason": "Client withdrew interest",
         "expiredAt": null
     },
@@ -141,10 +173,10 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "id": "6a538b10d4b6b1160814e37a",
         "unit": "6a501f4c88c85ab828436aaf",
         "reservedBy": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "client": {
-            "$user": "skerd@xhafa.com"
+            "$user": "sofia.keller@example.com"
         },
         "reservationDate": "2026-06-12",
         "expirationDate": "2026-07-17",

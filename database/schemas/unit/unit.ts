@@ -158,6 +158,7 @@ const UnitSchema = new Schema<IUnit>(
         price: {
             type: SchemaTypes.Decimal128,
             required: true,
+            dynamicTableConfiguration: {currencyPath: "priceCurrency"},
             set: (v: number | string | Decimal128 | null | undefined) => {
                 // Queries run the setter too: `{amount: {$ne: null}}` passes null (TD-B182).
                 if (v == null || v instanceof Decimal128) return v;
@@ -176,7 +177,9 @@ const UnitSchema = new Schema<IUnit>(
             type: Schema.Types.ObjectId,
             ref: 'Currency',
             required: true,
-            refAllowlist: CurrencySimpleSnippet
+            refAllowlist: CurrencySimpleSnippet,
+            // The price column shows it (UX-07, D149); the column stays available to switch on.
+            dynamicTableConfiguration: {visible: false},
         },
         hasBalcony: {
             type: Schema.Types.Boolean,

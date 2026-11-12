@@ -38,12 +38,9 @@ export const unitSheetView: ViewConfig = {
             render: "#SheetGroup",
             permissions: {
                 readAny: [
-                    "name",
                     "unitNumber",
                     "status",
                     "unavailableNotes",
-                    "featuredOnHomepage",
-                    "priceVisibility",
                     "floor",
                     "unitType",
                     "description",
@@ -55,16 +52,6 @@ export const unitSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props: { columns: 3 },
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: { read: "unitNumber" },
@@ -90,50 +77,27 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "featuredOnHomepage" },
+                            permissions: { read: "unitType" },
+                            dependent: "unitType",
                             field: {
-                                name: "featuredOnHomepage",
+                                name: "unitType.name",
                                 widget: "#DisplayCard",
-                                label: "featuredOnHomepage",
+                                label: "unitType",
                                 widgetProps: {
-                                    icon: "#BookMarked",
-                                    tooltip: "featuredOnHomepageTooltip",
-                                    type: "boolean",
+                                    icon: "#LayoutGrid",
+                                    mdiIconPath: "unitType.icon",
+                                    linkedRefPath: "unitType",
+                                    linkedSheetModel: "unitTypes",
+                                    linkedSheetWidget: "#UnitTypeSheetView",
+                                    linkedSheetEntityProp: "unitType",
                                 },
                             },
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            field: {
-                                name: "priceVisibility",
-                                widget: "#DisplayCard",
-                                label: "priceVisibility",
-                                widgetProps: {
-                                    icon: "#EyeOff",
-                                    tooltip: "priceVisibilityTooltip",
-                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            dependent: "effectivePriceVisibility",
-                            field: {
-                                name: "effectivePriceVisibility.key",
-                                widget: "#DisplayCard",
-                                label: "effectivePriceVisibility",
-                                skipReadAccessGate: true,
-                                widgetProps: {
-                                    icon: "#Eye",
-                                    tooltip: "effectivePriceVisibilityTooltip",
-                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
+                            // Resolved from the floor's building, not a field of the unit's own.
+                            dependent: "project",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "project.name",
                                 widget: "#DisplayCard",
@@ -149,6 +113,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "edifice",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "edifice.name",
                                 widget: "#DisplayCard",
@@ -166,6 +132,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "floor" },
+                            dependent: "floor",
                             field: {
                                 name: "floor.name",
                                 widget: "#DisplayCard",
@@ -176,23 +143,6 @@ export const unitSheetView: ViewConfig = {
                                     linkedSheetModel: "floors",
                                     linkedSheetWidget: "#FloorSheetView",
                                     linkedSheetEntityProp: "floor",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "unitType" },
-                            field: {
-                                name: "unitType.name",
-                                widget: "#DisplayCard",
-                                label: "unitType",
-                                widgetProps: {
-                                    icon: "#LayoutGrid",
-                                    mdiIconPath: "unitType.icon",
-                                    linkedRefPath: "unitType",
-                                    linkedSheetModel: "unitTypes",
-                                    linkedSheetWidget: "#UnitTypeSheetView",
-                                    linkedSheetEntityProp: "unitType",
                                 },
                             },
                         },
@@ -275,6 +225,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "sharedArea" },
+                            dependent: "sharedArea",
                             field: {
                                 name: "sharedArea",
                                 widget: "#DisplayCard",
@@ -285,6 +236,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "netArea" },
+                            dependent: "netArea",
                             field: {
                                 name: "netArea",
                                 widget: "#DisplayCard",
@@ -295,6 +247,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "verandaArea" },
+                            dependent: "verandaArea",
                             field: {
                                 name: "verandaArea",
                                 widget: "#DisplayCard",
@@ -346,40 +299,366 @@ export const unitSheetView: ViewConfig = {
                 },
             ],
         },
+
+        // ── Related records: the unit's hub (unitHub, D151) ─────────
         {
-            render: "#SheetGroup",
-            permissions: { readAny: ["orientation", "constructionStatus"] },
-            props: { title: "layoutAndConstruction" },
+            // Cards or one line each, the reader's choice (remembered per list).
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.sales.listDisplay", defaultMode: "compact" },
             children: [
                 {
-                    render: "#SheetGrid",
-                    props: { columns: 2 },
+                    // Read with the caller's own grants on that model; absent when they may not read it (unitHub).
+                    render: "#SheetGroup",
+                    dependent: "sales",
+                    dependentRuntimeOnly: true,
+                    props: { title: "sales", titleActions: "#ReferencesViewModeToggle" },
                     children: [
                         {
-                            render: "#DisplayCard",
-                            permissions: { read: "orientation" },
-                            field: {
-                                name: "orientation",
-                                widget: "#DisplayCard",
-                                label: "orientation",
-                                widgetProps: {
-                                    icon: "#Compass",
-                                    languageKeyCategory: "unitOrientationEnum", type: "enum",
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "sales",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#SaleCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            compactRow: {
+                                                icon: "#ShoppingCart",
+                                                label: "sale",
+                                                // Who bought it, when, for how much and whether it is approved; the code stays on the opened sheet.
+                                                labelPath: ["buyer.name", "buyer.surname"],
+                                                labelJoinSeparator: " ",
+                                                valuePath: ["saleDate", "finalPrice", "approvalStatus"],
+                                                valueFormats: ["date", { money: "saleCurrency" }, null],
+                                                valueLanguageKeyCategories: [null, null, "saleApprovalStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "sales",
+                                                linkedSheetWidget: "#SaleSheetView",
+                                                linkedSheetEntityProp: "sale",
+                                            },
+                                        },
+                                    },
                                 },
-                            },
+                            ],
                         },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.reservations.listDisplay", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "reservations",
+                    dependentRuntimeOnly: true,
+                    props: { title: "reservations", titleActions: "#ReferencesViewModeToggle" },
+                    children: [
                         {
-                            render: "#DisplayCard",
-                            permissions: { read: "constructionStatus" },
-                            field: {
-                                name: "constructionStatus",
-                                widget: "#DisplayCard",
-                                label: "constructionStatus",
-                                widgetProps: {
-                                    icon: "#Hammer",
-                                    languageKeyCategory: "unitConstructionStatusEnum", type: "enum",
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "reservations",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#ReservationCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            compactRow: {
+                                                icon: "#BookMarked",
+                                                label: "reservation",
+                                                // Who reserved it, from when, until when and how it stands.
+                                                labelPath: ["client.name", "client.surname"],
+                                                labelJoinSeparator: " ",
+                                                valuePath: ["reservationDate", "expirationDate", "status"],
+                                                valueFormats: ["date", "date", null],
+                                                valueLanguageKeyCategories: [null, null, "reservationStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "reservations",
+                                                linkedSheetWidget: "#ReservationSheetView",
+                                                linkedSheetEntityProp: "reservation",
+                                            },
+                                        },
+                                    },
                                 },
-                            },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.leases.listDisplay", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "leases",
+                    dependentRuntimeOnly: true,
+                    props: { title: "leases", titleActions: "#ReferencesViewModeToggle" },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "leases",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#LeaseCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            compactRow: {
+                                                icon: "#FileText",
+                                                label: "lease",
+                                                // Who rents it, for which term, and how the lease stands.
+                                                labelPath: ["tenant.name", "tenant.surname"],
+                                                labelJoinSeparator: " ",
+                                                valuePath: ["startDate", "endDate", "status"],
+                                                valueFormats: ["date", "date", null],
+                                                valueLanguageKeyCategories: [null, null, "leaseStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "leases",
+                                                linkedSheetWidget: "#LeaseSheetView",
+                                                linkedSheetEntityProp: "lease",
+                                            },
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.rentalPayments.listDisplay", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "rentalPayments",
+                    dependentRuntimeOnly: true,
+                    props: { title: "rentalPayments", titleActions: "#ReferencesViewModeToggle", defaultOpen: false },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "rentalPayments",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#RentalPaymentCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            compactRow: {
+                                                icon: "#ReceiptDollar",
+                                                label: "rentalPayment",
+                                                // When it is due, how much, and whether it is paid.
+                                                labelPath: "dueDate",
+                                                labelFormat: "date",
+                                                valuePath: ["amount", "status"],
+                                                valueFormats: [{ money: "currency" }, null],
+                                                valueLanguageKeyCategories: [null, "rentalPaymentStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "rentalpayments",
+                                                linkedSheetWidget: "#RentalPaymentSheetView",
+                                                linkedSheetEntityProp: "rentalPayment",
+                                            },
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.costs.listDisplay", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "costs",
+                    dependentRuntimeOnly: true,
+                    props: { title: "unitCosts", titleActions: "#ReferencesViewModeToggle", defaultOpen: false },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "costs",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#UnitCostCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            compactRow: {
+                                                icon: "#Receipt",
+                                                label: "unitCost",
+                                                // When it was bought, from whom, and whether it is verified and paid.
+                                                labelPath: "purchaseDate",
+                                                labelFormat: "date",
+                                                valuePath: ["vendorName", "verificationStatus", "paymentStatus"],
+                                                valueLanguageKeyCategories: [null, "unitCostVerificationStatus", "unitCostPaymentStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "unitCosts",
+                                                linkedSheetWidget: "#UnitCostSheetView",
+                                                linkedSheetEntityProp: "unitCost",
+                                            },
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.inspections.listDisplay", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "inspections",
+                    dependentRuntimeOnly: true,
+                    props: { title: "inspections", titleActions: "#ReferencesViewModeToggle", defaultOpen: false },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "inspections",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#InspectionCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            compactRow: {
+                                                icon: "#ClipboardList",
+                                                label: "inspection",
+                                                // When, which kind, and how it stands.
+                                                labelPath: "inspectionDate",
+                                                labelFormat: "date",
+                                                valuePath: ["type", "status"],
+                                                valueLanguageKeyCategories: ["inspectionType", "inspectionStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "inspections",
+                                                linkedSheetWidget: "#InspectionSheetView",
+                                                linkedSheetEntityProp: "inspection",
+                                            },
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.modificationRequests.listDisplay", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    dependent: "modificationRequests",
+                    dependentRuntimeOnly: true,
+                    props: { title: "modificationRequests", titleActions: "#ReferencesViewModeToggle", defaultOpen: false },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    field: {
+                                        name: "modificationRequests",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#ModificationRequestCard",
+                                            pageSize: 4,
+                                            columns: 2,
+                                            small: true,
+                                            compactRow: {
+                                                icon: "#Hammer",
+                                                label: "modificationRequest",
+                                                // When it was asked for, what, and how far it got.
+                                                labelPath: "submittedAt",
+                                                labelFormat: "date",
+                                                valuePath: ["title", "status"],
+                                                valueLanguageKeyCategories: [null, "modificationRequestStatus"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "modificationRequests",
+                                                linkedSheetWidget: "#ModificationRequestSheetView",
+                                                linkedSheetEntityProp: "request",
+                                            },
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "unit.sheet.connectedUnits.display", defaultMode: "compact" },
+            children: [
+                {
+                    render: "#SheetGroup",
+                    permissions: { readAny: ["connectedUnits"] },
+                    dependent: "connectedUnits",
+                    props: { title: "connectedUnits", titleActions: "#ReferencesViewModeToggle" },
+                    children: [
+                        {
+                            render: "div",
+                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    permissions: { read: "connectedUnits" },
+                                    field: {
+                                        name: "connectedUnits",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#UnitCard",
+                                            pageSize: 5,
+                                            compactRow: {
+                                                icon: "#Link",
+                                                label: "unit",
+                                                valuePath: ["name", "unitNumber"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "units",
+                                                linkedSheetWidget: "#UnitSheetView",
+                                                linkedSheetEntityProp: "unit",
+                                            },
+                                        },
+                                    },
+                                },
+                            ],
                         },
                     ],
                 },
@@ -551,6 +830,50 @@ export const unitSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            permissions: { readAny: ["orientation", "constructionStatus"] },
+            dependentAny: ["orientation", "constructionStatus"],
+            props: { title: "layoutAndConstruction" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 2 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "orientation" },
+                            dependent: "orientation",
+                            field: {
+                                name: "orientation",
+                                widget: "#DisplayCard",
+                                label: "orientation",
+                                widgetProps: {
+                                    icon: "#Compass",
+                                    languageKeyCategory: "unitOrientationEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "constructionStatus" },
+                            dependent: "constructionStatus",
+                            field: {
+                                name: "constructionStatus",
+                                widget: "#DisplayCard",
+                                label: "constructionStatus",
+                                widgetProps: {
+                                    icon: "#Hammer",
+                                    languageKeyCategory: "unitConstructionStatusEnum", type: "enum",
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+
+        {
+            // Only the features the unit has; a feature it lacks is not a fact worth a row (UX-10).
+            render: "#SheetGroup",
             permissions: {
                 readAny: [
                     "hasBalcony",
@@ -561,6 +884,7 @@ export const unitSheetView: ViewConfig = {
                     "hasElevator",
                 ],
             },
+            dependentAny: ["hasBalcony", "hasTerrace", "hasSeaView", "hasCityView", "hasLakeView", "hasElevator"],
             props: { title: "features" },
             children: [
                 {
@@ -570,6 +894,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasBalcony" },
+                            dependent: "hasBalcony",
                             field: {
                                 name: "hasBalcony",
                                 widget: "#DisplayCard",
@@ -580,6 +905,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasTerrace" },
+                            dependent: "hasTerrace",
                             field: {
                                 name: "hasTerrace",
                                 widget: "#DisplayCard",
@@ -590,6 +916,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasSeaView" },
+                            dependent: "hasSeaView",
                             field: {
                                 name: "hasSeaView",
                                 widget: "#DisplayCard",
@@ -600,6 +927,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasCityView" },
+                            dependent: "hasCityView",
                             field: {
                                 name: "hasCityView",
                                 widget: "#DisplayCard",
@@ -610,6 +938,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasLakeView" },
+                            dependent: "hasLakeView",
                             field: {
                                 name: "hasLakeView",
                                 widget: "#DisplayCard",
@@ -620,6 +949,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasElevator" },
+                            dependent: "hasElevator",
                             field: {
                                 name: "hasElevator",
                                 widget: "#DisplayCard",
@@ -637,6 +967,7 @@ export const unitSheetView: ViewConfig = {
             permissions: {
                 readAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
             },
+            dependentAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
             props: { title: "commissions" },
             children: [
                 {
@@ -646,6 +977,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "saleCommissionRatePercent" },
+                            dependent: "saleCommissionRatePercent",
                             field: {
                                 name: "saleCommissionRatePercent",
                                 widget: "#DisplayCard",
@@ -656,6 +988,7 @@ export const unitSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "reservationCommissionRatePercent" },
+                            dependent: "reservationCommissionRatePercent",
                             field: {
                                 name: "reservationCommissionRatePercent",
                                 widget: "#DisplayCard",
@@ -669,292 +1002,9 @@ export const unitSheetView: ViewConfig = {
         },
 
         {
-            render: "#ReferencesViewModeScope",
-            props: {
-                storageKey: "unit.sheet.inspections.listDisplay",
-                defaultMode: "compact",
-            },
-            children: [
-                {
-                    render: "#SheetGroup",
-                    permissions: { readAny: ["inspections"] },
-                    props: {
-                        title: "inspections",
-                        titleActions: "#ReferencesViewModeToggle",
-                    },
-                    children: [
-                        {
-                            render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
-                            children: [
-                                {
-                                    render: "#ReferencesRender",
-                                    permissions: { read: "inspections" },
-                                    field: {
-                                        name: "inspections",
-                                        widget: "#ReferencesRender",
-                                        widgetProps: {
-                                            cardWidget: "#InspectionCard",
-                                            pageSize: 2,
-                                            compactRow: {
-                                                icon: "#ClipboardList",
-                                                label: "inspection",
-                                                valuePath: ["name"],
-                                                joinSeparator: " · ",
-                                                linkedSheetModel: "inspections",
-                                                linkedSheetWidget: "#InspectionSheetView",
-                                                linkedSheetEntityProp: "inspection",
-                                            },
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#ReferencesViewModeScope",
-            props: {
-                storageKey: "unit.sheet.costs.listDisplay",
-                defaultMode: "compact",
-            },
-            children: [
-                {
-                    render: "#SheetGroup",
-                    permissions: { readAny: ["costs"] },
-                    props: {
-                        title: "unitCosts",
-                        titleActions: "#ReferencesViewModeToggle",
-                    },
-                    children: [
-                        {
-                            render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
-                            children: [
-                                {
-                                    render: "#ReferencesRender",
-                                    permissions: { read: "costs" },
-                                    field: {
-                                        name: "costs",
-                                        widget: "#ReferencesRender",
-                                        widgetProps: {
-                                            cardWidget: "#UnitCostCard",
-                                            pageSize: 2,
-                                            compactRow: {
-                                                icon: "#Receipt",
-                                                label: "unitCost",
-                                                valuePath: ["name"],
-                                                joinSeparator: " · ",
-                                                linkedSheetModel: "unitCosts",
-                                                linkedSheetWidget: "#UnitCostSheetView",
-                                                linkedSheetEntityProp: "unitCost",
-                                            },
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#ReferencesViewModeScope",
-            props: {
-                storageKey: "unit.sheet.modificationRequests.listDisplay",
-                defaultMode: "compact",
-            },
-            children: [
-                {
-                    render: "#SheetGroup",
-                    permissions: { readAny: ["modificationRequests"] },
-                    props: {
-                        title: "modificationRequests",
-                        titleActions: "#ReferencesViewModeToggle",
-                    },
-                    children: [
-                        {
-                            render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
-                            children: [
-                                {
-                                    render: "#ReferencesRender",
-                                    permissions: { read: "modificationRequests" },
-                                    field: {
-                                        name: "modificationRequests",
-                                        widget: "#ReferencesRender",
-                                        widgetProps: {
-                                            cardWidget: "#ModificationRequestCard",
-                                            pageSize: 2,
-                                            small: true,
-                                            compactRow: {
-                                                icon: "#Hammer",
-                                                label: "modificationRequest",
-                                                valuePath: ["name"],
-                                                joinSeparator: " · ",
-                                                linkedSheetModel: "modificationRequests",
-                                                linkedSheetWidget: "#ModificationRequestSheetView",
-                                                linkedSheetEntityProp: "request",
-                                            },
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#ReferencesViewModeScope",
-            props: {
-                storageKey: "unit.sheet.connectedUnits.display",
-                defaultMode: "compact",
-            },
-            children: [
-                {
-                    render: "#SheetGroup",
-                    permissions: { readAny: ["connectedUnits"] },
-                    props: {
-                        title: "connectedUnits",
-                        titleActions: "#ReferencesViewModeToggle",
-                    },
-                    children: [
-                        {
-                            render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
-                            children: [
-                                {
-                                    render: "#ReferencesRender",
-                                    permissions: { read: "connectedUnits" },
-                                    field: {
-                                        name: "connectedUnits",
-                                        widget: "#ReferencesRender",
-                                        widgetProps: {
-                                            cardWidget: "#UnitCard",
-                                            pageSize: 5,
-                                            compactRow: {
-                                                icon: "#Link",
-                                                label: "unit",
-                                                valuePath: ["name", "unitNumber"],
-                                                joinSeparator: " · ",
-                                                linkedSheetModel: "units",
-                                                linkedSheetWidget: "#UnitSheetView",
-                                                linkedSheetEntityProp: "unit",
-                                            },
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#ReferencesViewModeScope",
-            props: {
-                storageKey: "unit.sheet.sale.display",
-                defaultMode: "compact",
-            },
-            children: [
-                {
-                    render: "#SheetGroup",
-                    permissions: { readAny: ["sale"] },
-                    props: {
-                        title: "sale",
-                        titleActions: "#ReferencesViewModeToggle",
-                    },
-                    children: [
-                        {
-                            render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
-                            children: [
-                                {
-                                    render: "#ReferencesRender",
-                                    permissions: { read: "sale" },
-                                    field: {
-                                        name: "sale",
-                                        widget: "#ReferencesRender",
-                                        widgetProps: {
-                                            cardWidget: "#SaleCard",
-                                            pageSize: 1,
-                                            small: true,
-                                            compactRow: {
-                                                icon: "#ShoppingCart",
-                                                label: "sale",
-                                                valuePath: ["name"],
-                                                joinSeparator: " · ",
-                                                linkedSheetModel: "sales",
-                                                linkedSheetWidget: "#SaleSheetView",
-                                                linkedSheetEntityProp: "sale",
-                                            },
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-
-        {
-            render: "#ReferencesViewModeScope",
-            props: {
-                storageKey: "unit.sheet.reservation.display",
-                defaultMode: "compact",
-            },
-            children: [
-                {
-                    render: "#SheetGroup",
-                    permissions: { readAny: ["reservation"] },
-                    props: {
-                        title: "reservation",
-                        titleActions: "#ReferencesViewModeToggle",
-                    },
-                    children: [
-                        {
-                            render: "div",
-                            props: { className: "rounded-lg bg-muted/30 border border-border/50" },
-                            children: [
-                                {
-                                    render: "#ReferencesRender",
-                                    permissions: { read: "reservation" },
-                                    field: {
-                                        name: "reservation",
-                                        widget: "#ReferencesRender",
-                                        widgetProps: {
-                                            cardWidget: "#ReservationCard",
-                                            pageSize: 1,
-                                            small: true,
-                                            compactRow: {
-                                                icon: "#BookMarked",
-                                                label: "reservation",
-                                                valuePath: ["name"],
-                                                joinSeparator: " · ",
-                                                linkedSheetModel: "reservations",
-                                                linkedSheetWidget: "#ReservationSheetView",
-                                                linkedSheetEntityProp: "reservation",
-                                            },
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-        {
             render: "#SheetGroup",
             permissions: { readAny: ["priceHistory"] },
+            dependent: "priceHistory",
             props: { title: "priceHistoryTitle" },
             children: [
                 {
@@ -976,6 +1026,7 @@ export const unitSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
+            dependentAny: ["mainImage", "imageGallery", "videoGallery"],
             props: { title: "gallery" },
             children: [
                 {
@@ -1007,6 +1058,7 @@ export const unitSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mediaFiles"] },
+            dependent: "mediaFiles",
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -1035,6 +1087,7 @@ export const unitSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["marketingBooklet"] },
+            dependent: "marketingBooklet",
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -1051,6 +1104,68 @@ export const unitSheetView: ViewConfig = {
                                     canDownload: true,
                                     canRemove: false,
                                     isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+
+        // ── Visibility: on the homepage and the public price (UX-04) ─
+        {
+            render: "#SheetGroup",
+            permissions: { readAny: ["featuredOnHomepage", "priceVisibility"] },
+            props: { title: "visibilityGroup" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "featuredOnHomepage" },
+                            dependent: "featuredOnHomepage",
+                            field: {
+                                name: "featuredOnHomepage",
+                                widget: "#DisplayCard",
+                                label: "featuredOnHomepage",
+                                widgetProps: {
+                                    icon: "#BookMarked",
+                                    tooltip: "featuredOnHomepageTooltip",
+                                    type: "boolean",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            field: {
+                                name: "priceVisibility",
+                                widget: "#DisplayCard",
+                                label: "priceVisibility",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "priceVisibilityTooltip",
+                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            // Resolved on the single read from the unit's chain; not a stored field.
+                            dependent: "effectivePriceVisibility",
+                            dependentRuntimeOnly: true,
+                            field: {
+                                name: "effectivePriceVisibility.key",
+                                widget: "#DisplayCard",
+                                label: "effectivePriceVisibility",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Eye",
+                                    tooltip: "effectivePriceVisibilityTooltip",
+                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
                                 },
                             },
                         },
@@ -1361,58 +1476,6 @@ const unitCreateFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        props: { title: "homepageFeatured" },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 2 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredOnHomepage",
-                            widget: "#Switch",
-                            label: "form.featuredOnHomepageLabel",
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredSortOrder",
-                            widget: "#Input",
-                            label: "form.featuredSortOrderLabel",
-                            placeholder: "form.featuredSortOrderPlaceholder",
-                            widgetProps: { type: "number", min: 0, step: 1 },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
         props: { title: "commissions" },
         children: [
             {
@@ -1568,6 +1631,47 @@ const unitCreateFormNode: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
                 },
+            },
+        ],
+    },
+    // ── Visibility: on the homepage and the public price, last (UX-04) ─
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        },
+                    },
+                ],
             },
         ],
     },
@@ -1898,66 +2002,6 @@ const unitEditFormNode: ViewConfig["nodes"] = [
     },
     {
         render: "#TitleWithCollapse",
-        props: { title: "homepageFeatured" },
-        permissions: {
-            readAny: ["featuredOnHomepage", "featuredSortOrder"],
-            writeAny: ["featuredOnHomepage", "featuredSortOrder"],
-        },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 2 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredOnHomepage",
-                            widget: "#Switch",
-                            label: "form.featuredOnHomepageLabel",
-                        }, permissions: {read: "featuredOnHomepage", write: "featuredOnHomepage"},
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredSortOrder",
-                            widget: "#Input",
-                            label: "form.featuredSortOrderLabel",
-                            placeholder: "form.featuredSortOrderPlaceholder",
-                            widgetProps: { type: "number", min: 0, step: 1 },
-                        }, permissions: {read: "featuredSortOrder", write: "featuredSortOrder"},
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        permissions: {
-            readAny: ["priceVisibility"],
-            writeAny: ["priceVisibility"],
-        },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
-                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
         props: { title: "commissions" },
         permissions: {
             readAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
@@ -2124,6 +2168,51 @@ const unitEditFormNode: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
                 }, permissions: {read: "marketingBooklet", write: "marketingBooklet"},
+            },
+        ],
+    },
+    // ── Visibility: on the homepage and the public price, last (UX-04) ─
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        permissions: {
+            readAny: ["featuredOnHomepage", "featuredSortOrder", "priceVisibility"],
+            writeAny: ["featuredOnHomepage", "featuredSortOrder", "priceVisibility"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        }, permissions: {read: "featuredOnHomepage", write: "featuredOnHomepage"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        }, permissions: {read: "featuredSortOrder", write: "featuredSortOrder"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
+                    },
+                ],
             },
         ],
     },

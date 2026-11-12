@@ -13,7 +13,8 @@ import {unitCostService} from '../../../../database/schemas/unitCost/unitCost.se
 import {modificationRequestService} from '../../../../database/schemas/modificationRequest/modificationRequest.service';
 import {reservationService} from '../../../../database/schemas/reservation/reservation.service';
 import {saleService} from '../../../../database/schemas/sale/sale.service';
-import Unit from "../../../../database/schemas/unit/unit";
+import Unit, {type IUnit} from "../../../../database/schemas/unit/unit";
+import {unitHub} from "../../../../utilities/services/unitHub";
 import UnitType from "../../../../database/schemas/unitType/unitType";
 import {unitsToDTO, unitToDTO} from "../../../../utilities/mappers/unit/unitMapper.dto";
 import {loadEffectivePriceVisibility} from "../../../../utilities/marketing/priceOnRequestScope.util";
@@ -28,6 +29,19 @@ import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {unitTypeService} from "@propertyManagement/database/schemas/unitType/unitType.service";
 import {currencyService} from "@coreModule/database/schemas/currency/currency.service";
 import {UnitActions} from '../../../../database/schemas/unit/unit.actions';
+
+async function unitWithHub(unit: IUnit, { actionUserCtx, languageCode, logger, company }: Pick<AuthenticatedMWType, "actionUserCtx" | "languageCode" | "logger" | "company">) {
+    const [statisticsByUnitId, effectivePriceVisibility, hub] = await Promise.all([
+        unitService.calculateStatistics([unit._id], actionUserCtx, languageCode, { logger }),
+        loadEffectivePriceVisibility("unit", unit, { companyId: company._id, logger, languageCode }),
+        unitHub(unit._id, { companyId: company._id, actionUserCtx, languageCode }),
+    ]);
+    return {
+        ...unitToDTO(unit, { statistics: statisticsByUnitId[unit._id.toString()] }),
+        effectivePriceVisibility,
+        ...hub,
+    };
+}
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
@@ -53,16 +67,10 @@ export const { router } = createCrudRouter({
         );
         return unitsToDTO(units, { statisticsByUnitId });
     },
-    enrichSingle: async (unit, { actionUserCtx, languageCode, logger, company }) => {
-        const [statisticsByUnitId, effectivePriceVisibility] = await Promise.all([
-            unitService.calculateStatistics([unit._id], actionUserCtx, languageCode, { logger }),
-            loadEffectivePriceVisibility("unit", unit, { companyId: company._id, logger, languageCode }),
-        ]);
-        return {
-            ...unitToDTO(unit, { statistics: statisticsByUnitId[unit._id.toString()] }),
-            effectivePriceVisibility,
-        };
-    },
+    // The single read is the unit's hub: its sales, reservations, leases, rent, costs, inspections and requests
+    // (UX-03, D151); an edit returns it too, so the open sheet keeps its lists.
+    enrichSingle: async (unit, params) => unitWithHub(unit, params),
+    enrichUpdate: async (unit, params) => unitWithHub(unit, params),
     buildCreateData: async ({ floor, polygonCoordinates, connectedUnits, orientation, constructionStatus, session, logger, languageCode, company, unitType, priceCurrency, ...params }: any) => {
 
         const [foundFloor, foundUnitType, foundCurrency] = await Promise.all([
@@ -275,7 +283,8 @@ export const { router } = createCrudRouter({
         }
         return out;
     },
-    defaultSort:    { createdAt: -1 },
+    // In unit-number order, the way a building is walked (UX-12).
+    defaultSort:    { unitNumber: 1 },
     selectSort:     { unitNumber: 1 },
     overrideSelectHandler: async (params) => {
         const { logger, languageCode, actionUserCtx, company, name, page, limit, notId, notConnected, dslFilterQuery } = params;

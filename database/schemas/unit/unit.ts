@@ -258,6 +258,7 @@ const UnitSchema = new Schema<IUnit>(
             required: false,
             default: '',
             maxlength: UNIT_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         mainImage: {
             type: SchemaTypes.ObjectId,
@@ -278,6 +279,7 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
         videoGallery: {
@@ -290,6 +292,7 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
         mediaFiles: {
@@ -302,6 +305,7 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
         marketingBooklet: {
@@ -311,6 +315,7 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             },
         },
         polygonCoordinates: {
@@ -461,6 +466,7 @@ const UnitSchema = new Schema<IUnit>(
             max: 100,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.PERCENTAGE,
+                visible: false,
             }
         },
         reservationCommissionRatePercent: {
@@ -470,6 +476,7 @@ const UnitSchema = new Schema<IUnit>(
             max: 100,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.PERCENTAGE,
+                visible: false,
             }
         },
         priceHistory: {
@@ -600,6 +607,7 @@ const UnitSchema = new Schema<IUnit>(
             min: 0,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.NUMBER,
+                visible: false,
             },
         },
         priceVisibility: {

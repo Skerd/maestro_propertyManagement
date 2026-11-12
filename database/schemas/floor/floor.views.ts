@@ -26,14 +26,12 @@ export const floorSheetView: ViewConfig = {
             render: "#SheetGroup",
             permissions: {
                 readAny: [
-                    "name",
                     "edifice",
                     "levelNumber",
                     "totalUnits",
                     "area",
                     "isAccessible",
                     "hasEmergencyExit",
-                    "priceVisibility",
                     "pricePerMeterSquared",
                     "verandaPricePerMeterSquared",
                     "description",
@@ -47,16 +45,8 @@ export const floorSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
+                            dependent: "project",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "project.name",
                                 widget: "#DisplayCard",
@@ -117,8 +107,10 @@ export const floorSheetView: ViewConfig = {
                             },
                         },
                         {
+                            // Shown only when the floor has it; a missing feature is not a fact worth a row (UX-10).
                             render: "#DisplayCard",
                             permissions: { read: "isAccessible" },
+                            dependent: "isAccessible",
                             field: {
                                 name: "isAccessible",
                                 widget: "#DisplayCard",
@@ -129,6 +121,7 @@ export const floorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "hasEmergencyExit" },
+                            dependent: "hasEmergencyExit",
                             field: {
                                 name: "hasEmergencyExit",
                                 widget: "#DisplayCard",
@@ -138,38 +131,9 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            field: {
-                                name: "priceVisibility",
-                                widget: "#DisplayCard",
-                                label: "priceVisibility",
-                                widgetProps: {
-                                    icon: "#EyeOff",
-                                    tooltip: "priceVisibilityTooltip",
-                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            dependent: "effectivePriceVisibility",
-                            field: {
-                                name: "effectivePriceVisibility.key",
-                                widget: "#DisplayCard",
-                                label: "effectivePriceVisibility",
-                                skipReadAccessGate: true,
-                                widgetProps: {
-                                    icon: "#Eye",
-                                    tooltip: "effectivePriceVisibilityTooltip",
-                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: { read: "pricePerMeterSquared" },
                             dependent: "effectivePricing",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "effectivePricing.pricePerMeterSquared",
                                 widget: "#DisplayCard",
@@ -190,6 +154,7 @@ export const floorSheetView: ViewConfig = {
                             render: "#DisplayCard",
                             permissions: { read: "verandaPricePerMeterSquared" },
                             dependent: "effectivePricing",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "effectivePricing.verandaPricePerMeterSquared",
                                 widget: "#DisplayCard",
@@ -499,6 +464,7 @@ export const floorSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["sharedSpaces"] },
+            dependent: "sharedSpaces",
             props: { title: "sharedSpaces" },
             children: [
                 {
@@ -527,6 +493,7 @@ export const floorSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
+            dependentAny: ["mainImage", "imageGallery", "videoGallery"],
             props: { title: "gallery" },
             children: [
                 {
@@ -560,6 +527,7 @@ export const floorSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mediaFiles"] },
+            dependent: "mediaFiles",
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -588,6 +556,7 @@ export const floorSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["marketingBooklet"] },
+            dependent: "marketingBooklet",
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -604,6 +573,52 @@ export const floorSheetView: ViewConfig = {
                                     canDownload: true,
                                     canRemove: false,
                                     isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        // ── Visibility: the public price (UX-04) ────────────────────
+        {
+            render: "#SheetGroup",
+            permissions: { readAny: ["priceVisibility"] },
+            props: { title: "visibilityGroup" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            field: {
+                                name: "priceVisibility",
+                                widget: "#DisplayCard",
+                                label: "priceVisibility",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "priceVisibilityTooltip",
+                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            // Resolved on the single read from the floor's chain; not a stored field.
+                            dependent: "effectivePriceVisibility",
+                            dependentRuntimeOnly: true,
+                            field: {
+                                name: "effectivePriceVisibility.key",
+                                widget: "#DisplayCard",
+                                label: "effectivePriceVisibility",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Eye",
+                                    tooltip: "effectivePriceVisibilityTooltip",
+                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
                                 },
                             },
                         },
@@ -785,6 +800,7 @@ const floorCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.pricePerMeterSquaredLabel",
                             placeholder: "form.pricePerMeterSquaredPlaceholder",
+                            description: "form.ratesCurrencyDescription",
                             widgetProps: { type: "decimal", min: 0 },
                         },
                     },
@@ -795,29 +811,8 @@ const floorCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.verandaPricePerMeterSquaredLabel",
                             placeholder: "form.verandaPricePerMeterSquaredPlaceholder",
+                            description: "form.ratesCurrencyDescription",
                             widgetProps: { type: "decimal", min: 0 },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
                         },
                     },
                 ],
@@ -900,6 +895,29 @@ const floorCreateFormNode: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
                 },
+            },
+        ],
+    },
+    // ── Visibility: the public price, last (UX-04) ──────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        },
+                    },
+                ],
             },
         ],
     },
@@ -1100,6 +1118,7 @@ const floorEditFormNode: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.pricePerMeterSquaredLabel",
                             placeholder: "form.pricePerMeterSquaredPlaceholder",
+                            description: "form.ratesCurrencyDescription",
                             widgetProps: { type: "decimal", min: 0 },
                         }, permissions: {read: "pricePerMeterSquared", write: "pricePerMeterSquared"},
                     },
@@ -1110,34 +1129,9 @@ const floorEditFormNode: ViewConfig["nodes"] = [
                             widget: "#Input",
                             label: "form.verandaPricePerMeterSquaredLabel",
                             placeholder: "form.verandaPricePerMeterSquaredPlaceholder",
+                            description: "form.ratesCurrencyDescription",
                             widgetProps: { type: "decimal", min: 0 },
                         }, permissions: {read: "verandaPricePerMeterSquared", write: "verandaPricePerMeterSquared"},
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        permissions: {
-            readAny: ["priceVisibility"],
-            writeAny: ["priceVisibility"],
-        },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
-                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
                     },
                 ],
             },
@@ -1224,6 +1218,33 @@ const floorEditFormNode: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
                 }, permissions: {read: "marketingBooklet", write: "marketingBooklet"},
+            },
+        ],
+    },
+    // ── Visibility: the public price, last (UX-04) ──────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        permissions: {
+            readAny: ["priceVisibility"],
+            writeAny: ["priceVisibility"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
+                    },
+                ],
             },
         ],
     },

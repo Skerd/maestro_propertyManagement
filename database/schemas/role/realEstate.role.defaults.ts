@@ -86,7 +86,7 @@ export const realEstateDefaultRoles: DefaultRoleDefinition[] = [
     reRole(
         "Inventory Manager",
         "re_inventory_manager",
-        "Sets up the portfolio: projects, edifices, floors, units, unit types, and constructors.",
+        "Sets up the portfolio: projects, buildings, floors, units, unit types, and contractors.",
         inventoryOwn,
         [...DASH],
     ),

@@ -151,11 +151,13 @@ const ConstructorSchema: Schema = new Schema(
         description: {
             type: SchemaTypes.String,
             maxlength: CONSTRUCTOR_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         logo: {
             type: SchemaTypes.ObjectId,
             ref: "Media",
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: false,
                 sortable: false
             },
@@ -165,6 +167,7 @@ const ConstructorSchema: Schema = new Schema(
             type: SchemaTypes.String,
             trim: true,
             maxlength: CONSTRUCTOR_URL_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         vat: {
             type: SchemaTypes.String,
@@ -199,6 +202,7 @@ const ConstructorSchema: Schema = new Schema(
             type: SchemaTypes.String,
             enum: [...SUPPORTED_LOCALES],
             required: false,
+            dynamicTableConfiguration: {visible: false},
         },
     },
     {

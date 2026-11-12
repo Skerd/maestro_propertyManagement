@@ -61,6 +61,7 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
             trim: true,
             maxlength: CONSTRUCTION_PROGRESS_SHORT_TEXT_MAX,
             permissions: SYSTEM_WRITE,
+            dynamicTableConfiguration: {visible: false},
         },
         project: {type: SchemaTypes.ObjectId, ref: "Project", required: true, refAllowlist: ProjectSimpleSnippet},
         edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, refAllowlist: EdificeSimpleSnippet},
@@ -79,16 +80,18 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
             required: false,
             trim: true,
             maxlength: CONSTRUCTION_PROGRESS_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         expectedCompletionDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         photos: {
             type: [{type: SchemaTypes.ObjectId, ref: "Media"}],
             default: [],
             refAllowlist: MediaSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         notifyClients: {type: SchemaTypes.Boolean, required: false, default: true},
         clientsNotifiedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
-        clientsNotifiedCount: {type: SchemaTypes.Number, required: false, permissions: SYSTEM_WRITE},
+        clientsNotifiedCount: {type: SchemaTypes.Number, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
     },
     {accessMode: "loose"}
 );

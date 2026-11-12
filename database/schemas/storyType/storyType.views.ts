@@ -17,45 +17,12 @@ export const storyTypeSheetView: ViewConfig = {
     },
     nodes: [
         {
+            // The title names the type; slug and sort order stay off the sheet (UX-03).
             render: "#SheetGroup",
+            permissions: {readAny: ["description"]},
+            dependent: "description",
             props: {title: "overview"},
             children: [
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 3},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#Tag"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "slug"},
-                            field: {
-                                name: "slug",
-                                widget: "#DisplayCard",
-                                label: "slug",
-                                widgetProps: {icon: "#Hash"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "sortOrder"},
-                            field: {
-                                name: "sortOrder",
-                                widget: "#DisplayCard",
-                                label: "sortOrder",
-                                widgetProps: {icon: "#ListOrdered", type: "number"},
-                            },
-                        },
-                    ],
-                },
                 {
                     render: "#SheetGrid",
                     props: {columns: 1},
@@ -103,16 +70,6 @@ const storyTypeCreateFormNode: ViewConfig["nodes"] = [
                         },
                     },
                     {
-                        render: "#Field",
-                        field: {
-                            name: "sortOrder",
-                            widget: "#Input",
-                            label: "form.sortOrderLabel",
-                            placeholder: "form.sortOrderPlaceholder",
-                            widgetProps: {type: "number"},
-                        },
-                    },
-                    {
                         render: "div",
                         props: {className: "md:col-span-2 space-y-1.5"},
                         children: [
@@ -131,6 +88,29 @@ const storyTypeCreateFormNode: ViewConfig["nodes"] = [
                                 },
                             },
                         ],
+                    },
+                ],
+            },
+        ],
+    },
+    // ── Visibility: the order on lists, last (UX-04) ─────────
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.visibilitySectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "sortOrder",
+                            widget: "#Input",
+                            label: "form.sortOrderLabel",
+                            placeholder: "form.sortOrderPlaceholder",
+                            widgetProps: {type: "number"},
+                        },
                     },
                 ],
             },
@@ -160,17 +140,6 @@ const storyTypeEditFormNode: ViewConfig["nodes"] = [
                         },
                     },
                     {
-                        render: "#Field",
-                        permissions: {write: "sortOrder", read: "sortOrder"},
-                        field: {
-                            name: "sortOrder",
-                            widget: "#Input",
-                            label: "form.sortOrderLabel",
-                            placeholder: "form.sortOrderPlaceholder",
-                            widgetProps: {type: "number"},
-                        },
-                    },
-                    {
                         render: "div",
                         props: {className: "md:col-span-2 space-y-1.5"},
                         children: [
@@ -190,6 +159,31 @@ const storyTypeEditFormNode: ViewConfig["nodes"] = [
                                 },
                             },
                         ],
+                    },
+                ],
+            },
+        ],
+    },
+    // ── Visibility: the order on lists, last (UX-04) ─────────
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.visibilitySectionTitle"},
+        permissions: {readAny: ["sortOrder"], writeAny: ["sortOrder"]},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
+                    {
+                        render: "#Field",
+                        permissions: {write: "sortOrder", read: "sortOrder"},
+                        field: {
+                            name: "sortOrder",
+                            widget: "#Input",
+                            label: "form.sortOrderLabel",
+                            placeholder: "form.sortOrderPlaceholder",
+                            widgetProps: {type: "number"},
+                        },
                     },
                 ],
             },

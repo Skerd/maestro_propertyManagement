@@ -677,6 +677,8 @@ export const unitSheetView: ViewConfig = {
                     children: [
                         {
                             render: "div",
+                            dependent: "statistics.collectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -690,7 +692,6 @@ export const unitSheetView: ViewConfig = {
                                             tooltip: "statistics.collectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -699,6 +700,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.notCollectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -712,7 +715,6 @@ export const unitSheetView: ViewConfig = {
                                             tooltip: "statistics.notCollectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -721,6 +723,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.averagePricePerSquareMeter",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -735,7 +739,6 @@ export const unitSheetView: ViewConfig = {
                                             valueType: "currencyList",
                                             andKey: "and",
                                             suffix: "/m²",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -744,6 +747,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedPaidUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -757,7 +762,6 @@ export const unitSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedPaidUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -766,6 +770,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedOutstandingUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -779,7 +785,6 @@ export const unitSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedOutstandingUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -788,6 +793,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.pendingVerificationUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -801,7 +808,6 @@ export const unitSheetView: ViewConfig = {
                                             tooltip: "statistics.pendingVerificationUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -810,6 +816,8 @@ export const unitSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitCostDocumentCount",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitCostDocumentCount",
                                 widget: "#DisplayCard",

@@ -31,7 +31,6 @@ export const edificeSheetView: ViewConfig = {
             render: "#SheetGroup",
             permissions: {
                 readAny: [
-                    "name",
                     "project",
                     "totalArea",
                     "greenArea",
@@ -39,10 +38,9 @@ export const edificeSheetView: ViewConfig = {
                     "investmentValue",
                     "pricePerMeterSquared",
                     "verandaPricePerMeterSquared",
-                    "saleCurrency",
-                    "priceVisibility",
                 ],
             },
+            dependentAny: ["project", "totalArea", "greenArea", "distanceFromCityCenter", "investmentValue", "pricePerMeterSquared", "verandaPricePerMeterSquared"],
             props: { title: "overview" },
             children: [
                 {
@@ -51,17 +49,8 @@ export const edificeSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: { read: "project" },
+                            dependent: "project",
                             field: {
                                 name: "project.name",
                                 widget: "#DisplayCard",
@@ -77,6 +66,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "totalArea" },
+                            dependent: "totalArea",
                             field: {
                                 name: "totalArea",
                                 widget: "#DisplayCard",
@@ -87,6 +77,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "greenArea" },
+                            dependent: "greenArea",
                             field: {
                                 name: "greenArea",
                                 widget: "#DisplayCard",
@@ -97,6 +88,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "distanceFromCityCenter" },
+                            dependent: "distanceFromCityCenter",
                             field: {
                                 name: "distanceFromCityCenter",
                                 widget: "#DisplayCard",
@@ -107,6 +99,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "investmentValue" },
+                            dependent: "investmentValue",
                             field: {
                                 name: "investmentValue",
                                 widget: "#DisplayCard",
@@ -127,6 +120,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "pricePerMeterSquared" },
+                            dependent: "pricePerMeterSquared",
                             field: {
                                 name: "pricePerMeterSquared",
                                 widget: "#DisplayCard",
@@ -148,6 +142,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "verandaPricePerMeterSquared" },
+                            dependent: "verandaPricePerMeterSquared",
                             field: {
                                 name: "verandaPricePerMeterSquared",
                                 widget: "#DisplayCard",
@@ -163,52 +158,6 @@ export const edificeSheetView: ViewConfig = {
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
                                     type: "currency",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "saleCurrency" },
-                            field: {
-                                name: "saleCurrency.name",
-                                widget: "#DisplayCard",
-                                label: "saleCurrency",
-                                widgetProps: {
-                                    icon: "#DollarSign",
-                                    linkedRefPath: "saleCurrency",
-                                    linkedSheetModel: "currencies",
-                                    linkedSheetWidget: "#CurrencySheetView",
-                                    linkedSheetEntityProp: "currency",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            field: {
-                                name: "priceVisibility",
-                                widget: "#DisplayCard",
-                                label: "priceVisibility",
-                                widgetProps: {
-                                    icon: "#EyeOff",
-                                    tooltip: "priceVisibilityTooltip",
-                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            dependent: "effectivePriceVisibility",
-                            field: {
-                                name: "effectivePriceVisibility.key",
-                                widget: "#DisplayCard",
-                                label: "effectivePriceVisibility",
-                                skipReadAccessGate: true,
-                                widgetProps: {
-                                    icon: "#Eye",
-                                    tooltip: "effectivePriceVisibilityTooltip",
-                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
                                 },
                             },
                         },
@@ -228,6 +177,7 @@ export const edificeSheetView: ViewConfig = {
                     "numberOfGarages",
                 ],
             },
+            dependentAny: ["numberOfFloors", "numberOfFloorsAboveGround", "numberOfFloorsUnderGround", "numberOfParkingSpaces", "numberOfGarages"],
             props: { title: "buildingDetails" },
             children: [
                 {
@@ -237,6 +187,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "numberOfFloors" },
+                            dependent: "numberOfFloors",
                             field: {
                                 name: "numberOfFloors",
                                 widget: "#DisplayCard",
@@ -247,6 +198,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "numberOfFloorsAboveGround" },
+                            dependent: "numberOfFloorsAboveGround",
                             field: {
                                 name: "numberOfFloorsAboveGround",
                                 widget: "#DisplayCard",
@@ -257,6 +209,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "numberOfFloorsUnderGround" },
+                            dependent: "numberOfFloorsUnderGround",
                             field: {
                                 name: "numberOfFloorsUnderGround",
                                 widget: "#DisplayCard",
@@ -267,6 +220,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "numberOfParkingSpaces" },
+                            dependent: "numberOfParkingSpaces",
                             field: {
                                 name: "numberOfParkingSpaces",
                                 widget: "#DisplayCard",
@@ -277,6 +231,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "numberOfGarages" },
+                            dependent: "numberOfGarages",
                             field: {
                                 name: "numberOfGarages",
                                 widget: "#DisplayCard",
@@ -300,6 +255,7 @@ export const edificeSheetView: ViewConfig = {
                     "energyClass",
                 ],
             },
+            dependentAny: ["constructionStartDate", "expectedCompletionDate", "actualCompletionDate", "buildingPermitNumber", "energyClass"],
             props: { title: "constructionTimeline" },
             children: [
                 {
@@ -309,6 +265,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "constructionStartDate" },
+                            dependent: "constructionStartDate",
                             field: {
                                 name: "constructionStartDate",
                                 widget: "#DisplayCard",
@@ -319,6 +276,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "expectedCompletionDate" },
+                            dependent: "expectedCompletionDate",
                             field: {
                                 name: "expectedCompletionDate",
                                 widget: "#DisplayCard",
@@ -329,6 +287,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "actualCompletionDate" },
+                            dependent: "actualCompletionDate",
                             field: {
                                 name: "actualCompletionDate",
                                 widget: "#DisplayCard",
@@ -339,6 +298,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "buildingPermitNumber" },
+                            dependent: "buildingPermitNumber",
                             field: {
                                 name: "buildingPermitNumber",
                                 widget: "#DisplayCard",
@@ -349,6 +309,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "energyClass" },
+                            dependent: "energyClass",
                             field: {
                                 name: "energyClass",
                                 widget: "#DisplayCard",
@@ -373,6 +334,8 @@ export const edificeSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalFloors",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalFloors",
                                 widget: "#DisplayCard",
@@ -382,6 +345,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnits",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnits",
                                 widget: "#DisplayCard",
@@ -391,6 +356,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.available",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.available",
                                 widget: "#DisplayCard",
@@ -400,6 +367,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.reserved",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.reserved",
                                 widget: "#DisplayCard",
@@ -409,6 +378,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.sold",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.sold",
                                 widget: "#DisplayCard",
@@ -418,6 +389,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.leased",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.leased",
                                 widget: "#DisplayCard",
@@ -427,6 +400,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.unavailable",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.unavailable",
                                 widget: "#DisplayCard",
@@ -436,6 +411,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsArea",
                                 widget: "#DisplayCard",
@@ -452,6 +429,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsNetArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsNetArea",
                                 widget: "#DisplayCard",
@@ -468,6 +447,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsSharedArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsSharedArea",
                                 widget: "#DisplayCard",
@@ -484,6 +465,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.totalValue",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -497,7 +480,6 @@ export const edificeSheetView: ViewConfig = {
                                             tooltip: "statistics.totalValueTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -506,6 +488,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.collectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -519,7 +503,6 @@ export const edificeSheetView: ViewConfig = {
                                             tooltip: "statistics.collectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -528,6 +511,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.notCollectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -541,7 +526,6 @@ export const edificeSheetView: ViewConfig = {
                                             tooltip: "statistics.notCollectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -550,6 +534,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedPaidUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -563,7 +549,6 @@ export const edificeSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedPaidUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -572,6 +557,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedOutstandingUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -585,7 +572,6 @@ export const edificeSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedOutstandingUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -594,6 +580,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.pendingVerificationUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -607,7 +595,6 @@ export const edificeSheetView: ViewConfig = {
                                             tooltip: "statistics.pendingVerificationUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -616,6 +603,8 @@ export const edificeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitCostDocuments",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitCostDocuments",
                                 widget: "#DisplayCard",
@@ -637,6 +626,7 @@ export const edificeSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["propertyTypes"] },
+            dependent: "propertyTypes",
             props: { title: "propertyTypes" },
             children: [
                 {
@@ -670,6 +660,7 @@ export const edificeSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["commercialFacilities", "neighborhoodFacilities"] },
+            dependentAny: ["commercialFacilities", "neighborhoodFacilities"],
             props: { title: "facilities" },
             children: [
                 {
@@ -679,6 +670,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "commercialFacilities" },
+                            dependent: "commercialFacilities",
                             field: {
                                 name: "commercialFacilities",
                                 widget: "#DisplayCard",
@@ -693,6 +685,7 @@ export const edificeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "neighborhoodFacilities" },
+                            dependent: "neighborhoodFacilities",
                             field: {
                                 name: "neighborhoodFacilities",
                                 widget: "#DisplayCard",
@@ -712,6 +705,7 @@ export const edificeSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["constructors"] },
+            dependent: "constructors",
             props: { title: "constructors" },
             children: [
                 {
@@ -752,6 +746,7 @@ export const edificeSheetView: ViewConfig = {
                 {
                     render: "#SheetGroup",
                     permissions: { readAny: ["address"] },
+                    dependent: "address",
                     props: {
                         title: "address",
                         titleActions: "#ReferencesViewModeToggle",
@@ -782,6 +777,7 @@ export const edificeSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
+            dependentAny: ["mainImage", "imageGallery", "videoGallery"],
             props: { title: "gallery" },
             children: [
                 {
@@ -813,6 +809,7 @@ export const edificeSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mediaFiles"] },
+            dependent: "mediaFiles",
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -841,6 +838,7 @@ export const edificeSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["marketingBooklet"] },
+            dependent: "marketingBooklet",
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -857,6 +855,52 @@ export const edificeSheetView: ViewConfig = {
                                     canDownload: true,
                                     canRemove: false,
                                     isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        // ── Visibility: the public price (UX-04) ────────────────────
+        {
+            render: "#SheetGroup",
+            permissions: { readAny: ["priceVisibility"] },
+            props: { title: "visibilityGroup" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            field: {
+                                name: "priceVisibility",
+                                widget: "#DisplayCard",
+                                label: "priceVisibility",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "priceVisibilityTooltip",
+                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            // Resolved on the single read; not a stored field.
+                            dependent: "effectivePriceVisibility",
+                            dependentRuntimeOnly: true,
+                            field: {
+                                name: "effectivePriceVisibility.key",
+                                widget: "#DisplayCard",
+                                label: "effectivePriceVisibility",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Eye",
+                                    tooltip: "effectivePriceVisibilityTooltip",
+                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
                                 },
                             },
                         },
@@ -1089,28 +1133,6 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                             label: "form.saleCurrencyLabel",
                             placeholder: "form.saleCurrencyPlaceholder",
                             widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
                         },
                     },
                 ],
@@ -1467,6 +1489,29 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
             },
         ],
     },
+    // ── Visibility, last (UX-04) ─────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        },
+                    },
+                ],
+            },
+        ],
+    },
 ];
 
 export const edificeCreateFormView: ViewConfig = {
@@ -1726,32 +1771,6 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.saleCurrencyPlaceholder",
                             widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
                         }, permissions: {read: "saleCurrency", write: "saleCurrency"},
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        permissions: {
-            readAny: ["priceVisibility"],
-            writeAny: ["priceVisibility"],
-        },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
-                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
                     },
                 ],
             },
@@ -2155,6 +2174,33 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                     label: "form.marketingBookletLabel",
                     widgetProps: { mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,.pdf" },
                 }, permissions: {read: "marketingBooklet", write: "marketingBooklet"},
+            },
+        ],
+    },
+    // ── Visibility, last (UX-04) ─────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        permissions: {
+            readAny: ["priceVisibility"],
+            writeAny: ["priceVisibility"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 1 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
+                    },
+                ],
             },
         ],
     },

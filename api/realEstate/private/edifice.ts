@@ -24,6 +24,7 @@ import {IUnitType} from "@propertyManagement/database/schemas/unitType/unitType"
 import {cascadeUnitPrices} from "@propertyManagement/utilities/unit/cascadeUnitPrices";
 import {pickFloorsFollowingEdifice, resolveEffectiveRates, type RateField} from "@propertyManagement/utilities/unit/resolveEffectiveRates";
 import {loadEffectivePriceVisibility} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
+import {edificeSelectFilter} from "@propertyManagement/utilities/edifice/edificeSelectFilter";
 
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
@@ -41,6 +42,8 @@ export const { router } = createCrudRouter({
     toDTO:          edificeToDTO,
     toDTOArray:     edificesToDTO,
     toSelect:       edificesToSelect,
+    defaultSort:    {name: 1},
+    extraSelectFilter: async ({project}) => edificeSelectFilter({project}),
     createMiddleware: [mediaUpload],
     editMiddleware:   [mediaUpload],
     enrichList: async (edifices, { actionUserCtx, languageCode, logger }) => {

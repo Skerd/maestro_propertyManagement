@@ -21,137 +21,13 @@ export const projectSheetView: ViewConfig = {
         showCloseButton: true,
     },
     nodes: [
-        // ── Overview ─────────────────────────────────────────────────
+        // ── Overview: the title already names the project (UX-03) ──
         {
             render: "#SheetGroup",
-            permissions: {
-                readAny: [
-                    "name",
-                    "saleCommissionRatePercent",
-                    "reservationCommissionRatePercent",
-                    "featuredOnHomepage",
-                    "featuredSortOrder",
-                    "priceVisibility",
-                    "description",
-                ],
-            },
+            permissions: { readAny: ["description"] },
+            dependent: "description",
             props: { title: "overview" },
             children: [
-                {
-                    render: "#SheetGrid",
-                    props: { columns: 1 },
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
-                    ],
-                },
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 4},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "saleCommissionRatePercent" },
-                            field: {
-                                name: "saleCommissionRatePercent",
-                                widget: "#DisplayCard",
-                                label: "saleCommission",
-                                widgetProps: {
-                                    icon: "#Percent",
-                                    suffix: "%",
-                                    tooltip: "saleCommissionTooltip",
-
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "reservationCommissionRatePercent" },
-                            field: {
-                                name: "reservationCommissionRatePercent",
-                                widget: "#DisplayCard",
-                                label: "reservationCommission",
-                                widgetProps: {
-                                    icon: "#Percent",
-                                    suffix: "%",
-                                    tooltip: "reservationCommissionTooltip"
-                                },
-                            },
-                        },
-                    ],
-                },
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 4},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "featuredOnHomepage" },
-                            field: {
-                                name: "featuredOnHomepage",
-                                widget: "#DisplayCard",
-                                label: "featuredOnHomepage",
-                                widgetProps: {
-                                    icon: "#BookMarked",
-                                    tooltip: "featuredOnHomepageTooltip",
-                                    type: "boolean",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {
-                                read: "featuredSortOrder",
-                            },
-                            field: {
-                                name: "featuredSortOrder",
-                                widget: "#DisplayCard",
-                                label: "featuredSortOrder",
-                                widgetProps: {
-                                    icon: "#BookMarked",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            field: {
-                                name: "priceVisibility",
-                                widget: "#DisplayCard",
-                                label: "priceVisibility",
-                                widgetProps: {
-                                    icon: "#EyeOff",
-                                    tooltip: "priceVisibilityTooltip",
-                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "priceVisibility" },
-                            dependent: "effectivePriceVisibility",
-                            field: {
-                                name: "effectivePriceVisibility.key",
-                                widget: "#DisplayCard",
-                                label: "effectivePriceVisibility",
-                                skipReadAccessGate: true,
-                                widgetProps: {
-                                    icon: "#Eye",
-                                    tooltip: "effectivePriceVisibilityTooltip",
-                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
-                                },
-                            },
-                        },
-                    ],
-                },
                 {
                     render: "#SheetGrid",
                     props: { columns: 1 },
@@ -188,6 +64,8 @@ export const projectSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalEdifices",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalEdifices",
                                 widget: "#DisplayCard",
@@ -202,6 +80,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalFloors",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalFloors",
                                 widget: "#DisplayCard",
@@ -216,6 +96,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnits",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnits",
                                 widget: "#DisplayCard",
@@ -230,6 +112,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalArea",
                                 widget: "#DisplayCard",
@@ -246,6 +130,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.totalInvestmentValue",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -259,7 +145,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.investmentTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -268,6 +153,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.available",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.available",
                                 widget: "#DisplayCard",
@@ -277,6 +164,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.reserved",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.reserved",
                                 widget: "#DisplayCard",
@@ -286,6 +175,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.sold",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.sold",
                                 widget: "#DisplayCard",
@@ -295,6 +186,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.leased",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.leased",
                                 widget: "#DisplayCard",
@@ -304,6 +197,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.unavailable",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.unavailable",
                                 widget: "#DisplayCard",
@@ -313,6 +208,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsArea",
                                 widget: "#DisplayCard",
@@ -329,6 +226,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsNetArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsNetArea",
                                 widget: "#DisplayCard",
@@ -345,6 +244,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsSharedArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsSharedArea",
                                 widget: "#DisplayCard",
@@ -361,6 +262,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.totalValue",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -374,7 +277,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.totalValueTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -383,6 +285,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.collectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -396,7 +300,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.collectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -405,6 +308,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.notCollectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -418,7 +323,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.notCollectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -427,6 +331,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedPaidUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -440,7 +346,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedPaidUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -449,6 +354,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedOutstandingUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -462,7 +369,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedOutstandingUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -471,6 +377,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.pendingVerificationUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -484,7 +392,6 @@ export const projectSheetView: ViewConfig = {
                                             tooltip: "statistics.pendingVerificationUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -493,6 +400,8 @@ export const projectSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitCostDocuments",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitCostDocuments",
                                 widget: "#DisplayCard",
@@ -504,6 +413,46 @@ export const projectSheetView: ViewConfig = {
                                     type: "number",
                                      show: true,
                                  },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+
+        // ── Commissions: secondary (UX-03) ──────────────────────────
+        {
+            render: "#SheetGroup",
+            permissions: {
+                readAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
+            },
+            dependentAny: ["saleCommissionRatePercent", "reservationCommissionRatePercent"],
+            props: { title: "commissions" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 2 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "saleCommissionRatePercent" },
+                            dependent: "saleCommissionRatePercent",
+                            field: {
+                                name: "saleCommissionRatePercent",
+                                widget: "#DisplayCard",
+                                label: "saleCommission",
+                                widgetProps: { icon: "#Percent", suffix: "%", tooltip: "saleCommissionTooltip" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "reservationCommissionRatePercent" },
+                            dependent: "reservationCommissionRatePercent",
+                            field: {
+                                name: "reservationCommissionRatePercent",
+                                widget: "#DisplayCard",
+                                label: "reservationCommission",
+                                widgetProps: { icon: "#Percent", suffix: "%", tooltip: "reservationCommissionTooltip" },
                             },
                         },
                     ],
@@ -527,6 +476,7 @@ export const projectSheetView: ViewConfig = {
                         defaultOpen: false,
                     },
                     permissions: { readAny: ["socialLinks"] },
+                    dependent: "socialLinks",
                     children: [
                         {
                             render: "div",
@@ -560,6 +510,7 @@ export const projectSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mainImage", "imageGallery", "videoGallery"] },
+            dependentAny: ["mainImage", "imageGallery", "videoGallery"],
             props: { title: "gallery" },
             children: [
                 {
@@ -591,6 +542,7 @@ export const projectSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["mediaFiles"] },
+            dependent: "mediaFiles",
             props: { title: "mediaFiles" },
             children: [
                 {
@@ -619,6 +571,7 @@ export const projectSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["marketingBooklet"] },
+            dependent: "marketingBooklet",
             props: { title: "marketingBooklet" },
             children: [
                 {
@@ -647,6 +600,7 @@ export const projectSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: { readAny: ["magazineTitle", "magazineDescription", "magazineFile"] },
+            dependentAny: ["magazineTitle", "magazineDescription", "magazineFile"],
             props: { title: "magazine" },
             children: [
                 {
@@ -656,6 +610,7 @@ export const projectSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "magazineTitle" },
+                            dependent: "magazineTitle",
                             field: {
                                 name: "magazineTitle",
                                 widget: "#DisplayCard",
@@ -666,6 +621,7 @@ export const projectSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "magazineDescription" },
+                            dependent: "magazineDescription",
                             field: {
                                 name: "magazineDescription",
                                 widget: "#DisplayCard",
@@ -680,6 +636,7 @@ export const projectSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "magazineFile" },
+                            dependent: "magazineFile",
                             field: {
                                 name: "magazineFile",
                                 widget: "#DisplayCard",
@@ -687,6 +644,67 @@ export const projectSheetView: ViewConfig = {
                                 widgetProps: {
                                     icon: "#Paperclip",
                                     type: "media",
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        // ── Visibility: on the homepage and the public price (UX-04) ─
+        {
+            render: "#SheetGroup",
+            permissions: { readAny: ["featuredOnHomepage", "priceVisibility"] },
+            props: { title: "visibilityGroup" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "featuredOnHomepage" },
+                            dependent: "featuredOnHomepage",
+                            field: {
+                                name: "featuredOnHomepage",
+                                widget: "#DisplayCard",
+                                label: "featuredOnHomepage",
+                                widgetProps: {
+                                    icon: "#BookMarked",
+                                    tooltip: "featuredOnHomepageTooltip",
+                                    type: "boolean",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            field: {
+                                name: "priceVisibility",
+                                widget: "#DisplayCard",
+                                label: "priceVisibility",
+                                widgetProps: {
+                                    icon: "#EyeOff",
+                                    tooltip: "priceVisibilityTooltip",
+                                    languageKeyCategory: "priceVisibilityEnum", type: "enum",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "priceVisibility" },
+                            // Resolved on the single read; not a stored field.
+                            dependent: "effectivePriceVisibility",
+                            dependentRuntimeOnly: true,
+                            field: {
+                                name: "effectivePriceVisibility.key",
+                                widget: "#DisplayCard",
+                                label: "effectivePriceVisibility",
+                                skipReadAccessGate: true,
+                                widgetProps: {
+                                    icon: "#Eye",
+                                    tooltip: "effectivePriceVisibilityTooltip",
+                                    languageKeyCategory: "effectivePriceVisibilityEnum", type: "enum",
                                 },
                             },
                         },
@@ -900,62 +918,6 @@ const projectCreateFormNode: ViewConfig["nodes"] = [
         ],
     },
 
-    // ── Homepage featured carousel ──────────────────────────────
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "homepageFeatured" },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 2 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredOnHomepage",
-                            widget: "#Switch",
-                            label: "form.featuredOnHomepageLabel",
-                        },
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredSortOrder",
-                            widget: "#Input",
-                            label: "form.featuredSortOrderLabel",
-                            placeholder: "form.featuredSortOrderPlaceholder",
-                            widgetProps: { type: "number", min: 0, step: 1 },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-
-    // ── Public price visibility ─────────────────────────────────
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
-                        },
-                    },
-                ],
-            },
-        ],
-    },
-
     // ── Social / follow links ───────────────────────────────────
     {
         render: "#Field",
@@ -1011,6 +973,47 @@ const projectCreateFormNode: ViewConfig["nodes"] = [
                 ],
             },
         },
+    },
+    // ── Visibility: on the homepage and the public price, last (UX-04) ─
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        },
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        },
+                    },
+                ],
+            },
+        ],
     },
 ];
 
@@ -1233,70 +1236,6 @@ const projectEditFormNode: ViewConfig["nodes"] = [
         ],
     },
 
-    // ── Homepage featured carousel ──────────────────────────────
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "homepageFeatured" },
-        permissions: {
-            readAny: ["featuredOnHomepage", "featuredSortOrder"],
-            writeAny: ["featuredOnHomepage", "featuredSortOrder"],
-        },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 2 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredOnHomepage",
-                            widget: "#Switch",
-                            label: "form.featuredOnHomepageLabel",
-                        }, permissions: {read: "featuredOnHomepage", write: "featuredOnHomepage"},
-                    },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "featuredSortOrder",
-                            widget: "#Input",
-                            label: "form.featuredSortOrderLabel",
-                            placeholder: "form.featuredSortOrderPlaceholder",
-                            widgetProps: { type: "number", min: 0, step: 1 },
-                        }, permissions: {write: "featuredSortOrder", read: "featuredSortOrder"},
-                    },
-                ],
-            },
-        ],
-    },
-
-    // ── Public price visibility ─────────────────────────────────
-    {
-        render: "#TitleWithCollapse",
-        props: { title: "publicVisibility" },
-        permissions: {
-            readAny: ["priceVisibility"],
-            writeAny: ["priceVisibility"],
-        },
-        children: [
-            {
-                render: "#FormGrid",
-                props: { columns: 1 },
-                children: [
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "priceVisibility",
-                            widget: "#SimpleSelect",
-                            label: "form.priceVisibilityLabel",
-                            placeholder: "form.priceVisibilityPlaceholder",
-                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
-                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
-                    },
-                ],
-            },
-        ],
-    },
-
     // ── Social / follow links ───────────────────────────────────
     {
         render: "#Field",
@@ -1353,6 +1292,51 @@ const projectEditFormNode: ViewConfig["nodes"] = [
                 ],
             },
         },
+    },
+    // ── Visibility: on the homepage and the public price, last (UX-04) ─
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        permissions: {
+            readAny: ["featuredOnHomepage", "featuredSortOrder", "priceVisibility"],
+            writeAny: ["featuredOnHomepage", "featuredSortOrder", "priceVisibility"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 3 },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredOnHomepage",
+                            widget: "#Switch",
+                            label: "form.featuredOnHomepageLabel",
+                        }, permissions: {read: "featuredOnHomepage", write: "featuredOnHomepage"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "featuredSortOrder",
+                            widget: "#Input",
+                            label: "form.featuredSortOrderLabel",
+                            placeholder: "form.featuredSortOrderPlaceholder",
+                            widgetProps: { type: "number", min: 0, step: 1 },
+                        }, permissions: {read: "featuredSortOrder", write: "featuredSortOrder"},
+                    },
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "priceVisibility",
+                            widget: "#SimpleSelect",
+                            label: "form.priceVisibilityLabel",
+                            placeholder: "form.priceVisibilityPlaceholder",
+                            widgetProps: { options: priceVisibilityOptions, className: "grow w-full" },
+                        }, permissions: {read: "priceVisibility", write: "priceVisibility"},
+                    },
+                ],
+            },
+        ],
     },
 ];
 

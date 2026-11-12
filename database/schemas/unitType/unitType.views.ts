@@ -26,26 +26,6 @@ export const unitTypeSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#Tag" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "slug" },
-                            field: {
-                                name: "slug",
-                                widget: "#DisplayCard",
-                                label: "slug",
-                                widgetProps: { icon: "#Hash" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: { read: "category" },
                             field: {
                                 name: "category.name",
@@ -63,6 +43,7 @@ export const unitTypeSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "group" },
+                            dependent: "group",
                             field: {
                                 name: "group",
                                 widget: "#DisplayCard",
@@ -72,17 +53,8 @@ export const unitTypeSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "isPrivate" },
-                            field: {
-                                name: "isPrivate",
-                                widget: "#DisplayCard",
-                                label: "isPrivate",
-                                widgetProps: { icon: "#Lock", type: "boolean", languageKeyCategory: "unitTypeVisibility" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: { read: "icon" },
+                            dependent: "icon",
                             field: {
                                 name: "icon",
                                 widget: "#DisplayCard",
@@ -109,6 +81,32 @@ export const unitTypeSheetView: ViewConfig = {
                                     expandable: true,
                                     maxLength: 250,
                                 },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        // ── Visibility: shown only when the type is private (UX-02, UX-04) ─
+        {
+            render: "#SheetGroup",
+            permissions: { readAny: ["isPrivate"] },
+            dependent: "isPrivate",
+            props: { title: "visibilityGroup" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "isPrivate" },
+                            dependent: "isPrivate",
+                            field: {
+                                name: "isPrivate",
+                                widget: "#DisplayCard",
+                                label: "isPrivate",
+                                widgetProps: { icon: "#Lock", type: "boolean", languageKeyCategory: "unitTypeVisibility" },
                             },
                         },
                     ],
@@ -193,19 +191,26 @@ const unitTypeCreateFormNode: ViewConfig["nodes"] = [
                             },
                         ],
                     },
+                ],
+            },
+        ],
+    },
+    // ── Visibility, last (UX-04) ─────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
                     {
-                        render: "div",
-                        props: { className: "md:col-span-2 border-t border-border/60 pt-4 mt-1" },
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name: "isPrivate",
-                                    widget: "#Checkbox",
-                                    label: "form.isPrivateLabel",
-                                },
-                            },
-                        ],
+                        render: "#Field",
+                        field: {
+                            name: "isPrivate",
+                            widget: "#Checkbox",
+                            label: "form.isPrivateLabel",
+                        },
                     },
                 ],
             },
@@ -292,20 +297,28 @@ const unitTypeEditFormNode: ViewConfig["nodes"] = [
                             },
                         ],
                     },
+                ],
+            },
+        ],
+    },
+    // ── Visibility, last (UX-04) ─────────────────────────────
+    {
+        render: "#TitleWithCollapse",
+        props: { title: "form.visibilitySectionTitle" },
+        permissions: { readAny: ["isPrivate"], writeAny: ["isPrivate"] },
+        children: [
+            {
+                render: "#FormGrid",
+                props: { columns: 2 },
+                children: [
                     {
-                        render: "div",
-                        props: { className: "md:col-span-2 border-t border-border/60 pt-4 mt-1" },
-                        children: [
-                            {
-                                render: "#Field",
-                                permissions: {write: "isPrivate", read: "isPrivate"},
-                                field: {
-                                    name: "isPrivate",
-                                    widget: "#Checkbox",
-                                    label: "form.isPrivateLabel",
-                                },
-                            },
-                        ],
+                        render: "#Field",
+                        permissions: {write: "isPrivate", read: "isPrivate"},
+                        field: {
+                            name: "isPrivate",
+                            widget: "#Checkbox",
+                            label: "form.isPrivateLabel",
+                        },
                     },
                 ],
             },

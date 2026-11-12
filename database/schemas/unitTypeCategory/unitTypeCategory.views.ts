@@ -12,29 +12,8 @@ export const unitTypeCategorySheetView: ViewConfig = {
         subtitleKey: "unitTypeCategory",
         showCloseButton: true,
     },
+    // The title is the category's only fact; a name card would repeat it (UX-03).
     nodes: [
-        {
-            render: "#SheetGroup",
-            props: {title: "overview"},
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 3},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#Tag"},
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
         lifecycleSheetGroup,
     ],
 };

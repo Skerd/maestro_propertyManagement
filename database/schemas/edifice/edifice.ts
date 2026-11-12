@@ -103,6 +103,7 @@ const EdificeSchema = new Schema<IEdifice>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
                 cellType: COLUMN_TYPE.AVATAR,
             }
@@ -115,6 +116,7 @@ const EdificeSchema = new Schema<IEdifice>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             }
         },
@@ -126,6 +128,7 @@ const EdificeSchema = new Schema<IEdifice>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             }
         },
@@ -135,6 +138,7 @@ const EdificeSchema = new Schema<IEdifice>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -214,28 +218,34 @@ const EdificeSchema = new Schema<IEdifice>(
             required: true
         },
         distanceFromCityCenter: {
-            type: SchemaTypes.Number
+            type: SchemaTypes.Number,
+            dynamicTableConfiguration: {visible: false},
         },
         totalArea: {
             type: SchemaTypes.Number
         },
         greenArea: {
-            type: SchemaTypes.Number
+            type: SchemaTypes.Number,
+            dynamicTableConfiguration: {visible: false},
         },
         numberOfFloors: {
             type: SchemaTypes.Number
         },
         numberOfParkingSpaces: {
-            type: SchemaTypes.Number
+            type: SchemaTypes.Number,
+            dynamicTableConfiguration: {visible: false},
         },
         numberOfGarages: {
-            type: SchemaTypes.Number
+            type: SchemaTypes.Number,
+            dynamicTableConfiguration: {visible: false},
         },
         numberOfFloorsAboveGround: {
-            type: SchemaTypes.Number
+            type: SchemaTypes.Number,
+            dynamicTableConfiguration: {visible: false},
         },
         numberOfFloorsUnderGround: {
-            type: SchemaTypes.Number
+            type: SchemaTypes.Number,
+            dynamicTableConfiguration: {visible: false},
         },
         commercialFacilities: {
             type: [{
@@ -252,6 +262,7 @@ const EdificeSchema = new Schema<IEdifice>(
                 message: `Cannot have more than ${EDIFICE_FACILITY_MAX_ITEMS} commercial facilities`,
             },
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: false,
                 sortable: false,
             }
@@ -271,6 +282,7 @@ const EdificeSchema = new Schema<IEdifice>(
                 message: `Cannot have more than ${EDIFICE_FACILITY_MAX_ITEMS} neighborhood facilities`,
             },
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: false,
                 sortable: false,
             }
@@ -313,7 +325,7 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.Number,
             required: false,
             min: 0,
-            dynamicTableConfiguration: {currencyPath: "saleCurrency"},
+            dynamicTableConfiguration: {visible: false, currencyPath: "saleCurrency"},
         },
         saleCurrency: {
             type: SchemaTypes.ObjectId,
@@ -332,6 +344,7 @@ const EdificeSchema = new Schema<IEdifice>(
                 refAllowlist: ConstructorSimpleSnippet,
             }],
             dynamicTableConfiguration: {
+                visible: false,
                 refDisplayKey: ["name"],
             },
         },
@@ -340,6 +353,7 @@ const EdificeSchema = new Schema<IEdifice>(
             ref: 'UnitType',
             refAllowlist: UnitTypeSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 refDisplayKey: ["name"],
             },
         },
@@ -410,13 +424,14 @@ const EdificeSchema = new Schema<IEdifice>(
             type: SchemaTypes.String,
             required: false,
             index: true,
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
+            dynamicTableConfiguration: {visible: false, cellType: COLUMN_TYPE.DATE},
         },
         buildingPermitNumber: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
             maxlength: EDIFICE_PERMIT_NUMBER_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         energyClass: {
             type: SchemaTypes.String,

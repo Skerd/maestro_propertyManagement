@@ -209,6 +209,8 @@ export const floorSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnits",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnits",
                                 widget: "#DisplayCard",
@@ -218,6 +220,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.available",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.available",
                                 widget: "#DisplayCard",
@@ -227,6 +231,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.reserved",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.reserved",
                                 widget: "#DisplayCard",
@@ -236,6 +242,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.sold",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.sold",
                                 widget: "#DisplayCard",
@@ -245,6 +253,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.leased",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.leased",
                                 widget: "#DisplayCard",
@@ -254,6 +264,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.unitsByStatus.unavailable",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.unitsByStatus.unavailable",
                                 widget: "#DisplayCard",
@@ -263,6 +275,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsArea",
                                 widget: "#DisplayCard",
@@ -279,6 +293,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsNetArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsNetArea",
                                 widget: "#DisplayCard",
@@ -295,6 +311,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitsSharedArea",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitsSharedArea",
                                 widget: "#DisplayCard",
@@ -311,6 +329,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.totalValue",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -324,7 +344,6 @@ export const floorSheetView: ViewConfig = {
                                             tooltip: "statistics.totalValueTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -333,6 +352,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.collectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -346,7 +367,6 @@ export const floorSheetView: ViewConfig = {
                                             tooltip: "statistics.collectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -355,6 +375,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.notCollectedAmount",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -368,7 +390,6 @@ export const floorSheetView: ViewConfig = {
                                             tooltip: "statistics.notCollectedAmountTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -377,6 +398,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedPaidUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -390,7 +413,6 @@ export const floorSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedPaidUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -399,6 +421,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.verifiedOutstandingUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -412,7 +436,6 @@ export const floorSheetView: ViewConfig = {
                                             tooltip: "statistics.verifiedOutstandingUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -421,6 +444,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "div",
+                            dependent: "statistics.pendingVerificationUnitCosts",
+                            dependentRuntimeOnly: true,
                             props: { className: "md:col-span-2" },
                             children: [
                                 {
@@ -434,7 +459,6 @@ export const floorSheetView: ViewConfig = {
                                             tooltip: "statistics.pendingVerificationUnitCostsTooltip",
                                             valueType: "currencyList",
                                             andKey: "and",
-                                            type: "currency",
                                              show: true,
                                          },
                                     },
@@ -443,6 +467,8 @@ export const floorSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "statistics.totalUnitCostDocuments",
+                            dependentRuntimeOnly: true,
                             field: {
                                 name: "statistics.totalUnitCostDocuments",
                                 widget: "#DisplayCard",

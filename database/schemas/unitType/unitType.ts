@@ -56,7 +56,8 @@ const UnitTypeSchema = new Schema<IUnitType>(
                 others: {
                     write: "no-permission"
                 }
-            }
+            },
+            dynamicTableConfiguration: {visible: false},
         },
         category: {
             type: SchemaTypes.ObjectId,
@@ -73,6 +74,7 @@ const UnitTypeSchema = new Schema<IUnitType>(
             type: SchemaTypes.String,
             default: '',
             maxlength: UNIT_TYPE_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         icon: {
             type: SchemaTypes.String,

@@ -65,6 +65,7 @@ const ProjectSchema = new Schema<IProject>(
             type: SchemaTypes.String,
             default: '',
             maxlength: PROJECT_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         saleCommissionRatePercent: {
             type: SchemaTypes.Decimal128,
@@ -83,6 +84,7 @@ const ProjectSchema = new Schema<IProject>(
                 message: 'Commission rate percent must be between 0 and 100'
             },
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.PERCENTAGE
             }
         },
@@ -103,6 +105,7 @@ const ProjectSchema = new Schema<IProject>(
                 message: 'Commission rate percent must be between 0 and 100'
             },
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.PERCENTAGE
             }
         },
@@ -137,6 +140,7 @@ const ProjectSchema = new Schema<IProject>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
                 // cellType: COLUMN_TYPE.AVATAR
             }
@@ -149,6 +153,7 @@ const ProjectSchema = new Schema<IProject>(
             default: [],
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             }
         },
@@ -158,6 +163,7 @@ const ProjectSchema = new Schema<IProject>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -167,6 +173,7 @@ const ProjectSchema = new Schema<IProject>(
             required: false,
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -177,6 +184,7 @@ const ProjectSchema = new Schema<IProject>(
             default: "",
             maxlength: PROJECT_SHORT_TEXT_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -187,6 +195,7 @@ const ProjectSchema = new Schema<IProject>(
             default: "",
             maxlength: PROJECT_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -252,6 +261,7 @@ const ProjectSchema = new Schema<IProject>(
             default: 0,
             min: 0,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.NUMBER,
             },
         },

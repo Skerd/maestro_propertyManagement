@@ -31,7 +31,6 @@ export const inspectionChecklistTemplateSheetView: ViewConfig = {
                         {render: "#DisplayCard", permissions: {read: "name"}, field: {name: "name", widget: "#DisplayCard", label: "name", widgetProps: {icon: "#IconLabel"}}},
                         {render: "#DisplayCard", permissions: {read: "trade"}, dependent: "trade", field: {name: "trade", widget: "#DisplayCard", label: "trade", widgetProps: {icon: "#IconLabel"}}},
                         {render: "#DisplayCard", permissions: {read: "stage"}, dependent: "stage", field: {name: "stage", widget: "#DisplayCard", label: "stage", widgetProps: {icon: "#IconLabel"}}},
-                        {render: "#DisplayCard", permissions: {read: "status"}, field: {name: "status", widget: "#DisplayCard", label: "status", widgetProps: {icon: "#CircleDot", languageKeyCategory: "statuses"}}},
                     ],
                 },
                 {
@@ -80,6 +79,7 @@ export const inspectionChecklistTemplateSheetView: ViewConfig = {
                 {
                     render: "#SheetGroup",
                     permissions: {readAny: ["items"]},
+                    dependent: "items",
                     props: {
                         title: "checklist",
                         titleActions: "#ReferencesViewModeToggle",

@@ -22,7 +22,7 @@ export const constructionProgressSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: {
-                readAny: ["name", "title", "project", "edifice", "phase", "progressPercent", "updateDate", "expectedCompletionDate", "description"],
+                readAny: ["project", "edifice", "phase", "progressPercent", "updateDate", "expectedCompletionDate", "description"],
             },
             props: {title: "overview"},
             children: [
@@ -67,6 +67,7 @@ export const constructionProgressSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "edifice"},
+                            dependent: "edifice",
                             field: {
                                 name: "edifice",
                                 widget: "#DisplayCard",
@@ -86,17 +87,8 @@ export const constructionProgressSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "expectedCompletionDate"},
+                            dependent: "expectedCompletionDate",
                             field: {name: "expectedCompletionDate", widget: "#DisplayCard", label: "expectedCompletionDate", widgetProps: {icon: "#IconCalendarCheck", format: "date", type: "date"}},
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {name: "name", widget: "#DisplayCard", label: "name", widgetProps: {icon: "#Tag"}},
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "title"},
-                            field: {name: "title", widget: "#DisplayCard", label: "title", widgetProps: {icon: "#IconLabel"}},
                         },
                     ],
                 },
@@ -107,6 +99,7 @@ export const constructionProgressSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "description"},
+                            dependent: "description",
                             field: {name: "description", widget: "#DisplayCard", label: "description", widgetProps: {icon: "#IconAlignLeft", expandable: true, maxLength: 250}},
                         },
                     ],
@@ -116,6 +109,7 @@ export const constructionProgressSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: {readAny: ["notifyClients", "clientsNotifiedAt", "clientsNotifiedCount"]},
+            dependentAny: ["notifyClients", "clientsNotifiedAt", "clientsNotifiedCount"],
             props: {title: "clientNotifications"},
             children: [
                 {
@@ -125,16 +119,19 @@ export const constructionProgressSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "notifyClients"},
+                            dependent: "notifyClients",
                             field: {name: "notifyClients", widget: "#DisplayCard", label: "notifyClients", widgetProps: {icon: "#Bell", languageKeyCategory: "activeState", variantLookupField: "notifyClients"}},
                         },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "clientsNotifiedAt"},
+                            dependent: "clientsNotifiedAt",
                             field: {name: "clientsNotifiedAt", widget: "#DisplayCard", label: "clientsNotifiedAt", widgetProps: {icon: "#Mail", format: "datetime", type: "date"}},
                         },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "clientsNotifiedCount"},
+                            dependent: "clientsNotifiedCount",
                             field: {name: "clientsNotifiedCount", widget: "#DisplayCard", label: "clientsNotifiedCount", widgetProps: {icon: "#Users"}},
                         },
                     ],
@@ -144,6 +141,7 @@ export const constructionProgressSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: {readAny: ["photos"]},
+            dependent: "photos",
             props: {title: "photos"},
             children: [
                 {

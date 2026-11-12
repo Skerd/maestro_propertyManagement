@@ -30,13 +30,13 @@ export interface IInspectionChecklistTemplate extends Document, IOwnershipPlugin
 
 const InspectionChecklistTemplateSchema = new Schema<IInspectionChecklistTemplate>(
     {
-        name: {type: SchemaTypes.String, required: true, trim: true},
+        name: {type: SchemaTypes.String, required: true, trim: true, dynamicTableConfiguration: {visible: false}},
 
         title: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_TITLE_MAX},
         trade: {type: SchemaTypes.String, required: false},
         stage: {type: SchemaTypes.String, required: false},
-        description: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX},
-        notes: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX},
+        description: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
+        notes: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         items: {
             type: [{
                 name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX},
@@ -45,6 +45,7 @@ const InspectionChecklistTemplateSchema = new Schema<IInspectionChecklistTemplat
                 importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false},
             }],
             default: [],
+            dynamicTableConfiguration: {visible: false},
         },
 
         status: {

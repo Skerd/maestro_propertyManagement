@@ -32,6 +32,7 @@ export const handoverPackageSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "project"},
+                            dependent: "project",
                             field: {
                                 name: "project.name",
                                 widget: "#DisplayCard",
@@ -47,6 +48,7 @@ export const handoverPackageSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "edifice"},
+                            dependent: "edifice",
                             field: {
                                 name: "edifice.name",
                                 widget: "#DisplayCard",
@@ -63,6 +65,7 @@ export const handoverPackageSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "floor"},
+                            dependent: "floor",
                             field: {
                                 name: "floor.name",
                                 widget: "#DisplayCard",
@@ -79,6 +82,7 @@ export const handoverPackageSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "unit"},
+                            dependent: "unit",
                             field: {
                                 name: "unit",
                                 widget: "#DisplayCard",
@@ -105,6 +109,7 @@ export const handoverPackageSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "description"},
+                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",
@@ -121,6 +126,7 @@ export const handoverPackageSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: {read: "notes"},
+                            dependent: "notes",
                             field: {
                                 name: "notes",
                                 widget: "#DisplayCard",
@@ -142,6 +148,7 @@ export const handoverPackageSheetView: ViewConfig = {
                 {
                     render: "#SheetGroup",
                     permissions: {readAny: ["items"]},
+                    dependent: "items",
                     props: {
                         title: "checklist",
                         titleActions: "#ReferencesViewModeToggle",
@@ -179,6 +186,7 @@ export const handoverPackageSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: {readAny: ["media"]},
+            dependent: "media",
             props: {title: "media"},
             children: [
                 {

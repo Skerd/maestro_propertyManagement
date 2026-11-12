@@ -34,17 +34,8 @@ export const constructorSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#Building2" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: { read: "vat" },
+                            dependent: "vat",
                             field: {
                                 name: "vat",
                                 widget: "#DisplayCard",
@@ -55,6 +46,7 @@ export const constructorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "phoneNumber" },
+                            dependent: "phoneNumber",
                             field: {
                                 name: "phoneNumber",
                                 widget: "#DisplayCard",
@@ -65,6 +57,7 @@ export const constructorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "email" },
+                            dependent: "email",
                             field: {
                                 name: "email",
                                 widget: "#DisplayCard",
@@ -75,6 +68,7 @@ export const constructorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "website" },
+                            dependent: "website",
                             field: {
                                 name: "website",
                                 widget: "#DisplayCard",
@@ -85,6 +79,7 @@ export const constructorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "partyType" },
+                            dependent: "partyType",
                             field: {
                                 name: "partyType",
                                 widget: "#DisplayCard",
@@ -95,6 +90,7 @@ export const constructorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "trades" },
+                            dependent: "trades",
                             field: {
                                 name: "trades",
                                 widget: "#DisplayCard",
@@ -144,6 +140,7 @@ export const constructorSheetView: ViewConfig = {
                         {
                             render: "#DisplayCard",
                             permissions: { read: "description" },
+                            dependent: "description",
                             field: {
                                 name: "description",
                                 widget: "#DisplayCard",
@@ -152,6 +149,34 @@ export const constructorSheetView: ViewConfig = {
                                     icon: "#IconAlignLeft",
                                     expandable: true,
                                     maxLength: 250,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            props: { title: "edifices" },
+            dependent: "edifices",
+            dependentRuntimeOnly: true,
+            children: [
+                {
+                    render: "div",
+                    props: { className: "grid md:grid-cols-2 rounded-lg bg-muted/30 border border-border/50" },
+                    children: [
+                        {
+                            render: "#ReferencesRender",
+                            field: {
+                                name: "edifices",
+                                widget: "#ReferencesRender",
+                                widgetProps: {
+                                    cardWidget: "#EdificeCard",
+                                    itemDataProp: "edifice",
+                                    pageSize: 3,
+                                    hideActions: true,
+                                    listClassName: "max-h-auto"
                                 },
                             },
                         },
@@ -173,6 +198,7 @@ export const constructorSheetView: ViewConfig = {
                         titleActions: "#ReferencesViewModeToggle",
                     },
                     permissions: { read: "addresses" },
+                    dependent: "addresses",
                     children: [
                         {
                             render: "div",
@@ -210,6 +236,7 @@ export const constructorSheetView: ViewConfig = {
             render: "#SheetGroup",
             props: { title: "logo" },
             permissions: { read: "logo" },
+            dependent: "logo",
             children: [
                 {
                     render: "div",
@@ -231,34 +258,6 @@ export const constructorSheetView: ViewConfig = {
                                     showPreviews: false,
                                     forcedAspectRatio: 1,
                                     className: "max-w-[200px] aspect-square overflow-hidden rounded-lg",
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            props: { title: "edifices" },
-            dependent: "edifices",
-            dependentRuntimeOnly: true,
-            children: [
-                {
-                    render: "div",
-                    props: { className: "grid md:grid-cols-2 rounded-lg bg-muted/30 border border-border/50" },
-                    children: [
-                        {
-                            render: "#ReferencesRender",
-                            field: {
-                                name: "edifices",
-                                widget: "#ReferencesRender",
-                                widgetProps: {
-                                    cardWidget: "#EdificeCard",
-                                    itemDataProp: "edifice",
-                                    pageSize: 3,
-                                    hideActions: true,
-                                    listClassName: "max-h-auto"
                                 },
                             },
                         },

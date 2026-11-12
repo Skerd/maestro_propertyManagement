@@ -53,6 +53,7 @@ const StoryTypeSchema = new Schema<IStoryType>(
                 others: {write: "no-permission"},
             },
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.STRING,
@@ -63,6 +64,7 @@ const StoryTypeSchema = new Schema<IStoryType>(
             default: "",
             maxlength: STORY_TYPE_DESCRIPTION_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 sortable: false,
             },
         },
@@ -71,6 +73,7 @@ const StoryTypeSchema = new Schema<IStoryType>(
             required: false,
             default: 0,
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.NUMBER,

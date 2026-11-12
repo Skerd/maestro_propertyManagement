@@ -45,6 +45,7 @@ export const {router} = createCrudRouter({
     toDTO: projectToDTO,
     toDTOArray: projectsToDTO,
     toSelect: projectsToSelect,
+    defaultSort: {name: 1},
     createMiddleware: [mediaUpload],
     editMiddleware: [mediaUpload],
     enrichList: async (projects, params) => {

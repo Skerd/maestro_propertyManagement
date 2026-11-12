@@ -22,7 +22,7 @@ export const {router} = createCrudRouter({
     toDTO: inspectionChecklistTemplateToDTO,
     toDTOArray: inspectionChecklistTemplatesToDTO,
     toSelect: inspectionChecklistTemplatesToSelect,
-    defaultSort: {createdAt: -1},
+    defaultSort: {title: 1},
     selectSearchField: "title",
     
     actions: InspectionChecklistTemplateActions,

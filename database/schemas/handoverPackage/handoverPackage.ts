@@ -33,16 +33,16 @@ export interface IHandoverPackage extends Document, IOwnershipPluginFields, ISof
 
 const HandoverPackageSchema = new Schema<IHandoverPackage>(
     {
-        name: {type: SchemaTypes.String, required: true, trim: true},
+        name: {type: SchemaTypes.String, required: true, trim: true, dynamicTableConfiguration: {visible: false}},
 
         project: {type: SchemaTypes.ObjectId, ref: "Project", required: true, refAllowlist: ProjectSimpleSnippet},
         edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, default: null, refAllowlist: EdificeSimpleSnippet},
         floor: {type: SchemaTypes.ObjectId, ref: "Floor", required: false, default: null, refAllowlist: FloorSimpleSnippet},
         unit: {type: SchemaTypes.ObjectId, ref: "Unit", required: false, default: null, refAllowlist: UnitSimpleSnippet},
         title: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_TITLE_MAX},
-        description: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX},
-        notes: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX},
-        media: {type: [{type: SchemaTypes.ObjectId, ref: "Media"}], default: [], refAllowlist: MediaSimpleSnippet},
+        description: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
+        notes: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
+        media: {type: [{type: SchemaTypes.ObjectId, ref: "Media"}], default: [], refAllowlist: MediaSimpleSnippet, dynamicTableConfiguration: {visible: false}},
         items: {
             type: [{
                 name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX},
@@ -51,6 +51,7 @@ const HandoverPackageSchema = new Schema<IHandoverPackage>(
                 importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false},
             }],
             default: [],
+            dynamicTableConfiguration: {visible: false},
         },
     },
     {accessMode: "loose"},

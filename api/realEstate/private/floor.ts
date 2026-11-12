@@ -20,6 +20,7 @@ import {loadEffectivePriceVisibility} from "../../../utilities/marketing/priceOn
 import {cascadeUnitPrices} from "../../../utilities/unit/cascadeUnitPrices";
 import {RATE_FIELDS, resolveEffectiveRates} from "../../../utilities/unit/resolveEffectiveRates";
 import type {FloorEffectivePricing} from "armonia/src/modules/propertyManagement/api/realEstate/private/floor/floor.dto";
+import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 
 /** Rates actually applied to the floor's units (floor override, else edifice), with the edifice sale currency. */
 async function loadEffectivePricing(floor: any, { companyId, logger, languageCode }: { companyId: ObjectId; logger: any; languageCode: string }): Promise<FloorEffectivePricing> {
@@ -46,6 +47,35 @@ async function loadEffectivePricing(floor: any, { companyId, logger, languageCod
     };
 }
 
+/**
+ * Each floor row with its edifice's sale currency as `currency`, so the €/m² table columns read like the sheet
+ * (UX-07, D149). One query for the page's edifices.
+ */
+async function withEdificeSaleCurrency<T extends object>(dtos: T[], floors: {edifice?: unknown}[], { companyId, logger, languageCode }: { companyId: ObjectId; logger: any; languageCode: string }): Promise<(T & {currency?: CurrencySimple})[]> {
+    const edificeIdOf = (floor: {edifice?: unknown}) => String((floor.edifice as {_id?: unknown} | undefined)?._id ?? floor.edifice);
+    const ids = [...new Set(floors.map(edificeIdOf))].filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id));
+    const edifices: any[] = ids.length
+        ? await edificeService.find({ _id: { $in: ids }, company: companyId }, { logger, languageCode }, [{ path: "saleCurrency", select: "symbol name abbreviation decimalPlaces" }], "saleCurrency")
+        : [];
+    const currencyByEdifice = new Map<string, CurrencySimple>();
+    for (const edifice of edifices) {
+        const currency = edifice.saleCurrency;
+        if (currency?._id) {
+            currencyByEdifice.set(edifice._id.toString(), {
+                _id: currency._id.toString(),
+                name: currency.name,
+                symbol: currency.symbol,
+                abbreviation: currency.abbreviation,
+                decimalPlaces: currency.decimalPlaces,
+            });
+        }
+    }
+    return dtos.map((dto, index) => {
+        const currency = currencyByEdifice.get(edificeIdOf(floors[index]));
+        return currency ? { ...dto, currency } : dto;
+    });
+}
+
 const mediaUpload = mediaUploadMW({
     fields: { mainImage: 1, imageGallery: 10, videoGallery: 3, mediaFiles: 20, marketingBooklet: 1 },
     fieldMimeTypes: { marketingBooklet: ["application/pdf"] },
@@ -67,13 +97,14 @@ export const { router } = createCrudRouter({
     extraSelectFilter: async ({edificeId}: any) => edificeId ? {edifice: new ObjectId(String(edificeId))} : {},
     createMiddleware: [mediaUpload],
     editMiddleware:   [mediaUpload],
-    enrichList: async (floors, { actionUserCtx, languageCode, logger }) => {
+    enrichList: async (floors, { actionUserCtx, languageCode, logger, company }) => {
         const floorIds = floors.map((f) => f._id);
         const [statisticsByFloorId, unitsCoordinatesByFloorId] = await Promise.all([
             floorService.calculateStatistics(floorIds, actionUserCtx, languageCode, { logger }),
             floorService.getUnitsCoordinatesByFloorIds(floorIds, { logger, languageCode, actionUserCtx }),
         ]);
-        return floorsToDTO(floors, { statisticsByFloorId, unitsCoordinatesByFloorId });
+        const dtos = floorsToDTO(floors, { statisticsByFloorId, unitsCoordinatesByFloorId });
+        return withEdificeSaleCurrency(dtos, floors, { companyId: company._id, logger, languageCode });
     },
     enrichSingle: async (floor, { actionUserCtx, languageCode, logger, company }) => {
         const id = floor._id.toString();

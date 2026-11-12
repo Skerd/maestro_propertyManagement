@@ -232,12 +232,16 @@ const FloorSchema = new Schema<IFloor>(
         pricePerMeterSquared: {
             type: SchemaTypes.Number,
             required: false,
-            min: 0
+            min: 0,
+            // The floor list adds its edifice's sale currency to each row.
+            dynamicTableConfiguration: {currencyPath: "currency"},
         },
         verandaPricePerMeterSquared: {
             type: SchemaTypes.Number,
             required: false,
-            min: 0
+            min: 0,
+            // The floor list adds its edifice's sale currency to each row.
+            dynamicTableConfiguration: {currencyPath: "currency"},
         },
         priceVisibility: {
             type: SchemaTypes.String,

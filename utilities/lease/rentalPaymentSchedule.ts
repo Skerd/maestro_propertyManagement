@@ -1,3 +1,6 @@
+import type {RentalPaymentWhen} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.constants";
+import {OPEN_RENT_STATUSES} from "./rentRemaining";
+
 export const MAX_RENT_SCHEDULE_MONTHS = 600;
 
 type Ymd = {year: number; month: number; day: number};
@@ -41,4 +44,15 @@ export function buildMonthlyRentDueDates(startDate: string, endDate: string): st
 
 export function rentScheduleExceedsCap(startDate: string, endDate: string): boolean {
     return buildMonthlyRentDueDates(startDate, endDate).length > MAX_RENT_SCHEDULE_MONTHS;
+}
+
+/**
+ * The rental payment list's "When" quick filter as a condition on the stored due day (local `YYYY-MM-DD`, compared as
+ * text against the company's today, GLB-09). "Overdue" is a past due day still open, so it does not wait for the daily
+ * job that flips the status.
+ */
+export function rentalPaymentWhenCondition(when: RentalPaymentWhen, today: string): Record<string, unknown> {
+    if (when === "upcoming") return {dueDate: {$gte: today}};
+    if (when === "overdue") return {dueDate: {$lt: today}, status: {$in: [...OPEN_RENT_STATUSES]}};
+    return {dueDate: {$lt: today}};
 }

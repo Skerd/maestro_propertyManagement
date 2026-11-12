@@ -16,24 +16,29 @@ import {LeaseStatus} from "../../../database/schemas/lease/lease";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {hasCollectedCash} from "../../../utilities/lease/rentRemaining";
+import {rentalPaymentWhenCondition} from "../../../utilities/lease/rentalPaymentSchedule";
+import type {RentalPaymentWhen} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.constants";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
 
 const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 25 * 1024 * 1024});
 const moneyTransform = (v: unknown) => Decimal128.fromString(String(v));
 
 async function rentalPaymentExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const {unit, project, edifice, floor, lease, status, company, logger, languageCode} = params as {
+    const {unit, project, edifice, floor, lease, status, when, company, logger, languageCode} = params as {
         unit?: string;
         project?: string;
         edifice?: string;
         floor?: string;
         lease?: string;
         status?: string;
+        when?: RentalPaymentWhen;
         company: {_id: ObjectId};
         logger: unknown;
         languageCode: string;
     };
     const opts = {logger, languageCode, withDeleted: false as const};
-    const filter: Record<string, unknown> = {};
+    // Under `$and` so a picked status still narrows the "overdue" day condition instead of replacing it.
+    const filter: Record<string, unknown> = when ? {$and: [rentalPaymentWhenCondition(when, await companyTodayOf(company._id))]} : {};
 
     if (lease && ObjectId.isValid(lease)) filter.lease = new ObjectId(String(lease));
     if (status) filter.status = status;

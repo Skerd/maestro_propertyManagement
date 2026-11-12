@@ -260,6 +260,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             trim: true,
             maxlength: RENTAL_PAYMENT_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
                 sortable: false,
@@ -280,6 +281,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
                 sortable: true,
@@ -290,6 +292,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
                 sortable: true,
@@ -300,6 +303,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
                 sortable: true,
@@ -310,6 +314,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
                 sortable: true,

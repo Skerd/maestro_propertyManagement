@@ -19,7 +19,6 @@ export const leaseSheetView: ViewConfig = {
             render: "#SheetGroup",
             permissions: {
                 readAny: [
-                    "name",
                     "status",
                     "unit",
                     "tenant",
@@ -40,16 +39,6 @@ export const leaseSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props:  {columns: 3},
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#Tag"},
-                            },
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "status"},
@@ -141,6 +130,7 @@ export const leaseSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "depositAmount",
                             permissions: {read: "depositAmount"},
                             field: {
                                 name: "depositAmount",
@@ -161,26 +151,30 @@ export const leaseSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "lateFeePercentage",
                             permissions: {read: "lateFeePercentage"},
                             field: {
                                 name: "lateFeePercentage",
                                 widget: "#DisplayCard",
                                 label: "lateFeePercentage",
-                                widgetProps: {icon: "#Percent"},
+                                widgetProps: {icon: "#Percent", suffix: "%"},
                             },
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "gracePeriodDays",
                             permissions: {read: "gracePeriodDays"},
                             field: {
                                 name: "gracePeriodDays",
                                 widget: "#DisplayCard",
                                 label: "gracePeriodDays",
-                                widgetProps: {icon: "#Calendar"},
+                                widgetProps: {icon: "#Calendar", valueTemplateKey: "gracePeriodDaysValue"},
                             },
                         },
                         {
                             render: "#DisplayCard",
+                            // Paid or not only means something when the lease asks for a deposit.
+                            dependent: "depositAmount",
                             permissions: {read: "depositPaid"},
                             field: {
                                 name: "depositPaid",
@@ -208,6 +202,7 @@ export const leaseSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "notes",
                             permissions: {read: "notes"},
                             field: {
                                 name: "notes",
@@ -223,6 +218,13 @@ export const leaseSheetView: ViewConfig = {
                     ],
                 },
             ],
+        },
+        // The rent months with their collect, waive and email actions, after the key facts and above Lifecycle (UX-03,
+        // D151). The months check the rental payments' own access.
+        {
+            render: "#SheetGroup",
+            props: {title: "schedule.title"},
+            children: [{render: "#LeaseSchedule", field: {name: "_id", widget: "#LeaseSchedule"}}],
         },
         {
             render: "#SheetGroup",
@@ -272,6 +274,7 @@ export const leaseSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "contractMedia",
             permissions: {readAny: ["contractMedia"]},
             props: {title: "contractMedia"},
             children: [
@@ -300,10 +303,11 @@ export const leaseSheetView: ViewConfig = {
     ],
 };
 
+// Grouped in the order the lease is set up: where and who, how long, what it costs, then the contract and notes (UX-04).
 const leaseCreateFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
-        props:  {title: "generalInfo"},
+        props:  {title: "form.unitTenantSectionTitle"},
         children: [
             {
                 render: "#FormGrid",
@@ -334,6 +338,18 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             },
                         },
                     },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.termSectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
                     {
                         render: "#Field",
                         field: {
@@ -364,6 +380,18 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             },
                         },
                     },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.rentSectionTitle"},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
                     {
                         render: "#Field",
                         field: {
@@ -415,26 +443,6 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             widgetProps: {type: "number", min: 0, step: "1"},
                         },
                     },
-                    {
-                        render: "div",
-                        props: {className: "md:col-span-2 space-y-1.5"},
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name:        "notes",
-                                    widget:      "#Textarea",
-                                    label:       "form.notesLabel",
-                                    placeholder: "form.notesPlaceholder",
-                                    widgetProps: {
-                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
-                                        style: {maxHeight: 250},
-                                        maxLength: LEASE_LONG_TEXT_MAX,
-                                    },
-                                },
-                            },
-                        ],
-                    },
                 ],
             },
         ],
@@ -455,38 +463,33 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
             },
         ],
     },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.notesSectionTitle", defaultOpen: false},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name:        "notes",
+                    widget:      "#Textarea",
+                    label:       "form.notesLabel",
+                    placeholder: "form.notesPlaceholder",
+                    widgetProps: {
+                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                        style: {maxHeight: 250},
+                        maxLength: LEASE_LONG_TEXT_MAX,
+                    },
+                },
+            },
+        ],
+    },
 ];
 
 const leaseEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
-        props:  {title: "generalInfo"},
-        permissions: {
-            readAny: [
-                "unit",
-                "tenant",
-                "startDate",
-                "endDate",
-                "monthlyRent",
-                "rentCurrency",
-                "depositAmount",
-                "lateFeePercentage",
-                "gracePeriodDays",
-                "notes",
-            ],
-            writeAny: [
-                "unit",
-                "tenant",
-                "startDate",
-                "endDate",
-                "monthlyRent",
-                "rentCurrency",
-                "depositAmount",
-                "lateFeePercentage",
-                "gracePeriodDays",
-                "notes",
-            ],
-        },
+        props:  {title: "form.unitTenantSectionTitle"},
+        permissions: {readAny: ["unit", "tenant"], writeAny: ["unit", "tenant"]},
         children: [
             {
                 render: "#FormGrid",
@@ -529,6 +532,19 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             },
                         }, permissions: {read: "tenant", write: "tenant"},
                     },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.termSectionTitle"},
+        permissions: {readAny: ["startDate", "endDate"], writeAny: ["startDate", "endDate"]},
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
                     {
                         render: "#Field",
                         field: {
@@ -559,6 +575,22 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             },
                         }, permissions: {read: "endDate", write: "endDate"},
                     },
+                ],
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props:  {title: "form.rentSectionTitle"},
+        permissions: {
+            readAny: ["monthlyRent", "rentCurrency", "depositAmount", "lateFeePercentage", "gracePeriodDays"],
+            writeAny: ["monthlyRent", "rentCurrency", "depositAmount", "lateFeePercentage", "gracePeriodDays"],
+        },
+        children: [
+            {
+                render: "#FormGrid",
+                props:  {columns: 2, className: "gap-x-4 gap-y-5"},
+                children: [
                     {
                         render: "#Field",
                         field: {
@@ -610,26 +642,6 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             widgetProps: {type: "number", min: 0, step: "1"},
                         }, permissions: {read: "gracePeriodDays", write: "gracePeriodDays"},
                     },
-                    {
-                        render: "div",
-                        props: {className: "md:col-span-2 space-y-1.5"},
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name:        "notes",
-                                    widget:      "#Textarea",
-                                    label:       "form.notesLabel",
-                                    placeholder: "form.notesPlaceholder",
-                                    widgetProps: {
-                                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
-                                        style: {maxHeight: 250},
-                                        maxLength: LEASE_LONG_TEXT_MAX,
-                                    },
-                                }, permissions: {read: "notes", write: "notes"},
-                            },
-                        ],
-                    },
                 ],
             },
         ],
@@ -649,6 +661,27 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                     widgetProps: {mediaType: "file", mode: "single", maxCount: 1, accept: "application/pdf,image/*,.pdf"},
                 },
                 permissions: {read: "contractMedia", write: "contractMedia"},
+            },
+        ],
+    },
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "form.notesSectionTitle", defaultOpen: false},
+        permissions: {readAny: ["notes"], writeAny: ["notes"]},
+        children: [
+            {
+                render: "#Field",
+                field: {
+                    name:        "notes",
+                    widget:      "#Textarea",
+                    label:       "form.notesLabel",
+                    placeholder: "form.notesPlaceholder",
+                    widgetProps: {
+                        className: "field-sizing-fixed min-h-[120px] resize-none max-h-[250px] overflow-y-auto",
+                        style: {maxHeight: 250},
+                        maxLength: LEASE_LONG_TEXT_MAX,
+                    },
+                }, permissions: {read: "notes", write: "notes"},
             },
         ],
     },

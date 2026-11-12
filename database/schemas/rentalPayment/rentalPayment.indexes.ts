@@ -7,4 +7,6 @@ export function applyRentalPaymentIndexes(RentalPaymentSchema: Schema): void {
     );
     RentalPaymentSchema.index({company: 1, unit: 1, status: 1});
     RentalPaymentSchema.index({company: 1, status: 1, dueDate: 1});
+    // The list's default sort and its "When" quick filter (upcoming / past) read the due day alone.
+    RentalPaymentSchema.index({company: 1, dueDate: 1});
 }

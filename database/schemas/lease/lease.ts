@@ -206,6 +206,7 @@ const LeaseSchema = new Schema<ILease>(
             trim: true,
             maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
                 sortable: false,
@@ -217,6 +218,7 @@ const LeaseSchema = new Schema<ILease>(
             trim: true,
             maxlength: LEASE_LONG_TEXT_MAX,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
                 sortable: false,

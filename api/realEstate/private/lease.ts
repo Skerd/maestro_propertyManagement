@@ -83,7 +83,8 @@ export const {router} = createCrudRouter({
     toDTO:            leaseToDTO,
     toDTOArray:       leasesToDTO,
     toSelect:         leasesToSelect,
-    defaultSort:      {createdAt: -1},
+    // Newest tenancies first (UX-12).
+    defaultSort:      {startDate: -1},
     selectSearchField: "name",
     createMiddleware: [uploadMW],
     editMiddleware:   [uploadMW],

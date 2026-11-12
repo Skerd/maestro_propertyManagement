@@ -17,7 +17,6 @@ export const rentalPaymentSheetView: ViewConfig = {
             render: "#SheetGroup",
             permissions: {
                 readAny: [
-                    "name",
                     "status",
                     "lease",
                     "unit",
@@ -35,16 +34,6 @@ export const rentalPaymentSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props:  {columns: 3},
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "name"},
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#Tag"},
-                            },
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "status"},
@@ -73,8 +62,9 @@ export const rentalPaymentSheetView: ViewConfig = {
                                     linkedSheetWidget: "#LeaseSheetView",
                                     linkedSheetEntityProp: "lease",
                                     parent: "lease",
-                                    valuePath: ["name", "_id"],
-                                    pickFirstTruthyValuePath: true,
+                                    // The lease named by its tenant, not its code (UX-03, D151).
+                                    valuePath: ["tenant.name", "tenant.surname"],
+                                    joinSeparator: " ",
                                 },
                             },
                         },
@@ -124,6 +114,7 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "paidDate",
                             permissions: {read: "paidDate"},
                             field: {
                                 name: "paidDate",
@@ -134,6 +125,7 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "paidAmount",
                             permissions: {read: "paidAmount"},
                             field: {
                                 name: "paidAmount",
@@ -171,6 +163,7 @@ export const rentalPaymentSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "lateFeeAmount",
                             permissions: {read: "lateFeeAmount"},
                             field: {
                                 name: "lateFeeAmount",
@@ -193,6 +186,7 @@ export const rentalPaymentSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "notes",
                             permissions: {read: "notes"},
                             field: {
                                 name: "notes",
@@ -278,6 +272,7 @@ export const rentalPaymentSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "receiptMedia",
             permissions: {readAny: ["receiptMedia"]},
             props: {title: "receiptMedia"},
             children: [

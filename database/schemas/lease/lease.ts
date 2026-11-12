@@ -112,6 +112,7 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Decimal128,
             required: true,
             dynamicTableConfiguration: {
+                currencyPath: "rentCurrency",
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
             },
@@ -122,6 +123,7 @@ const LeaseSchema = new Schema<ILease>(
             required: true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["symbol", "name"],
                 filterable: true,
@@ -131,6 +133,7 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.Decimal128,
             required: false,
             dynamicTableConfiguration: {
+                currencyPath: "rentCurrency",
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
             },

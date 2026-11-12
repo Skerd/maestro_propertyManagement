@@ -185,13 +185,15 @@ const ReservationSchema = new Schema<IReservation>(
                     return numValue >= 0;
                 },
                 message: 'Deposit amount must be non-negative'
-            }
+            },
+            dynamicTableConfiguration: {currencyPath: "depositCurrency"},
         },
         depositCurrency: {
             type: SchemaTypes.ObjectId,
             ref: 'Currency',
             required: false,
-            refAllowlist: CurrencySimpleSnippet
+            refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         paymentMethod: {
             type: SchemaTypes.String,

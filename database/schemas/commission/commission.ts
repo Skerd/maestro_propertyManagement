@@ -181,6 +181,7 @@ const CommissionSchema = new Schema<ICommission>(
                 return Decimal128.fromString(v.toString());
             },
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.NUMBER,
@@ -221,6 +222,7 @@ const CommissionSchema = new Schema<ICommission>(
                 return Decimal128.fromString(v.toString());
             },
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.NUMBER,
@@ -282,6 +284,7 @@ const CommissionSchema = new Schema<ICommission>(
             required: true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,

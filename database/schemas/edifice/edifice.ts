@@ -290,7 +290,8 @@ const EdificeSchema = new Schema<IEdifice>(
                     return numValue >= 0;
                 },
                 message: 'Investment value must be non-negative'
-            }
+            },
+            dynamicTableConfiguration: {currencyPath: "investmentCurrency"},
         },
         investmentCurrency: {
             type: SchemaTypes.ObjectId,
@@ -298,18 +299,21 @@ const EdificeSchema = new Schema<IEdifice>(
             required: true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 refDisplayKey: ["symbol", "name"],
             },
         },
         pricePerMeterSquared: {
             type: SchemaTypes.Number,
             required: false,
-            min: 0
+            min: 0,
+            dynamicTableConfiguration: {currencyPath: "saleCurrency"},
         },
         verandaPricePerMeterSquared: {
             type: SchemaTypes.Number,
             required: false,
-            min: 0
+            min: 0,
+            dynamicTableConfiguration: {currencyPath: "saleCurrency"},
         },
         saleCurrency: {
             type: SchemaTypes.ObjectId,
@@ -317,6 +321,7 @@ const EdificeSchema = new Schema<IEdifice>(
             required: false,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 refDisplayKey: ["symbol", "name"],
             },
         },

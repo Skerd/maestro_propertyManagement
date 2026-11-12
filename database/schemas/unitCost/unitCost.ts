@@ -223,6 +223,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             required: true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },
@@ -354,6 +355,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
                 message: "budgetedAmount must be non-negative",
             },
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 cellType: COLUMN_TYPE.NUMBER,
             },
         },

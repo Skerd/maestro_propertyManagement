@@ -112,6 +112,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             type: SchemaTypes.Decimal128,
             required: true,
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
                 sortable: true,
@@ -123,6 +124,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required:     true,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["symbol", "name"],
                 filterable: true,
@@ -162,6 +164,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
                 sortable: true,
@@ -183,6 +186,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
                 sortable: true,

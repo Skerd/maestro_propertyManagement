@@ -194,7 +194,8 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.ObjectId,
             ref: 'Currency',
             required: true,
-            refAllowlist: CurrencySimpleSnippet
+            refAllowlist: CurrencySimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
 
         listedUnitPrice: {
@@ -212,7 +213,8 @@ const SaleSchema = new Schema<ISale>(
                     return numValue >= 0;
                 },
                 message: 'Listed unit price must be non-negative'
-            }
+            },
+            dynamicTableConfiguration: {currencyPath: "listedUnitCurrency"},
         },
         listedUnitCurrency: {
             type: SchemaTypes.ObjectId,
@@ -286,7 +288,8 @@ const SaleSchema = new Schema<ISale>(
                     return numValue >= 0;
                 },
                 message: 'Final price must be non-negative'
-            }
+            },
+            dynamicTableConfiguration: {currencyPath: "saleCurrency"},
         },
 
         notes: {

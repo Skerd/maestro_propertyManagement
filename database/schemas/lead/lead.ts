@@ -178,6 +178,7 @@ const LeadSchema = new Schema<ILead>(
         budget: {
             type:     SchemaTypes.Decimal128,
             required: false,
+            dynamicTableConfiguration: {currencyPath: "budgetCurrency"},
         },
         budgetCurrency: {
             type:         SchemaTypes.ObjectId,
@@ -185,6 +186,7 @@ const LeadSchema = new Schema<ILead>(
             required:     false,
             refAllowlist: CurrencySimpleSnippet,
             dynamicTableConfiguration: {
+                visible: false,
                 refDisplayKey: ["symbol", "name"],
             },
         },

@@ -174,7 +174,8 @@ const SaleSchema = new Schema<ISale>(
             type: SchemaTypes.ObjectId,
             ref: 'Company',
             required: false,
-            refAllowlist: CompanyBlankSnippet
+            refAllowlist: CompanyBlankSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         soldBy: {
             type: SchemaTypes.ObjectId,
@@ -270,7 +271,8 @@ const SaleSchema = new Schema<ISale>(
                 message: 'Local discount must be non-negative'
             },
             dynamicTableConfiguration: {
-                cellType: COLUMN_TYPE.PERCENTAGE
+                cellType: COLUMN_TYPE.PERCENTAGE,
+                visible: false,
             }
         },
         finalPrice: {
@@ -327,13 +329,15 @@ const SaleSchema = new Schema<ISale>(
             required: false,
             trim: true,
             maxlength: SALE_SHORT_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
 
         reservation: {
             type: SchemaTypes.ObjectId,
             ref: 'Reservation',
             required: false,
-            refAllowlist: ReservationSnippet
+            refAllowlist: ReservationSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         // these values are frozen from the reservation
         reservationDepositAmount: {
@@ -429,6 +433,7 @@ const SaleSchema = new Schema<ISale>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {visible: false},
         },
 
         paymentPlan: {
@@ -438,6 +443,7 @@ const SaleSchema = new Schema<ISale>(
             refAllowlist: PaymentPlanSimpleSnippet,
             dynamicTableConfiguration: {
                 refDisplayKey: ["name"],
+                visible: false,
             },
             permissions: {
                 self: {
@@ -471,6 +477,7 @@ const SaleSchema = new Schema<ISale>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {visible: false},
         },
         // FEAT-004 — handover tracking
         handoverDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
@@ -488,9 +495,10 @@ const SaleSchema = new Schema<ISale>(
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
                 refDisplayKey: ["name", "surname"],
+                visible: false,
             },
         },
-        handoverNotes: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_LONG_TEXT_MAX},
+        handoverNotes: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         handoverCompletedAt: {
             type: SchemaTypes.Date,
             required: false,
@@ -498,6 +506,7 @@ const SaleSchema = new Schema<ISale>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {visible: false},
         },
         handoverChecklistItems: {
             type: [{
@@ -525,11 +534,12 @@ const SaleSchema = new Schema<ISale>(
             }],
             default: [],
             permissions: noWrite,
+            dynamicTableConfiguration: {visible: false},
         },
         // FEAT-014 — title transfer tracking
         titleTransferDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
-        deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
-        notaryName: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX},
+        deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
+        notaryName: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         titleTransferCertificate: {
             type: SchemaTypes.ObjectId,
             ref: "Media",

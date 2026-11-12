@@ -43,6 +43,9 @@ import {commissionService} from "../../../../database/schemas/commission/commiss
 import {UnitStatus} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.constants";
 import {notifyReservationWatchers} from "@propertyManagement/utilities/sale/salesStaffNotify";
 import {runAfterCommit} from "@coreModule/utilities/middlewares/transactionUtils";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
+import type {ReservationWhen} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.constants";
+import {reservationWhenCondition} from "@propertyManagement/utilities/reservation/reservationExpirationCalendar";
 
 const mediaUpload = mediaUploadMW({
     fields: {reservationContract: 10, additionalDocuments: 10},
@@ -50,17 +53,18 @@ const mediaUpload = mediaUploadMW({
 });
 
 async function reservationExtraListFilter(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const {unit, project, edifice, floor, company, logger, languageCode} = params as {
+    const {unit, project, edifice, floor, when, company, logger, languageCode} = params as {
         unit?: string;
         project?: string;
         edifice?: string;
         floor?: string;
+        when?: ReservationWhen;
         company: {_id: ObjectId};
         logger: unknown;
         languageCode: string;
     };
     const opts = {logger, languageCode, withDeleted: false as const};
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = when ? reservationWhenCondition(when, await companyTodayOf(company._id)) : {};
 
     if (unit && ObjectId.isValid(unit)) {
         const foundUnit = await unitService.findOneOrThrow(

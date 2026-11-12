@@ -23,17 +23,6 @@ export const paymentPlanSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            dependent: "name",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "code",
-                                widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             permissions: { read: "status" },
                             field: {
                                 name: "status",
@@ -238,7 +227,7 @@ export const paymentPlanSheetView: ViewConfig = {
                                 name: "gracePeriodDays",
                                 widget: "#DisplayCard",
                                 label: "gracePeriodDays",
-                                widgetProps: { icon: "#Clock", suffix: " days" },
+                                widgetProps: { icon: "#Clock", valueTemplateKey: "gracePeriodDaysValue" },
                             },
                         },
                     ],
@@ -264,6 +253,12 @@ export const paymentPlanSheetView: ViewConfig = {
                             },
                         },
                     ],
+                },
+                // The schedule with its pay and email actions, above Lifecycle (UX-03, D151).
+                {
+                    render: "#PaymentPlanInstallments",
+                    permissions: { read: "installments" },
+                    field: { name: "installments", widget: "#PaymentPlanInstallments" },
                 },
             ],
         },

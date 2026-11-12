@@ -16,6 +16,33 @@ export const reservationSheetView: ViewConfig = {
         showCloseButton: true,
     },
     nodes: [
+        // Why it was cancelled is the first thing to see on a cancelled reservation (UX-03).
+        {
+            render: "#SheetGroup",
+            dependent: "cancellationReason",
+            permissions: { readAny: ["cancellationReason"] },
+            props: { title: "alerts" },
+            children: [
+                {
+                    render: "div",
+                    props: {
+                        className:
+                            "p-4 rounded-lg space-y-2 bg-red-500/10 border border-red-500/20",
+                    },
+                    children: [
+                        {
+                            render: "#ExpandableText",
+                            permissions: { read: "cancellationReason" },
+                            field: {
+                                name: "cancellationReason",
+                                widget: "#ExpandableText",
+                                widgetProps: { className: "text-sm text-red-600 dark:text-red-400" },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
         {
             render: "#SheetGroup",
             permissions: {
@@ -24,7 +51,6 @@ export const reservationSheetView: ViewConfig = {
                     "client",
                     "reservedBy",
                     "reservedByCompany",
-                    "isActive",
                     "paid",
                     "status",
                     "source",
@@ -101,21 +127,6 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "isActive" },
-                            field: {
-                                name: "isActive",
-                                widget: "#DisplayCard",
-                                label: "status",
-                                widgetProps: {
-                                    icon: "#CircleDot",
-                                    variant: "success",
-                                    languageKeyCategory: "activeState",
-                                    type: "boolean",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
                             // dependent: "paid",
                             permissions: { read: "paid" },
                             field: {
@@ -150,6 +161,7 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "source",
                             permissions: { read: "source" },
                             field: {
                                 name: "source",
@@ -163,6 +175,7 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "referralCode",
                             permissions: { read: "referralCode" },
                             field: {
                                 name: "referralCode",
@@ -179,6 +192,7 @@ export const reservationSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "reservationNotes",
                             permissions: { read: "reservationNotes" },
                             field: {
                                 name: "reservationNotes",
@@ -252,77 +266,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            permissions: {
-                readAny: [
-                    "confirmationEmailSentAt",
-                    "expirationReminderEmailAt3d",
-                    "expirationReminderEmailAt1d",
-                    "expirationReminderEmailAt0d",
-                    "expiredAt",
-                ],
-            },
-            props: { title: "clientEmailTimeline" },
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 3},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "confirmationEmailSentAt" },
-                            field: {
-                                name: "confirmationEmailSentAt",
-                                widget: "#DisplayCard",
-                                label: "confirmationEmailSentAt",
-                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "expirationReminderEmailAt3d" },
-                            field: {
-                                name: "expirationReminderEmailAt3d",
-                                widget: "#DisplayCard",
-                                label: "expirationReminderEmailAt3d",
-                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "expirationReminderEmailAt1d" },
-                            field: {
-                                name: "expirationReminderEmailAt1d",
-                                widget: "#DisplayCard",
-                                label: "expirationReminderEmailAt1d",
-                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "expirationReminderEmailAt0d" },
-                            field: {
-                                name: "expirationReminderEmailAt0d",
-                                widget: "#DisplayCard",
-                                label: "expirationReminderEmailAt0d",
-                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "expiredAt" },
-                            field: {
-                                name: "expiredAt",
-                                widget: "#DisplayCard",
-                                label: "reservationExpiredAt",
-                                widgetProps: { icon: "#XCircle", format: "dateTime" , type: "dateTime"},
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
+            dependentAny: ["depositAmount", "paymentMethod"],
             permissions: { readAny: ["depositAmount", "depositCurrency", "paymentMethod"] },
             props: { title: "deposit" },
             children: [
@@ -332,7 +276,7 @@ export const reservationSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            // dependent: "depositAmount",
+                            dependent: "depositAmount",
                             permissions: { readAny: ["depositAmount", "depositCurrency"] },
                             field: {
                                 name: "depositAmount",
@@ -353,7 +297,7 @@ export const reservationSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            // dependent: "paymentMethod",
+                            dependent: "paymentMethod",
                             permissions: { read: "paymentMethod" },
                             field: {
                                 name: "paymentMethod",
@@ -393,7 +337,7 @@ export const reservationSheetView: ViewConfig = {
                                             icon: "#Wallet",
                                             variant: "success",
                                             parent: "unit",
-                                            valuePath: ["price", "priceCurrency.name"],
+                                            valuePath: ["priceCurrency.symbol", "price"],
                                             joinSeparator: " ",
                                             format: "locale",
                                             type: "currency",
@@ -402,23 +346,9 @@ export const reservationSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "depositAmount" },
-                                    field: {
-                                        name: "depositAmount",
-                                        widget: "#DisplayCard",
-                                        label: "amountPaidReservationDeposit",
-                                        widgetProps: {
-                                            icon: "#Landmark",
-                                            variant: "success",
-                                            valuePath: ["depositAmount", "depositCurrency.name"],
-                                            joinSeparator: " ",
-                                            format: "locale",
-                                            type: "currency",
-                                        },
-                                    },
-                                },
-                                {
-                                    render: "#DisplayCard",
+                                    // Computed by the mapper, and only when price and deposit share a currency.
+                                    dependent: "remainingBalance",
+                                    dependentRuntimeOnly: true,
                                     permissions: { readAny: ["unit", "depositAmount", "paid"] },
                                     field: {
                                         name: "remainingBalance",
@@ -433,7 +363,7 @@ export const reservationSheetView: ViewConfig = {
                                                 partiallyPaid: "warning",
                                                 unpaid: "warning",
                                             },
-                                            valuePath: ["remainingBalance", "unit.priceCurrency.name"],
+                                            valuePath: ["unit.priceCurrency.symbol", "remainingBalance"],
                                             joinSeparator: " ",
                                             format: "locale",
                                             type: "currency",
@@ -489,31 +419,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
-            permissions: { readAny: ["cancellationReason"] },
-            props: { title: "alerts" },
-            children: [
-                {
-                    render: "div",
-                    props: {
-                        className:
-                            "p-4 rounded-lg space-y-2 bg-red-500/10 border border-red-500/20",
-                    },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "cancellationReason" },
-                            field: {
-                                name: "cancellationReason",
-                                widget: "#ExpandableText",
-                                widgetProps: { className: "text-sm text-red-600 dark:text-red-400" },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
+            dependent: "reservationContract",
             permissions: { readAny: ["reservationContract"] },
             props: { title: "reservationContract" },
             children: [
@@ -540,6 +446,7 @@ export const reservationSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "additionalDocuments",
             permissions: { readAny: ["additionalDocuments"] },
             props: { title: "additionalDocuments" },
             children: [
@@ -558,6 +465,89 @@ export const reservationSheetView: ViewConfig = {
                                     canRemove: false,
                                     isBig: false,
                                 },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            permissions: {
+                readAny: [
+                    "confirmationEmailSentAt",
+                    "expirationReminderEmailAt3d",
+                    "expirationReminderEmailAt1d",
+                    "expirationReminderEmailAt0d",
+                    "expiredAt",
+                ],
+            },
+            dependentAny: [
+                "confirmationEmailSentAt",
+                "expirationReminderEmailAt3d",
+                "expirationReminderEmailAt1d",
+                "expirationReminderEmailAt0d",
+                "expiredAt",
+            ],
+            props: { title: "clientEmailTimeline", defaultOpen: false },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 3},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            dependent: "confirmationEmailSentAt",
+                            permissions: { read: "confirmationEmailSentAt" },
+                            field: {
+                                name: "confirmationEmailSentAt",
+                                widget: "#DisplayCard",
+                                label: "confirmationEmailSentAt",
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "expirationReminderEmailAt3d",
+                            permissions: { read: "expirationReminderEmailAt3d" },
+                            field: {
+                                name: "expirationReminderEmailAt3d",
+                                widget: "#DisplayCard",
+                                label: "expirationReminderEmailAt3d",
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "expirationReminderEmailAt1d",
+                            permissions: { read: "expirationReminderEmailAt1d" },
+                            field: {
+                                name: "expirationReminderEmailAt1d",
+                                widget: "#DisplayCard",
+                                label: "expirationReminderEmailAt1d",
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "expirationReminderEmailAt0d",
+                            permissions: { read: "expirationReminderEmailAt0d" },
+                            field: {
+                                name: "expirationReminderEmailAt0d",
+                                widget: "#DisplayCard",
+                                label: "expirationReminderEmailAt0d",
+                                widgetProps: { icon: "#Mail", format: "dateTime" , type: "dateTime"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "expiredAt",
+                            permissions: { read: "expiredAt" },
+                            field: {
+                                name: "expiredAt",
+                                widget: "#DisplayCard",
+                                label: "reservationExpiredAt",
+                                widgetProps: { icon: "#XCircle", format: "dateTime" , type: "dateTime"},
                             },
                         },
                     ],

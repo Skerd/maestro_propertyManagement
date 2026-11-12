@@ -16,7 +16,7 @@ export const saleSheetView: ViewConfig = {
         {
             render: "#SheetGroup",
             permissions: {
-                readAny: ["name", "unit", "paymentType", "notes"],
+                readAny: ["approvalStatus", "saleApproval", "unit", "paymentType", "notes"],
             },
             props: { title: "overview" },
             children: [
@@ -24,14 +24,46 @@ export const saleSheetView: ViewConfig = {
                     render: "#SheetGrid",
                     props: { columns: 3 },
                     children: [
+                        // What to act on first (UX-03): the approval, when the company asks for one.
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "name" },
+                            dependent: "approvalStatus",
+                            permissions: { read: "approvalStatus" },
                             field: {
-                                name: "name",
+                                name: "approvalStatus",
                                 widget: "#DisplayCard",
-                                label: "code",
-                                widgetProps: { icon: "#IconLabel" },
+                                label: "approvalStatus",
+                                widgetProps: { icon: "#CircleDot", languageKeyCategory: "approvalStatusValues", type: "enum" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "saleApproval.user",
+                            dependentRuntimeOnly: true,
+                            permissions: { read: "saleApproval" },
+                            field: {
+                                name: "saleApproval.user",
+                                widget: "#DisplayCard",
+                                label: "approvalReviewedBy",
+                                widgetProps: {
+                                    icon: "#UserCheck",
+                                    parent: "saleApproval.user",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "saleApproval.reviewedAt",
+                            dependentRuntimeOnly: true,
+                            permissions: { read: "saleApproval" },
+                            field: {
+                                name: "saleApproval.reviewedAt",
+                                widget: "#DisplayCard",
+                                label: "approvalReviewedAt",
+                                widgetProps: { icon: "#CalendarCheck", format: "dateTime", type: "dateTime" },
                             },
                         },
                         {
@@ -127,6 +159,23 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "saleApproval.notes",
+                            dependentRuntimeOnly: true,
+                            permissions: { read: "saleApproval" },
+                            field: {
+                                name: "saleApproval.notes",
+                                widget: "#DisplayCard",
+                                label: "approvalNotes",
+                                widgetProps: {
+                                    icon: "#IconAlignLeft",
+                                    expandable: true,
+                                    maxLength: 250,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "notes",
                             permissions: { read: "notes" },
                             field: {
                                 name: "notes",
@@ -153,7 +202,6 @@ export const saleSheetView: ViewConfig = {
                     "finalPrice",
                     "saleExchangeRate",
                     "reservationDepositAmount",
-                    "reservationDepositCurrency",
                     "reservationConvertedAmount",
                     "reservationExchangeRate",
                 ],
@@ -166,6 +214,7 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "listedUnitPrice",
                             permissions: { read: "listedUnitPrice" },
                             field: {
                                 name: "listedUnitPrice",
@@ -186,6 +235,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "localDiscount",
                             permissions: { read: "localDiscount" },
                             field: {
                                 name: "localDiscount",
@@ -216,6 +266,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "saleExchangeRate",
                             permissions: { read: "saleExchangeRate" },
                             field: {
                                 name: "saleExchangeRate",
@@ -247,25 +298,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            dependent: "reservationDepositCurrency",
-                            permissions: { read: "reservationDepositCurrency" },
-                            field: {
-                                name: "reservationDepositCurrency",
-                                widget: "#DisplayCard",
-                                label: "reservationDepositCurrency",
-                                widgetProps: {
-                                    icon: "#DollarSign",
-                                    valuePath: ["reservationDepositCurrency.symbol", "reservationDepositCurrency.abbreviation", "reservationDepositCurrency.name"],
-                                    joinSeparator: " ",
-                                    linkedRefPath: "reservationDepositCurrency",
-                                    linkedSheetModel: "currencies",
-                                    linkedSheetWidget: "#CurrencySheetView",
-                                    linkedSheetEntityProp: "currency",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
+                            dependent: "reservationConvertedAmount",
                             permissions: { read: "reservationConvertedAmount" },
                             field: {
                                 name: "reservationConvertedAmount",
@@ -286,6 +319,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "reservationExchangeRate",
                             permissions: { read: "reservationExchangeRate" },
                             field: {
                                 name: "reservationExchangeRate",
@@ -312,6 +346,7 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "buyer",
                             permissions: { read: "buyer" },
                             field: {
                                 name: "buyer",
@@ -328,6 +363,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "buyerCompany",
                             permissions: { read: "buyerCompany" },
                             field: {
                                 name: "buyerCompany.name",
@@ -375,6 +411,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "transactionReference",
                             permissions: { read: "transactionReference" },
                             field: {
                                 name: "transactionReference",
@@ -397,6 +434,7 @@ export const saleSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGroup",
+                    dependent: "reservation",
                     permissions: { readAny: ["reservation"] },
                     props: {
                         title: "reservation",
@@ -446,6 +484,7 @@ export const saleSheetView: ViewConfig = {
             children: [
                 {
                     render: "#SheetGroup",
+                    dependent: "paymentPlan",
                     permissions: { readAny: ["paymentPlan"] },
                     props: {
                         title: "paymentPlan",
@@ -487,6 +526,7 @@ export const saleSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependent: "purchaseContract",
             permissions: { readAny: ["purchaseContract"] },
             props: { title: "purchaseContract" },
             children: [
@@ -513,6 +553,7 @@ export const saleSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "additionalDocuments",
             permissions: { readAny: ["additionalDocuments"] },
             props: { title: "additionalDocuments" },
             children: [
@@ -633,6 +674,97 @@ export const saleSheetView: ViewConfig = {
                 },
             ],
         },
+        // The handover comes before the title transfer, the order they happen in (UX-03).
+        {
+            render: "#SheetGroup",
+            dependentAny: ["handoverDate", "handoverCompletedAt"],
+            permissions: { readAny: ["handoverDate", "handoverCompletedAt", "handedOverBy", "handoverNotes", "handoverCertificate"] },
+            props: { title: "handover" },
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 3 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            dependent: "handoverDate",
+                            permissions: { read: "handoverDate" },
+                            field: {
+                                name: "handoverDate",
+                                widget: "#DisplayCard",
+                                label: "handoverDate",
+                                widgetProps: { icon: "#Calendar", format: "date", type: "date" },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "handedOverBy",
+                            permissions: { read: "handedOverBy" },
+                            field: {
+                                name: "handedOverBy",
+                                widget: "#DisplayCard",
+                                label: "handedOverBy",
+                                widgetProps: {
+                                    icon: "#UserCheck",
+                                    parent: "handedOverBy",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "handoverCompletedAt",
+                            permissions: { read: "handoverCompletedAt" },
+                            field: {
+                                name: "handoverCompletedAt",
+                                widget: "#DisplayCard",
+                                label: "handoverCompletedAt",
+                                widgetProps: { icon: "#CalendarCheck", format: "dateTime", type: "dateTime" },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "#SheetGrid",
+                    props: { columns: 1 },
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            dependent: "handoverNotes",
+                            permissions: { read: "handoverNotes" },
+                            field: {
+                                name: "handoverNotes",
+                                widget: "#DisplayCard",
+                                label: "handoverNotes",
+                                widgetProps: { icon: "#IconAlignLeft", expandable: true, maxLength: 250 },
+                            },
+                        },
+                    ],
+                },
+                {
+                    render: "div",
+                    dependent: "handoverCertificate",
+                    props: { className: "p-4 rounded-lg bg-muted/30 border border-border/50 max-w-full" },
+                    children: [
+                        {
+                            render: "#SheetMediaFilesStrip",
+                            permissions: { read: "handoverCertificate" },
+                            field: {
+                                name: "handoverCertificate",
+                                widget: "#SheetMediaFilesStrip",
+                                widgetProps: {
+                                    canDownload: true,
+                                    canRemove: false,
+                                    isBig: false,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
         {
             render: "#SheetGroup",
             dependentAny: ["titleTransferDate", "deedNumber", "notaryName", "titleTransferCertificate"],
@@ -645,6 +777,7 @@ export const saleSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "titleTransferDate",
                             permissions: { read: "titleTransferDate" },
                             field: {
                                 name: "titleTransferDate",
@@ -655,6 +788,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "deedNumber",
                             permissions: { read: "deedNumber" },
                             field: {
                                 name: "deedNumber",
@@ -665,6 +799,7 @@ export const saleSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "notaryName",
                             permissions: { read: "notaryName" },
                             field: {
                                 name: "notaryName",
@@ -889,35 +1024,45 @@ export const saleCreateCashFormView: ViewConfig = {
 
 const saleEditFormFields: ViewConfig["nodes"] = [
     {
-        render: "#FormGrid",
-        props: { columns: 1 },
+        render: "#TitleWithCollapse",
+        props: { title: "editSectionTitle" },
         permissions: {
             readAny: ["transactionReference", "notes"],
             writeAny: ["transactionReference", "notes"],
         },
         children: [
             {
-                render: "#Field",
-                field: {
-                    name: "transactionReference",
-                    widget: "#Input",
-                    label: "form.transactionReferenceLabel",
-                    placeholder: "form.transactionReferencePlaceholder",
-                    widgetProps: { maxLength: SALE_SHORT_TEXT_MAX },
-                }, permissions: {read: "transactionReference", write: "transactionReference"},
-            },
-            {
-                render: "#Field",
-                field: {
-                    name: "notes",
-                    widget: "#Textarea",
-                    label: "form.notesLabel",
-                    placeholder: "form.notesPlaceholder",
-                    widgetProps: {
-                        className: "resize-none max-h-[250px] overflow-y-auto",
-                        maxLength: SALE_LONG_TEXT_MAX,
+                render: "#FormGrid",
+                props: { columns: 1 },
+                permissions: {
+                    readAny: ["transactionReference", "notes"],
+                    writeAny: ["transactionReference", "notes"],
+                },
+                children: [
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "transactionReference",
+                            widget: "#Input",
+                            label: "form.transactionReferenceLabel",
+                            placeholder: "form.transactionReferencePlaceholder",
+                            widgetProps: { maxLength: SALE_SHORT_TEXT_MAX },
+                        }, permissions: {read: "transactionReference", write: "transactionReference"},
                     },
-                }, permissions: {read: "notes", write: "notes"},
+                    {
+                        render: "#Field",
+                        field: {
+                            name: "notes",
+                            widget: "#Textarea",
+                            label: "form.notesLabel",
+                            placeholder: "form.notesPlaceholder",
+                            widgetProps: {
+                                className: "resize-none max-h-[250px] overflow-y-auto",
+                                maxLength: SALE_LONG_TEXT_MAX,
+                            },
+                        }, permissions: {read: "notes", write: "notes"},
+                    },
+                ],
             },
         ],
     },

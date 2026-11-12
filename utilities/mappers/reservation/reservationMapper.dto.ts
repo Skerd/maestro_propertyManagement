@@ -20,46 +20,53 @@ import {
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 import {mapMedia, mapSnippet} from "@coreModule/utilities/mappers/common.mapper";
+import {DEFAULT_DECIMAL_PLACES, minorToNumber, toMinor, type MoneyInput} from "armonia/src/modules/core/helpers/money";
 
-function computeReservationFinancialFields(reservation: IReservation): Pick<Reservation, "remainingBalance" | "reservationFinancialPaymentState"> {
+/** What the financial fields read from a reservation; a populated unit carries its price and currency. */
+type ReservationMoneySource = {
+    paid?: boolean;
+    depositAmount?: MoneyInput;
+    depositCurrency?: unknown;
+    unit?: unknown;
+};
+
+type IdLike = {_id?: {toString(): string}; toString?: () => string};
+
+function refId(ref: unknown): string | undefined {
+    if (!ref || typeof ref !== "object") return typeof ref === "string" ? ref : undefined;
+    const value = ref as IdLike;
+    return value._id ? value._id.toString() : value.toString?.();
+}
+
+/** The remaining balance is the unit price less the deposit, in exact minor units of the unit's currency (GLB-08). */
+export function computeReservationFinancialFields(reservation: ReservationMoneySource): Pick<Reservation, "remainingBalance" | "reservationFinancialPaymentState"> {
     const paid = reservation.paid === true;
     const unit = reservation.unit as {
-        price?: {toString(): string} | number;
-        priceCurrency?: {_id?: {toString(): string}; toString?: () => string};
-    };
-    const unitPrice =
-        unit?.price != null && Number.isFinite(parseFloat(unit.price.toString()))
-            ? parseFloat(unit.price.toString())
-            : undefined;
-    const deposit =
-        reservation.depositAmount != null
-            ? parseFloat(reservation.depositAmount.toString())
-            : 0;
+        price?: MoneyInput;
+        priceCurrency?: IdLike & {decimalPlaces?: number};
+    } | undefined;
+    const decimals = typeof unit?.priceCurrency?.decimalPlaces === "number" ? unit.priceCurrency.decimalPlaces : DEFAULT_DECIMAL_PLACES;
+    const depositMinor = reservation.depositAmount != null ? toMinor(reservation.depositAmount, decimals) : 0n;
 
     let reservationFinancialPaymentState: Reservation["reservationFinancialPaymentState"];
     if (paid) {
         reservationFinancialPaymentState = "fullyPaid";
-    } else if (deposit > 0) {
+    } else if (depositMinor > 0n) {
         reservationFinancialPaymentState = "partiallyPaid";
     } else {
         reservationFinancialPaymentState = "unpaid";
     }
 
     let remainingBalance: number | undefined;
-    if (unitPrice != null && Number.isFinite(unitPrice)) {
-        const unitCurId =
-            unit?.priceCurrency?._id?.toString() ??
-            (typeof unit?.priceCurrency === "object" ? unit?.priceCurrency?.toString?.() : undefined);
-        const depCur = reservation.depositCurrency as {_id?: {toString(): string}; toString?: () => string} | undefined;
-        const depCurId =
-            depCur && typeof depCur === "object" && depCur._id
-                ? depCur._id.toString()
-                : depCur?.toString?.();
-
+    const priceText = unit?.price != null ? String(unit.price).trim() : "";
+    if (priceText !== "" && Number.isFinite(Number(priceText))) {
+        const unitCurId = refId(unit?.priceCurrency);
+        const depCurId = refId(reservation.depositCurrency);
+        // Amounts in two currencies are never subtracted (UX-07).
         const sameCurrency = !depCurId || !unitCurId || depCurId === unitCurId;
-
         if (sameCurrency) {
-            remainingBalance = Math.max(0, unitPrice - deposit);
+            const remainingMinor = toMinor(priceText, decimals) - depositMinor;
+            remainingBalance = minorToNumber(remainingMinor > 0n ? remainingMinor : 0n, decimals);
         }
     }
 

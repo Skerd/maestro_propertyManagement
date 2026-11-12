@@ -82,6 +82,7 @@ export const commissionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "recordedByActionUser",
                             permissions: {read: "recordedByActionUser"},
                             field: {
                                 name: "recordedByActionUser",
@@ -104,6 +105,7 @@ export const commissionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "notes",
                             permissions: {read: "notes"},
                             field: {
                                 name: "notes",
@@ -187,6 +189,7 @@ export const commissionSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependentAny: ["sale", "reservation"],
             permissions: {readAny: ["sale", "reservation"]},
             props: {title: "references"},
             children: [
@@ -196,6 +199,7 @@ export const commissionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "sale",
                             permissions: {read: "sale"},
                             field: {
                                 name: "sale.name",
@@ -212,6 +216,7 @@ export const commissionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "reservation",
                             permissions: {read: "reservation"},
                             field: {
                                 name: "reservation.name",
@@ -233,6 +238,7 @@ export const commissionSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependentAny: ["paidAt", "voidedAt", "paymentReference"],
             permissions: {readAny: ["paidAt", "voidedAt", "paymentReference"]},
             props: {title: "dates"},
             children: [
@@ -242,6 +248,7 @@ export const commissionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "paidAt",
                             permissions: {read: "paidAt"},
                             field: {
                                 name: "paidAt",

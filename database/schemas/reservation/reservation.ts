@@ -169,6 +169,7 @@ const ReservationSchema = new Schema<IReservation>(
             required: false,
             trim: true,
             maxlength: RESERVATION_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         depositAmount: {
             type: SchemaTypes.Decimal128,
@@ -246,7 +247,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         expirationReminderEmailAt3d: {
             type: SchemaTypes.Date,
@@ -282,7 +283,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         status: {
             type: SchemaTypes.String,
@@ -305,6 +306,7 @@ const ReservationSchema = new Schema<IReservation>(
             type: SchemaTypes.Boolean,
             required: true,
             default: true,
+            dynamicTableConfiguration: {visible: false},
         },
         cancelledAt: {
             type: SchemaTypes.Date,
@@ -324,6 +326,7 @@ const ReservationSchema = new Schema<IReservation>(
             required: false,
             trim: true,
             maxlength: RESERVATION_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         reservationContract: {
             type: [{type: SchemaTypes.ObjectId, ref: 'Media'}],

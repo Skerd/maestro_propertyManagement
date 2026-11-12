@@ -107,6 +107,7 @@ const CommissionSchema = new Schema<ICommission>(
                 sortable: true,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name", "surname"],
+                visible: false,
             },
             permissions: {
                 self: {
@@ -324,6 +325,7 @@ const CommissionSchema = new Schema<ICommission>(
             trim: true,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             },
         },
         paymentReference: {
@@ -444,6 +446,7 @@ const CommissionSchema = new Schema<ICommission>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {visible: false},
         },
     },
     {

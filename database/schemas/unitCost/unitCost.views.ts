@@ -665,9 +665,10 @@ export const unitCostSheetView: ViewConfig = {
         showCloseButton: true,
     },
     nodes: [
+        // The code and the currency are the header and the amounts' own symbol, so they get no card (UX-01, UX-07).
         {
             render: "#SheetGroup",
-            permissions: {readAny: ["name", "unit", "floor", "edifice", "project", "currency", "budgetedAmount", "purchasePerson", "purchaseDate", "paymentDate", "verificationStatus", "paymentStatus", "tag", "invoiceNumber", "vendorName", "relatedModificationRequest", "constructorRef"]},
+            permissions: {readAny: ["vendorName", "expenditureItems", "budgetedAmount", "purchaseDate", "paymentDate", "purchasePerson", "verificationStatus", "paymentStatus", "invoiceNumber", "tag"]},
             props: {title: "overview"},
             children: [
                 {
@@ -676,106 +677,32 @@ export const unitCostSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "name"},
+                            dependent: "vendorName",
+                            permissions: {read: "vendorName"},
                             field: {
-                                name: "name",
+                                name: "vendorName",
                                 widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: {icon: "#Hash"},
+                                label: "vendorName",
+                                widgetProps: {icon: "#BuildingStore"},
                             },
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "unit"},
+                            permissions: {read: "expenditureItems"},
                             field: {
-                                name: "unit",
+                                name: "documentSubtotal",
                                 widget: "#DisplayCard",
-                                label: "unit",
+                                label: "documentSubtotal",
+                                skipReadAccessGate: true,
                                 widgetProps: {
-                                    icon: "#DoorOpen",
-                                    linkedRefPath: "unit",
-                                    linkedSheetModel: "units",
-                                    linkedSheetWidget: "#UnitSheetView",
-                                    linkedSheetEntityProp: "unit",
-                                    parent: "unit",
-                                    valuePath: ["name", "unitNumber", "_id"],
-                                    pickFirstTruthyValuePath: true,
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "floor"},
-                            field: {
-                                name: "floor",
-                                widget: "#DisplayCard",
-                                label: "floor",
-                                widgetProps: {
-                                    icon: "#Stack2",
-                                    linkedRefPath: "floor",
-                                    linkedSheetModel: "floors",
-                                    linkedSheetWidget: "#FloorSheetView",
-                                    linkedSheetEntityProp: "floor",
-                                    parent: "floor",
-                                    valuePath: ["name", "_id"],
-                                    pickFirstTruthyValuePath: true,
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "edifice"},
-                            field: {
-                                name: "edifice",
-                                widget: "#DisplayCard",
-                                label: "edifice",
-                                widgetProps: {
-                                    icon: "#BuildingSkyscraper",
-                                    linkedRefPath: "edifice",
-                                    linkedSheetModel: "edifices",
-                                    linkedSheetWidget: "#EdificeSheetView",
-                                    linkedSheetEntityProp: "edifice",
-                                    parent: "edifice",
-                                    valuePath: ["name", "_id"],
-                                    pickFirstTruthyValuePath: true,
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "project"},
-                            field: {
-                                name: "project",
-                                widget: "#DisplayCard",
-                                label: "project",
-                                widgetProps: {
-                                    icon: "#BuildingCommunity",
-                                    linkedRefPath: "project",
-                                    linkedSheetModel: "projects",
-                                    linkedSheetWidget: "#ProjectSheetView",
-                                    linkedSheetEntityProp: "project",
-                                    parent: "project",
-                                    valuePath: ["name", "_id"],
-                                    pickFirstTruthyValuePath: true,
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "currency"},
-                            field: {
-                                name: "currency",
-                                widget: "#DisplayCard",
-                                label: "currency",
-                                widgetProps: {
-                                    icon: "#CurrencyDollar",
+                                    icon: "#Receipt",
+                                    type: "currency",
+                                    valuePath: ["currency.symbol", "documentSubtotal"],
+                                    joinSeparator: " ",
                                     linkedRefPath: "currency",
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",
-                                    parent: "currency",
-                                    valuePath: ["symbol", "abbreviation", "name"],
-                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -801,6 +728,27 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            permissions: {read: "purchaseDate"},
+                            field: {
+                                name: "purchaseDate",
+                                widget: "#DisplayCard",
+                                label: "purchaseDate",
+                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "paymentDate",
+                            permissions: {read: "paymentDate"},
+                            field: {
+                                name: "paymentDate",
+                                widget: "#DisplayCard",
+                                label: "paymentDate",
+                                widgetProps: {icon: "#CalendarDue", format: "date", type: "date"},
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
                             permissions: {read: "purchasePerson"},
                             field: {
                                 name: "purchasePerson",
@@ -813,26 +761,6 @@ export const unitCostSheetView: ViewConfig = {
                                     joinSeparator: " ",
                                     type: "user",
                                 },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "purchaseDate"},
-                            field: {
-                                name: "purchaseDate",
-                                widget: "#DisplayCard",
-                                label: "purchaseDate",
-                                widgetProps: {icon: "#Calendar", format: "date", type: "date"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "paymentDate"},
-                            field: {
-                                name: "paymentDate",
-                                widget: "#DisplayCard",
-                                label: "paymentDate",
-                                widgetProps: {icon: "#CalendarDue", format: "date", type: "date"},
                             },
                         },
                         {
@@ -857,16 +785,7 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "tag"},
-                            field: {
-                                name: "tag",
-                                widget: "#DisplayCard",
-                                label: "tag",
-                                widgetProps: {icon: "#Tag"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
+                            dependent: "invoiceNumber",
                             permissions: {read: "invoiceNumber"},
                             field: {
                                 name: "invoiceNumber",
@@ -877,16 +796,112 @@ export const unitCostSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "vendorName"},
+                            dependent: "tag",
+                            permissions: {read: "tag"},
                             field: {
-                                name: "vendorName",
+                                name: "tag",
                                 widget: "#DisplayCard",
-                                label: "vendorName",
-                                widgetProps: {icon: "#BuildingStore"},
+                                label: "tag",
+                                widgetProps: {icon: "#Tag"},
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            render: "#SheetGroup",
+            dependentAny: ["unit", "floor", "edifice", "project", "relatedModificationRequest", "constructorRef"],
+            permissions: {readAny: ["unit", "floor", "edifice", "project", "relatedModificationRequest", "constructorRef"]},
+            props: {title: "relatedRecords"},
+            children: [
+                {
+                    render: "#SheetGrid",
+                    props: {columns: 3},
+                    children: [
+                        {
+                            render: "#DisplayCard",
+                            dependent: "unit",
+                            permissions: {read: "unit"},
+                            field: {
+                                name: "unit",
+                                widget: "#DisplayCard",
+                                label: "unit",
+                                widgetProps: {
+                                    icon: "#DoorOpen",
+                                    linkedRefPath: "unit",
+                                    linkedSheetModel: "units",
+                                    linkedSheetWidget: "#UnitSheetView",
+                                    linkedSheetEntityProp: "unit",
+                                    parent: "unit",
+                                    valuePath: ["name", "unitNumber", "_id"],
+                                    pickFirstTruthyValuePath: true,
+                                },
                             },
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "floor",
+                            permissions: {read: "floor"},
+                            field: {
+                                name: "floor",
+                                widget: "#DisplayCard",
+                                label: "floor",
+                                widgetProps: {
+                                    icon: "#Stack2",
+                                    linkedRefPath: "floor",
+                                    linkedSheetModel: "floors",
+                                    linkedSheetWidget: "#FloorSheetView",
+                                    linkedSheetEntityProp: "floor",
+                                    parent: "floor",
+                                    valuePath: ["name", "_id"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "edifice",
+                            permissions: {read: "edifice"},
+                            field: {
+                                name: "edifice",
+                                widget: "#DisplayCard",
+                                label: "edifice",
+                                widgetProps: {
+                                    icon: "#BuildingSkyscraper",
+                                    linkedRefPath: "edifice",
+                                    linkedSheetModel: "edifices",
+                                    linkedSheetWidget: "#EdificeSheetView",
+                                    linkedSheetEntityProp: "edifice",
+                                    parent: "edifice",
+                                    valuePath: ["name", "_id"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "project",
+                            permissions: {read: "project"},
+                            field: {
+                                name: "project",
+                                widget: "#DisplayCard",
+                                label: "project",
+                                widgetProps: {
+                                    icon: "#BuildingCommunity",
+                                    linkedRefPath: "project",
+                                    linkedSheetModel: "projects",
+                                    linkedSheetWidget: "#ProjectSheetView",
+                                    linkedSheetEntityProp: "project",
+                                    parent: "project",
+                                    valuePath: ["name", "_id"],
+                                    pickFirstTruthyValuePath: true,
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "relatedModificationRequest",
                             permissions: {read: "relatedModificationRequest"},
                             field: {
                                 name: "relatedModificationRequest",
@@ -899,33 +914,14 @@ export const unitCostSheetView: ViewConfig = {
                                     linkedSheetWidget: "#ModificationRequestSheetView",
                                     linkedSheetEntityProp: "request",
                                     parent: "relatedModificationRequest",
-                                    valuePath: ["name", "title"],
+                                    valuePath: ["title", "name"],
                                     pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
                         {
                             render: "#DisplayCard",
-                            permissions: {read: "expenditureItems"},
-                            field: {
-                                name: "documentSubtotal",
-                                widget: "#DisplayCard",
-                                label: "documentSubtotal",
-                                skipReadAccessGate: true,
-                                widgetProps: {
-                                    icon: "#Receipt",
-                                    type: "currency",
-                                    valuePath: ["currency.symbol", "documentSubtotal"],
-                                    joinSeparator: " ",
-                                    linkedRefPath: "currency",
-                                    linkedSheetModel: "currencies",
-                                    linkedSheetWidget: "#CurrencySheetView",
-                                    linkedSheetEntityProp: "currency",
-                                },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
+                            dependent: "constructorRef",
                             permissions: {read: "constructorRef"},
                             field: {
                                 name: "constructorRef.name",
@@ -946,6 +942,7 @@ export const unitCostSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "notes",
             permissions: {readAny: ["notes"]},
             props: {title: "notes"},
             children: [
@@ -968,6 +965,7 @@ export const unitCostSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "expenditureItems",
             permissions: {readAny: ["expenditureItems"]},
             props: {title: "expenditureItems"},
             children: [
@@ -995,6 +993,7 @@ export const unitCostSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "invoiceMedia",
             permissions: {readAny: ["invoiceMedia"]},
             props: {title: "invoiceMedia"},
             children: [

@@ -65,11 +65,6 @@ function unitCostDocRowToDto(row: {
 
 export function unitCostToDTO(doc: IUnitCost): UnitCost {
     const expenditureItems = (doc.expenditureItems || []).map((row) => unitCostDocRowToDto(row));
-    const related = mapSnippet<ModificationRequestSimple>()(
-        doc.relatedModificationRequest,
-        ModificationRequestSimpleSnippet,
-    );
-
     return {
         _id: doc._id.toString(),
         name: doc.name || "",
@@ -87,12 +82,7 @@ export function unitCostToDTO(doc: IUnitCost): UnitCost {
         currency: mapSnippet<CurrencySimple>()(doc.currency, CurrencySimpleSnippet),
         invoiceNumber: doc.invoiceNumber,
         vendorName: doc.vendorName,
-        relatedModificationRequest: related
-            ? {
-                ...related,
-                title: (doc.relatedModificationRequest as {title?: string} | undefined)?.title,
-            }
-            : undefined,
+        relatedModificationRequest: mapSnippet<ModificationRequestSimple>()(doc.relatedModificationRequest, ModificationRequestSimpleSnippet),
         constructorRef: mapSnippet<ConstructorSimple>()(doc.constructorRef, ConstructorSimpleSnippet),
         invoiceMedia: Array.isArray(doc.invoiceMedia) ? doc.invoiceMedia.map(mapMedia) : [],
         expenditureItems,

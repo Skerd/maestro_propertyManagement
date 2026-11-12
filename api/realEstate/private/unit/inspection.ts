@@ -30,6 +30,9 @@ import {
     toChecklistRows,
 } from "@propertyManagement/utilities/inspectionChecklist/inspectionChecklist";
 import {idString} from "@propertyManagement/utilities/inspectionChecklist/inspectionChecklist.sync";
+import {companyTodayOf} from "@coreModule/utilities/time/companyTimeZone";
+import type {InspectionWhen} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.constants";
+import {inspectionWhenCondition} from "@propertyManagement/utilities/inspection/inspectionWhen";
 
 export const basePath = "/api/realEstate/unit/inspection";
 
@@ -146,11 +149,13 @@ export const {router} = createCrudRouter({
         return {data: inspectionsToSelect(inspections), total};
     },
     extraListFilter: async (params) => {
-        const {id, unit, inspectedById, status, type, project, edifice, floor, company, logger, languageCode} = params;
+        const {id, unit, inspectedById, status, type, project, edifice, floor, when, company, logger, languageCode} = params;
         if (id && ObjectId.isValid(id)) {
             return {_id: new ObjectId(id)};
         }
-        const filter: Record<string, unknown> = {};
+        const filter: Record<string, unknown> = when
+            ? inspectionWhenCondition(when as InspectionWhen, await companyTodayOf(company._id))
+            : {};
         if (unit && ObjectId.isValid(unit)) {
             const foundUnit = await unitService.findOneOrThrow(
                 {_id: new ObjectId(unit), company: company._id},

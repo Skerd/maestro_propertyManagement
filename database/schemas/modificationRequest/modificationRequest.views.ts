@@ -16,12 +16,12 @@ export const modificationRequestSheetView: ViewConfig = {
         showCloseButton: true,
     },
     nodes: [
+        // Why it was cancelled is the first thing to see on a cancelled request (UX-03).
         {
             render: "#SheetGroup",
-            permissions: {
-                readAny: ["title", "name", "constructionType", "status", "unit", "requestedBy"],
-            },
-            props: { title: "overview" },
+            dependent: "cancellationReason",
+            permissions: { readAny: ["cancellationReason"] },
+            props: { title: "cancellation" },
             children: [
                 {
                     render: "#SheetGrid",
@@ -29,30 +29,35 @@ export const modificationRequestSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
-                            permissions: { read: "title" },
+                            permissions: { read: "cancellationReason" },
                             field: {
-                                name: "title",
+                                name: "cancellationReason",
                                 widget: "#DisplayCard",
-                                label: "title",
-                                widgetProps: { icon: "#IconLabel" },
+                                label: "cancellationReason",
+                                widgetProps: {
+                                    icon: "#XCircle",
+                                    expandable: true,
+                                    maxLength: 250,
+                                    variant: "destructive",
+                                },
                             },
                         },
                     ],
                 },
+            ],
+        },
+        // The title and the code are the sheet header (UX-01, D151), so they are not repeated here.
+        {
+            render: "#SheetGroup",
+            permissions: {
+                readAny: ["constructionType", "status", "unit", "requestedBy", "description", "specifications"],
+            },
+            props: { title: "overview" },
+            children: [
                 {
                     render: "#SheetGrid",
                     props: { columns: 3 },
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "name" },
-                            field: {
-                                name: "name",
-                                widget: "#DisplayCard",
-                                label: "name",
-                                widgetProps: { icon: "#IconLabel" },
-                            },
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: { read: "constructionType" },
@@ -133,6 +138,7 @@ export const modificationRequestSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "description",
                             permissions: { read: "description" },
                             field: {
                                 name: "description",
@@ -153,6 +159,7 @@ export const modificationRequestSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "specifications",
                             permissions: { read: "specifications" },
                             field: {
                                 name: "specifications",
@@ -193,6 +200,7 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "stageDueDate",
                             permissions: { read: "stageDueDate" },
                             field: {
                                 name: "stageDueDate",
@@ -203,6 +211,7 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "completedAt",
                             permissions: { read: "completedAt" },
                             field: {
                                 name: "completedAt",
@@ -213,6 +222,7 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "cancelledAt",
                             permissions: { read: "cancelledAt" },
                             field: {
                                 name: "cancelledAt",
@@ -223,12 +233,14 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "financeDetails.estimatedCompletionDate",
                             permissions: { read: "financeDetails" },
                             field: {
                                 name: "financeDetails.estimatedCompletionDate",
                                 widget: "#DisplayCard",
                                 label: "estimatedCompletionDate",
-                                widgetProps: { icon: "#Calendar", format: "dateTime" , type: "dateTime"},
+                                // A calendar day (GLB-09), not an instant.
+                                widgetProps: { icon: "#Calendar", format: "date", type: "date"},
                             },
                         },
                     ],
@@ -238,6 +250,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependent: "architectApproval.reviewedAt",
             permissions: { readAny: ["architectApproval"] },
             props: { title: "architectApproval" },
             children: [
@@ -261,6 +274,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "architectApproval.user",
                                     permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.user",
@@ -293,6 +307,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "architectApproval.notes",
                                     permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.notes",
@@ -313,6 +328,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "architectApproval.media",
                                     permissions: { read: "architectApproval" },
                                     field: {
                                         name: "architectApproval.media",
@@ -333,6 +349,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependent: "engineerApproval.reviewedAt",
             permissions: { readAny: ["engineerApproval"] },
             props: { title: "engineerApproval" },
             children: [
@@ -356,6 +373,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "engineerApproval.user",
                                     permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.user",
@@ -382,6 +400,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "engineerApproval.materialsPlan",
                                     permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.materialsPlan.length",
@@ -399,6 +418,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "engineerApproval.notes",
                                     permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.notes",
@@ -419,6 +439,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "engineerApproval.materialsPlan",
                                     permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.materialsPlan",
@@ -440,6 +461,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "engineerApproval.media",
                                     permissions: { read: "engineerApproval" },
                                     field: {
                                         name: "engineerApproval.media",
@@ -460,6 +482,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependent: "ceoApproval.reviewedAt",
             permissions: { readAny: ["ceoApproval"] },
             props: { title: "ceoApproval" },
             children: [
@@ -483,6 +506,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "ceoApproval.user",
                                     permissions: { read: "ceoApproval" },
                                     field: {
                                         name: "ceoApproval.user",
@@ -515,6 +539,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "ceoApproval.notes",
                                     permissions: { read: "ceoApproval" },
                                     field: {
                                         name: "ceoApproval.notes",
@@ -556,6 +581,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependent: "financeDetails.currency",
             permissions: { readAny: ["financeDetails"] },
             props: { title: "financeDetails" },
             children: [
@@ -589,24 +615,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
-                                    permissions: { read: "financeDetails" },
-                                    field: {
-                                        name: "financeDetails.currency.name",
-                                        widget: "#DisplayCard",
-                                        label: "currency",
-                                        widgetProps: {
-                                            icon: "#Banknote",
-                                            valuePath: ["financeDetails.currency.symbol", "financeDetails.currency.name"],
-                                            joinSeparator: " ",
-                                            linkedRefPath: "financeDetails.currency",
-                                            linkedSheetModel: "currencies",
-                                            linkedSheetWidget: "#CurrencySheetView",
-                                            linkedSheetEntityProp: "currency",
-                                        },
-                                    },
-                                },
-                                {
-                                    render: "#DisplayCard",
+                                    dependent: "financeDetails.costBreakdown",
                                     permissions: { read: "financeDetails" },
                                     field: {
                                         name: "financeDetails.costBreakdown.length",
@@ -624,6 +633,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "financeDetails.notes",
                                     permissions: { read: "financeDetails" },
                                     field: {
                                         name: "financeDetails.notes",
@@ -644,6 +654,7 @@ export const modificationRequestSheetView: ViewConfig = {
                             children: [
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "financeDetails.costBreakdown",
                                     permissions: { read: "financeDetails" },
                                     field: {
                                         name: "financeDetails.costBreakdown",
@@ -688,6 +699,7 @@ export const modificationRequestSheetView: ViewConfig = {
 
         {
             render: "#SheetGroup",
+            dependent: "clientCostApproval.reviewedAt",
             permissions: { readAny: ["clientCostApproval"] },
             props: { title: "clientCostApproval" },
             children: [
@@ -711,6 +723,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "clientCostApproval.user",
                                     permissions: { read: "clientCostApproval" },
                                     field: {
                                         name: "clientCostApproval.user",
@@ -763,8 +776,11 @@ export const modificationRequestSheetView: ViewConfig = {
             ],
         },
 
+        // Shown once delivery is confirmed (reviewedAt is stamped with it); it used to hang on cancellationReason, so a
+        // delivered request never showed it and a cancelled one showed an empty delivery.
         {
             render: "#SheetGroup",
+            dependent: "deliveryApproval.reviewedAt",
             permissions: { readAny: ["deliveryApproval"] },
             props: { title: "delivery" },
             children: [
@@ -788,6 +804,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                 },
                                 {
                                     render: "#DisplayCard",
+                                    dependent: "deliveryApproval.user",
                                     permissions: { read: "deliveryApproval" },
                                     field: {
                                         name: "deliveryApproval.user",
@@ -812,7 +829,7 @@ export const modificationRequestSheetView: ViewConfig = {
                                         widgetProps: { icon: "#CalendarCheck", format: "dateTime" , type: "dateTime"},
                                     },
                                 },
-                            ], dependent: "cancellationReason",
+                            ],
                         },
                         {
                             render: "#SheetGrid",
@@ -905,28 +922,20 @@ export const modificationRequestSheetView: ViewConfig = {
                         },
                     ],
                 },
-            ], dependent: "cancellationReason",
+            ],
         },
 
+        // The day the client was told says it was sent, so no "Sent: Yes/No" card (UX-02, UX-10).
         {
             render: "#SheetGroup",
-            permissions: { readAny: ["notificationSent", "clientNotifiedAt"] },
+            dependent: "clientNotifiedAt",
+            permissions: { readAny: ["clientNotifiedAt"] },
             props: { title: "notifications" },
             children: [
                 {
                     render: "#SheetGrid",
                     props: { columns: 3 },
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "notificationSent" },
-                            field: {
-                                name: "notificationSent",
-                                widget: "#DisplayCard",
-                                label: "notificationSent",
-                                widgetProps: { icon: "#Bell", valueType: "boolean" , type: "boolean"},
-                            },
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: { read: "clientNotifiedAt" },
@@ -937,34 +946,6 @@ export const modificationRequestSheetView: ViewConfig = {
             ],
         },
 
-        {
-            render: "#SheetGroup",
-            permissions: { readAny: ["cancellationReason"] },
-            props: { title: "cancellation" },
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: { columns: 1 },
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "cancellationReason" },
-                            field: {
-                                name: "cancellationReason",
-                                widget: "#DisplayCard",
-                                label: "cancellationReason",
-                                widgetProps: {
-                                    icon: "#XCircle",
-                                    expandable: true,
-                                    maxLength: 250,
-                                    variant: "destructive",
-                                },
-                            }, dependent: "cancellationReason",
-                        },
-                    ],
-                },
-            ], dependent: "cancellationReason",
-        },
         lifecycleSheetGroup,
     ],
 };

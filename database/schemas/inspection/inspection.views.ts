@@ -16,10 +16,36 @@ export const inspectionSheetView: ViewConfig = {
         showCloseButton: true,
     },
     nodes: [
+        // Why it was cancelled is the first thing to see on a cancelled inspection (UX-03).
+        {
+            render: "#SheetGroup",
+            dependent: "cancellationReason",
+            permissions: { readAny: ["cancellationReason"] },
+            props: { title: "cancellationReason" },
+            children: [
+                {
+                    render: "div",
+                    props: { className: "p-2 rounded-lg space-y-2 bg-red-500/10 border border-red-500/20" },
+                    children: [
+                        {
+                            render: "#ExpandableText",
+                            permissions: { read: "cancellationReason" },
+                            field: {
+                                name: "cancellationReason",
+                                widget: "#ExpandableText",
+                                widgetProps: {
+                                    className: "text-sm text-red-600 dark:text-red-400",
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
         {
             render: "#SheetGroup",
             permissions: {
-                readAny: ["unit", "type", "status", "rating", "followUpRequired", "notes"],
+                readAny: ["unit", "type", "status", "rating", "followUpRequired", "inspectedBy", "checklistTemplate", "notes"],
             },
             props: { title: "basicInformation" },
             children: [
@@ -79,6 +105,7 @@ export const inspectionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "rating",
                             permissions: { read: "rating" },
                             field: {
                                 name: "rating",
@@ -89,6 +116,42 @@ export const inspectionSheetView: ViewConfig = {
                                     variantFromRatingTenScale: true,
                                     suffix: "/10",
                                     type: "number",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            permissions: { read: "inspectedBy" },
+                            field: {
+                                name: "inspectedBy",
+                                widget: "#DisplayCard",
+                                label: "inspectedBy",
+                                widgetProps: {
+                                    icon: "#User",
+                                    parent: "inspectedBy",
+                                    valuePath: ["name", "surname"],
+                                    joinSeparator: " ",
+                                    type: "user",
+                                },
+                            },
+                        },
+                        {
+                            render: "#DisplayCard",
+                            dependent: "checklistTemplate",
+                            permissions: { read: "checklistTemplate" },
+                            field: {
+                                name: "checklistTemplate",
+                                widget: "#DisplayCard",
+                                label: "checklistTemplate",
+                                widgetProps: {
+                                    icon: "#ListDetails",
+                                    linkedRefPath: "checklistTemplate",
+                                    linkedSheetModel: "inspectionchecklisttemplates",
+                                    linkedSheetWidget: "#InspectionChecklistTemplateSheetView",
+                                    linkedSheetEntityProp: "entity",
+                                    parent: "checklistTemplate",
+                                    valuePath: ["title", "name"],
+                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -148,6 +211,7 @@ export const inspectionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "scheduledDate",
                             permissions: { read: "scheduledDate" },
                             field: {
                                 name: "scheduledDate",
@@ -168,6 +232,7 @@ export const inspectionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "nextInspectionDate",
                             permissions: { read: "nextInspectionDate" },
                             field: {
                                 name: "nextInspectionDate",
@@ -178,6 +243,7 @@ export const inspectionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "completedAt",
                             permissions: { read: "completedAt" },
                             field: {
                                 name: "completedAt",
@@ -204,68 +270,6 @@ export const inspectionSheetView: ViewConfig = {
                                     format: "dateTime",
                                     variant: "destructive",
                                     type: "dateTime",
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            permissions: { readAny: ["inspectedBy"] },
-            props: { title: "people" },
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: { columns: 3 },
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "inspectedBy" },
-                            field: {
-                                name: "inspectedBy",
-                                widget: "#DisplayCard",
-                                label: "inspectedBy",
-                                widgetProps: {
-                                    icon: "#User",
-                                    parent: "inspectedBy",
-                                    valuePath: ["name", "surname"],
-                                    joinSeparator: " ",
-                                    type: "user",
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            render: "#SheetGroup",
-            permissions: { readAny: ["checklistTemplate"] },
-            props: { title: "checklist" },
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: { columns: 2 },
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            dependent: "checklistTemplate",
-                            permissions: { read: "checklistTemplate" },
-                            field: {
-                                name: "checklistTemplate",
-                                widget: "#DisplayCard",
-                                label: "checklistTemplate",
-                                widgetProps: {
-                                    icon: "#ListDetails",
-                                    linkedRefPath: "checklistTemplate",
-                                    linkedSheetModel: "inspectionchecklisttemplates",
-                                    linkedSheetWidget: "#InspectionChecklistTemplateSheetView",
-                                    linkedSheetEntityProp: "entity",
-                                    parent: "checklistTemplate",
-                                    valuePath: ["title", "name"],
-                                    pickFirstTruthyValuePath: true,
                                 },
                             },
                         },
@@ -322,6 +326,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependentAny: ["followUpInspection", "followedUpByInspection"],
             permissions: { readAny: ["followUpInspection", "followedUpByInspection"] },
             props: { title: "inspections" },
             children: [
@@ -331,6 +336,7 @@ export const inspectionSheetView: ViewConfig = {
                     children: [
                         {
                             render: "#DisplayCard",
+                            dependent: "followUpInspection",
                             permissions: { read: "followUpInspection" },
                             field: {
                                 name: "followUpInspection.name",
@@ -347,6 +353,7 @@ export const inspectionSheetView: ViewConfig = {
                         },
                         {
                             render: "#DisplayCard",
+                            dependent: "followedUpByInspection",
                             permissions: { read: "followedUpByInspection" },
                             field: {
                                 name: "followedUpByInspection.name",
@@ -366,35 +373,12 @@ export const inspectionSheetView: ViewConfig = {
             ],
         },
         {
-            render: "#SheetGroup",
-            permissions: { readAny: ["cancellationReason"] },
-            props: { title: "cancellationReason" },
-            children: [
-                {
-                    render: "div",
-                    props: { className: "p-2 rounded-lg space-y-2 bg-red-500/10 border border-red-500/20" },
-                    children: [
-                        {
-                            render: "#ExpandableText",
-                            permissions: { read: "cancellationReason" },
-                            field: {
-                                name: "cancellationReason",
-                                widget: "#ExpandableText",
-                                widgetProps: {
-                                    className: "text-sm text-red-600 dark:text-red-400",
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
             render: "#ReferencesViewModeScope",
             props: { storageKey: "inspectionFindings", defaultMode: "cards" },
             children: [
                 {
                     render: "#SheetGroup",
+                    dependent: "findings",
                     permissions: { readAny: ["findings"] },
                     props: { title: "findings", titleActions: "#ReferencesViewModeToggle" },
                     children: [
@@ -753,6 +737,7 @@ export const inspectionSheetView: ViewConfig = {
         },
         {
             render: "#SheetGroup",
+            dependent: "media",
             permissions: { readAny: ["media"] },
             props: { title: "attachments" },
             children: [
@@ -938,45 +923,16 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                             widgetProps: { type: "number", min: 1, max: 10 },
                         },
                     },
+                    // No status here: a new inspection starts scheduled (schema default, D151); the edit form and the cancel action move it on.
                     {
                         render: "#Field",
                         field: {
-                            name: "status",
-                            widget: "#SimpleSelect",
-                            label: "form.statusLabel",
-                            placeholder: "form.statusPlaceholder",
-                            required: true,
-                            widgetProps: {
-                                options: [
-                                    { value: "scheduled", label: "form.statusScheduled" },
-                                    { value: "in_progress", label: "form.statusInProgress" },
-                                    { value: "completed", label: "form.statusCompleted" },
-                                    { value: "rescheduled", label: "form.statusRescheduled" },
-                                    { value: "cancelled", label: "form.statusCancelled" },
-                                ],
-                                className: "grow w-full",
-                            },
+                            name: "scheduledDate",
+                            widget: "#DateInput",
+                            label: "form.scheduledDateLabel",
+                            placeholder: "form.scheduledDatePlaceholder",
+                            widgetProps: { valueFormat: "YYYY-MM-DD" },
                         },
-                    },
-                    {
-                        render: "#FormWhenFieldValueIn",
-                        props: {
-                            watchField: "status",
-                            whenValues: ["scheduled", "rescheduled"],
-                            clearFields: ["scheduledDate"],
-                        },
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name: "scheduledDate",
-                                    widget: "#DateInput",
-                                    label: "form.scheduledDateLabel",
-                                    placeholder: "form.scheduledDatePlaceholder",
-                                    widgetProps: { valueFormat: "YYYY-MM-DD" },
-                                },
-                            },
-                        ],
                     },
                     {
                         render: "#Field",
@@ -1018,35 +974,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                             widget: "#Checkbox",
                             label: "form.followUpRequiredLabel",
                         },
-                    },
-                ],
-            },
-            {
-                render: "div",
-                props: { className: "w-full", skipRenderWhenFormExtraTruthy: "hideInspectionEditOnlyBlocks" },
-                children: [
-                    {
-                        render: "#FormWhenFieldValueIn",
-                        props: {
-                            watchField: "status",
-                            whenValues: ["cancelled"],
-                            clearFields: ["cancellationReason"],
-                        },
-                        children: [
-                            {
-                                render: "#Field",
-                                field: {
-                                    name: "cancellationReason",
-                                    widget: "#Textarea",
-                                    label: "form.cancellationReasonLabel",
-                                    placeholder: "form.cancellationReasonPlaceholder",
-                                    widgetProps: {
-                                        className: "resize-none max-h-[250px] overflow-y-auto",
-                                        maxLength: INSPECTION_LONG_TEXT_MAX,
-                                    },
-                                },
-                            },
-                        ],
                     },
                 ],
             },

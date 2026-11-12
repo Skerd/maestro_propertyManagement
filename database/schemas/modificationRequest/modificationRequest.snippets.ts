@@ -6,5 +6,7 @@ export const ModificationRequestSimpleSnippet = defineSnippet<IModificationReque
     keys: {
         _id: {},
         name: {},
+        // What linked records (unit cost, PD variation order) show instead of the code (UX-03).
+        title: {},
     },
 });

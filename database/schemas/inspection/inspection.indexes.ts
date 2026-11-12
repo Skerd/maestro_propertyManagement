@@ -24,6 +24,9 @@ export function applyInspectionIndexes(InspectionSchema: Schema): void {
     InspectionSchema.index({ status: 1, completedAt: -1 });
     InspectionSchema.index({ unit: 1, completedAt: -1 });
 
+    // The list's default sort and its "When" quick filter read the inspection day within a company.
+    InspectionSchema.index({company: 1, inspectionDate: -1});
+
     // Client sign-off reporting: find inspections signed by clients, scoped to company
     InspectionSchema.index({ clientSignedAt: 1, company: 1 });
 }

@@ -168,6 +168,27 @@ describe("POST /api/realEstate/roi", {timeout: 60000}, () => {
         });
     }));
 
+    it("shows no symbol on the sale price and net profit when the caller may not read the sale's currency (TD-B231)", () => asCompany(async () => {
+        const euro = await seedCurrency(companyId, "EUR");
+        const franc = await seedCurrency(companyId, "CHF");
+        const project = new ObjectId();
+        // The unit is priced in francs but sold in euros: its symbol must not stand in for the sale's.
+        const unit = await seedUnit(companyId, {price: "1000.00", priceCurrency: franc});
+        await db().collection("units").updateOne({_id: unit}, {$set: {project}});
+        await seedSale(unit, "1000.00", euro);
+        await seedCost(unit, euro, "200.00");
+        const hidden = "sales[read:saleCurrency]";
+        expect(manager.permissions).toContain(hidden);
+        const clerk: TestCaller = {...manager, permissions: manager.permissions.filter((tag) => tag !== hidden)};
+
+        const response = await request(app).post("/api/realEstate/roi").set(callerHeader(clerk)).send({projectId: project.toString()});
+        expect(response.status).toBe(200);
+
+        const [row] = response.body.units as {salePrice: Record<string, unknown>; netProfit: Record<string, unknown>}[];
+        expect(row.salePrice).toEqual({amount: 1000, decimals: 2});
+        expect(row.netProfit).toEqual({amount: 800, decimals: 2});
+    }));
+
     it("returns the units' costs and the scope totals per currency", () => asCompany(async () => {
         const euro = await seedCurrency(companyId, "EUR");
         const franc = await seedCurrency(companyId, "CHF");

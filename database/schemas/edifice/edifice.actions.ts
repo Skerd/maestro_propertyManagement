@@ -2,7 +2,7 @@ import {ObjectId} from 'mongodb';
 import {action} from '@coreModule/api/actionDecorator';
 import {mediaUploadMW} from '@coreModule/utilities/middlewares/mediaUploadMW';
 import {apiValidationException} from 'armonia/src/modules/core/helpers/exceptions';
-import {mongooseInstance} from '@coreModule/connections/connectToMongoDb';
+import {runInTransaction} from '@coreModule/utilities/middlewares/runInTransaction';
 import {GridFSStorage} from '@coreModule/utilities/gridfs/gridfsStorage';
 import {getModelCollectedData} from '@coreModule/database/collections';
 import {mediaService} from '@coreModule/database/schemas/media/media.service';
@@ -456,248 +456,241 @@ export class EdificeActions {
             // Short transaction: no file I/O, no PDF work, no reads.
 
             const unitsSkippedAtUpload = unitsSkipped;
-            const floorImportSession = await mongooseInstance.startSession();
-            try {
-                await floorImportSession.withTransaction(async () => {
-                    const txSession = floorImportSession;
+            await runInTransaction(logger, async (txSession) => {
+                // runInTransaction re-runs this callback on transient errors, so every
+                // attempt must start from scratch: counters reset, and floors/units
+                // re-read rather than reusing documents an aborted attempt mutated
+                // (whose inserts have since been rolled away).
+                floorsCreated = 0;
+                floorsSkipped = 0;
+                unitsCreated  = 0;
+                unitsSkipped  = unitsSkippedAtUpload;
+                referencedGridFsIds.clear();
 
-                    // withTransaction re-runs this callback on transient errors, so every
-                    // attempt must start from scratch: counters reset, and floors/units
-                    // re-read rather than reusing documents an aborted attempt mutated
-                    // (whose inserts have since been rolled away).
-                    floorsCreated = 0;
-                    floorsSkipped = 0;
-                    unitsCreated  = 0;
-                    unitsSkipped  = unitsSkippedAtUpload;
-                    referencedGridFsIds.clear();
-
-                    const txFloors: any[] = await floorService.find(
-                        {edifice: foundEdifice._id, company: company._id},
+                const txFloors: any[] = await floorService.find(
+                    {edifice: foundEdifice._id, company: company._id},
+                    {session: txSession, logger, languageCode},
+                );
+                const resolved = resolveFloorTargets(txFloors, tasks);
+                for (const target of resolved.all) {
+                    if (!target.existing) continue;
+                    const existingUnits: any[] = await unitService.find(
+                        {floor: target.existing._id, company: company._id},
                         {session: txSession, logger, languageCode},
                     );
-                    const resolved = resolveFloorTargets(txFloors, tasks);
-                    for (const target of resolved.all) {
-                        if (!target.existing) continue;
-                        const existingUnits: any[] = await unitService.find(
-                            {floor: target.existing._id, company: company._id},
-                            {session: txSession, logger, languageCode},
-                        );
-                        target.unitsByName = new Map(existingUnits.map((unit: any) => [unit.name, unit]));
+                    target.unitsByName = new Map(existingUnits.map((unit: any) => [unit.name, unit]));
+                }
+
+                const mediaByGridFsId = new Map<string, ReturnType<typeof mediaService.create>>();
+                const createMediaDoc = (blob: UploadedBlob) => {
+                    const key = blob.gridFsId.toString();
+                    const cached = mediaByGridFsId.get(key);
+                    if (cached) return cached;
+                    referencedGridFsIds.add(key);
+                    const created = mediaService.create({
+                        type:         blob.mediaType,
+                        originalName: blob.fileName,
+                        fileName:     blob.fileName,
+                        fileId:       blob.gridFsId,
+                        createdBy:    actionUserCtx.userId,
+                        metadata:     {size: blob.size, extension: blob.extension, mime: blob.mimeType, safeCheckedFlag: false},
+                        mimeType:     blob.mimeType,
+                        extension:    blob.extension,
+                        fileSize:     blob.size,
+                        sizeInBytes:  blob.size,
+                        company,
+                    } as any, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                    mediaByGridFsId.set(key, created);
+                    return created;
+                };
+
+                for (const [taskIndex, task] of tasks.entries()) {
+                    const {floorData, floorName, levelNumber} = task;
+                    const target = resolved.perKey[taskIndex];
+
+                    const floorPlanMedia = task.floorPlan ? await createMediaDoc(task.floorPlan) : undefined;
+
+                    const floorDoc = target.created ?? target.existing;
+                    let createdFloor;
+                    const isNewFloor = !floorDoc;
+
+                    if (isNewFloor && !floorPlanMedia) {
+                        logger.warn(`PDF import: skipping new floor ${floorName} — Floor.mainImage is required and no plan image was produced edificeId=${edificeId} floorKey=${task.floorKey}`);
+                        floorsSkipped++;
+                        unitsSkipped += task.units.length;
+                        continue;
                     }
 
-                    const mediaByGridFsId = new Map<string, ReturnType<typeof mediaService.create>>();
-                    const createMediaDoc = (blob: UploadedBlob) => {
-                        const key = blob.gridFsId.toString();
-                        const cached = mediaByGridFsId.get(key);
-                        if (cached) return cached;
-                        referencedGridFsIds.add(key);
-                        const created = mediaService.create({
-                            type:         blob.mediaType,
-                            originalName: blob.fileName,
-                            fileName:     blob.fileName,
-                            fileId:       blob.gridFsId,
-                            createdBy:    actionUserCtx.userId,
-                            metadata:     {size: blob.size, extension: blob.extension, mime: blob.mimeType, safeCheckedFlag: false},
-                            mimeType:     blob.mimeType,
-                            extension:    blob.extension,
-                            fileSize:     blob.size,
-                            sizeInBytes:  blob.size,
-                            company,
-                        } as any, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
-                        mediaByGridFsId.set(key, created);
-                        return created;
-                    };
+                    // Re-checked against the document this attempt actually read: the
+                    // upload phase only guessed, and a floor that already has a booklet
+                    // must keep it. An unused blob is swept after the commit.
+                    const floorBookletMedia = task.booklet && !hasMarketingBooklet(floorDoc)
+                        ? await createMediaDoc(task.booklet)
+                        : undefined;
 
-                    for (const [taskIndex, task] of tasks.entries()) {
-                        const {floorData, floorName, levelNumber} = task;
-                        const target = resolved.perKey[taskIndex];
+                    if (floorDoc) {
+                        floorDoc.name        = floorName;
+                        floorDoc.levelNumber = levelNumber;
+                        floorDoc.totalUnits  = Object.keys(floorData.units).length;
 
-                        const floorPlanMedia = task.floorPlan ? await createMediaDoc(task.floorPlan) : undefined;
+                        if (floorPlanMedia)    floorDoc.mainImage        = floorPlanMedia;
+                        if (floorBookletMedia) floorDoc.marketingBooklet = floorBookletMedia;
 
-                        const floorDoc = target.created ?? target.existing;
-                        let createdFloor;
-                        const isNewFloor = !floorDoc;
+                        floorDoc.$locals = floorDoc.$locals || {};
+                        floorDoc.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
 
-                        if (isNewFloor && !floorPlanMedia) {
-                            logger.warn(`PDF import: skipping new floor ${floorName} — Floor.mainImage is required and no plan image was produced edificeId=${edificeId} floorKey=${task.floorKey}`);
-                            floorsSkipped++;
-                            unitsSkipped += task.units.length;
-                            continue;
-                        }
+                        // Saved once, after the unit loop has computed `area`.
+                        createdFloor = floorDoc;
+                    } else {
+                        const floorDataToCreate: any = {
+                            name:              floorName,
+                            levelNumber,
+                            edifice:           foundEdifice._id,
+                            project:           foundEdifice.project._id,
+                            company:           company._id,
+                            isAccessible:      true,
+                            hasEmergencyExit:  false,
+                            totalUnits:        Object.keys(floorData.units).length,
+                            area:              0,
+                            imageGallery:      [],
+                            videoGallery:      [],
+                        };
+                        if (floorPlanMedia)    floorDataToCreate.mainImage        = floorPlanMedia;
+                        if (floorBookletMedia) floorDataToCreate.marketingBooklet = floorBookletMedia;
 
-                        // Re-checked against the document this attempt actually read: the
-                        // upload phase only guessed, and a floor that already has a booklet
-                        // must keep it. An unused blob is swept after the commit.
-                        const floorBookletMedia = task.booklet && !hasMarketingBooklet(floorDoc)
-                            ? await createMediaDoc(task.booklet)
-                            : undefined;
+                        createdFloor = await floorService.create(floorDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                        floorsCreated++;
+                        target.created = createdFloor;
+                    }
 
-                        if (floorDoc) {
-                            floorDoc.name        = floorName;
-                            floorDoc.levelNumber = levelNumber;
-                            floorDoc.totalUnits  = Object.keys(floorData.units).length;
+                    const floorRates = resolveEffectiveRates(createdFloor, foundEdifice);
+                    const pricePerM2 = floorRates.pricePerMeterSquared;
+                    const verandaPricePerM2 = floorRates.verandaPricePerMeterSquared;
 
-                            if (floorPlanMedia)    floorDoc.mainImage        = floorPlanMedia;
-                            if (floorBookletMedia) floorDoc.marketingBooklet = floorBookletMedia;
+                    let floorTotalArea = 0;
+                    for (const assets of task.units) {
+                        const {unitName, unitSummary} = assets;
 
-                            floorDoc.$locals = floorDoc.$locals || {};
-                            floorDoc.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
+                        const unitFloorPlanMedia = assets.unitFloorPlan ? await createMediaDoc(assets.unitFloorPlan) : undefined;
 
-                            // Saved once, after the unit loop has computed `area`.
-                            createdFloor = floorDoc;
-                        } else {
-                            const floorDataToCreate: any = {
-                                name:              floorName,
-                                levelNumber,
-                                edifice:           foundEdifice._id,
-                                project:           foundEdifice.project._id,
-                                company:           company._id,
-                                isAccessible:      true,
-                                hasEmergencyExit:  false,
-                                totalUnits:        Object.keys(floorData.units).length,
-                                area:              0,
-                                imageGallery:      [],
-                                videoGallery:      [],
-                            };
-                            if (floorPlanMedia)    floorDataToCreate.mainImage        = floorPlanMedia;
-                            if (floorBookletMedia) floorDataToCreate.marketingBooklet = floorBookletMedia;
+                        // Keep the full unit name as the unit number so every unit is unique.
+                        // The old regex only captured the trailing digits (e.g. "13" for both
+                        // "A-13" and "B-13"), which caused same-floor collisions — the second
+                        // unit matched the first via {unitNumber} and was "updated" instead of created.
+                        const unitNumber = unitName;
 
-                            createdFloor = await floorService.create(floorDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
-                            floorsCreated++;
-                            target.created = createdFloor;
-                        }
+                        const existingUnit = target.unitsByName.get(unitName);
 
-                        const floorRates = resolveEffectiveRates(createdFloor, foundEdifice);
-                        const pricePerM2 = floorRates.pricePerMeterSquared;
-                        const verandaPricePerM2 = floorRates.verandaPricePerMeterSquared;
+                        if (existingUnit) {
+                            existingUnit.unitNumber = unitNumber;
 
-                        let floorTotalArea = 0;
-                        for (const assets of task.units) {
-                            const {unitName, unitSummary} = assets;
+                            // Keep non-zero existing areas when OCR returns 0 for that field.
+                            const incomingTotal =
+                                (unitSummary.totalArea || 0) > 0
+                                    ? unitSummary.totalArea
+                                    : (unitSummary.netArea || 0) + (unitSummary.sharedArea || 0);
 
-                            const unitFloorPlanMedia = assets.unitFloorPlan ? await createMediaDoc(assets.unitFloorPlan) : undefined;
+                            existingUnit.netArea = preferExistingAreaWhenIncomingZero(existingUnit.netArea, unitSummary.netArea);
+                            existingUnit.sharedArea = preferExistingAreaWhenIncomingZero(existingUnit.sharedArea, unitSummary.sharedArea);
+                            existingUnit.area = preferExistingAreaWhenIncomingZero(existingUnit.area, incomingTotal);
+                            existingUnit.verandaArea = preferExistingAreaWhenIncomingZero(existingUnit.verandaArea, unitSummary.verandaArea);
+                            existingUnit.polygonCoordinates = unitSummary.polygonCoordinates || existingUnit.polygonCoordinates || [];
 
-                            // Keep the full unit name as the unit number so every unit is unique.
-                            // The old regex only captured the trailing digits (e.g. "13" for both
-                            // "A-13" and "B-13"), which caused same-floor collisions — the second
-                            // unit matched the first via {unitNumber} and was "updated" instead of created.
-                            const unitNumber = unitName;
-
-                            const existingUnit = target.unitsByName.get(unitName);
-
-                            if (existingUnit) {
-                                existingUnit.unitNumber = unitNumber;
-
-                                // Keep non-zero existing areas when OCR returns 0 for that field.
-                                const incomingTotal =
-                                    (unitSummary.totalArea || 0) > 0
-                                        ? unitSummary.totalArea
-                                        : (unitSummary.netArea || 0) + (unitSummary.sharedArea || 0);
-
-                                existingUnit.netArea = preferExistingAreaWhenIncomingZero(existingUnit.netArea, unitSummary.netArea);
-                                existingUnit.sharedArea = preferExistingAreaWhenIncomingZero(existingUnit.sharedArea, unitSummary.sharedArea);
-                                existingUnit.area = preferExistingAreaWhenIncomingZero(existingUnit.area, incomingTotal);
-                                existingUnit.verandaArea = preferExistingAreaWhenIncomingZero(existingUnit.verandaArea, unitSummary.verandaArea);
-                                existingUnit.polygonCoordinates = unitSummary.polygonCoordinates || existingUnit.polygonCoordinates || [];
-
-                                // Only recompute for units that still follow the sale rates.
-                                // Missing flag (legacy) is treated as manual — same as migration default.
-                                if (existingUnit.priceManuallyEdited === false) {
-                                    const recomputed = computeUnitPriceFromEdificeRates({
-                                        pricePerMeterSquared: pricePerM2,
-                                        verandaPricePerMeterSquared: verandaPricePerM2,
-                                        area: existingUnit.area,
-                                        verandaArea: existingUnit.verandaArea,
-                                    });
-                                    if (recomputed != null) {
-                                        existingUnit.price = recomputed as any;
-                                        if (saleCurrencyId) existingUnit.priceCurrency = saleCurrencyId;
-                                        existingUnit.priceManuallyEdited = false;
-                                    }
-                                }
-
-                                if (unitFloorPlanMedia) {
-                                    existingUnit.mainImage = unitFloorPlanMedia;
-                                }
-
-                                if (assets.booklet && !hasMarketingBooklet(existingUnit)) {
-                                    existingUnit.marketingBooklet = await createMediaDoc(assets.booklet);
-                                }
-
-                                existingUnit.$locals = existingUnit.$locals || {};
-                                existingUnit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
-
-                                await existingUnit.save({session: txSession});
-                                floorTotalArea += existingUnit.area;
-                            } else {
-                                const unitPlanMedia = assets.unitPlan ? await createMediaDoc(assets.unitPlan) : undefined;
-                                const imageGallery: any[] = [];
-                                if (unitPlanMedia) imageGallery.push(unitPlanMedia);
-
-                                const unitArea = unitSummary.totalArea || unitSummary.netArea + unitSummary.sharedArea || 0;
-                                const unitVerandaArea = unitSummary.verandaArea || 0;
-                                const computedPrice = computeUnitPriceFromEdificeRates({
+                            // Only recompute for units that still follow the sale rates.
+                            // Missing flag (legacy) is treated as manual — same as migration default.
+                            if (existingUnit.priceManuallyEdited === false) {
+                                const recomputed = computeUnitPriceFromEdificeRates({
                                     pricePerMeterSquared: pricePerM2,
                                     verandaPricePerMeterSquared: verandaPricePerM2,
-                                    area: unitArea,
-                                    verandaArea: unitVerandaArea,
-                                }) ?? 0;
-
-                                const unitBookletMedia = assets.booklet ? await createMediaDoc(assets.booklet) : undefined;
-
-                                const unitDataToCreate: any = {
-                                    name:               unitName,
-                                    unitNumber,
-                                    edifice:            foundEdifice._id,
-                                    floor:              createdFloor._id,
-                                    project:            foundEdifice.project._id,
-                                    company:            company._id,
-                                    unitType:           unitTypeId,
-                                    netArea:            unitSummary.netArea || 0,
-                                    sharedArea:         unitSummary.sharedArea || 0,
-                                    area:               unitArea,
-                                    verandaArea:        unitVerandaArea,
-                                    polygonCoordinates: unitSummary.polygonCoordinates || [],
-                                    price:              computedPrice,
-                                    priceCurrency:      saleCurrencyId ?? currencyId,
-                                    priceManuallyEdited: false,
-                                    hasBalcony:         false,
-                                    hasTerrace:         false,
-                                    hasSeaView:         false,
-                                    hasCityView:        false,
-                                    hasLakeView:        false,
-                                    hasElevator:        false,
-                                    numberOfRooms:      0,
-                                    numberOfBathrooms:  0,
-                                    imageGallery,
-                                    videoGallery:       [],
-                                    connectedUnits:     [],
-                                };
-                                if (unitFloorPlanMedia) unitDataToCreate.mainImage = unitFloorPlanMedia;
-                                if (unitBookletMedia)   unitDataToCreate.marketingBooklet = unitBookletMedia;
-
-                                const newUnit = await unitService.create(unitDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
-                                unitsCreated++;
-                                target.unitsByName.set(unitName, newUnit);
-                                floorTotalArea += unitDataToCreate.area;
+                                    area: existingUnit.area,
+                                    verandaArea: existingUnit.verandaArea,
+                                });
+                                if (recomputed != null) {
+                                    existingUnit.price = recomputed as any;
+                                    if (saleCurrencyId) existingUnit.priceCurrency = saleCurrencyId;
+                                    existingUnit.priceManuallyEdited = false;
+                                }
                             }
-                        }
 
-                        if (floorTotalArea > 0) {
-                            createdFloor.area = floorTotalArea;
-                        }
-                        // A new floor was already persisted by create(); it only needs a second
-                        // write when the unit loop produced an area. An existing floor carries
-                        // this iteration's edits and is written exactly once, here.
-                        if (!isNewFloor || floorTotalArea > 0) {
-                            await createdFloor.save({session: txSession});
+                            if (unitFloorPlanMedia) {
+                                existingUnit.mainImage = unitFloorPlanMedia;
+                            }
+
+                            if (assets.booklet && !hasMarketingBooklet(existingUnit)) {
+                                existingUnit.marketingBooklet = await createMediaDoc(assets.booklet);
+                            }
+
+                            existingUnit.$locals = existingUnit.$locals || {};
+                            existingUnit.$locals.auditUserId = new ObjectId(actionUserCtx.userId);
+
+                            await existingUnit.save({session: txSession});
+                            floorTotalArea += existingUnit.area;
+                        } else {
+                            const unitPlanMedia = assets.unitPlan ? await createMediaDoc(assets.unitPlan) : undefined;
+                            const imageGallery: any[] = [];
+                            if (unitPlanMedia) imageGallery.push(unitPlanMedia);
+
+                            const unitArea = unitSummary.totalArea || unitSummary.netArea + unitSummary.sharedArea || 0;
+                            const unitVerandaArea = unitSummary.verandaArea || 0;
+                            const computedPrice = computeUnitPriceFromEdificeRates({
+                                pricePerMeterSquared: pricePerM2,
+                                verandaPricePerMeterSquared: verandaPricePerM2,
+                                area: unitArea,
+                                verandaArea: unitVerandaArea,
+                            }) ?? 0;
+
+                            const unitBookletMedia = assets.booklet ? await createMediaDoc(assets.booklet) : undefined;
+
+                            const unitDataToCreate: any = {
+                                name:               unitName,
+                                unitNumber,
+                                edifice:            foundEdifice._id,
+                                floor:              createdFloor._id,
+                                project:            foundEdifice.project._id,
+                                company:            company._id,
+                                unitType:           unitTypeId,
+                                netArea:            unitSummary.netArea || 0,
+                                sharedArea:         unitSummary.sharedArea || 0,
+                                area:               unitArea,
+                                verandaArea:        unitVerandaArea,
+                                polygonCoordinates: unitSummary.polygonCoordinates || [],
+                                price:              computedPrice,
+                                priceCurrency:      saleCurrencyId ?? currencyId,
+                                priceManuallyEdited: false,
+                                hasBalcony:         false,
+                                hasTerrace:         false,
+                                hasSeaView:         false,
+                                hasCityView:        false,
+                                hasLakeView:        false,
+                                hasElevator:        false,
+                                numberOfRooms:      0,
+                                numberOfBathrooms:  0,
+                                imageGallery,
+                                videoGallery:       [],
+                                connectedUnits:     [],
+                            };
+                            if (unitFloorPlanMedia) unitDataToCreate.mainImage = unitFloorPlanMedia;
+                            if (unitBookletMedia)   unitDataToCreate.marketingBooklet = unitBookletMedia;
+
+                            const newUnit = await unitService.create(unitDataToCreate, {session: txSession, logger, languageCode, auditUserId: actionUserCtx.userId});
+                            unitsCreated++;
+                            target.unitsByName.set(unitName, newUnit);
+                            floorTotalArea += unitDataToCreate.area;
                         }
                     }
-                });
-                committed = true;
-            } finally {
-                await floorImportSession.endSession();
-            }
+
+                    if (floorTotalArea > 0) {
+                        createdFloor.area = floorTotalArea;
+                    }
+                    // A new floor was already persisted by create(); it only needs a second
+                    // write when the unit loop produced an area. An existing floor carries
+                    // this iteration's edits and is written exactly once, here.
+                    if (!isNewFloor || floorTotalArea > 0) {
+                        await createdFloor.save({session: txSession});
+                    }
+                }
+            });
+            committed = true;
 
             // Blobs whose media document was never written (e.g. a booklet the target
             // turned out to already have) would otherwise sit in GridFS unreferenced.

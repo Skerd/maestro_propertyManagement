@@ -208,7 +208,8 @@ router.post(
             const costs       = costsByUnit.get(uid) ?? [];
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
-            const saleCurrencySymbol = sale?.currencySymbol ?? unitCurrencySymbol;
+            // Only the sale's own currency names the sale price and net profit: the unit's may be another (TD-B231).
+            const saleCurrencySymbol = sale?.currencySymbol;
             const {netProfit, roiPercent} = unitNetProfit(sale, costs);
 
             return {

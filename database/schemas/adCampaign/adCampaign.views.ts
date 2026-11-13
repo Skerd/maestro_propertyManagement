@@ -470,7 +470,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     label: "form.recipientsLabel",
                                     widgetProps: {
                                         apiUrl: "/api/company/users/select",
-                                        method: "POST",
                                         placeholderKey: "form.selectRecipients",
                                         removeTooltipKey: "form.removeItem",
                                         selectPageSizeCreate: 50,
@@ -487,7 +486,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     label: "form.leadRecipientsLabel",
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/lead/select",
-                                        method: "POST",
                                         placeholderKey: "form.selectLeadRecipients",
                                         removeTooltipKey: "form.removeItem",
                                         selectPageSizeCreate: 50,
@@ -538,7 +536,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                             label: "form.projectsLabel",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
                                 placeholderKey: "form.selectProjects",
                                 removeTooltipKey: "form.removeItem",
                                 selectPageSizeCreate: 50,
@@ -555,7 +552,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                             label: "form.unitsLabel",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 placeholderKey: "form.selectUnits",
                                 removeTooltipKey: "form.removeItem",
                                 selectPageSizeCreate: 50,
@@ -883,7 +879,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     label: "form.recipientsLabel",
                                     widgetProps: {
                                         apiUrl: "/api/company/users/select",
-                                        method: "POST",
                                         placeholderKey: "form.selectRecipients",
                                         removeTooltipKey: "form.removeItem",
                                         selectPageSizeCreate: 50,
@@ -901,7 +896,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     label: "form.leadRecipientsLabel",
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/lead/select",
-                                        method: "POST",
                                         placeholderKey: "form.selectLeadRecipients",
                                         removeTooltipKey: "form.removeItem",
                                         selectPageSizeCreate: 50,
@@ -956,7 +950,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                             label: "form.projectsLabel",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
                                 placeholderKey: "form.selectProjects",
                                 removeTooltipKey: "form.removeItem",
                                 selectPageSizeCreate: 50,
@@ -974,7 +967,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                             label: "form.unitsLabel",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 placeholderKey: "form.selectUnits",
                                 removeTooltipKey: "form.removeItem",
                                 selectPageSizeCreate: 50,

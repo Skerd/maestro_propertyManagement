@@ -1168,7 +1168,6 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                     widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/constructor/select",
-                        method: "POST",
                         placeholderKey: "form.selectConstructor",
                         removeTooltipKey: "removeConstructor",
                         selectPageSizeCreate: 50,
@@ -1190,7 +1189,6 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                     widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/unitType/select",
-                        method: "POST",
                         placeholderKey: "form.selectPropertyType",
                         removeTooltipKey: "removePropertyType",
                         selectPageSizeCreate: 50,
@@ -1807,7 +1805,6 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                     widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/constructor/select",
-                        method: "POST",
                         placeholderKey: "form.selectConstructor",
                         removeTooltipKey: "removeConstructor",
                         selectPageSizeCreate: 50,
@@ -1830,7 +1827,6 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                     widget: "#ObjectIdChipsInput",
                     widgetProps: {
                         apiUrl: "/api/realEstate/unitType/select",
-                        method: "POST",
                         placeholderKey: "form.selectPropertyType",
                         removeTooltipKey: "removePropertyType",
                         selectPageSizeCreate: 50,

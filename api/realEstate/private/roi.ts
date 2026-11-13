@@ -39,7 +39,7 @@ import {saleService} from "@propertyManagement/database/schemas/sale/sale.servic
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
 import {currencyDecimals, unitCostTotalsByUnit} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
 import {decimalToNumber, nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
-import {type RoiCurrencyAmount, roiTotalsByCurrency, unitNetProfit} from "@propertyManagement/utilities/roi/roiCurrencyTotals";
+import {type RoiCurrencyAmount, roiTotalsByCurrency, unitGrossYield, unitNetProfit} from "@propertyManagement/utilities/roi/roiCurrencyTotals";
 export const basePath = "/api/realEstate/roi";
 export const router   = Router();
 
@@ -188,12 +188,14 @@ router.post(
         const leases = rentReadable && matchedUnitIds.length > 0
             ? await leaseService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId, status: "active"})
             : [];
-        const rentByUnit: Record<string, {monthly: number; symbol?: string}> = {};
+        // The rent's currency is always read to compare it with the sale's (TD-B227); its symbol only when readable.
+        const rentByUnit: Record<string, Pick<RoiCurrencyAmount, "currencyId" | "amount" | "currencySymbol">> = {};
         for (const lease of leases as any[]) {
             const uid = (lease.unit as any)?.toString() ?? lease.unit.toString();
             rentByUnit[uid] = {
-                monthly: decimalToNumber(lease.monthlyRent) ?? 0,
-                symbol:  rentCurrencyReadable ? lease.rentCurrency?.symbol : undefined,
+                currencyId:     String(nestedEntityToRef(lease.rentCurrency) ?? ""),
+                amount:         decimalToNumber(lease.monthlyRent) ?? 0,
+                currencySymbol: rentCurrencyReadable ? lease.rentCurrency?.symbol : undefined,
             };
         }
 
@@ -205,11 +207,7 @@ router.post(
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
             const salePrice   = sale?.amount;
-            const monthlyRent = rent?.monthly;
             const {netProfit, roiPercent} = unitNetProfit(sale, costs);
-            const annualGrossYield = monthlyRent && salePrice && salePrice > 0
-                ? ((monthlyRent * 12) / salePrice) * 100
-                : undefined;
 
             return {
                 unitId:         uid,
@@ -226,8 +224,9 @@ router.post(
                 })),
                 netProfit,
                 roiPercent,
-                monthlyRent,
-                annualGrossYield,
+                monthlyRent:        rent?.amount,
+                rentCurrencySymbol: rent?.currencySymbol,
+                annualGrossYield:   unitGrossYield(sale, rent),
             };
         });
 

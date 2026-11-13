@@ -20,7 +20,7 @@ import Unit from "@propertyManagement/database/schemas/unit/unit";
 import UnitCost from "@propertyManagement/database/schemas/unitCost/unitCost";
 import Sale from "@propertyManagement/database/schemas/sale/sale";
 import Lease from "@propertyManagement/database/schemas/lease/lease";
-import {roiTotalsByCurrency, unitNetProfit} from "@propertyManagement/utilities/roi/roiCurrencyTotals";
+import {roiTotalsByCurrency, unitGrossYield, unitNetProfit} from "@propertyManagement/utilities/roi/roiCurrencyTotals";
 import {asTenant, clearDatabase, dec, seedCurrency, seedUnit} from "./sale.fixtures";
 
 const eur = (amount: number) => ({currencyId: "eur", amount, decimals: 2, currencySymbol: "€"});
@@ -41,6 +41,20 @@ describe("a unit's net profit", () => {
         expect(unitNetProfit(eur(1000), [eur(100), chf(50)])).toEqual({});
         expect(unitNetProfit(eur(1000), [chf(50)])).toEqual({});
         expect(unitNetProfit(undefined, [eur(100)])).toEqual({});
+    });
+});
+
+describe("a unit's gross yield (TD-B227)", () => {
+    it("is a year of rent over the sale price when both are in one currency", () => {
+        expect(unitGrossYield(eur(200000), {currencyId: "eur", amount: 1000})).toBe(6);
+    });
+
+    it("is left out across currencies, without a rent or a sale, or for a free sale", () => {
+        expect(unitGrossYield(eur(200000), {currencyId: "chf", amount: 1000})).toBeUndefined();
+        expect(unitGrossYield(eur(200000), undefined)).toBeUndefined();
+        expect(unitGrossYield(eur(200000), {currencyId: "eur", amount: 0})).toBeUndefined();
+        expect(unitGrossYield(undefined, {currencyId: "eur", amount: 1000})).toBeUndefined();
+        expect(unitGrossYield(eur(0), {currencyId: "eur", amount: 1000})).toBeUndefined();
     });
 });
 
@@ -95,6 +109,32 @@ describe("POST /api/realEstate/roi", {timeout: 60000}, () => {
             expenditureItems: [{title: "Works", category: "construction", unit: "pcs", amount, pricePerUnit: dec(pricePerUnit)}],
         });
     }
+
+    async function seedActiveLease(unit: ObjectId, monthlyRent: string, rentCurrency: ObjectId): Promise<void> {
+        await db().collection("leases").insertOne({_id: new ObjectId(), company: companyId, unit, status: "active", monthlyRent: dec(monthlyRent), rentCurrency, deletedAt: null});
+    }
+
+    it("returns the rent with its currency and a yield only when the rent and the sale share a currency", () => asCompany(async () => {
+        const euro = await seedCurrency(companyId, "EUR");
+        const franc = await seedCurrency(companyId, "CHF");
+        const project = new ObjectId();
+        const sameCurrency = await seedUnit(companyId, {price: "200000.00", priceCurrency: euro});
+        const mixed = await seedUnit(companyId, {price: "200000.00", priceCurrency: euro});
+        await db().collection("units").updateMany({_id: {$in: [sameCurrency, mixed]}}, {$set: {project}});
+        await seedSale(sameCurrency, "200000.00", euro);
+        await seedActiveLease(sameCurrency, "1000.00", euro);
+        await seedSale(mixed, "200000.00", euro);
+        await seedActiveLease(mixed, "1000.00", franc);
+
+        const response = await request(app).post("/api/realEstate/roi").set(callerHeader(manager)).send({projectId: project.toString()});
+        expect(response.status).toBe(200);
+
+        const byUnit = new Map(response.body.units.map((unit: {unitId: string}) => [unit.unitId, unit]));
+        expect(byUnit.get(sameCurrency.toString())).toMatchObject({monthlyRent: 1000, rentCurrencySymbol: "EUR", annualGrossYield: 6});
+        const mixedRow = byUnit.get(mixed.toString()) as {monthlyRent?: number; rentCurrencySymbol?: string; annualGrossYield?: number};
+        expect(mixedRow).toMatchObject({monthlyRent: 1000, rentCurrencySymbol: "CHF"});
+        expect(mixedRow.annualGrossYield).toBeUndefined();
+    }));
 
     it("returns the units' costs and the scope totals per currency", () => asCompany(async () => {
         const euro = await seedCurrency(companyId, "EUR");

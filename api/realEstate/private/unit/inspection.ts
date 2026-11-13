@@ -189,16 +189,16 @@ export const {router} = createCrudRouter({
     // `status` and `cancellationReason` are left out on purpose (TD-B222): a new inspection starts scheduled, and only
     // the start, complete, reschedule and cancel actions move it on.
     buildCreateData: async ({unit, inspectedBy, followUpInspection, findings, status: _status, cancellationReason: _cancellationReason, notes, session, logger, languageCode, company, ...params}: any) => {
-        const [foundUnit, foundInspectedBy] = await Promise.all([
-            unitService.findOneOrThrow(
-                {_id: new ObjectId(unit), company: company._id},
-                {session, logger, languageCode, withDeleted: false},
-            ),
-            userService.findOneOrThrow(
-                {_id: new ObjectId(inspectedBy), "roles.company": company._id},
-                {session, logger, languageCode, withDeleted: false},
-            ),
-        ]);
+        // One after the other: these are the transaction's first reads, and parallel first operations on a session can
+        // lose the transaction under load (NoSuchTransaction, TD-B229).
+        const foundUnit = await unitService.findOneOrThrow(
+            {_id: new ObjectId(unit), company: company._id},
+            {session, logger, languageCode, withDeleted: false},
+        );
+        const foundInspectedBy = await userService.findOneOrThrow(
+            {_id: new ObjectId(inspectedBy), "roles.company": company._id},
+            {session, logger, languageCode, withDeleted: false},
+        );
 
         if (followUpInspection) {
             const linked = await inspectionService.findOneOrThrow(

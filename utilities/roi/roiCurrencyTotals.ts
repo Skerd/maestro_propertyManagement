@@ -20,6 +20,15 @@ export function unitNetProfit(sale: RoiCurrencyAmount | undefined, costs: RoiCur
 }
 
 /**
+ * A unit's annual gross yield in percent (TD-B227): a year of rent over the sale price, only when the rent and the sale
+ * are in one currency, since a rent in francs over a price in euros is no yield (GLB-08). A ratio, so plain division.
+ */
+export function unitGrossYield(sale: RoiCurrencyAmount | undefined, rent: Pick<RoiCurrencyAmount, "currencyId" | "amount"> | undefined): number | undefined {
+    if (!sale || !rent || rent.currencyId !== sale.currencyId || !rent.amount || sale.amount <= 0) return undefined;
+    return ((rent.amount * 12) / sale.amount) * 100;
+}
+
+/**
  * The scope's revenue, costs and net profit per currency (TD-B223), each summed exactly at that currency's precision.
  * Ordered by symbol, so no currency is ranked against another (UX-07).
  */

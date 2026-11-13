@@ -17,7 +17,6 @@ const propertyManagementConfigCreateFormNodes: ViewConfig["nodes"] = [
                             label: "form.notifyOnSalesLabel",
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 placeholderKey: "form.selectUser",
                                 removeTooltipKey: "form.removeUser",
                                 selectPageSizeCreate: 50,
@@ -34,7 +33,6 @@ const propertyManagementConfigCreateFormNodes: ViewConfig["nodes"] = [
                             label: "form.notifyOnReservationsLabel",
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 placeholderKey: "form.selectUser",
                                 removeTooltipKey: "form.removeUser",
                                 selectPageSizeCreate: 50,
@@ -103,7 +101,6 @@ const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
                             label: "form.notifyOnSalesLabel",
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 placeholderKey: "form.selectUser",
                                 removeTooltipKey: "form.removeUser",
                                 selectPageSizeCreate: 50,
@@ -121,7 +118,6 @@ const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
                             label: "form.notifyOnReservationsLabel",
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 placeholderKey: "form.selectUser",
                                 removeTooltipKey: "form.removeUser",
                                 selectPageSizeCreate: 50,

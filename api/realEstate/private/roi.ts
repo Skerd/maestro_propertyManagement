@@ -37,9 +37,9 @@ import {edificeService} from "@propertyManagement/database/schemas/edifice/edifi
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
-import {unitCostTotalsByUnit} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
-import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
-import {DEFAULT_DECIMAL_PLACES, subtractMoney, sumMoney} from "armonia/src/modules/core/helpers/money";
+import {currencyDecimals, unitCostTotalsByUnit} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
+import {decimalToNumber, nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
+import {type RoiCurrencyAmount, roiTotalsByCurrency, unitNetProfit} from "@propertyManagement/utilities/roi/roiCurrencyTotals";
 export const basePath = "/api/realEstate/roi";
 export const router   = Router();
 
@@ -172,12 +172,15 @@ router.post(
         const sales = salePriceReadable && matchedUnitIds.length > 0
             ? await saleService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId})
             : [];
-        const saleByUnit: Record<string, {price: number; symbol?: string}> = {};
+        // The sale's currency is always read to keep amounts per currency (TD-B223); its symbol only when readable.
+        const saleByUnit: Record<string, RoiCurrencyAmount> = {};
         for (const sale of sales as any[]) {
             const uid = (sale.unit as any)?.toString() ?? sale.unit.toString();
             saleByUnit[uid] = {
-                price:  decimalToNumber(sale.finalPrice) ?? 0,
-                symbol: saleCurrencyReadable ? sale.saleCurrency?.symbol : undefined,
+                currencyId:     String(nestedEntityToRef(sale.saleCurrency) ?? ""),
+                amount:         decimalToNumber(sale.finalPrice) ?? 0,
+                decimals:       currencyDecimals(sale.saleCurrency),
+                currencySymbol: saleCurrencyReadable ? sale.saleCurrency?.symbol : undefined,
             };
         }
 
@@ -198,15 +201,12 @@ router.post(
         const unitBreakdowns: RoiUnitBreakdown[] = units.map((u: any) => {
             const uid         = u._id.toString();
             const unitCurrencySymbol = unitCurrencyReadable ? u.priceCurrency?.symbol : undefined;
-            const costTotal   = costsByUnit.get(uid);
-            const costs       = costTotal?.amount ?? 0;
-            const decimals    = Math.max(costTotal?.decimals ?? 0, DEFAULT_DECIMAL_PLACES);
+            const costs       = costsByUnit.get(uid) ?? [];
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
-            const salePrice   = sale?.price;
+            const salePrice   = sale?.amount;
             const monthlyRent = rent?.monthly;
-            const netProfit   = salePrice !== undefined ? subtractMoney(salePrice, costs, decimals) : undefined;
-            const roiPercent  = netProfit !== undefined && costs > 0 ? (netProfit / costs) * 100 : undefined;
+            const {netProfit, roiPercent} = unitNetProfit(sale, costs);
             const annualGrossYield = monthlyRent && salePrice && salePrice > 0
                 ? ((monthlyRent * 12) / salePrice) * 100
                 : undefined;
@@ -217,10 +217,13 @@ router.post(
                 unitNumber:     u.unitNumber,
                 status:         u.status,
                 salePrice,
-                saleCurrencySymbol: sale?.symbol ?? unitCurrencySymbol,
-                totalCosts:     costs,
-                // Costs in several currencies name none; one unpopulated currency keeps the unit's, as before.
-                costCurrencySymbol: costTotal?.mixedCurrencies ? undefined : costTotal?.currencySymbol ?? unitCurrencySymbol,
+                saleCurrencySymbol: sale?.currencySymbol ?? unitCurrencySymbol,
+                // One line per currency; costs in a single unpopulated currency keep the unit's symbol, as before.
+                costs: costs.map((cost) => ({
+                    amount:         cost.amount,
+                    decimals:       cost.decimals,
+                    currencySymbol: cost.currencySymbol ?? (costs.length === 1 ? unitCurrencySymbol : undefined),
+                })),
                 netProfit,
                 roiPercent,
                 monthlyRent,
@@ -245,11 +248,6 @@ router.post(
                 unitBreakdowns,
             );
 
-            const costDecimals = Math.max(DEFAULT_DECIMAL_PLACES, ...[...costsByUnit.values()].map((total) => total.decimals));
-            const totalRevenue = sumMoney(unitBreakdowns.map((u) => u.salePrice ?? 0));
-            const totalCosts   = sumMoney(unitBreakdowns.map((u) => u.totalCosts), costDecimals);
-            const netProfit    = subtractMoney(totalRevenue, totalCosts, costDecimals);
-            const roiPercent   = totalCosts > 0 ? (netProfit / totalCosts) * 100 : 0;
             const withRoi      = unitBreakdowns.filter(u => u.roiPercent !== undefined);
             const avgRoi       = withRoi.length
                 ? withRoi.reduce((s, u) => s + (u.roiPercent ?? 0), 0) / withRoi.length
@@ -264,10 +262,11 @@ router.post(
                 soldUnits:          unitBreakdowns.filter(u => u.status === "sold_unit").length,
                 availableUnits:     unitBreakdowns.filter(u => u.status === "available_unit").length,
                 rentedUnits:        unitBreakdowns.filter(u => u.status === "rented_unit").length,
-                totalRevenue,
-                totalCosts,
-                netProfit,
-                roiPercent,
+                // Sales and costs of the matched units, summed within each currency only (TD-B223).
+                totals:             roiTotalsByCurrency(units.map((u: any) => ({
+                    sale:  saleByUnit[u._id.toString()],
+                    costs: costsByUnit.get(u._id.toString()) ?? [],
+                }))),
                 averageRoiPercent:  avgRoi,
             };
         }

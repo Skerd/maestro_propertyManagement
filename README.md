@@ -82,7 +82,7 @@ Route files are discovered by the core `routeRegistry`: a file under `api/` moun
 | `rentalsHub.ts` | `/api/realEstate/rentalsHub` | `/leases/list`, `/rentalPayments/list`, `/rentalPayments/calendar` |
 | `contractsHub.ts` | `/api/realEstate/contractsHub` | `/contracts/list`, `/clients/list` |
 | `agentReport.ts` | `/api/realEstate/agentReport` | Per-agent sales report |
-| `roi.ts` | `/api/realEstate/roi` | Unit costs vs sale prices and rent, per scope |
+| `roi.ts` | `/api/realEstate/roi` | Unit costs vs sale prices and rent, per scope, with totals per currency |
 | `erpExport.ts` | `/api/realEstate/erpExport` | ERP export |
 | `clientPortal.ts` | `/api/realEstate/clientPortal` | `/overview`, `/portfolio`, `/properties`, `/reservations`: buyer-scoped views for the signed-in client |
 

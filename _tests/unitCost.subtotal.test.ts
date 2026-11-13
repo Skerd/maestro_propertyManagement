@@ -1,6 +1,7 @@
 /**
  * TD-B202: a unit cost's subtotal rounds each line at its currency's precision, not always at cents (GLB-08).
  * TD-B213: the ROI totals of a unit's costs are summed per currency at that precision.
+ * TD-B223: a unit's costs in several currencies stay one total per currency.
  */
 import {describe, expect, it} from "vitest";
 import {Decimal128} from "mongodb";
@@ -34,20 +35,24 @@ describe("unit cost totals per unit", () => {
             {unit: unitA, currency: kwd, expenditureItems: [line(1, "0.0016")]},
             {unit: unitB, currency: eur, expenditureItems: [line(10, "1.005")]},
         ]);
-        expect(totals.get(unitA.toString())).toEqual({amount: 3.005, decimals: 3, currencySymbol: "KD", mixedCurrencies: false});
-        expect(totals.get(unitB.toString())).toEqual({amount: 10.1, decimals: 2, currencySymbol: "€", mixedCurrencies: false});
+        expect(totals.get(unitA.toString())).toEqual([{currencyId: kwd._id.toString(), amount: 3.005, decimals: 3, currencySymbol: "KD"}]);
+        expect(totals.get(unitB.toString())).toEqual([{currencyId: eur._id.toString(), amount: 10.1, decimals: 2, currencySymbol: "€"}]);
     });
 
-    it("adds a unit's costs in several currencies at the finest precision, naming none", () => {
+    it("keeps a unit's costs in several currencies apart, one total per currency", () => {
         const totals = unitCostTotalsByUnit([
             {unit: {_id: unitA}, currency: kwd, expenditureItems: [line(1, "1.001")]},
             {unit: {_id: unitA}, currency: eur, expenditureItems: [line(1, "2.50")]},
+            {unit: {_id: unitA}, currency: eur, expenditureItems: [line(2, "0.25")]},
         ]);
-        expect(totals.get(unitA.toString())).toEqual({amount: 3.501, decimals: 3, mixedCurrencies: true});
+        expect(totals.get(unitA.toString())).toEqual([
+            {currencyId: kwd._id.toString(), amount: 1.001, decimals: 3, currencySymbol: "KD"},
+            {currencyId: eur._id.toString(), amount: 3, decimals: 2, currencySymbol: "€"},
+        ]);
     });
 
     it("rounds at cents while the currency is only an id", () => {
         const totals = unitCostTotalsByUnit([{unit: unitA, currency: kwd._id, expenditureItems: [line(3, "1.0005")]}]);
-        expect(totals.get(unitA.toString())).toEqual({amount: 3, decimals: 2, currencySymbol: undefined, mixedCurrencies: false});
+        expect(totals.get(unitA.toString())).toEqual([{currencyId: kwd._id.toString(), amount: 3, decimals: 2, currencySymbol: undefined}]);
     });
 });

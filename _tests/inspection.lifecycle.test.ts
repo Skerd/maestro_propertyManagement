@@ -1,6 +1,7 @@
 /**
  * TD-B198: an inspection moves scheduled → in progress → completed through its own actions; completing needs a finished checklist.
  * TD-B215: a scheduled or rescheduled inspection moves to a new day as rescheduled.
+ * TD-B224 (D156): a scheduled or rescheduled inspection can be cancelled; one that started or ended cannot.
  */
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from "vitest";
 import mongoose from "mongoose";
@@ -8,7 +9,7 @@ import {ObjectId} from "mongodb";
 import {connectTestDatabase, disconnectTestDatabase} from "@coreModule/_tests/testDatabase";
 import {InspectionActions} from "@propertyManagement/database/schemas/inspection/inspection.actions";
 import {rescheduleInspectionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/rescheduleInspection.form.validator";
-import {actor, asTenant, clearDatabase, findRaw} from "./sale.fixtures";
+import {actor, asTenant, clearDatabase, findRaw, seedCurrency, seedUnit} from "./sale.fixtures";
 
 const companyId = new ObjectId();
 const asCompany = asTenant(companyId);
@@ -50,6 +51,15 @@ async function seedInspection(status: string, checklist?: {name: string; complet
 const start = (_id: ObjectId) => inspections.start({...params, _id: _id.toString()});
 const complete = (_id: ObjectId) => inspections.complete({...params, _id: _id.toString()});
 const reschedule = (_id: ObjectId, inspectionDate: string) => inspections.reschedule({...params, _id: _id.toString(), inspectionDate});
+const cancel = (_id: ObjectId) => inspections.cancelScheduled({...params, _id: _id.toString(), cancellationReason: "Tenant away"});
+
+/** Cancelling checks the inspection's unit, so these inspections point at a real one. */
+async function seedInspectionOnUnit(status: string): Promise<ObjectId> {
+    const _id = await seedInspection(status);
+    const unit = await seedUnit(companyId, {price: "1000.00", priceCurrency: await seedCurrency(companyId, "EUR")});
+    await db().collection("inspections").updateOne({_id}, {$set: {unit}});
+    return _id;
+}
 
 describe("inspection lifecycle", {timeout: 60000}, () => {
     it("starts a scheduled or rescheduled inspection, and refuses any other", () => asCompany(async () => {
@@ -100,6 +110,22 @@ describe("inspection lifecycle", {timeout: 60000}, () => {
             const other = await seedInspection(status);
             await expect(reschedule(other, "2026-12-03")).rejects.toMatchObject({error_code: "invalid_status_for_reschedule_inspection"});
             expect((await findRaw("inspections", other))!).toMatchObject({status, inspectionDate: "2026-11-20"});
+        }
+    }));
+
+    it("cancels a scheduled or rescheduled inspection with its reason, and refuses any other", () => asCompany(async () => {
+        for (const status of ["scheduled", "rescheduled"]) {
+            const planned = await seedInspectionOnUnit(status);
+            await cancel(planned);
+            const row = (await findRaw("inspections", planned))!;
+            expect(row).toMatchObject({status: "cancelled", cancellationReason: "Tenant away"});
+            expect(row.cancelledAt).toBeInstanceOf(Date);
+        }
+
+        for (const status of ["in_progress", "completed", "cancelled"]) {
+            const other = await seedInspectionOnUnit(status);
+            await expect(cancel(other)).rejects.toMatchObject({error_code: "invalid_status_for_cancel_scheduled"});
+            expect((await findRaw("inspections", other))!.status).toBe(status);
         }
     }));
 

@@ -45,7 +45,8 @@ export class InspectionActions {
             {session, logger, languageCode, withDeleted: false},
         );
 
-        if (existing.status !== InspectionStatus.SCHEDULED) {
+        // A rescheduled inspection is still a planned visit (D156).
+        if (existing.status !== InspectionStatus.SCHEDULED && existing.status !== InspectionStatus.RESCHEDULED) {
             throw apiValidationException("invalid_status_for_cancel_scheduled", "", null, languageCode);
         }
 

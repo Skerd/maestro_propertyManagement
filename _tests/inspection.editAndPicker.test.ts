@@ -2,6 +2,7 @@
  * TD-B214: the inspection edit (PATCH) no longer moves the status; only the actions do. The cancellation reason stays
  * editable on a cancelled inspection.
  * TD-B211: the follow-up picker labels an inspection by its type and day, not its code.
+ * TD-B222: the inspection create (PUT) ignores a status and a cancellation reason; a new inspection starts scheduled.
  */
 import {afterAll, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import {ObjectId} from "mongodb";
@@ -83,6 +84,22 @@ describe("PATCH /unit/inspection", {timeout: 60000}, () => {
         const scheduled = await seedInspection({status: "scheduled"});
         expect((await patch(scheduled, {cancellationReason: "Not cancelled"})).status).toBe(200);
         expect((await findRaw("inspections", scheduled))!.cancellationReason).toBeUndefined();
+    }));
+});
+
+describe("PUT /unit/inspection", {timeout: 60000}, () => {
+    it("starts every new inspection scheduled, whatever status the caller sends", () => asCompany(async () => {
+        for (const status of [undefined, "scheduled", "in_progress", "completed", "cancelled", "rescheduled"]) {
+            const response = await request(app).put("/api/realEstate/unit/inspection").set(callerHeader(manager)).send({
+                unit: unit.toString(), inspectedBy: inspector.toString(), inspectionDate: "2026-11-20", type: "routine",
+                followUpRequired: false, notes: `Sent ${status}`, ...(status ? {status, cancellationReason: "Tenant away"} : {}),
+            });
+            expect(response.status).toBe(200);
+            const row = (await findRaw("inspections", new ObjectId(String(response.body._id))))!;
+            expect(row).toMatchObject({status: "scheduled", notes: `Sent ${status}`});
+            expect(row.cancellationReason).toBeUndefined();
+            expect(row.cancelledAt).toBeUndefined();
+        }
     }));
 });
 

@@ -27,10 +27,10 @@ import {
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-import {DEFAULT_DECIMAL_PLACES, fromMinor, minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import {DEFAULT_DECIMAL_PLACES, minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 
 /** The populated currency's precision (GLB-08); 2 places while the currency is only an id or not readable. */
-function currencyDecimals(currency: unknown): number {
+export function currencyDecimals(currency: unknown): number {
     const places = currency && typeof currency === "object" && "decimalPlaces" in currency ? currency.decimalPlaces : undefined;
     return typeof places === "number" ? places : DEFAULT_DECIMAL_PLACES;
 }
@@ -59,21 +59,22 @@ export function computeUnitCostSubtotal(doc: UnitCostAmounts): number {
     return minorToNumber(minor, decimals);
 }
 
-export type UnitCostTotal = {
+/** A unit's costs in one currency, exact at that currency's precision. */
+export type UnitCostCurrencyTotal = {
+    /** The currency's id, "" for a cost without one: amounts are only ever summed within one id. */
+    currencyId: string;
     amount: number;
     /** The precision `amount` is exact at. */
     decimals: number;
-    /** The one currency of the unit's costs, when it is populated with its symbol. */
+    /** When the currency is populated with its symbol. */
     currencySymbol?: string;
-    /** The unit's costs are in more than one currency, so `amount` adds them together and names none. */
-    mixedCurrencies: boolean;
 };
 
 /**
- * Each unit's costs (TD-B213): summed per currency in that currency's minor units (GLB-08), so a 3-decimal currency is
- * never cut to cents. A unit with costs in several currencies gets their sum at the finest precision among them.
+ * Each unit's costs per currency (TD-B213, TD-B223): summed in that currency's minor units (GLB-08), so a 3-decimal
+ * currency is never cut to cents, and never added to another currency.
  */
-export function unitCostTotalsByUnit(costs: (UnitCostAmounts & {unit?: unknown})[]): Map<string, UnitCostTotal> {
+export function unitCostTotalsByUnit(costs: (UnitCostAmounts & {unit?: unknown})[]): Map<string, UnitCostCurrencyTotal[]> {
     const byUnit = new Map<string, Map<string, {minor: bigint; decimals: number; symbol?: string}>>();
     for (const cost of costs) {
         const unitId = String(nestedEntityToRef(cost.unit) ?? "");
@@ -88,17 +89,11 @@ export function unitCostTotalsByUnit(costs: (UnitCostAmounts & {unit?: unknown})
         byUnit.set(unitId, perCurrency);
     }
 
-    const totals = new Map<string, UnitCostTotal>();
+    const totals = new Map<string, UnitCostCurrencyTotal[]>();
     for (const [unitId, perCurrency] of byUnit) {
-        const sums = [...perCurrency.values()];
-        if (sums.length === 1) {
-            const [only] = sums;
-            totals.set(unitId, {amount: minorToNumber(only.minor, only.decimals), decimals: only.decimals, currencySymbol: only.symbol, mixedCurrencies: false});
-            continue;
-        }
-        const decimals = Math.max(...sums.map((sum) => sum.decimals));
-        const minor = sumMinor(sums.map((sum) => toMinor(fromMinor(sum.minor, sum.decimals), decimals)));
-        totals.set(unitId, {amount: minorToNumber(minor, decimals), decimals, mixedCurrencies: true});
+        totals.set(unitId, [...perCurrency].map(([currencyId, sum]) => ({
+            currencyId, amount: minorToNumber(sum.minor, sum.decimals), decimals: sum.decimals, currencySymbol: sum.symbol,
+        })));
     }
     return totals;
 }

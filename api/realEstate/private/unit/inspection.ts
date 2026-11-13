@@ -23,7 +23,6 @@ import {InspectionActions} from "../../../../database/schemas/inspection/inspect
 import {
     concatenateTemplateItems,
     inspectionsWithChecklistContext,
-    isInspectionChecklistComplete,
     isInspectionChecklistLocked,
     loadChecklistTemplate,
     mergeInspectionChecklist,
@@ -187,7 +186,9 @@ export const {router} = createCrudRouter({
         if (type) filter.type = type;
         return filter;
     },
-    buildCreateData: async ({unit, inspectedBy, followUpInspection, findings, status, cancellationReason, notes, session, logger, languageCode, company, ...params}: any) => {
+    // `status` and `cancellationReason` are left out on purpose (TD-B222): a new inspection starts scheduled, and only
+    // the start, complete, reschedule and cancel actions move it on.
+    buildCreateData: async ({unit, inspectedBy, followUpInspection, findings, status: _status, cancellationReason: _cancellationReason, notes, session, logger, languageCode, company, ...params}: any) => {
         const [foundUnit, foundInspectedBy] = await Promise.all([
             unitService.findOneOrThrow(
                 {_id: new ObjectId(unit), company: company._id},
@@ -209,8 +210,6 @@ export const {router} = createCrudRouter({
             }
         }
 
-        const resolvedStatus = status || InspectionStatus.SCHEDULED;
-
         const data = buildCreateDataFromSchemaDef(InspectionSchemaDef, {
             findings: (v) => cleanFindings(parseFindings(v)),
             rating: (v) => (v !== undefined && v !== null && v !== "" ? parseInt(String(v)) : undefined),
@@ -220,13 +219,9 @@ export const {router} = createCrudRouter({
             inspectedBy: foundInspectedBy._id,
             followUpInspection,
             notes,
-            status: resolvedStatus,
+            status: InspectionStatus.SCHEDULED,
             findings,
         });
-
-        if (cancellationReason !== undefined && resolvedStatus === InspectionStatus.CANCELLED) {
-            data.cancellationReason = cancellationReason;
-        }
 
         const templateId = data.checklistTemplate ? new ObjectId(String(data.checklistTemplate)) : undefined;
         if (templateId) {
@@ -234,10 +229,6 @@ export const {router} = createCrudRouter({
             if (template) {
                 data.checklistItems = seedChecklistFromTemplate(template);
             }
-        }
-
-        if (resolvedStatus === InspectionStatus.COMPLETED && !isInspectionChecklistComplete(data.checklistItems ?? [])) {
-            throw apiValidationException("inspection_checklist_incomplete", "", null, languageCode);
         }
 
         return data;

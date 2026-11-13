@@ -36,7 +36,7 @@ export class SaleService extends BaseCrudService<ISale, typeof Sale> {
     findForRoi(filter: FilterQuery<ISale>) {
         return this.model.find(filter).noDeleted()
             .select("unit finalPrice saleCurrency")
-            .populate("saleCurrency", "symbol")
+            .populate("saleCurrency", "symbol decimalPlaces")
             .lean();
     }
 

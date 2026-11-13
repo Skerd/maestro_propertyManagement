@@ -3,7 +3,7 @@ import {bulkUpdateUnitPriceFormSchema, bulkUpdateUnitStatusFormSchema} from "arm
 import {buildCreateDataFromSchemaDef, buildUpdateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
 import {UnitSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
 import {mediaUploadMW} from '@coreModule/utilities/middlewares/mediaUploadMW';
-import {createCrudRouter} from '@coreModule/api/crudRouterFactory';
+import {createCrudRouter, selectIdsOf} from '@coreModule/api/crudRouterFactory';
 import {floorService} from '../../../../database/schemas/floor/floor.service';
 import {edificeService} from '../../../../database/schemas/edifice/edifice.service';
 import {projectService} from '../../../../database/schemas/project/project.service';
@@ -293,14 +293,18 @@ export const { router } = createCrudRouter({
         const sanitizedFields = SchemaGuard.sanitizeFields(Unit, { name: {}, unitNumber: {}, unitType: { keys: { name: {} } } }, "read", actionUserCtx, languageCode);
         const populate = SchemaGuard.generatePopulate(sanitizedFields, Unit.schema);
 
-        // Forms post the picked project, building and floor so the picker lists only their units.
-        const filter: any = { company: company._id, ...unitSelectFilter({ project, edifice, floor }) };
+        // Forms post the picked project, building and floor so the picker lists only their units. A stored unit keeps its
+        // label whatever the form narrows the list to (TD-B217).
+        const ids = selectIdsOf(params);
+        const filter: any = ids.length > 0
+            ? { company: company._id, _id: { $in: ids } }
+            : { company: company._id, ...unitSelectFilter({ project, edifice, floor }) };
 
-        if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
+        if (ids.length === 0 && dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
 
-        if (name !== undefined && name !== "") {
+        if (ids.length === 0 && name !== undefined && name !== "") {
             const nameRegex = { $regex: escapeRegex(String(name).trim()), $options: "i" };
             const orConditions: any[] = [];
             if (sanitizedFields.unitNumber) orConditions.push({ unitNumber: nameRegex });
@@ -319,10 +323,10 @@ export const { router } = createCrudRouter({
             if (orConditions.length === 1) Object.assign(filter, orConditions[0]);
             else if (orConditions.length > 1) filter.$or = orConditions;
         }
-        if (notId !== undefined && notId !== "") {
+        if (ids.length === 0 && notId !== undefined && notId !== "") {
             filter._id = { $ne: new ObjectId(notId) };
         }
-        if (notConnected === true) {
+        if (ids.length === 0 && notConnected === true) {
             const currentUnitId = notId ? new ObjectId(notId) : null;
             const notConnectedCondition = currentUnitId
                 ? { $or: [{ connectedUnits: { $size: 0 } }, { connectedUnits: currentUnitId }] }

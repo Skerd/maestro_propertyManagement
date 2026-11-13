@@ -249,7 +249,6 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.unitPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 pageSize: 50,
                                 postBodyFromFormFields: [
                                     {field: "project", paramName: "project"},
@@ -276,7 +275,6 @@ const storyCreateFormNodes: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/storyType/select",
-                                method: "POST",
                                 pageSize: 50,
                             },
                         },
@@ -493,7 +491,6 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.unitPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 pageSize: 50,
                                 postBodyFromFormFields: [
                                     {field: "project", paramName: "project"},
@@ -520,7 +517,6 @@ const storyEditFormNodes: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/storyType/select",
-                                method: "POST",
                                 pageSize: 50,
                             },
                         }, permissions: {read: "storyType", write: "storyType"},

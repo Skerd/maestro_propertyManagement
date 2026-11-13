@@ -1,9 +1,13 @@
-/** TD-B198: an inspection moves scheduled → in progress → completed through its own actions; completing needs a finished checklist. */
+/**
+ * TD-B198: an inspection moves scheduled → in progress → completed through its own actions; completing needs a finished checklist.
+ * TD-B215: a scheduled or rescheduled inspection moves to a new day as rescheduled.
+ */
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from "vitest";
 import mongoose from "mongoose";
 import {ObjectId} from "mongodb";
 import {connectTestDatabase, disconnectTestDatabase} from "@coreModule/_tests/testDatabase";
 import {InspectionActions} from "@propertyManagement/database/schemas/inspection/inspection.actions";
+import {rescheduleInspectionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/rescheduleInspection.form.validator";
 import {actor, asTenant, clearDatabase, findRaw} from "./sale.fixtures";
 
 const companyId = new ObjectId();
@@ -45,6 +49,7 @@ async function seedInspection(status: string, checklist?: {name: string; complet
 
 const start = (_id: ObjectId) => inspections.start({...params, _id: _id.toString()});
 const complete = (_id: ObjectId) => inspections.complete({...params, _id: _id.toString()});
+const reschedule = (_id: ObjectId, inspectionDate: string) => inspections.reschedule({...params, _id: _id.toString(), inspectionDate});
 
 describe("inspection lifecycle", {timeout: 60000}, () => {
     it("starts a scheduled or rescheduled inspection, and refuses any other", () => asCompany(async () => {
@@ -83,4 +88,27 @@ describe("inspection lifecycle", {timeout: 60000}, () => {
         await expect(complete(scheduled)).rejects.toMatchObject({error_code: "invalid_status_for_complete_inspection"});
         expect((await findRaw("inspections", scheduled))!.status).toBe("scheduled");
     }));
+
+    it("reschedules a scheduled or rescheduled inspection to the new day, and refuses any other", () => asCompany(async () => {
+        const scheduled = await seedInspection("scheduled");
+        await reschedule(scheduled, "2026-12-03");
+        expect((await findRaw("inspections", scheduled))!).toMatchObject({status: "rescheduled", inspectionDate: "2026-12-03"});
+        await reschedule(scheduled, "2026-12-10");
+        expect((await findRaw("inspections", scheduled))!).toMatchObject({status: "rescheduled", inspectionDate: "2026-12-10"});
+
+        for (const status of ["in_progress", "completed", "cancelled"]) {
+            const other = await seedInspection(status);
+            await expect(reschedule(other, "2026-12-03")).rejects.toMatchObject({error_code: "invalid_status_for_reschedule_inspection"});
+            expect((await findRaw("inspections", other))!).toMatchObject({status, inspectionDate: "2026-11-20"});
+        }
+    }));
+
+    it("takes the new day as a calendar day only", () => {
+        const schema = rescheduleInspectionFormSchema("en-US");
+        const _id = new ObjectId().toString();
+        expect(schema.safeParse({_id, inspectionDate: "2026-12-03"}).success).toBe(true);
+        for (const inspectionDate of ["", "2026-12-03T00:00:00.000Z", "03.12.2026"]) {
+            expect(schema.safeParse({_id, inspectionDate}).success).toBe(false);
+        }
+    });
 });

@@ -35,7 +35,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.projectPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "project",
                                 cascadeClearFormFields: ["edifice", "floor", "unit"],
@@ -51,7 +50,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.edificePlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/edifice/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "edifice",
                                 postBodyFromFormField: {field: "project", paramName: "project"},
@@ -70,7 +68,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.floorPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/floor/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "floor",
                                 postBodyFromFormField: {field: "edifice", paramName: "edifice"},
@@ -89,7 +86,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.unitPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "unit",
                                 postBodyFromFormFields: [
@@ -117,7 +113,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: {administration: true},
                             },
                         },
@@ -228,7 +223,6 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.constructorPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/constructor/select",
-                                method: "POST",
                                 pageSize: 50,
                                 normalizeEmptyToUndefined: true,
                             },
@@ -363,7 +357,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.projectPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "project",
                                 cascadeClearFormFields: ["edifice", "floor", "unit"],
@@ -381,7 +374,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/edifice/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "edifice",
                                 postBodyFromFormField: {field: "project", paramName: "project"},
@@ -401,7 +393,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/floor/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "floor",
                                 postBodyFromFormField: {field: "edifice", paramName: "edifice"},
@@ -420,7 +411,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.unitPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "unit",
                                 postBodyFromFormFields: [
@@ -448,7 +438,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: {administration: true},
                             },
                         }, permissions: {read: "purchasePerson", write: "purchasePerson"},
@@ -559,7 +548,6 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             placeholder: "form.constructorPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/constructor/select",
-                                method: "POST",
                                 pageSize: 50,
                                 normalizeEmptyToUndefined: true,
                             },

@@ -156,7 +156,6 @@ const unitTypeCreateFormNode: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unitTypeCategory/select",
-                                method: "POST",
                                 pageSize: 50,
                             },
                         },
@@ -260,7 +259,6 @@ const unitTypeEditFormNode: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unitTypeCategory/select",
-                                method: "POST",
                                 pageSize: 50,
                             },
                         },

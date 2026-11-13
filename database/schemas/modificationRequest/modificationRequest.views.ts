@@ -961,15 +961,15 @@ const modificationRequestCreateFormNode: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50, formFieldName: "project", cascadeClearFormFields: ["edifice", "floor", "unit"]}},
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", pageSize: 50, formFieldName: "project", cascadeClearFormFields: ["edifice", "floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", method: "POST", pageSize: 50, formFieldName: "edifice", postBodyFromFormField: {field: "project", paramName: "project"}, cascadeClearFormFields: ["floor", "unit"], remountKeyFormField: "project", enableWhenFormFieldsNonEmpty: ["project"]}},
+                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", pageSize: 50, formFieldName: "edifice", postBodyFromFormField: {field: "project", paramName: "project"}, cascadeClearFormFields: ["floor", "unit"], remountKeyFormField: "project", enableWhenFormFieldsNonEmpty: ["project"]}},
                     },
                     {
                         render: "#Field",
-                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", method: "POST", pageSize: 50, formFieldName: "floor", postBodyFromFormField: {field: "edifice", paramName: "edifice"}, cascadeClearFormFields: ["unit"], remountKeyFormField: "edifice", enableWhenFormFieldsNonEmpty: ["edifice"]}},
+                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", pageSize: 50, formFieldName: "floor", postBodyFromFormField: {field: "edifice", paramName: "edifice"}, cascadeClearFormFields: ["unit"], remountKeyFormField: "edifice", enableWhenFormFieldsNonEmpty: ["edifice"]}},
                     },
                     {
                         render: "#Field",
@@ -980,7 +980,6 @@ const modificationRequestCreateFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.unitPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "unit",
                                 postBodyFromFormFields: [
@@ -1014,7 +1013,6 @@ const modificationRequestCreateFormNode: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: { administration: false },
                             },
                         },
@@ -1116,7 +1114,6 @@ const modificationRequestEditFormNode: ViewConfig["nodes"] = [
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/project/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "project",
                                 cascadeClearFormFields: ["edifice", "floor", "unit"],
@@ -1133,7 +1130,6 @@ const modificationRequestEditFormNode: ViewConfig["nodes"] = [
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/edifice/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "edifice",
                                 postBodyFromFormField: { field: "project", paramName: "project" },
@@ -1153,7 +1149,6 @@ const modificationRequestEditFormNode: ViewConfig["nodes"] = [
                             skipWriteAccessGate: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/floor/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "floor",
                                 postBodyFromFormField: { field: "edifice", paramName: "edifice" },
@@ -1172,7 +1167,6 @@ const modificationRequestEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.unitPlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/unit/select",
-                                method: "POST",
                                 pageSize: 50,
                                 formFieldName: "unit",
                                 postBodyFromFormFields: [
@@ -1210,7 +1204,6 @@ const modificationRequestEditFormNode: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: { administration: false },
                             },
                         }, permissions: {read: "requestedBy", write: "requestedBy"},

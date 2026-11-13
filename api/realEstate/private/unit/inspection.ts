@@ -2,7 +2,7 @@ import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {ObjectId} from "mongodb";
 import {buildCreateDataFromSchemaDef, buildUpdateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
 import {InspectionSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.schema-def";
-import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
+import {createCrudRouter, selectIdsOf} from "@coreModule/api/crudRouterFactory";
 import {userService} from "@coreModule/database/schemas/user/user.service";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
 import {inspectionService} from "../../../../database/schemas/inspection/inspection.service";
@@ -16,7 +16,8 @@ import {inspectionsToSelect} from "../../../../utilities/mappers/inspection/insp
 import {validateInspectionSelectForm} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.select.form.validator";
 import {inspectionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.form.validator";
 import {escapeRegex} from "@coreModule/utilities/helpers";
-import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
+import {apiValidationException, DEFAULT_EXCEPTION_LANGUAGE} from "armonia/src/modules/core/helpers/exceptions";
+import {requestContext} from "@coreModule/utilities/endpoints/requestContext";
 import type {SelectResponse} from "armonia/src/modules/core/types/shared.types";
 import {InspectionActions} from "../../../../database/schemas/inspection/inspection.actions";
 import {
@@ -99,7 +100,8 @@ export const {router} = createCrudRouter({
     selectSchema: validateInspectionSelectForm,
     toDTO: inspectionToDTO,
     toDTOArray: inspectionsToDTO,
-    toSelect: inspectionsToSelect,
+    // Unused while `overrideSelectHandler` serves the picker; kept in the caller's language like the campaign templates.
+    toSelect: (docs) => inspectionsToSelect(docs, requestContext.getStore()?.languageCode ?? DEFAULT_EXCEPTION_LANGUAGE),
     defaultSort: {inspectionDate: -1},
     selectSort: {inspectionDate: -1},
     createMiddleware: [mediaUpload],
@@ -108,16 +110,19 @@ export const {router} = createCrudRouter({
         const {logger, languageCode, actionUserCtx, name, page, limit, company, notId, followUp, dslFilterQuery} = params;
         logger.start("Fetching inspections for select...");
 
-        const sanitizedFields = SchemaGuard.sanitizeFields(Inspection, {name: {}, unit: {keys: {name: {}, unitNumber: {}}}}, "read", actionUserCtx, languageCode,);
+        const sanitizedFields = SchemaGuard.sanitizeFields(Inspection, {name: {}, type: {}, inspectionDate: {}}, "read", actionUserCtx, languageCode,);
         const populate = SchemaGuard.generatePopulate(sanitizedFields, Inspection.schema);
 
         const filter: Record<string, unknown> = {company: company._id};
+        const ids = selectIdsOf(params);
 
-        if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
+        if (ids.length > 0) {
+            filter._id = {$in: ids};
+        } else if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
 
-        if (name !== undefined && name !== "") {
+        if (ids.length === 0 && name !== undefined && name !== "") {
             const nameRegex = {$regex: escapeRegex(String(name).trim()), $options: "i"};
             const orConditions: Record<string, unknown>[] = [];
             if (sanitizedFields.type) orConditions.push({type: nameRegex});
@@ -129,8 +134,8 @@ export const {router} = createCrudRouter({
             }
         }
 
-        if (notId !== undefined && notId !== "") filter._id = {$ne: new ObjectId(notId)};
-        if (followUp) filter.followUpRequired = true;
+        if (ids.length === 0 && notId !== undefined && notId !== "") filter._id = {$ne: new ObjectId(notId)};
+        if (ids.length === 0 && followUp) filter.followUpRequired = true;
 
         const [inspections, total] = await Promise.all([
             inspectionService.find(
@@ -146,7 +151,7 @@ export const {router} = createCrudRouter({
         ]);
 
         logger.finish("Finished fetching inspections for select!");
-        return {data: inspectionsToSelect(inspections), total};
+        return {data: inspectionsToSelect(inspections, languageCode), total};
     },
     extraListFilter: async (params) => {
         const {id, unit, inspectedById, status, type, project, edifice, floor, when, company, logger, languageCode} = params;
@@ -254,7 +259,8 @@ export const {router} = createCrudRouter({
             );
         }
     },
-    buildUpdateData: async ({unit, inspectedBy, followUpInspection, findings, status, cancellationReason, session, logger, languageCode, company, existing, ...params}: any, writeFields) => {
+    // `status` is left out on purpose (TD-B214): only the start, complete, reschedule and cancel actions move it.
+    buildUpdateData: async ({unit, inspectedBy, followUpInspection, findings, status: _status, cancellationReason, session, logger, languageCode, company, existing, ...params}: any, writeFields) => {
         if (unit != null && writeFields.unit) {
             await unitService.findOneOrThrow(
                 {_id: new ObjectId(unit), company: company._id},
@@ -303,14 +309,10 @@ export const {router} = createCrudRouter({
             inspectedBy,
             followUpInspection,
             findings,
-            status,
         }, writeFields);
 
-        if (cancellationReason !== undefined) {
-            const currentStatus = (data.status ?? status ?? existing.status) as InspectionStatus;
-            if (currentStatus === InspectionStatus.CANCELLED) {
-                data.cancellationReason = cancellationReason;
-            }
+        if (cancellationReason !== undefined && existing.status === InspectionStatus.CANCELLED) {
+            data.cancellationReason = cancellationReason;
         }
 
         const ctx = {session, logger, languageCode};
@@ -327,26 +329,10 @@ export const {router} = createCrudRouter({
             );
         }
 
-        const nextStatus = (data.status ?? status ?? existing.status) as InspectionStatus;
-        if (nextStatus === InspectionStatus.COMPLETED && existing.status !== InspectionStatus.COMPLETED) {
-            const itemsForGate = data.checklistItems ?? existing.checklistItems ?? [];
-            if (!isInspectionChecklistComplete(itemsForGate)) {
-                throw apiValidationException("inspection_checklist_incomplete", "", null, languageCode);
-            }
-        }
-
         return data;
     },
     afterUpdate: async (params, existingBeforeUpdate) => {
-        const {status, followUpInspection, session, logger, languageCode, sanitizedWriteFields} = params;
-
-        if (status !== undefined && sanitizedWriteFields?.status && status !== InspectionStatus.CANCELLED) {
-            await inspectionService.updateOne(
-                {_id: existingBeforeUpdate._id},
-                {$unset: {cancelledAt: "", cancellationReason: ""}},
-                {session, logger, languageCode},
-            );
-        }
+        const {followUpInspection, session, logger, languageCode, sanitizedWriteFields} = params;
 
         if (followUpInspection !== undefined && sanitizedWriteFields?.followUpInspection) {
             const previousId =

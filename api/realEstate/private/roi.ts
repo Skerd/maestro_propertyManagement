@@ -37,9 +37,9 @@ import {edificeService} from "@propertyManagement/database/schemas/edifice/edifi
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
 import {saleService} from "@propertyManagement/database/schemas/sale/sale.service";
 import {leaseService} from "@propertyManagement/database/schemas/lease/lease.service";
-import {computeUnitCostSubtotal} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
-import {decimalToNumber, nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
-import {minorToNumber, subtractMoney, sumMoney, toMinor} from "armonia/src/modules/core/helpers/money";
+import {unitCostTotalsByUnit} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
+import {decimalToNumber} from "@coreModule/utilities/mappers/common.mapper";
+import {DEFAULT_DECIMAL_PLACES, subtractMoney, sumMoney} from "armonia/src/modules/core/helpers/money";
 export const basePath = "/api/realEstate/roi";
 export const router   = Router();
 
@@ -125,6 +125,7 @@ router.post(
         const salePriceReadable = canReadSales && read("sales", "unit") && read("sales", "finalPrice");
         const saleCurrencyReadable = read("sales", "saleCurrency");
         const unitCurrencyReadable = read("units", "priceCurrency");
+        const costCurrencyReadable = read("unitcosts", "currency");
         const rentReadable = canReadLeases && read("leases", "unit") && read("leases", "status") && read("leases", "monthlyRent");
         const rentCurrencyReadable = read("leases", "rentCurrency");
         const companyId = company._id as ObjectId;
@@ -155,20 +156,17 @@ router.post(
 
         const matchedUnitIds = units.map((u: any) => u._id);
 
-        // ── Costs per unit: quantity × unit price per expenditure row, exact (D35) ──
+        // ── Costs per unit: quantity × unit price per expenditure row, summed per currency at its precision (D35, TD-B213) ──
+        // The currency is always read for its precision; its symbol is shown only to a caller who may read it.
         const unitCosts = costsReadable && matchedUnitIds.length > 0
             ? await unitCostService.find(
                 {unit: {$in: matchedUnitIds}, company: companyId},
                 {logger: params.logger, languageCode, withDeleted: false},
-                [],
-                "unit expenditureItems",
+                [{path: "currency", select: costCurrencyReadable ? "symbol decimalPlaces" : "decimalPlaces"}],
+                "unit currency expenditureItems",
             )
             : [];
-        const costMinorByUnit = new Map<string, bigint>();
-        for (const cost of unitCosts) {
-            const uid = String(nestedEntityToRef(cost.unit));
-            costMinorByUnit.set(uid, (costMinorByUnit.get(uid) ?? 0n) + toMinor(computeUnitCostSubtotal(cost)));
-        }
+        const costsByUnit = unitCostTotalsByUnit(unitCosts);
 
         // ── Fetch sales for sold units ─────────────────────────────────────────────
         const sales = salePriceReadable && matchedUnitIds.length > 0
@@ -200,12 +198,14 @@ router.post(
         const unitBreakdowns: RoiUnitBreakdown[] = units.map((u: any) => {
             const uid         = u._id.toString();
             const unitCurrencySymbol = unitCurrencyReadable ? u.priceCurrency?.symbol : undefined;
-            const costs       = minorToNumber(costMinorByUnit.get(uid) ?? 0n);
+            const costTotal   = costsByUnit.get(uid);
+            const costs       = costTotal?.amount ?? 0;
+            const decimals    = Math.max(costTotal?.decimals ?? 0, DEFAULT_DECIMAL_PLACES);
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
             const salePrice   = sale?.price;
             const monthlyRent = rent?.monthly;
-            const netProfit   = salePrice !== undefined ? subtractMoney(salePrice, costs) : undefined;
+            const netProfit   = salePrice !== undefined ? subtractMoney(salePrice, costs, decimals) : undefined;
             const roiPercent  = netProfit !== undefined && costs > 0 ? (netProfit / costs) * 100 : undefined;
             const annualGrossYield = monthlyRent && salePrice && salePrice > 0
                 ? ((monthlyRent * 12) / salePrice) * 100
@@ -219,7 +219,8 @@ router.post(
                 salePrice,
                 saleCurrencySymbol: sale?.symbol ?? unitCurrencySymbol,
                 totalCosts:     costs,
-                costCurrencySymbol: unitCurrencySymbol,
+                // Costs in several currencies name none; one unpopulated currency keeps the unit's, as before.
+                costCurrencySymbol: costTotal?.mixedCurrencies ? undefined : costTotal?.currencySymbol ?? unitCurrencySymbol,
                 netProfit,
                 roiPercent,
                 monthlyRent,
@@ -244,9 +245,10 @@ router.post(
                 unitBreakdowns,
             );
 
+            const costDecimals = Math.max(DEFAULT_DECIMAL_PLACES, ...[...costsByUnit.values()].map((total) => total.decimals));
             const totalRevenue = sumMoney(unitBreakdowns.map((u) => u.salePrice ?? 0));
-            const totalCosts   = sumMoney(unitBreakdowns.map((u) => u.totalCosts));
-            const netProfit    = subtractMoney(totalRevenue, totalCosts);
+            const totalCosts   = sumMoney(unitBreakdowns.map((u) => u.totalCosts), costDecimals);
+            const netProfit    = subtractMoney(totalRevenue, totalCosts, costDecimals);
             const roiPercent   = totalCosts > 0 ? (netProfit / totalCosts) * 100 : 0;
             const withRoi      = unitBreakdowns.filter(u => u.roiPercent !== undefined);
             const avgRoi       = withRoi.length

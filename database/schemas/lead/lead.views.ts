@@ -119,7 +119,6 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.projectInterestPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/realEstate/project/select",
-                                method:                  "POST",
                                 normalizeEmptyToUndefined: true,
                                 cascadeClearFormFields:  ["unitInterest"],
                             },
@@ -134,7 +133,6 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.unitInterestPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/realEstate/unit/select",
-                                method:                  "POST",
                                 normalizeEmptyToUndefined: true,
                                 postBodyFromFormFields:  [{field: "projectInterest", paramName: "project"}],
                                 enableWhenFormFieldsNonEmpty: ["projectInterest"],
@@ -161,7 +159,6 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.budgetCurrencyPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/finance/currency/select",
-                                method:                  "GET",
                                 normalizeEmptyToUndefined: true,
                             },
                         },
@@ -187,7 +184,6 @@ const leadCreateFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.assignedToPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/company/users/select",
-                                method:                  "POST",
                                 postBody:                { administration: true },
                                 normalizeEmptyToUndefined: true,
                             },
@@ -336,7 +332,6 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.projectInterestPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/realEstate/project/select",
-                                method:                  "POST",
                                 normalizeEmptyToUndefined: true,
                                 cascadeClearFormFields:  ["unitInterest"],
                             },
@@ -351,7 +346,6 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.unitInterestPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/realEstate/unit/select",
-                                method:                  "POST",
                                 normalizeEmptyToUndefined: true,
                                 postBodyFromFormFields:  [{field: "projectInterest", paramName: "project"}],
                                 enableWhenFormFieldsNonEmpty: ["projectInterest"],
@@ -378,7 +372,6 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.budgetCurrencyPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/finance/currency/select",
-                                method:                  "GET",
                                 normalizeEmptyToUndefined: true,
                             },
                         }, permissions: {read: "budgetCurrency", write: "budgetCurrency"},
@@ -405,7 +398,6 @@ const leadEditFormNodes: ViewConfig["nodes"] = [
                             placeholder: "form.assignedToPlaceholder",
                             widgetProps: {
                                 apiUrl:                  "/api/company/users/select",
-                                method:                  "POST",
                                 postBody:                { administration: true },
                                 normalizeEmptyToUndefined: true,
                             },

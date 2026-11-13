@@ -20,13 +20,14 @@ import {
     decimalToNumber,
     mapMedia,
     mapSnippet,
+    nestedEntityToRef,
 } from "@coreModule/utilities/mappers/common.mapper";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-import {DEFAULT_DECIMAL_PLACES, minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import {DEFAULT_DECIMAL_PLACES, fromMinor, minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 
 /** The populated currency's precision (GLB-08); 2 places while the currency is only an id or not readable. */
 function currencyDecimals(currency: unknown): number {
@@ -34,12 +35,10 @@ function currencyDecimals(currency: unknown): number {
     return typeof places === "number" ? places : DEFAULT_DECIMAL_PLACES;
 }
 
-/**
- * Quantity × unit price per row, each rounded once at the currency's precision, summed exactly (D35). Reads only each
- * row's amount and price and the currency, so hydrated and lean unit costs both qualify; a row without a number in
- * either counts nothing.
- */
-export function computeUnitCostSubtotal(doc: {expenditureItems?: {amount?: unknown; pricePerUnit?: unknown}[]; currency?: unknown}): number {
+type UnitCostAmounts = {expenditureItems?: {amount?: unknown; pricePerUnit?: unknown}[]; currency?: unknown};
+
+/** The subtotal in minor units of the cost's currency, with that currency's decimal places. */
+function unitCostSubtotalMinor(doc: UnitCostAmounts): {minor: bigint; decimals: number} {
     const decimals = currencyDecimals(doc.currency);
     const lines: bigint[] = [];
     for (const row of doc.expenditureItems || []) {
@@ -47,7 +46,61 @@ export function computeUnitCostSubtotal(doc: {expenditureItems?: {amount?: unkno
         const ppu = decimalToNumber(row.pricePerUnit);
         if (Number.isFinite(amt) && ppu !== undefined && Number.isFinite(ppu)) lines.push(multiplyMinor(toMinor(ppu, decimals), amt));
     }
-    return minorToNumber(sumMinor(lines), decimals);
+    return {minor: sumMinor(lines), decimals};
+}
+
+/**
+ * Quantity × unit price per row, each rounded once at the currency's precision, summed exactly (D35). Reads only each
+ * row's amount and price and the currency, so hydrated and lean unit costs both qualify; a row without a number in
+ * either counts nothing.
+ */
+export function computeUnitCostSubtotal(doc: UnitCostAmounts): number {
+    const {minor, decimals} = unitCostSubtotalMinor(doc);
+    return minorToNumber(minor, decimals);
+}
+
+export type UnitCostTotal = {
+    amount: number;
+    /** The precision `amount` is exact at. */
+    decimals: number;
+    /** The one currency of the unit's costs, when it is populated with its symbol. */
+    currencySymbol?: string;
+    /** The unit's costs are in more than one currency, so `amount` adds them together and names none. */
+    mixedCurrencies: boolean;
+};
+
+/**
+ * Each unit's costs (TD-B213): summed per currency in that currency's minor units (GLB-08), so a 3-decimal currency is
+ * never cut to cents. A unit with costs in several currencies gets their sum at the finest precision among them.
+ */
+export function unitCostTotalsByUnit(costs: (UnitCostAmounts & {unit?: unknown})[]): Map<string, UnitCostTotal> {
+    const byUnit = new Map<string, Map<string, {minor: bigint; decimals: number; symbol?: string}>>();
+    for (const cost of costs) {
+        const unitId = String(nestedEntityToRef(cost.unit) ?? "");
+        const currencyId = String(nestedEntityToRef(cost.currency) ?? "");
+        const {minor, decimals} = unitCostSubtotalMinor(cost);
+        const symbol = cost.currency && typeof cost.currency === "object" && "symbol" in cost.currency && typeof cost.currency.symbol === "string"
+            ? cost.currency.symbol
+            : undefined;
+        const perCurrency = byUnit.get(unitId) ?? new Map<string, {minor: bigint; decimals: number; symbol?: string}>();
+        const sum = perCurrency.get(currencyId);
+        perCurrency.set(currencyId, {minor: (sum?.minor ?? 0n) + minor, decimals, symbol});
+        byUnit.set(unitId, perCurrency);
+    }
+
+    const totals = new Map<string, UnitCostTotal>();
+    for (const [unitId, perCurrency] of byUnit) {
+        const sums = [...perCurrency.values()];
+        if (sums.length === 1) {
+            const [only] = sums;
+            totals.set(unitId, {amount: minorToNumber(only.minor, only.decimals), decimals: only.decimals, currencySymbol: only.symbol, mixedCurrencies: false});
+            continue;
+        }
+        const decimals = Math.max(...sums.map((sum) => sum.decimals));
+        const minor = sumMinor(sums.map((sum) => toMinor(fromMinor(sum.minor, sum.decimals), decimals)));
+        totals.set(unitId, {amount: minorToNumber(minor, decimals), decimals, mixedCurrencies: true});
+    }
+    return totals;
 }
 
 function unitCostDocRowToDto(row: {

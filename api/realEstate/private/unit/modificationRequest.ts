@@ -1,5 +1,5 @@
 import {Decimal128, ObjectId} from "mongodb";
-import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
+import {createCrudRouter, selectIdsOf} from "@coreModule/api/crudRouterFactory";
 import {modificationRequestService} from "../../../../database/schemas/modificationRequest/modificationRequest.service";
 import {unitService} from "../../../../database/schemas/unit/unit.service";
 import {escapeRegex} from "@coreModule/utilities/helpers";
@@ -56,12 +56,15 @@ export const {router} = createCrudRouter({
         const companyUnitIds = companyUnits.map((u) => u._id).filter((id): id is ObjectId => id != null);
 
         const filter: Record<string, unknown> = {unit: {$in: companyUnitIds}, company: company._id};
+        const ids = selectIdsOf(params);
 
-        if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
+        if (ids.length > 0) {
+            filter._id = {$in: ids};
+        } else if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
-        if (notId !== undefined && notId !== "") filter._id = {$ne: new ObjectId(notId)};
-        if (name !== undefined && name !== "" && sanitizedFields.title) {
+        if (ids.length === 0 && notId !== undefined && notId !== "") filter._id = {$ne: new ObjectId(notId)};
+        if (ids.length === 0 && name !== undefined && name !== "" && sanitizedFields.title) {
             filter.title = {$regex: escapeRegex(String(name).trim()), $options: "i"};
         }
 

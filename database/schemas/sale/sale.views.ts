@@ -853,19 +853,19 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                 children: [
                     {
                         render: "#Field",
-                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50, cascadeClearFormFields: ["edifice", "floor", "unit"]}},
+                        field: {name: "project", widget: "#ApiSelect", label: "form.projectLabel", placeholder: "form.projectPlaceholder", widgetProps: {apiUrl: "/api/realEstate/project/select", pageSize: 50, cascadeClearFormFields: ["edifice", "floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", method: "POST", pageSize: 50, postBodyFromFormField: {field: "project", paramName: "project"}, remountKeyFormField: "project", cascadeClearFormFields: ["floor", "unit"]}},
+                        field: {name: "edifice", widget: "#ApiSelect", label: "form.edificeLabel", placeholder: "form.edificePlaceholder", widgetProps: {apiUrl: "/api/realEstate/edifice/select", pageSize: 50, postBodyFromFormField: {field: "project", paramName: "project"}, remountKeyFormField: "project", cascadeClearFormFields: ["floor", "unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", method: "POST", pageSize: 50, postBodyFromFormField: {field: "edifice", paramName: "edifice"}, remountKeyFormField: "edifice", cascadeClearFormFields: ["unit"]}},
+                        field: {name: "floor", widget: "#ApiSelect", label: "form.floorLabel", placeholder: "form.floorPlaceholder", widgetProps: {apiUrl: "/api/realEstate/floor/select", pageSize: 50, postBodyFromFormField: {field: "edifice", paramName: "edifice"}, remountKeyFormField: "edifice", cascadeClearFormFields: ["unit"]}},
                     },
                     {
                         render: "#Field",
-                        field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50, postBodyFromFormFields: [{field: "project", paramName: "project"}, {field: "edifice", paramName: "edifice"}, {field: "floor", paramName: "floor"}], enableWhenFormFieldsNonEmpty: ["project", "edifice"], remountKeyFormField: "project"}},
+                        field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", pageSize: 50, postBodyFromFormFields: [{field: "project", paramName: "project"}, {field: "edifice", paramName: "edifice"}, {field: "floor", paramName: "floor"}], enableWhenFormFieldsNonEmpty: ["project", "edifice"], remountKeyFormField: "project"}},
                     },
                 ],
             },
@@ -889,7 +889,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: { administration: true },
                             },
                         },
@@ -904,7 +903,6 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: { administration: false },
                             },
                         },

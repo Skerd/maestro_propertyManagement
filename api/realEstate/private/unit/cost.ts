@@ -2,7 +2,7 @@ import type {ICompany} from "@coreModule/database/schemas/company/company";
 import {Decimal128, ObjectId} from "mongodb";
 import {ClientSession} from "mongoose";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
-import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
+import {createCrudRouter, selectIdsOf} from "@coreModule/api/crudRouterFactory";
 import {unitCostService} from "../../../../database/schemas/unitCost/unitCost.service";
 import {unitService} from "../../../../database/schemas/unit/unit.service";
 import {floorService} from "../../../../database/schemas/floor/floor.service";
@@ -185,10 +185,13 @@ export const {router} = createCrudRouter({
         const populate = SchemaGuard.generatePopulate(sanitizedFields, UnitCost.schema);
 
         const filter: Record<string, unknown> = {company: company._id};
-        if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
+        const ids = selectIdsOf(params);
+        if (ids.length > 0) {
+            filter._id = {$in: ids};
+        } else if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
-        if (name?.trim()) filter.name = {$regex: name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i"};
+        if (ids.length === 0 && name?.trim()) filter.name = {$regex: name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i"};
 
         const [costs, total] = await Promise.all([
             unitCostService.find(filter, {logger, languageCode}, populate.populate, populate.select || "", {purchaseDate: -1}, limit, (page - 1) * limit),

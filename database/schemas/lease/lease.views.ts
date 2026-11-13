@@ -319,7 +319,7 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", method: "POST", pageSize: 50}},
+                                field: {name: "unit", widget: "#ApiSelect", label: "form.unitLabel", placeholder: "form.unitPlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/unit/select", pageSize: 50}},
                             },
                         ],
                     },
@@ -333,7 +333,6 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             required:    true,
                             widgetProps: {
                                 apiUrl:   "/api/company/users/select",
-                                method:   "POST",
                                 postBody: {administration: false},
                             },
                         },
@@ -510,7 +509,6 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl:   "/api/realEstate/unit/select",
-                                        method:   "POST",
                                         pageSize: 50,
                                     },
                                 }, permissions: {read: "unit", write: "unit"},
@@ -527,7 +525,6 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             required:    true,
                             widgetProps: {
                                 apiUrl:   "/api/company/users/select",
-                                method:   "POST",
                                 postBody: {administration: false},
                             },
                         }, permissions: {read: "tenant", write: "tenant"},

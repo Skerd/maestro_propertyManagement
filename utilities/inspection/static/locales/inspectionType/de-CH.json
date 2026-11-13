@@ -1,0 +1,9 @@
+{
+  "initial": "Erstaufnahme",
+  "follow_up": "Nachkontrolle",
+  "final": "Schlussabnahme",
+  "routine": "Routine",
+  "complaint": "Reklamation",
+  "pre_sale": "Vorverkauf",
+  "post_sale": "Nachverkauf"
+}

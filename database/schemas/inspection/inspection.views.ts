@@ -810,7 +810,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/project/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "project",
                                         cascadeClearFormFields: ["edifice", "floor", "unit"],
@@ -827,7 +826,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/edifice/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "edifice",
                                         postBodyFromFormField: { field: "project", paramName: "project" },
@@ -847,7 +845,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/floor/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "floor",
                                         postBodyFromFormField: { field: "edifice", paramName: "edifice" },
@@ -866,7 +863,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                     placeholder: "form.unitPlaceholder",
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/unit/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "unit",
                                         postBodyFromFormFields: [
@@ -896,7 +892,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: { administration: true },
                             },
                         },
@@ -1036,7 +1031,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.checklistTemplatePlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/inspectionChecklistTemplate/select",
-                                method: "POST",
                                 pageSize: 50,
                                 normalizeEmptyToUndefined: true,
                                 postBody: {status: "active"},
@@ -1149,7 +1143,6 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                                     placeholder: "form.resolvedByPlaceholder",
                                     widgetProps: {
                                         apiUrl: "/api/company/users/select",
-                                        method: "POST",
                                         postBody: { administration: true },
                                         normalizeEmptyToUndefined: true,
                                     },
@@ -1265,7 +1258,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/project/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "project",
                                         cascadeClearFormFields: ["edifice", "floor", "unit"],
@@ -1282,7 +1274,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/edifice/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "edifice",
                                         postBodyFromFormField: { field: "project", paramName: "project" },
@@ -1302,7 +1293,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/floor/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "floor",
                                         postBodyFromFormField: { field: "edifice", paramName: "edifice" },
@@ -1321,7 +1311,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                     placeholder: "form.unitPlaceholder",
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/unit/select",
-                                        method: "POST",
                                         pageSize: 50,
                                         formFieldName: "unit",
                                         postBodyFromFormFields: [
@@ -1351,7 +1340,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/company/users/select",
-                                method: "POST",
                                 postBody: { administration: true },
                             },
                         }, permissions: {read: "inspectedBy", write: "inspectedBy"},
@@ -1548,7 +1536,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                             placeholder: "form.checklistTemplatePlaceholder",
                             widgetProps: {
                                 apiUrl: "/api/realEstate/inspectionChecklistTemplate/select",
-                                method: "POST",
                                 pageSize: 50,
                                 normalizeEmptyToUndefined: true,
                                 postBody: {status: "active"},
@@ -1669,7 +1656,6 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                                     placeholder: "form.resolvedByPlaceholder",
                                     widgetProps: {
                                         apiUrl: "/api/company/users/select",
-                                        method: "POST",
                                         postBody: { administration: true },
                                         normalizeEmptyToUndefined: true,
                                     },

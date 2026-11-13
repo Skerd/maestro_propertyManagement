@@ -316,7 +316,7 @@ const rentalPaymentCreateFormNodes: ViewConfig["nodes"] = [
                         children: [
                             {
                                 render: "#Field",
-                                field: {name: "lease", widget: "#ApiSelect", label: "form.leaseLabel", placeholder: "form.leasePlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/lease/select", method: "POST", pageSize: 50}},
+                                field: {name: "lease", widget: "#ApiSelect", label: "form.leaseLabel", placeholder: "form.leasePlaceholder", required: true, widgetProps: {apiUrl: "/api/realEstate/lease/select", pageSize: 50}},
                             },
                         ],
                     },
@@ -422,7 +422,6 @@ const rentalPaymentEditFormNodes: ViewConfig["nodes"] = [
                                     skipWriteAccessGate: true,
                                     widgetProps: {
                                         apiUrl:   "/api/realEstate/lease/select",
-                                        method:   "POST",
                                         pageSize: 50,
                                     },
                                 }, permissions: {read: "lease", write: "lease"},

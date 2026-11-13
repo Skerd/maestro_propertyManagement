@@ -940,7 +940,7 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                             label: "form.projectLabel",
                             placeholder: "form.projectPlaceholder",
                             required: true,
-                            widgetProps: { apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50 },
+                            widgetProps: { apiUrl: "/api/realEstate/project/select", pageSize: 50 },
                         },
                     },
                 ],
@@ -972,7 +972,6 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                                             placeholder: "form.countryPlaceholder",
                                             widgetProps: {
                                                 apiUrl: "/api/auxiliary/country/select",
-                                                method: "POST",
                                                 pageSize: 50,
                                                 cascadeClearFormFields: ["address.state", "address.city"],
                                             },
@@ -987,7 +986,6 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                                             placeholder: "form.statePlaceholder",
                                             widgetProps: {
                                                 apiUrl: "/api/auxiliary/state/select",
-                                                method: "POST",
                                                 pageSize: 50,
                                                 postBodyFromFormFields: [{field: "address.country", paramName: "country"}],
                                                 enableWhenFormFieldsNonEmpty: ["address.country"],
@@ -1004,7 +1002,6 @@ const edificeCreateFormNode: ViewConfig["nodes"] = [
                                             placeholder: "form.cityPlaceholder",
                                             widgetProps: {
                                                 apiUrl: "/api/auxiliary/city/select",
-                                                method: "POST",
                                                 pageSize: 50,
                                                 postBodyFromFormFields: [
                                                     {field: "address.country", paramName: "country"},
@@ -1555,7 +1552,7 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.projectLabel",
                             placeholder: "form.projectPlaceholder",
-                            widgetProps: { apiUrl: "/api/realEstate/project/select", method: "POST", pageSize: 50 },
+                            widgetProps: { apiUrl: "/api/realEstate/project/select", pageSize: 50 },
                         }, permissions: {read: "project", write: "project"},
                     },
                 ],
@@ -1591,7 +1588,6 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                                             placeholder: "form.countryPlaceholder",
                                             widgetProps: {
                                                 apiUrl: "/api/auxiliary/country/select",
-                                                method: "POST",
                                                 pageSize: 50,
                                                 cascadeClearFormFields: ["address.state", "address.city"],
                                             },
@@ -1606,7 +1602,6 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                                             placeholder: "form.statePlaceholder",
                                             widgetProps: {
                                                 apiUrl: "/api/auxiliary/state/select",
-                                                method: "POST",
                                                 pageSize: 50,
                                                 postBodyFromFormFields: [{field: "address.country", paramName: "country"}],
                                                 enableWhenFormFieldsNonEmpty: ["address.country"],
@@ -1623,7 +1618,6 @@ const edificeEditFormNode: ViewConfig["nodes"] = [
                                             placeholder: "form.cityPlaceholder",
                                             widgetProps: {
                                                 apiUrl: "/api/auxiliary/city/select",
-                                                method: "POST",
                                                 pageSize: 50,
                                                 postBodyFromFormFields: [
                                                     {field: "address.country", paramName: "country"},

@@ -1,7 +1,7 @@
 import {Decimal128, ObjectId} from "mongodb";
 import {noEditReservationFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/noEditReservation.form.validator";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
-import {createCrudRouter} from "@coreModule/api/crudRouterFactory";
+import {createCrudRouter, selectIdsOf} from "@coreModule/api/crudRouterFactory";
 import {buildCreateDataFromSchemaDef} from "@coreModule/api/buildUpdateDataFromSchemaDef";
 import {ReservationSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/reservation/reservation.schema-def";
 import {reservationService} from "../../../../database/schemas/reservation/reservation.service";
@@ -111,7 +111,8 @@ export const {router} = createCrudRouter({
     createMiddleware: [mediaUpload],
     actions: ReservationActions,
     buildUpdateData: () => ({}),
-    overrideSelectHandler: async ({logger, languageCode, actionUserCtx, company, name, page, limit, dslFilterQuery}): Promise<SelectResponse> => {
+    overrideSelectHandler: async (params): Promise<SelectResponse> => {
+        const {logger, languageCode, actionUserCtx, company, name, page, limit, dslFilterQuery} = params;
         logger.start(`Fetching reservations for select...`);
 
         const sanitizedFields = SchemaGuard.sanitizeFields(
@@ -131,12 +132,15 @@ export const {router} = createCrudRouter({
         const companyUnitIds = companyUnits.map((u) => u._id).filter((id): id is ObjectId => id != null);
 
         const filter: Record<string, unknown> = {company: company._id, unit: {$in: companyUnitIds}};
+        const ids = selectIdsOf(params);
 
-        if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
+        if (ids.length > 0) {
+            filter._id = {$in: ids};
+        } else if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
 
-        if (name !== undefined && name !== "" && sanitizedFields.name) {
+        if (ids.length === 0 && name !== undefined && name !== "" && sanitizedFields.name) {
             filter["name"] = {$regex: escapeRegex(String(name).trim()), $options: "i"};
         }
 

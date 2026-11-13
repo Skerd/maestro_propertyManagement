@@ -300,7 +300,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/adCampaignTemplate/select",
-                                method: "POST",
                                 className: "grow w-full",
                             },
                         },
@@ -345,7 +344,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     required: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/unit/select",
-                                        method: "POST",
                                         className: "grow w-full",
                                     },
                                 },
@@ -391,7 +389,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     placeholder: "form.contentProjectPlaceholder",
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/project/select",
-                                        method: "POST",
                                         className: "grow w-full",
                                     },
                                 },
@@ -416,7 +413,6 @@ const adCampaignCreateFormNodes: ViewConfig["nodes"] = [
                                     required: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/project/select",
-                                        method: "POST",
                                         className: "grow w-full",
                                     },
                                 },
@@ -706,7 +702,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                             required: true,
                             widgetProps: {
                                 apiUrl: "/api/realEstate/adCampaignTemplate/select",
-                                method: "POST",
                                 className: "grow w-full",
                             },
                         },
@@ -754,7 +749,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     required: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/unit/select",
-                                        method: "POST",
                                         className: "grow w-full",
                                     },
                                 },
@@ -803,7 +797,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     placeholder: "form.contentProjectPlaceholder",
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/project/select",
-                                        method: "POST",
                                         className: "grow w-full",
                                     },
                                 },
@@ -829,7 +822,6 @@ const adCampaignEditFormNodes: ViewConfig["nodes"] = [
                                     required: true,
                                     widgetProps: {
                                         apiUrl: "/api/realEstate/project/select",
-                                        method: "POST",
                                         className: "grow w-full",
                                     },
                                 },

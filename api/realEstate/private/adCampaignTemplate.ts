@@ -13,6 +13,8 @@ import {
 } from "../../../utilities/mappers/adCampaignTemplate/adCampaignTemplateMapper.dto";
 import {adCampaignTemplatesToSelect} from "../../../utilities/mappers/adCampaignTemplate/adCampaignTemplateMapper.select";
 import {sanitizeAdCampaignHtml} from "../../../utilities/emails/adCampaignHtmlSanitizer";
+import {requestContext} from "@coreModule/utilities/endpoints/requestContext";
+import {DEFAULT_EXCEPTION_LANGUAGE} from "armonia/src/modules/core/helpers/exceptions";
 
 export const {router} = createCrudRouter({
     collectionName: "adcampaigntemplates",
@@ -25,7 +27,8 @@ export const {router} = createCrudRouter({
     editSchema:     editAdCampaignTemplateFormSchema,
     toDTO:          adCampaignTemplateToDTO,
     toDTOArray:     adCampaignTemplatesToDTO,
-    toSelect:       adCampaignTemplatesToSelect,
+    // The core select hands the mapper only the rows: the caller's language comes from the request context.
+    toSelect:       (docs) => adCampaignTemplatesToSelect(docs, requestContext.getStore()?.languageCode ?? DEFAULT_EXCEPTION_LANGUAGE),
     defaultSort:    {name: 1, locale: 1},
     selectSort:     {name: 1, locale: 1},
     selectSearchField: "name",

@@ -4,7 +4,7 @@ import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
 import {schemaSanitizer, type SchemaSanitizerMWType} from "@coreModule/utilities/middlewares/schemaSanitizerMW";
 import {mediaUploadMW} from "@coreModule/utilities/middlewares/mediaUploadMW";
-import {createCrudRouter, type CrudLooseBody} from "@coreModule/api/crudRouterFactory";
+import {createCrudRouter, selectIdsOf, type CrudLooseBody} from "@coreModule/api/crudRouterFactory";
 import SchemaGuard from "@coreModule/database/security/schemaGuard";
 import {escapeRegex} from "@coreModule/utilities/helpers";
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
@@ -122,10 +122,13 @@ const {router} = createCrudRouter<ISale, CreateSaleFormType, EditSaleFormType>({
         const populate = SchemaGuard.generatePopulate(sanitizedFields, Sale.schema);
 
         const filter: Record<string, unknown> = {company: company._id};
-        if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
+        const ids = selectIdsOf(params);
+        if (ids.length > 0) {
+            filter._id = {$in: ids};
+        } else if (dslFilterQuery && Object.keys(dslFilterQuery as object).length > 0) {
             filter.$and = [...((filter.$and as unknown[]) ?? []), dslFilterQuery];
         }
-        if (name !== undefined && name !== "" && sanitizedFields.name) {
+        if (ids.length === 0 && name !== undefined && name !== "" && sanitizedFields.name) {
             filter.name = {$regex: escapeRegex(String(name).trim()), $options: "i"};
         }
 

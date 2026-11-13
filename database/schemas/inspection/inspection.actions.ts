@@ -6,6 +6,7 @@ import {apiValidationException} from "armonia/src/modules/core/helpers/exception
 import {validateSingleForm} from "armonia/src/modules/core/utilities/zod/shared.validator";
 import type {SingleForm} from "armonia/src/modules/core/types/shared.types";
 import {cancelScheduledInspectionFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/cancelScheduledInspection.form.validator";
+import {rescheduleInspectionFormSchema, type RescheduleInspectionFormType} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/rescheduleInspection.form.validator";
 import {updateInspectionChecklistItemsFormSchema} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/updateInspectionChecklistItems.form.validator";
 import type {Inspection as InspectionData} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/inspection/inspection.dto";
 import {inspectionToDTO} from "@propertyManagement/utilities/mappers/inspection/inspectionMapper.dto";
@@ -168,6 +169,34 @@ export class InspectionActions {
         );
 
         logger.finish(`Completed inspection: ${_id}`);
+        return this.reloadWithChecklist(existing._id, params);
+    }
+
+    @action({
+        auth: "private",
+        rateLimit: {windowMs: 60000, max: 30},
+        transaction: true,
+        schema: rescheduleInspectionFormSchema,
+    })
+    async reschedule(params: Record<string, any>): Promise<InspectionData | undefined> {
+        const {logger, languageCode, session, _id, inspectionDate, actionUserCtx, company} = params as Record<string, any> & RescheduleInspectionFormType;
+        logger.start(`Rescheduling inspection: ${_id}...`);
+
+        const existing = await inspectionService.findOneOrThrow(
+            {_id: new ObjectId(_id), company: company._id},
+            {session, logger, languageCode},
+        );
+        if (existing.status !== InspectionStatus.SCHEDULED && existing.status !== InspectionStatus.RESCHEDULED) {
+            throw apiValidationException("invalid_status_for_reschedule_inspection", "", null, languageCode);
+        }
+
+        await inspectionService.updateByIdOrThrow(
+            existing._id,
+            {$set: {status: InspectionStatus.RESCHEDULED, inspectionDate}},
+            {session, logger, languageCode, auditUserId: actionUserCtx.userId},
+        );
+
+        logger.finish(`Rescheduled inspection: ${_id}`);
         return this.reloadWithChecklist(existing._id, params);
     }
 

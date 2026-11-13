@@ -1,4 +1,4 @@
-import type {RoiCurrencyTotals} from "armonia/src/modules/propertyManagement/api/realEstate/private/roi/roi.response.type";
+import type {RoiCurrencyTotals, RoiMoney} from "armonia/src/modules/propertyManagement/api/realEstate/private/roi/roi.response.type";
 import {minorToNumber, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
 import type {UnitCostCurrencyTotal} from "@propertyManagement/utilities/mappers/unitCost/unitCostMapper.dto";
 
@@ -8,15 +8,16 @@ export type RoiCurrencyAmount = UnitCostCurrencyTotal;
 /**
  * A unit's net profit and ROI (TD-B223): the sale price minus the costs, only when every cost is in the sale's
  * currency, since amounts in different currencies are never subtracted (GLB-08, UX-07). A sale without costs keeps its
- * full price and has no ROI.
+ * full price and has no ROI. The profit carries the precision it is exact at, so it is shown at the currency's decimals
+ * (TD-F103); the caller adds the symbol it may show.
  */
-export function unitNetProfit(sale: RoiCurrencyAmount | undefined, costs: RoiCurrencyAmount[]): {netProfit?: number; roiPercent?: number} {
+export function unitNetProfit(sale: RoiCurrencyAmount | undefined, costs: RoiCurrencyAmount[]): {netProfit?: RoiMoney; roiPercent?: number} {
     if (!sale || costs.some((cost) => cost.currencyId !== sale.currencyId)) return {};
     const decimals = Math.max(sale.decimals, ...costs.map((cost) => cost.decimals));
     const costMinor = sumMinor(costs.map((cost) => toMinor(cost.amount, decimals)));
-    const netProfit = minorToNumber(toMinor(sale.amount, decimals) - costMinor, decimals);
+    const amount = minorToNumber(toMinor(sale.amount, decimals) - costMinor, decimals);
     const totalCosts = minorToNumber(costMinor, decimals);
-    return {netProfit, roiPercent: totalCosts > 0 ? (netProfit / totalCosts) * 100 : undefined};
+    return {netProfit: {amount, decimals}, roiPercent: totalCosts > 0 ? (amount / totalCosts) * 100 : undefined};
 }
 
 /**

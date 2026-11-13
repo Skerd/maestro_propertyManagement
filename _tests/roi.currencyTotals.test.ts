@@ -29,12 +29,12 @@ const kwd = (amount: number) => ({currencyId: "kwd", amount, decimals: 3, curren
 
 describe("a unit's net profit", () => {
     it("subtracts costs in the sale's currency", () => {
-        expect(unitNetProfit(eur(1000), [eur(250.1), eur(149.9)])).toEqual({netProfit: 600, roiPercent: 150});
-        expect(unitNetProfit(kwd(10.005), [kwd(5.001)])).toEqual({netProfit: 5.004, roiPercent: expect.closeTo(100.06, 2)});
+        expect(unitNetProfit(eur(1000), [eur(250.1), eur(149.9)])).toEqual({netProfit: {amount: 600, decimals: 2}, roiPercent: 150});
+        expect(unitNetProfit(kwd(10.005), [kwd(5.001)])).toEqual({netProfit: {amount: 5.004, decimals: 3}, roiPercent: expect.closeTo(100.06, 2)});
     });
 
     it("keeps the full price without costs, with no ROI", () => {
-        expect(unitNetProfit(eur(1000), [])).toEqual({netProfit: 1000, roiPercent: undefined});
+        expect(unitNetProfit(eur(1000), [])).toEqual({netProfit: {amount: 1000, decimals: 2}, roiPercent: undefined});
     });
 
     it("is left out when a cost is in another currency or nothing was sold", () => {
@@ -130,10 +130,42 @@ describe("POST /api/realEstate/roi", {timeout: 60000}, () => {
         expect(response.status).toBe(200);
 
         const byUnit = new Map(response.body.units.map((unit: {unitId: string}) => [unit.unitId, unit]));
-        expect(byUnit.get(sameCurrency.toString())).toMatchObject({monthlyRent: 1000, rentCurrencySymbol: "EUR", annualGrossYield: 6});
-        const mixedRow = byUnit.get(mixed.toString()) as {monthlyRent?: number; rentCurrencySymbol?: string; annualGrossYield?: number};
-        expect(mixedRow).toMatchObject({monthlyRent: 1000, rentCurrencySymbol: "CHF"});
+        expect(byUnit.get(sameCurrency.toString())).toMatchObject({monthlyRent: {amount: 1000, decimals: 2, currencySymbol: "EUR"}, annualGrossYield: 6});
+        const mixedRow = byUnit.get(mixed.toString()) as {annualGrossYield?: number};
+        expect(mixedRow).toMatchObject({monthlyRent: {amount: 1000, decimals: 2, currencySymbol: "CHF"}});
         expect(mixedRow.annualGrossYield).toBeUndefined();
+    }));
+
+    it("returns the sale price, net profit and rent at a 0- and a 3-decimal currency's precision (TD-F103)", () => asCompany(async () => {
+        const yen = await seedCurrency(companyId, "JPY", 0);
+        const dinar = await seedCurrency(companyId, "KWD", 3);
+        const project = new ObjectId();
+        const inYen = await seedUnit(companyId, {price: "30000000", priceCurrency: yen});
+        const inDinar = await seedUnit(companyId, {price: "90000.000", priceCurrency: dinar});
+        await db().collection("units").updateMany({_id: {$in: [inYen, inDinar]}}, {$set: {project}});
+        await seedSale(inYen, "30000000", yen);
+        await seedCost(inYen, yen, "1250000");
+        await seedActiveLease(inYen, "120000", yen);
+        await seedSale(inDinar, "90000.125", dinar);
+        await seedCost(inDinar, dinar, "10000.250", 2);
+        await seedActiveLease(inDinar, "450.375", dinar);
+
+        const response = await request(app).post("/api/realEstate/roi").set(callerHeader(manager)).send({projectId: project.toString()});
+        expect(response.status).toBe(200);
+
+        const byUnit = new Map(response.body.units.map((unit: {unitId: string}) => [unit.unitId, unit]));
+        expect(byUnit.get(inYen.toString())).toMatchObject({
+            salePrice: {amount: 30000000, decimals: 0, currencySymbol: "JPY"},
+            costs: [{amount: 1250000, decimals: 0}],
+            netProfit: {amount: 28750000, decimals: 0, currencySymbol: "JPY"},
+            monthlyRent: {amount: 120000, decimals: 0, currencySymbol: "JPY"},
+        });
+        expect(byUnit.get(inDinar.toString())).toMatchObject({
+            salePrice: {amount: 90000.125, decimals: 3, currencySymbol: "KWD"},
+            costs: [{amount: 20000.5, decimals: 3}],
+            netProfit: {amount: 69999.625, decimals: 3, currencySymbol: "KWD"},
+            monthlyRent: {amount: 450.375, decimals: 3, currencySymbol: "KWD"},
+        });
     }));
 
     it("returns the units' costs and the scope totals per currency", () => asCompany(async () => {
@@ -153,7 +185,11 @@ describe("POST /api/realEstate/roi", {timeout: 60000}, () => {
         expect(response.status).toBe(200);
 
         const byUnit = new Map(response.body.units.map((unit: {unitId: string}) => [unit.unitId, unit]));
-        expect(byUnit.get(sameCurrency.toString())).toMatchObject({salePrice: 1000, costs: [{amount: 200.1, decimals: 2}], netProfit: 799.9});
+        expect(byUnit.get(sameCurrency.toString())).toMatchObject({
+            salePrice: {amount: 1000, decimals: 2, currencySymbol: "EUR"},
+            costs: [{amount: 200.1, decimals: 2}],
+            netProfit: {amount: 799.9, decimals: 2, currencySymbol: "EUR"},
+        });
         const mixedRow = byUnit.get(mixed.toString()) as {costs: {amount: number}[]; netProfit?: number; roiPercent?: number};
         expect(mixedRow.costs.map((cost) => cost.amount).sort((a, b) => a - b)).toEqual([30, 120]);
         expect(mixedRow.netProfit).toBeUndefined();

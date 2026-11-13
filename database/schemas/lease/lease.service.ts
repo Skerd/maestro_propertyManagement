@@ -12,7 +12,7 @@ export class LeaseService extends BaseCrudService<ILease, typeof Lease> {
     findForRoi(filter: FilterQuery<ILease>) {
         return this.model.find(filter).noDeleted()
             .select("unit monthlyRent rentCurrency")
-            .populate("rentCurrency", "symbol")
+            .populate("rentCurrency", "symbol decimalPlaces")
             .lean();
     }
 

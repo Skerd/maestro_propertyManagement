@@ -188,13 +188,15 @@ router.post(
         const leases = rentReadable && matchedUnitIds.length > 0
             ? await leaseService.findForRoi({unit: {$in: matchedUnitIds}, company: companyId, status: "active"})
             : [];
-        // The rent's currency is always read to compare it with the sale's (TD-B227); its symbol only when readable.
-        const rentByUnit: Record<string, Pick<RoiCurrencyAmount, "currencyId" | "amount" | "currencySymbol">> = {};
+        // The rent's currency is always read to compare it with the sale's (TD-B227) and for its precision (TD-F103);
+        // its symbol only when readable.
+        const rentByUnit: Record<string, RoiCurrencyAmount> = {};
         for (const lease of leases as any[]) {
             const uid = (lease.unit as any)?.toString() ?? lease.unit.toString();
             rentByUnit[uid] = {
                 currencyId:     String(nestedEntityToRef(lease.rentCurrency) ?? ""),
                 amount:         decimalToNumber(lease.monthlyRent) ?? 0,
+                decimals:       currencyDecimals(lease.rentCurrency),
                 currencySymbol: rentCurrencyReadable ? lease.rentCurrency?.symbol : undefined,
             };
         }
@@ -206,7 +208,7 @@ router.post(
             const costs       = costsByUnit.get(uid) ?? [];
             const sale        = saleByUnit[uid];
             const rent        = rentByUnit[uid];
-            const salePrice   = sale?.amount;
+            const saleCurrencySymbol = sale?.currencySymbol ?? unitCurrencySymbol;
             const {netProfit, roiPercent} = unitNetProfit(sale, costs);
 
             return {
@@ -214,19 +216,18 @@ router.post(
                 unitName:       u.name,
                 unitNumber:     u.unitNumber,
                 status:         u.status,
-                salePrice,
-                saleCurrencySymbol: sale?.currencySymbol ?? unitCurrencySymbol,
+                // Sale price, net profit and rent each carry their currency's decimals (TD-F103).
+                salePrice:      sale ? {amount: sale.amount, decimals: sale.decimals, currencySymbol: saleCurrencySymbol} : undefined,
                 // One line per currency; costs in a single unpopulated currency keep the unit's symbol, as before.
                 costs: costs.map((cost) => ({
                     amount:         cost.amount,
                     decimals:       cost.decimals,
                     currencySymbol: cost.currencySymbol ?? (costs.length === 1 ? unitCurrencySymbol : undefined),
                 })),
-                netProfit,
+                netProfit:      netProfit ? {...netProfit, currencySymbol: saleCurrencySymbol} : undefined,
                 roiPercent,
-                monthlyRent:        rent?.amount,
-                rentCurrencySymbol: rent?.currencySymbol,
-                annualGrossYield:   unitGrossYield(sale, rent),
+                monthlyRent:    rent ? {amount: rent.amount, decimals: rent.decimals, currencySymbol: rent.currencySymbol} : undefined,
+                annualGrossYield: unitGrossYield(sale, rent),
             };
         });
 

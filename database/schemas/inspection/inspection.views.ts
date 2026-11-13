@@ -325,51 +325,72 @@ export const inspectionSheetView: ViewConfig = {
             ],
         },
         {
-            render: "#SheetGroup",
-            dependentAny: ["followUpInspection", "followedUpByInspection"],
-            permissions: { readAny: ["followUpInspection", "followedUpByInspection"] },
-            props: { title: "inspections" },
+            // One line per linked inspection, read by its type and day, not its code (TD-B201); no cards toggle.
+            render: "#ReferencesViewModeScope",
+            props: { storageKey: "inspection.sheet.followUps", defaultMode: "compact" },
             children: [
                 {
-                    render: "#SheetGrid",
-                    props: { columns: 2 },
+                    render: "#SheetGroup",
+                    dependentAny: ["followUpInspection", "followedUpByInspection"],
+                    permissions: { readAny: ["followUpInspection", "followedUpByInspection"] },
+                    props: { title: "inspections" },
                     children: [
                         {
-                            render: "#DisplayCard",
-                            dependent: "followUpInspection",
-                            permissions: { read: "followUpInspection" },
-                            field: {
-                                name: "followUpInspection.name",
-                                widget: "#DisplayCard",
-                                label: "followUpInspection",
-                                widgetProps: {
-                                    icon: "#IconFolder",
-                                    linkedRefPath: "followUpInspection",
-                                    linkedSheetModel: "inspections",
-                                    linkedSheetWidget: "#InspectionSheetView",
-                                    linkedSheetEntityProp: "inspection",
+                            render: "#SheetGrid",
+                            props: { columns: 2 },
+                            children: [
+                                {
+                                    render: "#ReferencesRender",
+                                    dependent: "followUpInspection",
+                                    permissions: { read: "followUpInspection" },
+                                    field: {
+                                        name: "followUpInspection",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#InspectionCard",
+                                            columns: 1,
+                                            compactRow: {
+                                                icon: "#ClipboardList",
+                                                label: "followUpInspection",
+                                                valuePath: ["type", "inspectionDate"],
+                                                valueLanguageKeyCategories: ["types", null],
+                                                valueFormats: [null, "date"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "inspections",
+                                                linkedSheetWidget: "#InspectionSheetView",
+                                                linkedSheetEntityProp: "inspection",
+                                            },
+                                        },
+                                    },
                                 },
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            dependent: "followedUpByInspection",
-                            permissions: { read: "followedUpByInspection" },
-                            field: {
-                                name: "followedUpByInspection.name",
-                                widget: "#DisplayCard",
-                                label: "followedUpByInspection",
-                                widgetProps: {
-                                    icon: "#IconFolder",
-                                    linkedRefPath: "followedUpByInspection",
-                                    linkedSheetModel: "inspections",
-                                    linkedSheetWidget: "#InspectionSheetView",
-                                    linkedSheetEntityProp: "inspection",
+                                {
+                                    render: "#ReferencesRender",
+                                    dependent: "followedUpByInspection",
+                                    permissions: { read: "followedUpByInspection" },
+                                    field: {
+                                        name: "followedUpByInspection",
+                                        widget: "#ReferencesRender",
+                                        widgetProps: {
+                                            cardWidget: "#InspectionCard",
+                                            columns: 1,
+                                            compactRow: {
+                                                icon: "#ClipboardList",
+                                                label: "followedUpByInspection",
+                                                valuePath: ["type", "inspectionDate"],
+                                                valueLanguageKeyCategories: ["types", null],
+                                                valueFormats: [null, "date"],
+                                                joinSeparator: " · ",
+                                                linkedSheetModel: "inspections",
+                                                linkedSheetWidget: "#InspectionSheetView",
+                                                linkedSheetEntityProp: "inspection",
+                                            },
+                                        },
+                                    },
                                 },
-                            },
+                            ],
                         },
                     ],
-                }
+                },
             ],
         },
         {
@@ -923,7 +944,7 @@ const inspectionCreateFormNode: ViewConfig["nodes"] = [
                             widgetProps: { type: "number", min: 1, max: 10 },
                         },
                     },
-                    // No status here: a new inspection starts scheduled (schema default, D151); the edit form and the cancel action move it on.
+                    // No status here: a new inspection starts scheduled (schema default, D151); the start, complete and cancel actions move it on.
                     {
                         render: "#Field",
                         field: {
@@ -1378,26 +1399,8 @@ const inspectionEditFormNode: ViewConfig["nodes"] = [
                             widgetProps: { type: "number", min: 1, max: 10 },
                         }, permissions: {read: "rating", write: "rating"},
                     },
-                    {
-                        render: "#Field",
-                        field: {
-                            name: "status",
-                            widget: "#SimpleSelect",
-                            label: "form.statusLabel",
-                            placeholder: "form.statusPlaceholder",
-                            required: true,
-                            widgetProps: {
-                                options: [
-                                    { value: "scheduled", label: "form.statusScheduled" },
-                                    { value: "in_progress", label: "form.statusInProgress" },
-                                    { value: "completed", label: "form.statusCompleted" },
-                                    { value: "rescheduled", label: "form.statusRescheduled" },
-                                    { value: "cancelled", label: "form.statusCancelled" },
-                                ],
-                                className: "grow w-full",
-                            },
-                        }, permissions: {read: "status", write: "status"},
-                    },
+                    // No status select (TD-B198): the start, complete and cancel actions move it; the record's status still
+                    // decides below whether the scheduled day and the cancellation reason apply.
                     {
                         render: "#FormWhenFieldValueIn",
                         permissions: {

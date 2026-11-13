@@ -106,6 +106,14 @@ describe("recipient language", () => {
         expect(swiss?.languageCode).toBe("de-CH");
         expect(unset?.languageCode).toBe(CONSTANTS.DEFAULT_LANGUAGE || "en-US");
     });
+
+    // TD-B203: the stored language is always one the panel labels and the emails are written in.
+    it("stores a language outside the supported ones as its supported form, or English", () => {
+        const german = toUserCandidate({_id: oid(), username: "ana@x.com", preferredLanguage: "de"}, {recordInactive: true, recipient: true});
+        const spanish = toUserCandidate({_id: oid(), username: "bea@x.com", preferredLanguage: "es-ES"}, {recordInactive: true, recipient: true});
+        expect(german?.languageCode).toBe("de-CH");
+        expect(spanish?.languageCode).toBe("en-US");
+    });
 });
 
 describe("skip reasons", () => {

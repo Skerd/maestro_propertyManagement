@@ -19,7 +19,7 @@ export const snagsSeed: readonly SnagSeedRow[] = [
             "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-07-19T12:34:03.627Z",
         "resolvedAt": null,
@@ -34,10 +34,10 @@ export const snagsSeed: readonly SnagSeedRow[] = [
         "status": "in_progress",
         "severity": "medium",
         "reportedBy": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-07-22T12:34:03.627Z",
         "resolvedAt": null,
@@ -52,10 +52,10 @@ export const snagsSeed: readonly SnagSeedRow[] = [
         "status": "open",
         "severity": "medium",
         "reportedBy": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-07-25T12:34:03.627Z",
         "resolvedAt": null,
@@ -70,10 +70,10 @@ export const snagsSeed: readonly SnagSeedRow[] = [
         "status": "resolved",
         "severity": "low",
         "reportedBy": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "almir@leka.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-07-28T12:34:03.627Z",
         "resolvedAt": "2026-07-10T12:34:03.627Z",
@@ -88,10 +88,10 @@ export const snagsSeed: readonly SnagSeedRow[] = [
         "status": "in_progress",
         "severity": "high",
         "reportedBy": {
-            "$user": "almir@leka.com"
+            "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-07-31T12:34:03.627Z",
         "resolvedAt": null,
@@ -106,7 +106,7 @@ export const snagsSeed: readonly SnagSeedRow[] = [
         "status": "open",
         "severity": "medium",
         "reportedBy": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "assignedTo": {
             "$user": "echo@echo.com"
@@ -127,7 +127,7 @@ export const snagsSeed: readonly SnagSeedRow[] = [
             "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-08-06T12:34:03.627Z",
         "resolvedAt": "2026-07-10T12:34:03.627Z",
@@ -142,10 +142,10 @@ export const snagsSeed: readonly SnagSeedRow[] = [
         "status": "open",
         "severity": "critical",
         "reportedBy": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "assignedTo": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "dueDate": "2026-08-09T12:34:03.627Z",
         "resolvedAt": null,

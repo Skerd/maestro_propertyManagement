@@ -14,7 +14,6 @@ import Edifice from './edifice';
 import Floor from '../floor/floor';
 import Unit from '../unit/unit';
 import {edificeService} from './edifice.service';
-import {processPdfForFloorsAndUnits} from '@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages';
 import {computeUnitPriceFromEdificeRates} from '@propertyManagement/utilities/unit/computeUnitPriceFromEdificeRates';
 import {resolveEffectiveRates} from '@propertyManagement/utilities/unit/resolveEffectiveRates';
 import type {GenerateFloorsAndUnitsFormResponseType} from 'armonia/src/modules/propertyManagement/api/realEstate/private/edifice/generateFloorsAndUnits.form.response.type';
@@ -296,6 +295,9 @@ export class EdificeActions {
                 }
             };
 
+            // Loaded on use: the generator pulls in the opencv.js WASM build, whose module object is a thenable that
+            // vitest's loader awaits forever (TD-B193), and which no other edifice route needs at start-up.
+            const {processPdfForFloorsAndUnits} = await import('@propertyManagement/utilities/edifice/floorAndUnitsGenerator/extractPdfPages');
             const summaryData  = await processPdfForFloorsAndUnits(pdfPath, outputRoot, {fetchFloorImage, oldPdf: oldPdf === true});
             const sourcePdfDoc = await PDFDocument.load(pdfBuffer);
 

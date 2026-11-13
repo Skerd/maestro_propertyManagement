@@ -927,7 +927,7 @@ export const saleCreateCashFormFields: ViewConfig["nodes"] = [
                             label: "form.saleCurrencyLabel",
                             placeholder: "form.saleCurrencyPlaceholder",
                             required: true,
-                            widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
+                            widgetProps: { apiUrl: "/api/finance/currency/select" },
                         },
                     },
                     {

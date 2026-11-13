@@ -13,7 +13,7 @@ export class UnitCostService extends BaseCrudService<IUnitCost, typeof UnitCost>
             .select("name unit project purchaseDate expenditureItems currency verificationStatus paymentStatus")
             .populate("unit", "name unitNumber")
             .populate("project", "name")
-            .populate("currency", "abbreviation symbol")
+            .populate("currency", "abbreviation symbol decimalPlaces")
             .lean();
     }
 }

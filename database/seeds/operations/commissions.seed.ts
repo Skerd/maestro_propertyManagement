@@ -34,7 +34,7 @@ export const commissionsSeed: readonly CommissionSeedRow[] = [
     {
         "id": "6a538c6fb51ba82f116ee5fd",
         "agent": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "recordedByActionUser": {
             "$user": "echo@echo.com"
@@ -58,7 +58,7 @@ export const commissionsSeed: readonly CommissionSeedRow[] = [
     {
         "id": "6a538c6fb51ba82f116ee5fe",
         "agent": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "recordedByActionUser": {
             "$user": "echo@echo.com"
@@ -82,7 +82,7 @@ export const commissionsSeed: readonly CommissionSeedRow[] = [
     {
         "id": "6a538c6fb51ba82f116ee5ff",
         "agent": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "recordedByActionUser": {
             "$user": "echo@echo.com"

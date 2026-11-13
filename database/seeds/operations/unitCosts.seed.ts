@@ -52,7 +52,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a501a7388c85ab8284338af",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-06-05",
         "paymentDate": null,
@@ -90,7 +90,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a501a7388c85ab8284338af",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-06-08",
         "paymentDate": "2026-06-24",
@@ -128,7 +128,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a5015619874ae8d17645c66",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-06-11",
         "paymentDate": null,
@@ -166,7 +166,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a501a7388c85ab8284338af",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "almir@leka.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-06-14",
         "paymentDate": "2026-06-26",
@@ -204,7 +204,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a5015619874ae8d17645c66",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-06-17",
         "paymentDate": null,
@@ -241,7 +241,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a5015619874ae8d17645c66",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-05-18",
         "notes": "Shared corridor fit-out — Floor 0. [pm-demo-seed]",
@@ -270,7 +270,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a5015619874ae8d17645c66",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-05-18",
         "notes": "Shared corridor fit-out — Floor -1. [pm-demo-seed]",
@@ -299,7 +299,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "edifice": "6a5015619874ae8d17645c66",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "almir@leka.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-05-18",
         "notes": "Shared corridor fit-out — Floor 1. [pm-demo-seed]",
@@ -384,7 +384,7 @@ export const unitCostsSeed: readonly UnitCostSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3f7",
         "project": "6a4f94ae99511ee1e0efb78a",
         "purchasePerson": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "purchaseDate": "2026-04-13",
         "paymentDate": "2026-04-23",

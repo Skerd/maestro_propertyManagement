@@ -23,7 +23,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         },
         "notes": "Demo lead for Aria Residence / A0-02 Floor 0. [pm-demo-seed]",
         "assignedTo": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "followUpDate": "2026-07-15",
         "convertedAt": null,
@@ -40,7 +40,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
                 "action": "status_update",
                 "notes": "Moved to contacted",
                 "performedBy": {
-                    "$user": "skerd@xhafa.com"
+                    "$user": "echo@echo.com"
                 },
                 "performedAt": "2026-07-08T12:34:03.627Z"
             }
@@ -62,7 +62,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         },
         "notes": "Demo lead for Aria Residence / A0-03 Floor 0. [pm-demo-seed]",
         "assignedTo": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "followUpDate": "2026-07-16",
         "convertedAt": null,
@@ -79,7 +79,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
                 "action": "status_update",
                 "notes": "Moved to qualified",
                 "performedBy": {
-                    "$user": "eniada.halebi@pronix.com"
+                    "$user": "echo@echo.com"
                 },
                 "performedAt": "2026-07-09T12:34:03.627Z"
             }
@@ -101,7 +101,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         },
         "notes": "Demo lead for Aria Residence / A1-01 Floor 1. [pm-demo-seed]",
         "assignedTo": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "followUpDate": "2026-07-17",
         "convertedAt": null,
@@ -118,7 +118,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
                 "action": "status_update",
                 "notes": "Moved to proposal",
                 "performedBy": {
-                    "$user": "gerald.habilaj@pronix.com"
+                    "$user": "echo@echo.com"
                 },
                 "performedAt": "2026-07-10T12:34:03.627Z"
             }
@@ -140,7 +140,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         },
         "notes": "Demo lead for Aria Residence / A0-01 Floor 0. [pm-demo-seed]",
         "assignedTo": {
-            "$user": "almir@leka.com"
+            "$user": "echo@echo.com"
         },
         "followUpDate": "2026-07-18",
         "convertedAt": null,
@@ -157,7 +157,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
                 "action": "status_update",
                 "notes": "Moved to negotiation",
                 "performedBy": {
-                    "$user": "almir@leka.com"
+                    "$user": "echo@echo.com"
                 },
                 "performedAt": "2026-07-11T12:34:03.627Z"
             }
@@ -179,7 +179,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         },
         "notes": "Demo lead for Aria Residence / A0-02 Floor 0. [pm-demo-seed]",
         "assignedTo": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "followUpDate": null,
         "convertedAt": "2026-07-09T12:34:03.627Z",
@@ -196,7 +196,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
                 "action": "status_update",
                 "notes": "Moved to won",
                 "performedBy": {
-                    "$user": "geraldo.cucaj@pronix.com"
+                    "$user": "echo@echo.com"
                 },
                 "performedAt": "2026-07-11T12:34:03.627Z"
             }
@@ -257,7 +257,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
         },
         "notes": "Demo lead for Aria Residence / A1-01 Floor 1. [pm-demo-seed]",
         "assignedTo": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "followUpDate": "2026-07-21",
         "convertedAt": null,
@@ -274,7 +274,7 @@ export const leadsSeed: readonly LeadSeedRow[] = [
                 "action": "status_update",
                 "notes": "Moved to new",
                 "performedBy": {
-                    "$user": "skerd@xhafa.com"
+                    "$user": "echo@echo.com"
                 },
                 "performedAt": "2026-07-11T12:34:03.627Z"
             }

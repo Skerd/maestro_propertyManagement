@@ -14,6 +14,7 @@ import {
     ISoftDeletePluginFields,
 } from "@coreModule/database/types/plugin-fields";
 import {addModelData} from "@coreModule/database/collections";
+import {SUPPORTED_LOCALES} from "armonia/src/modules/core/constants";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {AdCampaignRecipientSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/adCampaignRecipient/adCampaignRecipient.schema-def";
@@ -112,7 +113,8 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
         firstName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE},
         lastName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE},
         fullName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 200, permissions: SYSTEM_WRITE},
-        languageCode: {type: SchemaTypes.String, required: false, trim: true, maxlength: 10, permissions: SYSTEM_WRITE},
+        // The language the email went out in: always one the panel has labels for (TD-B203, UX-09).
+        languageCode: {type: SchemaTypes.String, required: false, enum: SUPPORTED_LOCALES, permissions: SYSTEM_WRITE},
         status: {
             type: SchemaTypes.String,
             required: true,

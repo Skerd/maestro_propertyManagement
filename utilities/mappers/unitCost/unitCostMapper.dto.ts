@@ -26,20 +26,28 @@ import {
     mapOwnershipToDTO,
     mapSoftDeleteToDTO
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
-import {minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+import {DEFAULT_DECIMAL_PLACES, minorToNumber, multiplyMinor, sumMinor, toMinor} from "armonia/src/modules/core/helpers/money";
+
+/** The populated currency's precision (GLB-08); 2 places while the currency is only an id or not readable. */
+function currencyDecimals(currency: unknown): number {
+    const places = currency && typeof currency === "object" && "decimalPlaces" in currency ? currency.decimalPlaces : undefined;
+    return typeof places === "number" ? places : DEFAULT_DECIMAL_PLACES;
+}
 
 /**
- * Quantity × unit price per row, each rounded once, summed exactly (D35). Reads only each row's amount and price,
- * so hydrated and lean unit costs both qualify; a row without a number in either counts nothing.
+ * Quantity × unit price per row, each rounded once at the currency's precision, summed exactly (D35). Reads only each
+ * row's amount and price and the currency, so hydrated and lean unit costs both qualify; a row without a number in
+ * either counts nothing.
  */
-export function computeUnitCostSubtotal(doc: {expenditureItems?: {amount?: unknown; pricePerUnit?: unknown}[]}): number {
+export function computeUnitCostSubtotal(doc: {expenditureItems?: {amount?: unknown; pricePerUnit?: unknown}[]; currency?: unknown}): number {
+    const decimals = currencyDecimals(doc.currency);
     const lines: bigint[] = [];
     for (const row of doc.expenditureItems || []) {
         const amt = typeof row.amount === "number" ? row.amount : parseFloat(String(row.amount));
         const ppu = decimalToNumber(row.pricePerUnit);
-        if (Number.isFinite(amt) && ppu !== undefined && Number.isFinite(ppu)) lines.push(multiplyMinor(toMinor(ppu), amt));
+        if (Number.isFinite(amt) && ppu !== undefined && Number.isFinite(ppu)) lines.push(multiplyMinor(toMinor(ppu, decimals), amt));
     }
-    return minorToNumber(sumMinor(lines));
+    return minorToNumber(sumMinor(lines), decimals);
 }
 
 function unitCostDocRowToDto(row: {

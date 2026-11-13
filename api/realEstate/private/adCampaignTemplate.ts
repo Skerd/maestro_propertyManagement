@@ -29,6 +29,8 @@ export const {router} = createCrudRouter({
     defaultSort:    {name: 1, locale: 1},
     selectSort:     {name: 1, locale: 1},
     selectSearchField: "name",
+    // The picker's label names the locale; the default projection read only the name.
+    selectProjection: "_id name locale",
     // Sanitize on write so the stored row is never unsafe. The renderer
     // sanitizes again — that second pass covers rows written before this
     // existed, or by any future import path that bypasses this router.

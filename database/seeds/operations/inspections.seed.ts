@@ -46,7 +46,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d1",
         "unit": "6a5018e588c85ab828431af5",
         "inspectedBy": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-16",
         "scheduledDate": "2026-06-23",
@@ -59,7 +59,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d2",
         "unit": "6a5018e588c85ab828431b65",
         "inspectedBy": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-17",
         "scheduledDate": "2026-06-24",
@@ -72,7 +72,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d3",
         "unit": "6a501e2588c85ab8284360f5",
         "inspectedBy": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-01",
         "scheduledDate": "2026-06-25",
@@ -102,7 +102,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d4",
         "unit": "6a501f4c88c85ab828436aed",
         "inspectedBy": {
-            "$user": "almir@leka.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-19",
         "scheduledDate": "2026-06-26",
@@ -115,7 +115,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d5",
         "unit": "6a501b3488c85ab828433d3d",
         "inspectedBy": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-03",
         "scheduledDate": "2026-06-27",
@@ -158,7 +158,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d7",
         "unit": "6a501f4c88c85ab828436b76",
         "inspectedBy": {
-            "$user": "skerd@xhafa.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-22",
         "scheduledDate": "2026-06-29",
@@ -171,7 +171,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d8",
         "unit": "6a501b3488c85ab828433de7",
         "inspectedBy": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-06",
         "scheduledDate": "2026-06-30",
@@ -205,7 +205,7 @@ export const inspectionsSeed: readonly InspectionSeedRow[] = [
         "id": "6a5389bc75dbaad1890bb3d9",
         "unit": "6a501b3488c85ab828433e51",
         "inspectedBy": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "echo@echo.com"
         },
         "inspectionDate": "2026-07-24",
         "scheduledDate": "2026-07-01",

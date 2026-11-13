@@ -674,7 +674,7 @@ const reservationCreateFormFields: ViewConfig["nodes"] = [
                             widget: "#ApiSelect",
                             label: "form.depositCurrencyLabel",
                             placeholder: "form.depositCurrencyPlaceholder",
-                            widgetProps: { apiUrl: "/api/finance/currency/select", method: "GET" },
+                            widgetProps: { apiUrl: "/api/finance/currency/select" },
                         },
                     },
                 ],

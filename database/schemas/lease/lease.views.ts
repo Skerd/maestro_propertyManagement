@@ -410,7 +410,7 @@ const leaseCreateFormNodes: ViewConfig["nodes"] = [
                             widget:      "#ApiSelect",
                             label:       "form.rentCurrencyLabel",
                             required:    true,
-                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                            widgetProps: {apiUrl: "/api/finance/currency/select"},
                         },
                     },
                     {
@@ -609,7 +609,7 @@ const leaseEditFormNodes: ViewConfig["nodes"] = [
                             widget:      "#ApiSelect",
                             label:       "form.rentCurrencyLabel",
                             required:    true,
-                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                            widgetProps: {apiUrl: "/api/finance/currency/select"},
                         }, permissions: {read: "rentCurrency", write: "rentCurrency"},
                     },
                     {

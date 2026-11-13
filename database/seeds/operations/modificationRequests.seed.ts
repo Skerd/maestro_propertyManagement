@@ -11,7 +11,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "id": "6a538b10d4b6b1160814e36f",
         "unit": "6a501b3388c85ab828433c31",
         "requestedBy": {
-            "$user": "skerd@xhafa.com"
+            "$user": "marco.bianchi@example.com"
         },
         "title": "Kitchen backsplash upgrade",
         "description": "Replace existing kitchen backsplash with marble tiles. [pm-demo-seed]",
@@ -41,7 +41,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "id": "6a538b10d4b6b1160814e370",
         "unit": "6a5018e488c85ab828431ad6",
         "requestedBy": {
-            "$user": "eniada.halebi@pronix.com"
+            "$user": "sofia.keller@example.com"
         },
         "title": "Additional power outlets in living room",
         "description": "Add two double sockets on the south wall for TV and desk. [pm-demo-seed]",
@@ -51,7 +51,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "architectApproval": {
             "decision": "approved",
             "user": {
-                "$user": "skerd@xhafa.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Architect OK",
             "reviewedAt": "2026-07-08T12:39:44.041Z"
@@ -76,7 +76,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "id": "6a538b10d4b6b1160814e371",
         "unit": "6a501b3388c85ab828433c4e",
         "requestedBy": {
-            "$user": "gerald.habilaj@pronix.com"
+            "$user": "elira.daka@example.com"
         },
         "title": "Upgrade living room flooring to oak",
         "description": "Replace laminate with engineered oak throughout living area. [pm-demo-seed]",
@@ -86,7 +86,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "architectApproval": {
             "decision": "approved",
             "user": {
-                "$user": "eniada.halebi@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Architect OK",
             "reviewedAt": "2026-07-09T12:39:44.041Z"
@@ -94,7 +94,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "engineerApproval": {
             "decision": "approved",
             "user": {
-                "$user": "gerald.habilaj@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Engineer OK",
             "reviewedAt": "2026-07-10T12:39:44.041Z",
@@ -127,7 +127,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "id": "6a538b10d4b6b1160814e372",
         "unit": "6a501b3388c85ab828433c6c",
         "requestedBy": {
-            "$user": "almir@leka.com"
+            "$user": "sofia.keller@example.com"
         },
         "title": "Second bathroom vanity upgrade",
         "description": "Install premium dual-sink vanity and rain shower. [pm-demo-seed]",
@@ -137,7 +137,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "architectApproval": {
             "decision": "approved",
             "user": {
-                "$user": "gerald.habilaj@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Architect OK",
             "reviewedAt": "2026-07-10T12:39:44.041Z"
@@ -145,7 +145,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "engineerApproval": {
             "decision": "approved",
             "user": {
-                "$user": "almir@leka.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Engineer OK",
             "reviewedAt": "2026-07-07T12:39:44.041Z",
@@ -165,7 +165,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "ceoApproval": {
             "decision": "approved",
             "user": {
-                "$user": "geraldo.cucaj@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "CEO OK",
             "reviewedAt": "2026-07-08T12:39:44.041Z"
@@ -183,7 +183,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "id": "6a538b10d4b6b1160814e373",
         "unit": "6a5018e588c85ab828431af5",
         "requestedBy": {
-            "$user": "geraldo.cucaj@pronix.com"
+            "$user": "elira.daka@example.com"
         },
         "title": "Custom wardrobe in master bedroom",
         "description": "Floor-to-ceiling wardrobe with sliding glass doors. [pm-demo-seed]",
@@ -193,7 +193,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "architectApproval": {
             "decision": "approved",
             "user": {
-                "$user": "almir@leka.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Architect OK",
             "reviewedAt": "2026-07-07T12:39:44.041Z"
@@ -201,7 +201,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "engineerApproval": {
             "decision": "approved",
             "user": {
-                "$user": "geraldo.cucaj@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Engineer OK",
             "reviewedAt": "2026-07-08T12:39:44.041Z",
@@ -276,7 +276,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "architectApproval": {
             "decision": "approved",
             "user": {
-                "$user": "geraldo.cucaj@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Architect OK",
             "reviewedAt": "2026-07-08T12:39:44.041Z"
@@ -304,7 +304,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "ceoApproval": {
             "decision": "approved",
             "user": {
-                "$user": "skerd@xhafa.com"
+                "$user": "echo@echo.com"
             },
             "notes": "CEO OK",
             "reviewedAt": "2026-07-10T12:39:44.041Z"
@@ -350,7 +350,7 @@ export const modificationRequestsSeed: readonly ModificationRequestSeedRow[] = [
         "clientCostApproval": {
             "decision": "approved",
             "user": {
-                "$user": "geraldo.cucaj@pronix.com"
+                "$user": "echo@echo.com"
             },
             "notes": "Client accepted estimate",
             "reviewedAt": "2026-07-08T12:39:44.041Z"

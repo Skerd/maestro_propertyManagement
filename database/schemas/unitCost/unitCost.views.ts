@@ -23,7 +23,8 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: {columns: 4},
+                // Opened from a unit, the page already knows it (TD-F80).
+                props: {columns: 4, skipRenderWhenFormExtraTruthy: "hideProjectToUnitCascade"},
                 children: [
                     {
                         render: "#Field",
@@ -139,7 +140,7 @@ const unitCostCreateFormFields: ViewConfig["nodes"] = [
                             label: "form.currencyLabel",
                             placeholder: "form.currencyPlaceholder",
                             required: true,
-                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                            widgetProps: {apiUrl: "/api/finance/currency/select"},
                         },
                     },
                     {
@@ -350,7 +351,8 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
         children: [
             {
                 render: "#FormGrid",
-                props: {columns: 4},
+                // Opened from a unit, the page already knows it (TD-F80).
+                props: {columns: 4, skipRenderWhenFormExtraTruthy: "hideProjectToUnitCascade"},
                 children: [
                     {
                         render: "#Field",
@@ -469,7 +471,7 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
                             label: "form.currencyLabel",
                             placeholder: "form.currencyPlaceholder",
                             required: true,
-                            widgetProps: {apiUrl: "/api/finance/currency/select", method: "GET"},
+                            widgetProps: {apiUrl: "/api/finance/currency/select"},
                         }, permissions: {read: "currency", write: "currency"},
                     },
                     {

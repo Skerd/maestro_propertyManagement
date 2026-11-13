@@ -1,58 +1,4 @@
 import type {ViewConfig} from "armonia/src/modules/core/api/auxiliary/private/viewConfig";
-import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycleSheetGroup";
-
-export const propertyManagementConfigSheetView: ViewConfig = {
-    model: "propertymanagementconfigs",
-    viewType: "sheet",
-    accessModel: "propertymanagementconfigs",
-    apiUrl: "/api/realEstate/propertyManagementConfig",
-    header: {titleField: "_id", subtitleKey: "propertyManagementConfig", showCloseButton: true},
-    nodes: [
-        {
-            render: "#SheetGroup",
-            props: {title: "overview"},
-            children: [
-                {
-                    render: "#SheetGrid",
-                    props: {columns: 2},
-                    children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "requiresSaleApproval"},
-                            field: {
-                                name: "requiresSaleApproval",
-                                widget: "#DisplayCard",
-                                label: "requiresSaleApproval",
-                                widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "requiresSaleApproval"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "requiresHandoverPackageForHandover"},
-                            field: {
-                                name: "requiresHandoverPackageForHandover",
-                                widget: "#DisplayCard",
-                                label: "requiresHandoverPackageForHandover",
-                                widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "requiresHandoverPackageForHandover"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "listedOnPortal"},
-                            field: {
-                                name: "listedOnPortal",
-                                widget: "#DisplayCard",
-                                label: "listedOnPortal",
-                                widgetProps: {icon: "#CircleDot", languageKeyCategory: "activeState", variantLookupField: "listedOnPortal"},
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        lifecycleSheetGroup,
-    ],
-};
 
 const propertyManagementConfigCreateFormNodes: ViewConfig["nodes"] = [
     {
@@ -251,8 +197,8 @@ export const propertyManagementConfigEditFormView: ViewConfig = {
     nodes: propertyManagementConfigEditFormNodes,
 };
 
+// Forms only: the settings page edits the company's one config in place, and no page shows it as a sheet (TD-F81).
 export const propertyManagementConfigViews: ViewConfig[] = [
-    propertyManagementConfigSheetView,
     propertyManagementConfigCreateFormView,
     propertyManagementConfigEditFormView,
 ];

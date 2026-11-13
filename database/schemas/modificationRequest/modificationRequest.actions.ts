@@ -341,6 +341,8 @@ export class ModificationRequestActions {
             savedInspectionIds = found.map((doc) => doc._id);
         }
 
+        const requestedById = existingRequest.requestedBy?._id?.toString() ?? existingRequest.requestedBy?.toString();
+        const now = new Date();
         const updateData = {
             deliveryApproval: {
                 decision:   ApprovalDecision.APPROVED,
@@ -352,7 +354,9 @@ export class ModificationRequestActions {
             },
             inspections:  savedInspectionIds,
             status:       ModificationRequestStatus.COMPLETED,
-            completedAt:  new Date(),
+            completedAt:  now,
+            // The delivered notice below goes to the requesting client after the commit (TD-B200).
+            ...(requestedById ? {clientNotifiedAt: now, notificationSent: true} : {}),
         };
 
         await modificationRequestService.updateByIdOrThrow(
@@ -377,7 +381,6 @@ export class ModificationRequestActions {
             logger.debug("User has no read permission on modification request!");
         }
 
-        const requestedById = existingRequest.requestedBy?._id?.toString() ?? existingRequest.requestedBy?.toString();
         if (requestedById) {
             emitNotificationEvent(NotificationEventCodes.MODIFICATION_REQUEST_DELIVERED, {
                 receiverIds: [requestedById],

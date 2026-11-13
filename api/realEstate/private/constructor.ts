@@ -14,6 +14,7 @@ import {countryService} from "@coreModule/database/schemas/country/country.servi
 import {stateService} from "@coreModule/database/schemas/state/state.service";
 import {cityService} from "@coreModule/database/schemas/city/city.service";
 import {apiValidationException} from "armonia/src/modules/core/helpers/exceptions";
+import {edificesByConstructor} from "@propertyManagement/utilities/services/constructorEdifices";
 
 const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 10 * 1024 * 1024});
 
@@ -66,6 +67,14 @@ export const {router} = createCrudRouter({
     toDTOArray: (docs) => constructorsToDTO(docs),
     toSelect: constructorsToSelect,
     defaultSort: {name: 1},
+    enrichList: async (docs, {company, actionUserCtx, languageCode}) => {
+        const edifices = await edificesByConstructor(docs.map((doc) => doc._id), {companyId: company._id, actionUserCtx, languageCode});
+        return constructorsToDTO(docs, edifices);
+    },
+    enrichSingle: async (doc, {company, actionUserCtx, languageCode}) => {
+        const edifices = await edificesByConstructor([doc._id], {companyId: company._id, actionUserCtx, languageCode});
+        return constructorToDTO(doc, edifices.get(doc._id.toString()));
+    },
     createMiddleware: [uploadMW],
     editMiddleware: [uploadMW],
     buildCreateData: async ({ fileIds, company, logger, languageCode, session, ...params }: any) => {

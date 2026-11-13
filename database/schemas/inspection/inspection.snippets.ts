@@ -6,5 +6,7 @@ export const InspectionSimpleSnippet = defineSnippet<IInspection, InspectionSimp
     keys: {
         _id: {},
         name: {},
+        type: {},
+        inspectionDate: {},
     },
 });

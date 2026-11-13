@@ -19,6 +19,8 @@ import {receiverLanguage} from "@coreModule/domain/notifications/notificationTex
 import {leadService} from "@propertyManagement/database/schemas/lead/lead.service";
 import {adCampaignRecipientService} from "@propertyManagement/database/schemas/adCampaignRecipient/adCampaignRecipient.service";
 import {userService} from "@coreModule/database/schemas/user/user.service";
+import {resolveRecipientLocale} from "@propertyManagement/utilities/emails/adCampaignNotifier";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
 
 /** How many addresses to check preferences for in one query. */
 const PREFERENCE_LOOKUP_CHUNK = 1000;
@@ -33,7 +35,7 @@ export type AudienceCandidate = {
     firstName?: string;
     lastName?: string;
     fullName?: string;
-    languageCode: string;
+    languageCode: SupportedLocale;
     skipReason?: AdCampaignSkipReason;
 };
 
@@ -49,10 +51,15 @@ export type LeadLite = {_id: ObjectId; email?: string; firstName?: string; lastN
 
 /**
  * A lead's language: leads record none, so they get the platform default (the template then falls back to the version
- * the campaign picked). A client user gets their own preferred language (`receiverLanguage`, TD-B181).
+ * the campaign picked). A client user gets their own preferred language (`receiverLanguage`, TD-B181). Either is
+ * stored as one of the supported locales, the ones the emails and the panel's labels know (TD-B203, UX-09).
  */
-function defaultLanguage(): string {
-    return CONSTANTS.DEFAULT_LANGUAGE || "en-US";
+function defaultLanguage(): SupportedLocale {
+    return resolveRecipientLocale(CONSTANTS.DEFAULT_LANGUAGE || "en-US");
+}
+
+function userLanguage(u: UserLite): SupportedLocale {
+    return resolveRecipientLocale(receiverLanguage(u));
 }
 
 function displayName(u: UserLite): string | undefined {
@@ -110,7 +117,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; rec
             audienceKind: "user",
             user: u._id,
             ...identity,
-            languageCode: receiverLanguage(u),
+            languageCode: userLanguage(u),
             skipReason: "no_email",
         };
     }
@@ -121,7 +128,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; rec
             audienceKind: "user",
             user: u._id,
             ...identity,
-            languageCode: receiverLanguage(u),
+            languageCode: userLanguage(u),
             skipReason: "inactive",
         };
     }
@@ -130,7 +137,7 @@ export function toUserCandidate(u: UserLite, opts: {recordInactive: boolean; rec
         audienceKind: "user",
         user: u._id,
         ...identity,
-        languageCode: receiverLanguage(u),
+        languageCode: userLanguage(u),
     };
 }
 

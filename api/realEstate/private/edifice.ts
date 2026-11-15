@@ -70,14 +70,14 @@ export const { router } = createCrudRouter({
 
         const [foundProject, foundCurrency, foundCountry, foundCity, foundConstructors, foundPropertyTypes] = await Promise.all([
             projectService.findOneOrThrow({ _id: new ObjectId(project), company: company._id }, { session, logger, languageCode, withDeleted: false }),
-            currencyService.findOneOrThrow({ company: company._id, _id: new ObjectId(investmentCurrency) }, { session, logger, languageCode, withDeleted: false }),
-            countryService.findOneOrThrow({ company: company._id, _id: new ObjectId(address.country) }, { session, logger, languageCode, withDeleted: false }),
-            cityService.findOneOrThrow({ company: company._id, _id: new ObjectId(address.city), country: new ObjectId(address.country) }, { session, logger, languageCode, withDeleted: false }),
+            currencyService.findOneOrThrow({_id: new ObjectId(investmentCurrency) }, { session, logger, languageCode, withDeleted: false }),
+            countryService.findOneOrThrow({_id: new ObjectId(address.country) }, { session, logger, languageCode, withDeleted: false }),
+            cityService.findOneOrThrow({_id: new ObjectId(address.city), country: new ObjectId(address.country) }, { session, logger, languageCode, withDeleted: false }),
             constructorService.find({ company: company._id, _id: { $in: constructors ?? [] } }, { session, logger, languageCode, withDeleted: false }),
             unitTypeService.find({ company: company._id, _id: { $in: propertyTypes ?? [] } }, { session, logger, languageCode, withDeleted: false }),
         ]);
 
-        const foundState = address.state ? await stateService.findOne({ company: company._id, _id: new ObjectId(address.state), country: new ObjectId(address.country) }, {session, logger, languageCode, withDeleted: false}) : undefined;
+        const foundState = address.state ? await stateService.findOne({_id: new ObjectId(address.state), country: new ObjectId(address.country) }, {session, logger, languageCode, withDeleted: false}) : undefined;
 
         const resolvedParams = {
             ...params,
@@ -106,7 +106,7 @@ export const { router } = createCrudRouter({
 
         const [foundProject, foundCurrency, foundConstructors, foundPropertyTypes] = await Promise.all([
             project != null && writeFields.project ? projectService.findOneOrThrow({ _id: new ObjectId(project), company: company._id }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
-            investmentCurrency != null && writeFields.investmentCurrency ? currencyService.findOneOrThrow({ company: company._id, _id: new ObjectId(investmentCurrency) }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
+            investmentCurrency != null && writeFields.investmentCurrency ? currencyService.findOneOrThrow({_id: new ObjectId(investmentCurrency) }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
             constructors != null && writeFields.constructors ? constructorService.find({ company: company._id, _id: { $in: constructors } }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
             propertyTypes != null && writeFields.propertyTypes ? unitTypeService.find({ company: company._id, _id: { $in: propertyTypes } }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
         ]);
@@ -116,9 +116,9 @@ export const { router } = createCrudRouter({
             const addressKeys = writeFields.address.keys ?? {};
             const countryFilter = address.country != null && addressKeys.country ? { country: new ObjectId(address.country) } : {};
             const [foundCountry, foundState, foundCity] = await Promise.all([
-                address.country != null && addressKeys.country ? countryService.findOneOrThrow({ company: company._id, _id: new ObjectId(address.country) }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
-                address.state != null && addressKeys.state ? stateService.findOne({ company: company._id, _id: new ObjectId(address.state), ...countryFilter }, {session, logger, languageCode, withDeleted: false}) : Promise.resolve(undefined),
-                address.city != null && addressKeys.city ? cityService.findOneOrThrow({ company: company._id, _id: new ObjectId(address.city), ...countryFilter }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
+                address.country != null && addressKeys.country ? countryService.findOneOrThrow({_id: new ObjectId(address.country) }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
+                address.state != null && addressKeys.state ? stateService.findOne({_id: new ObjectId(address.state), ...countryFilter }, {session, logger, languageCode, withDeleted: false}) : Promise.resolve(undefined),
+                address.city != null && addressKeys.city ? cityService.findOneOrThrow({_id: new ObjectId(address.city), ...countryFilter }, { session, logger, languageCode, withDeleted: false }) : Promise.resolve(undefined),
             ]);
             resolvedAddress = {
                 ...address,

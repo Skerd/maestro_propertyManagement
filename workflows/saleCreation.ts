@@ -60,7 +60,7 @@ function purchaseContractMediaIdFromFormValue(v: unknown): string | undefined {
 async function unitPriceCurrencySymbolForEmail(unit: IUnit, companyId: ObjectId): Promise<string | undefined> {
     try {
         const pcid = nestedEntityToRef(unit.priceCurrency);
-        const pcDoc = pcid ? await currencyService.findOne({_id: pcid, company: companyId}) : undefined;
+        const pcDoc = pcid ? await currencyService.findOne({_id: pcid}) : undefined;
         return pcDoc?.symbol || undefined;
     } catch {
         return undefined;
@@ -114,7 +114,7 @@ async function priceUnitSale(
     }
 
     const currencyIds = [unitCurrencyId, depositCurrencyId].filter((id): id is ObjectId => id !== undefined);
-    const currencies = await currencyService.find({_id: {$in: currencyIds}, company: companyId}, opts, undefined, "decimalPlaces");
+    const currencies = await currencyService.find({_id: {$in: currencyIds}}, opts, undefined, "decimalPlaces");
     const decimalsOf = (id: ObjectId | undefined) => currencies.find((currency) => id?.equals(currency._id))?.decimalPlaces;
 
     const pricing = computeSalePricing({
@@ -244,7 +244,7 @@ export async function buildSaleCreateData(params: SaleCreationParams) {
     const [buyerDoc, soldByDoc, saleCurrencyDoc] = await Promise.all([
         userService.findOneOrThrow({_id: new ObjectId(buyer), "roles.company": company._id}, {session, logger, languageCode}),
         userService.findOneOrThrow({_id: new ObjectId(soldBy), "roles.company": company._id}, {session, logger, languageCode}),
-        currencyService.findOneOrThrow({_id: new ObjectId(saleCurrency), company: company._id}, {session, logger, languageCode}),
+        currencyService.findOneOrThrow({_id: new ObjectId(saleCurrency)}, {session, logger, languageCode}),
     ]);
 
     const pricing = await priceUnitSale(
@@ -300,7 +300,7 @@ export async function completeSaleCreation(created: ISale, params: SaleCreationP
         UNIT_EMAIL_POPULATE,
     );
     const saleCurrencyDoc = await currencyService.findOne(
-        {_id: nestedEntityToRef(created.saleCurrency), company: company._id},
+        {_id: nestedEntityToRef(created.saleCurrency)},
         {session, logger, languageCode},
         undefined,
         "symbol",

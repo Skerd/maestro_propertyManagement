@@ -209,7 +209,7 @@ export const {router} = createCrudRouter({
         let depositCurrencySymbol: string | undefined;
         if (depositCurrency) {
             try {
-                const doc = await currencyService.findOne({_id: new ObjectId(depositCurrency), company: company._id});
+                const doc = await currencyService.findOne({_id: new ObjectId(depositCurrency)});
                 depositCurrencySymbol = doc?.symbol;
             } catch {}
         }
@@ -222,7 +222,7 @@ export const {router} = createCrudRouter({
                 : pc && typeof pc === "object" && "_id" in pc
                   ? (pc as {_id: ObjectId})._id
                   : undefined;
-            const priceCurDoc = pcid ? await currencyService.findOne({_id: new ObjectId(pcid), company: company._id}) : undefined;
+            const priceCurDoc = pcid ? await currencyService.findOne({_id: new ObjectId(pcid)}) : undefined;
             const priceSym = priceCurDoc?.symbol ?? "";
             const lang = languageCode ?? "en-US";
             const amt = formatMoneyAmountForEmail(foundUnit.price.toString(), lang);

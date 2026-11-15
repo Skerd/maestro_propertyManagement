@@ -159,7 +159,7 @@ export async function recordCommission({sourceId, sourceType, companyId, session
     });
 
     // The commission is a percentage of the basis, rounded once to the basis currency's precision (D35).
-    const currency = await currencyService.findOne({_id: nestedEntityToRef(baseCurrency), company: companyId}, {session}, undefined, "decimalPlaces");
+    const currency = await currencyService.findOne({_id: nestedEntityToRef(baseCurrency)}, {session}, undefined, "decimalPlaces");
     const decimals = currency?.decimalPlaces;
 
     await commissionService.create({

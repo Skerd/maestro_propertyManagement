@@ -248,7 +248,7 @@ export class ModificationRequestActions {
             item: item.item, cost: 0, quantity: item.quantity, unit: item.unit, source: "engineer_material",
         }));
 
-        const currencyDoc = await currencyService.findOneOrThrow({_id: new ObjectId(currency), company: company._id});
+        const currencyDoc = await currencyService.findOneOrThrow({_id: new ObjectId(currency)});
 
         const updateData = {
             status: ModificationRequestStatus.PENDING_CLIENT_APPROVAL,

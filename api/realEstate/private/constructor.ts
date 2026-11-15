@@ -20,7 +20,6 @@ const uploadMW = mediaUploadMW({maxFiles: 1, maxFileSize: 10 * 1024 * 1024});
 
 async function validateAndMapAddresses(
     addresses: any[],
-    companyId: ObjectId,
     ctx: {logger: any; languageCode: string; session: any},
 ): Promise<any[]> {
     return Promise.all(
@@ -29,13 +28,13 @@ async function validateAndMapAddresses(
             const stateId   = addr.state ? new ObjectId(addr.state) : undefined;
             const cityId    = new ObjectId(addr.city);
 
-            const cityFilter: Record<string, any> = {_id: cityId, company: companyId, country: countryId};
+            const cityFilter: Record<string, any> = {_id: cityId, country: countryId};
             if (stateId) cityFilter.state = stateId;
 
             const [country, state, city] = await Promise.all([
-                countryService.findOne({_id: countryId, company: companyId}, ctx),
+                countryService.findOne({_id: countryId}, ctx),
                 stateId
-                    ? stateService.findOne({_id: stateId, company: companyId, country: countryId}, ctx)
+                    ? stateService.findOne({_id: stateId, country: countryId}, ctx)
                     : Promise.resolve(true as any),
                 cityService.findOne(cityFilter, ctx),
             ]);
@@ -78,7 +77,7 @@ export const {router} = createCrudRouter({
     createMiddleware: [uploadMW],
     editMiddleware: [uploadMW],
     buildCreateData: async ({ fileIds, company, logger, languageCode, session, ...params }: any) => {
-        const validatedAddresses = params.addresses?.length > 0 ? await validateAndMapAddresses(params.addresses, new ObjectId(company._id), { logger, languageCode, session }) : [];
+        const validatedAddresses = params.addresses?.length > 0 ? await validateAndMapAddresses(params.addresses, { logger, languageCode, session }) : [];
         const data = buildCreateDataFromSchemaDef(ConstructorSchemaDef, {
             email:     (v) => String(v).toLowerCase(),
             addresses: (v) => v,
@@ -89,7 +88,7 @@ export const {router} = createCrudRouter({
     buildUpdateData: async ({ fileIds, company, logger, languageCode, session, ...params }: any, writeFields) => {
         let resolvedAddresses = params.addresses;
         if (params.addresses !== undefined && writeFields.addresses) {
-            resolvedAddresses = params.addresses?.length > 0 ? await validateAndMapAddresses(params.addresses, new ObjectId(company._id), { logger, languageCode, session }) : [];
+            resolvedAddresses = params.addresses?.length > 0 ? await validateAndMapAddresses(params.addresses, { logger, languageCode, session }) : [];
         }
         const data = buildUpdateDataFromSchemaDef(ConstructorSchemaDef, {
             email:     (v) => String(v).toLowerCase(),

@@ -7,6 +7,8 @@ import {getLogger} from "@coreModule/loggers/serverLog";
 import type {AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {searchSalesTool} from "@propertyManagement/domain/ai/tools/searchSalesTool";
 import {searchInstallmentsTool} from "@propertyManagement/domain/ai/tools/paymentsTools";
+// Registered for the tools' populates.
+import "@coreModule/database/schemas/currency/currency";
 import {asTenant, dec, seedCompany, seedCurrency, seedUnit, seedUser} from "./sale.fixtures";
 
 const companyId = new ObjectId();

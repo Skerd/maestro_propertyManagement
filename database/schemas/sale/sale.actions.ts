@@ -80,7 +80,7 @@ async function unitPriceDisplayForEmail(foundUnit: any, companyId: ObjectId, lan
     try {
         const pc = foundUnit.priceCurrency;
         const pcid = pc instanceof ObjectId ? pc : pc?._id;
-        const pcDoc = pcid ? await currencyService.findOne({_id: new ObjectId(pcid), company: companyId}) : undefined;
+        const pcDoc = pcid ? await currencyService.findOne({_id: new ObjectId(pcid)}) : undefined;
         const sym = pcDoc?.symbol ?? "";
         const amt = formatMoneyAmountForEmail(foundUnit.price.toString(), languageCode);
         return sym ? `${amt} ${sym}` : amt;

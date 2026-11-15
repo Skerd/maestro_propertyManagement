@@ -23,7 +23,7 @@ export type OperationsRefs = {
 export async function loadOperationsRefs(company: Pick<ICompany, "_id">): Promise<OperationsRefs> {
     const [users, currencies] = await Promise.all([
         User.find({}).select("_id username").lean(),
-        Currency.find({company: company._id}).select("_id abbreviation").lean(),
+        Currency.find({}).select("_id abbreviation").lean(),
     ]);
 
     return {

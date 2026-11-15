@@ -50,15 +50,13 @@ export interface CapturePublicChatLeadResult {
  * enriches the existing lead rather than creating a duplicate in the CRM.
  */
 async function resolveBudgetCurrencyId(
-    companyId: ObjectId,
     currencyId: string | undefined,
     opts: {logger?: serverLogger; languageCode?: string},
 ): Promise<ObjectId | undefined> {
     if (!currencyId || !ObjectId.isValid(currencyId)) return undefined;
     const id = new ObjectId(currencyId);
-    const currency =
-        (await currencyService.findOne({_id: id, company: companyId}, opts))
-        ?? (await currencyService.findOne({_id: id}, opts));
+    // Currencies are a platform list (D160): any existing row is the company's to use.
+    const currency = await currencyService.findOne({_id: id}, opts);
     return currency?._id as ObjectId | undefined;
 }
 
@@ -100,7 +98,7 @@ export async function capturePublicChatLead(
     const projectInterest = objectIdFromContextBag(context?.project);
     const unitInterest = objectIdFromContextBag(context?.unit);
     const existingLeadId = channel.publicChat?.lead;
-    const budgetCurrencyId = await resolveBudgetCurrencyId(companyId, budgetCurrency, opts);
+    const budgetCurrencyId = await resolveBudgetCurrencyId(budgetCurrency, opts);
     const commercial = buildLeadCommercialFields({note, budget, budgetCurrencyId});
 
     // Enrich rather than duplicate.

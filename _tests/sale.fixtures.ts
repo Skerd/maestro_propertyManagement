@@ -32,7 +32,10 @@ export async function clearDatabase(): Promise<void> {
     }
 }
 
+/** The currency with this code: one platform row every company uses (D160), added the first time it is asked for. */
 export async function seedCurrency(companyId: ObjectId, abbreviation: string, decimalPlaces = 2): Promise<ObjectId> {
+    const existing = await db().collection("currencies").findOne({abbreviation, deletedAt: null}, {projection: {_id: 1}});
+    if (existing) return existing._id;
     const _id = new ObjectId();
     await db().collection("currencies").insertOne({_id, name: abbreviation, symbol: abbreviation, abbreviation, decimalPlaces, company: companyId, deletedAt: null});
     return _id;

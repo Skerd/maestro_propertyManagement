@@ -76,7 +76,7 @@ export const { router } = createCrudRouter({
         const [foundFloor, foundUnitType, foundCurrency] = await Promise.all([
             floorService.findOneOrThrow({ _id: new ObjectId(floor), company: company._id }, { session, logger, languageCode, withDeleted: false }),
             unitTypeService.findOneOrThrow({_id: new ObjectId(unitType), company: company._id}, {session, logger, languageCode, withDeleted: false}),
-            currencyService.findOneOrThrow({ _id: new ObjectId(priceCurrency), company: company._id }, { session, logger, languageCode, withDeleted: false }),
+            currencyService.findOneOrThrow({ _id: new ObjectId(priceCurrency) }, { session, logger, languageCode, withDeleted: false }),
         ]);
 
         let connectedUnitIds: ObjectId[] = [];
@@ -132,7 +132,7 @@ export const { router } = createCrudRouter({
 
         const [foundUnitType, foundCurrency] = await Promise.all([
             unitTypeService.findOneOrThrow({_id: new ObjectId(unitType), company: company._id}, {session, logger, languageCode, withDeleted: false}),
-            currencyService.findOneOrThrow({ _id: new ObjectId(priceCurrency), company: company._id }, { session, logger, languageCode, withDeleted: false }),
+            currencyService.findOneOrThrow({ _id: new ObjectId(priceCurrency) }, { session, logger, languageCode, withDeleted: false }),
         ]);
 
         const data = buildUpdateDataFromSchemaDef(UnitSchemaDef, {})({
@@ -392,7 +392,7 @@ async function bulkUpdateUnitPrice(params: BulkUpdatePriceParams): Promise<{upda
     logger.start(`Bulk price update for ${unitIds.length} units...`);
 
     SchemaGuard.sanitizeFields(Unit, {price: {}, priceCurrency: {}}, "write", actionUserCtx, languageCode);
-    await currencyService.findOneOrThrow({_id: new ObjectId(priceCurrency), company: company._id}, {session, logger, languageCode});
+    await currencyService.findOneOrThrow({_id: new ObjectId(priceCurrency)}, {session, logger, languageCode});
 
     const unitObjectIds = unitIds.map(id => new ObjectId(id));
     const newPrice = Decimal128.fromString(String(price));

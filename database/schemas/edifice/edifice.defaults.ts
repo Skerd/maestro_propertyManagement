@@ -44,19 +44,18 @@ async function resolveAddress(
     }
 
     const country = address.countryCode
-        ? await Country.findOne({code: address.countryCode, company: company._id}).select("_id")
+        ? await Country.findOne({code: address.countryCode}).select("_id")
         : null;
     const state = address.stateCode
         ? await State.findOne({
               code: address.stateCode,
-              company: company._id,
               ...(country ? {country: country._id} : {}),
           }).select("_id")
         : null;
     const city = address.cityName
         ? await City.findOne({
               name: address.cityName,
-              company: company._id,
+              ...(country ? {country: country._id} : {}),
               ...(state ? {state: state._id} : {}),
           }).select("_id")
         : null;

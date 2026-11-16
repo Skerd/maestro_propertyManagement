@@ -14,6 +14,7 @@ const priceVisibilityOptions = PRICE_VISIBILITY_VALUES.map((value) => ({value, l
 export const floorSheetView: ViewConfig = {
     model: "floors",
     viewType: "sheet",
+    sheetWidget: "#FloorSheetView",
     accessModel: "floors",
     apiUrl: "/api/realEstate/floor",
     header: {

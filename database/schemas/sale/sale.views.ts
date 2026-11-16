@@ -5,6 +5,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const saleSheetView: ViewConfig = {
     model: "sales",
     viewType: "sheet",
+    sheetWidget: "#SaleSheetView",
     accessModel: "sales",
     apiUrl: "/api/realEstate/unit/sale",
     header: {

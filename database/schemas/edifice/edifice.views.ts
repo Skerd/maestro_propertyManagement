@@ -19,6 +19,7 @@ const energyClassOptions = EDIFICE_ENERGY_CLASS_VALUES.map((value) => ({value, l
 export const edificeSheetView: ViewConfig = {
     model: "edifices",
     viewType: "sheet",
+    sheetWidget: "#EdificeSheetView",
     accessModel: "edifices",
     apiUrl: "/api/realEstate/edifice",
     header: {

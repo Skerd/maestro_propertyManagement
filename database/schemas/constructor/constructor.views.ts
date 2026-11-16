@@ -16,6 +16,7 @@ const preferredLanguageOptions = SUPPORTED_LOCALES.map(value => ({value, label: 
 export const constructorSheetView: ViewConfig = {
     model: "constructors",
     viewType: "sheet",
+    sheetWidget: "#ConstructorSheetView",
     accessModel: "constructors",
     apiUrl: "/api/realEstate/constructor",
     header: {

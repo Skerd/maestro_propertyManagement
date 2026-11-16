@@ -13,6 +13,7 @@ const priceVisibilityOptions = PRICE_VISIBILITY_VALUES.map((value) => ({value, l
 export const projectSheetView: ViewConfig = {
     model: "projects",
     viewType: "sheet",
+    sheetWidget: "#ProjectSheetView",
     accessModel: "projects",
     apiUrl: "/api/realEstate/project",
     header: {

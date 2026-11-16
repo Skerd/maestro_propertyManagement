@@ -7,6 +7,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const leaseSheetView: ViewConfig = {
     model:       "leases",
     viewType:    "sheet",
+    sheetWidget: "#LeaseSheetView",
     accessModel: "leases",
     apiUrl:      "/api/realEstate/lease",
     header: {

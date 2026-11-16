@@ -5,6 +5,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const paymentPlanSheetView: ViewConfig = {
     model: "paymentplans",
     viewType: "sheet",
+    sheetWidget: "#PaymentPlanSheetView",
     accessModel: "paymentPlans",
     apiUrl: "/api/realEstate/unit/paymentPlan",
     header: {

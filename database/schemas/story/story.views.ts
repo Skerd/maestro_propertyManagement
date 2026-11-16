@@ -9,6 +9,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const storySheetView: ViewConfig = {
     model: "stories",
     viewType: "sheet",
+    sheetWidget: "#StorySheetView",
     accessModel: "stories",
     apiUrl: "/api/realEstate/story",
     header: {

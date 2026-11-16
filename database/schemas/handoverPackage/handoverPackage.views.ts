@@ -16,6 +16,7 @@ const importanceOptions = [
 export const handoverPackageSheetView: ViewConfig = {
     model: "handoverpackages",
     viewType: "sheet",
+    sheetWidget: "#HandoverPackageSheetView",
     accessModel: "handoverpackages",
     apiUrl: "/api/realEstate/handoverPackage",
     header: {titleField: "title", subtitleKey: "handoverPackage", showCloseButton: true},

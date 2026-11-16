@@ -8,6 +8,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const modificationRequestSheetView: ViewConfig = {
     model: "modificationrequests",
     viewType: "sheet",
+    sheetWidget: "#ModificationRequestSheetView",
     accessModel: "modificationRequests",
     apiUrl: "/api/realEstate/unit/modificationRequest",
     header: {

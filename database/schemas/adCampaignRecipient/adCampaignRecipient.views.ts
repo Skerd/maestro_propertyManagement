@@ -9,6 +9,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const adCampaignRecipientSheetView: ViewConfig = {
     model: "adcampaignrecipients",
     viewType: "sheet",
+    sheetWidget: "#AdCampaignRecipientSheetView",
     accessModel: "adcampaignrecipients",
     apiUrl: "/api/realEstate/adCampaignRecipient",
     header: {titleField: "email", subtitleKey: "adCampaignRecipient", showCloseButton: true},

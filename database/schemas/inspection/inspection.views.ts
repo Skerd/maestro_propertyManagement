@@ -8,6 +8,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const inspectionSheetView: ViewConfig = {
     model: "inspections",
     viewType: "sheet",
+    sheetWidget: "#InspectionSheetView",
     accessModel: "inspections",
     apiUrl: "/api/realEstate/unit/inspection",
     header: {

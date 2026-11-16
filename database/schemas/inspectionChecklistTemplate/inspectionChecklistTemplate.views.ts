@@ -16,6 +16,7 @@ const importanceOptions = [
 export const inspectionChecklistTemplateSheetView: ViewConfig = {
     model: "inspectionchecklisttemplates",
     viewType: "sheet",
+    sheetWidget: "#InspectionChecklistTemplateSheetView",
     accessModel: "inspectionchecklisttemplates",
     apiUrl: "/api/realEstate/inspectionChecklistTemplate",
     header: {titleField: "title", subtitleKey: "inspectionChecklistTemplate", showCloseButton: true},

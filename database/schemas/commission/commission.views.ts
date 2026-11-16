@@ -4,6 +4,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const commissionSheetView: ViewConfig = {
     model: "commissions",
     viewType: "sheet",
+    sheetWidget: "#CommissionSheetView",
     accessModel: "commissions",
     apiUrl: "/api/realEstate/commission",
     header: {

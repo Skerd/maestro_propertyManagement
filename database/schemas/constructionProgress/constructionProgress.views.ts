@@ -11,6 +11,7 @@ const phaseOptions = CONSTRUCTION_PHASE_VALUES.map((value) => ({value, label: `f
 export const constructionProgressSheetView: ViewConfig = {
     model: "constructionprogresses",
     viewType: "sheet",
+    sheetWidget: "#ConstructionProgressSheetView",
     accessModel: "constructionprogresses",
     apiUrl: "/api/realEstate/constructionProgress",
     header: {

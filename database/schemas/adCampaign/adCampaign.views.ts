@@ -19,6 +19,7 @@ const audienceModeOptions = AD_CAMPAIGN_AUDIENCE_MODE_VALUES.map(value => ({valu
 export const adCampaignSheetView: ViewConfig = {
     model: "adcampaigns",
     viewType: "sheet",
+    sheetWidget: "#AdCampaignSheetView",
     accessModel: "adcampaigns",
     apiUrl: "/api/realEstate/adCampaign",
     header: {titleField: "title", subtitleKey: "adCampaign", showCloseButton: true},

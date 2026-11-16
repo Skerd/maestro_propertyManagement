@@ -9,6 +9,7 @@ const localeOptions = SUPPORTED_LOCALES.map(value => ({value, label: `form.local
 export const adCampaignTemplateSheetView: ViewConfig = {
     model: "adcampaigntemplates",
     viewType: "sheet",
+    sheetWidget: "#AdCampaignTemplateSheetView",
     accessModel: "adcampaigntemplates",
     apiUrl: "/api/realEstate/adCampaignTemplate",
     header: {

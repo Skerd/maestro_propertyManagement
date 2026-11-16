@@ -26,6 +26,7 @@ const constructionStatusOptions = [
 export const unitSheetView: ViewConfig = {
     model: "units",
     viewType: "sheet",
+    sheetWidget: "#UnitSheetView",
     accessModel: "units",
     apiUrl: "/api/realEstate/unit",
     header: {

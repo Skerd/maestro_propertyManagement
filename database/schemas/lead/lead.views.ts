@@ -461,6 +461,7 @@ export const leadEditFormView: ViewConfig = {
 export const leadSheetView: ViewConfig = {
     model:       "leads",
     viewType:    "sheet",
+    sheetWidget: "#LeadSheetView",
     accessModel: "leads",
     apiUrl:      "/api/realEstate/lead",
     header: {

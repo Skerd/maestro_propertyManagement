@@ -8,6 +8,7 @@ const sourceOptions = RESERVATION_SOURCE_VALUES.map((value) => ({value, label: `
 export const reservationSheetView: ViewConfig = {
     model: "reservations",
     viewType: "sheet",
+    sheetWidget: "#ReservationSheetView",
     accessModel: "reservations",
     apiUrl: "/api/realEstate/unit/reservation",
     header: {

@@ -647,6 +647,7 @@ const unitCostEditFormFields: ViewConfig["nodes"] = [
 export const unitCostSheetView: ViewConfig = {
     model: "unitcosts",
     viewType: "sheet",
+    sheetWidget: "#UnitCostSheetView",
     accessModel: "unitcosts",
     apiUrl: "/api/realEstate/unit/cost",
     header: {

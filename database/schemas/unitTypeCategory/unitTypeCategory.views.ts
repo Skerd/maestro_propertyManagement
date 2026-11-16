@@ -5,6 +5,7 @@ import {lifecycleSheetGroup} from "@coreModule/database/schemas/shared/lifecycle
 export const unitTypeCategorySheetView: ViewConfig = {
     model: "unittypecategories",
     viewType: "sheet",
+    sheetWidget: "#UnitTypeCategorySheetView",
     accessModel: "unitTypeCategories",
     apiUrl: "/api/realEstate/unitTypeCategory",
     header: {

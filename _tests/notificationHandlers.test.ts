@@ -84,3 +84,15 @@ describe("every propertyManagement code (TD-B149)", () => {
         }
     });
 });
+
+// TD-F133: a sale decision goes to the agent and the buyer; only the agent has the sale in the panel, so only the
+// agent's copy carries the key its link opens.
+describe("SALE_APPROVED and SALE_REJECTED links", () => {
+    it("give only the agent's copy the panel sale", async () => {
+        const [agent, buyer] = receivers;
+        const sent = await deliver(NotificationEventCodes.SALE_APPROVED, {companyId, saleId: "s1", decision: "approved", buyerId: buyer});
+        const byReceiver = Object.fromEntries(sent.map(({input}) => [String(input.receiver), input.content]));
+        expect(byReceiver[agent]).toMatchObject({saleId: "s1", staffSaleId: "s1"});
+        expect(byReceiver[buyer]).not.toHaveProperty("staffSaleId");
+    });
+});

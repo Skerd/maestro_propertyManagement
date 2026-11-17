@@ -12,6 +12,11 @@ const logger = getLogger("realEstate_notifications");
 type Payload = Record<string, unknown>;
 type Params = Record<string, string | number>;
 
+/** The sale id under a key only the agent's copy carries, so only staff get the notice's panel link (TD-F133). */
+function staffSale(p: Payload, receiverId: string): {staffSaleId?: unknown} {
+    return p.buyerId && String(p.buyerId) === receiverId ? {} : {staffSaleId: p.saleId};
+}
+
 /**
  * One propertyManagement notice. `params` are the values of the code's translated message in this module's
  * `notificationTypes.json` (D117; `variant` picks a message variant); `description` is the same message in English,
@@ -148,14 +153,14 @@ const NOTICES: Notice[] = [
         code: NotificationEventCodes.SALE_APPROVED, importance: HIGH, category: FINANCIAL,
         params: () => ({}),
         description: () => "Sale approved",
-        content: (p) => ({saleId: p.saleId, decision: p.decision}),
+        content: (p, receiverId) => ({saleId: p.saleId, decision: p.decision, ...staffSale(p, receiverId)}),
     },
     {
         // To the agent and the buyer; the sale's unit is released (TD-B149).
         code: NotificationEventCodes.SALE_REJECTED, importance: HIGH, category: FINANCIAL,
         params: (p) => ({...defined({notes: p.notes}), ...variantWithout(p.notes, "noNotes")}),
         description: (p) => (p.notes ? `Sale rejected: ${p.notes}` : "Sale rejected"),
-        content: (p) => ({saleId: p.saleId, decision: p.decision, notes: p.notes}),
+        content: (p, receiverId) => ({saleId: p.saleId, decision: p.decision, notes: p.notes, ...staffSale(p, receiverId)}),
     },
 
     // ─── Construction progress (clients of units in scope) ─────────────────────

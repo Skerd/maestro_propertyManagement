@@ -12,7 +12,25 @@ import {emitNotificationEvent} from "@coreModule/domain/notifications/notificati
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {modificationRequestService} from "../../database/schemas/modificationRequest/modificationRequest.service";
-import {ModificationRequestStatus} from "../../database/schemas/modificationRequest/modificationRequest";
+import ModificationRequest, {ModificationRequestStatus} from "../../database/schemas/modificationRequest/modificationRequest";
+import {companyMemberIdsWithPermission} from "@coreModule/domain/roles/companyPermissionHolders";
+import {actionPermissionTag} from "@coreModule/utilities/security/actionPermissions";
+
+/**
+ * Who must move an overdue request on: the holders of the action its stage waits for (admins included). A request
+ * waiting on the client goes to the approvers, who chase the client. TD-B243: the alert went to the client, so the
+ * staff who should act on a breached SLA were never told.
+ */
+const STAGE_ACTION: Partial<Record<ModificationRequestStatus, string>> = {
+    [ModificationRequestStatus.PENDING_ARCHITECT]: "approve",
+    [ModificationRequestStatus.PENDING_ENGINEER]: "approve",
+    [ModificationRequestStatus.PENDING_CEO]: "approve",
+    [ModificationRequestStatus.PENDING_ARCHITECT_REVISION]: "submitRevision",
+    [ModificationRequestStatus.PENDING_ENGINEER_REVISION]: "submitRevision",
+    [ModificationRequestStatus.PENDING_FINANCE]: "finance",
+    [ModificationRequestStatus.PENDING_CLIENT_APPROVAL]: "approve",
+    [ModificationRequestStatus.PENDING_DELIVERY]: "deliver",
+};
 
 const BATCH_SIZE = 200;
 
@@ -39,7 +57,16 @@ export async function runModificationRequestSlaEscalations(company: ObjectId, pa
         stageDueDate: {$lt: now},
         deletedAt: null,
     };
-    const select = "_id name title status stageDueDate requestedBy company";
+    const select = "_id name title status stageDueDate company";
+    // One lookup per action for the whole run.
+    const holdersByAction = new Map<string, Promise<string[]>>();
+    const holdersOf = (status: ModificationRequestStatus) => {
+        const action = STAGE_ACTION[status] ?? "approve";
+        if (!holdersByAction.has(action)) {
+            holdersByAction.set(action, companyMemberIdsWithPermission(company, actionPermissionTag(ModificationRequest, action, "self")));
+        }
+        return holdersByAction.get(action)!;
+    };
 
     let totalEscalated = 0;
     let lastId: ObjectId | undefined;
@@ -69,11 +96,11 @@ export async function runModificationRequestSlaEscalations(company: ObjectId, pa
 
         for (const req of batch) {
             try {
-                const requestedById = req.requestedBy?._id?.toString() ?? req.requestedBy?.toString();
-                if (!requestedById) continue;
+                const receiverIds = await holdersOf(req.status);
+                if (receiverIds.length === 0) continue;
 
                 emitNotificationEvent(NotificationEventCodes.MODIFICATION_REQUEST_SLA_BREACHED, {
-                    receiverIds: [requestedById],
+                    receiverIds,
                     payload: {
                         companyId: req.company?.toString() ?? "",
                         modificationRequestId: req._id.toString(),

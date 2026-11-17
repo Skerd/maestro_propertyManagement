@@ -164,6 +164,8 @@ export class SaleActions {
                 payload: {
                     companyId: company._id.toString(),
                     saleId: sale._id.toString(),
+                    // Only the agent's copy opens the sale in the panel; the buyer has no panel page for it (TD-F133).
+                    buyerId,
                     decision,
                     notes,
                     languageCode: languageCode ?? "en-US",

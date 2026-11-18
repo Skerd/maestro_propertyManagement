@@ -220,6 +220,10 @@ export interface IModificationRequest extends Document, IOwnershipPluginFields, 
     cancellationReason?: string;    // Reason for cancellation
 }
 
+/**
+ * One review stage. Its fields stay off the table by default (each stage would otherwise add five columns to the
+ * requests and sales tables) but can be switched on and filtered.
+ */
 export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: boolean; withInspections?: boolean}) {
     const base: any = {
         decision: {
@@ -228,6 +232,7 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             required: true,
             default: ApprovalDecision.PENDING,
             dynamicTableConfiguration: {
+                visible: false,
                 enumTones: {
                     approved:   "success",
                     rejected:   "danger",
@@ -242,6 +247,7 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             refAllowlist: SimpleBlankUserSnippet,
             dynamicTableConfiguration: {
                 refDisplayKey: ["name", "surname"],
+                visible: false,
             },
         },
         notes: {
@@ -249,11 +255,12 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             required: false,
             trim: true,
             maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         reviewedAt: {
             type: SchemaTypes.Date,
             required: false,
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         media: {
             type: [{
@@ -262,7 +269,8 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             }],
             required: false,
             refAllowlist: MediaSimpleSnippet,
-            default: []
+            default: [],
+            dynamicTableConfiguration: {visible: false},
         }
     };
     if (config?.withMaterialsPlan) {
@@ -292,6 +300,7 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
                 refDisplayKey: ["quantity", "! ", "unit", "! · ", "item"],
                 sortable: false,
                 filterable: false,
+                visible: false,
             },
         };
     }
@@ -303,7 +312,8 @@ export function getApprovalStageSchemaDefinition(config?: {withMaterialsPlan?: b
             }],
             required: false,
             default: [],
-            refAllowlist: InspectionSimpleSnippet
+            refAllowlist: InspectionSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         };
     }
     return base;
@@ -323,7 +333,9 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                 others: {
                     write: "no-permission"
                 }
-            }
+            },
+            // The MOD-… code: the title names the row (UX-12).
+            dynamicTableConfiguration: {visible: false},
         },
         unit: {
             type: SchemaTypes.ObjectId,
@@ -355,6 +367,7 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
             trim: true,
             minlength: 1,
             maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         constructionType: {
             type: SchemaTypes.String,
@@ -368,6 +381,7 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
             required: false,
             trim: true,
             maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         status: {
             type: SchemaTypes.String,
@@ -410,13 +424,16 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                 totalCost: {
                     type: SchemaTypes.Number,
                     required: false,
-                    min: 0
+                    min: 0,
+                    dynamicTableConfiguration: {currencyPath: "financeDetails.currency"},
                 },
                 currency: {
                     type: SchemaTypes.ObjectId,
                     ref: 'Currency',
                     required: false,
-                    refAllowlist: CurrencySimpleSnippet
+                    refAllowlist: CurrencySimpleSnippet,
+                    // The total cost column shows it (UX-07, D149).
+                    dynamicTableConfiguration: {visible: false},
                 },
                 costBreakdown: {
                     type: [{
@@ -461,6 +478,7 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                         refDisplayKey: ["item", "! · ", "cost"],
                         sortable: false,
                         filterable: false,
+                        visible: false,
                     },
                 },
                 media: {
@@ -470,17 +488,20 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                     }],
                     required: false,
                     refAllowlist: MediaSimpleSnippet,
-                    default: []
+                    default: [],
+                    dynamicTableConfiguration: {visible: false},
                 },
                 notes: {
                     type: SchemaTypes.String,
                     required: false,
                     trim: true,
                     maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
+                    dynamicTableConfiguration: {visible: false},
                 },
                 estimatedCompletionDate: {
                     type: SchemaTypes.String,
-                    required: false
+                    required: false,
+                    dynamicTableConfiguration: {visible: false},
                 },
             },
             required: false
@@ -498,13 +519,14 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
         clientNotifiedAt: {
             type: SchemaTypes.Date,
             required: false,
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         notificationSent: {
             type: SchemaTypes.Boolean,
             required: true,
             default: false,
-            index: true
+            index: true,
+            dynamicTableConfiguration: {visible: false},
         },
         submittedAt: {
             type: SchemaTypes.Date,
@@ -533,13 +555,14 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
             }],
             required: false,
             default: [],
-            refAllowlist: InspectionSimpleSnippet
+            refAllowlist: InspectionSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
 
         completedAt: {
             type: SchemaTypes.Date,
             required: false,
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         cancelledAt: {
             type: SchemaTypes.Date,
@@ -552,13 +575,14 @@ const ModificationRequestSchema = new Schema<IModificationRequest>(
                     write: "no-permission"
                 }
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         cancellationReason: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
             maxlength: MODIFICATION_REQUEST_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         }
     },
     {

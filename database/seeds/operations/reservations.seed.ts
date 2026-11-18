@@ -29,7 +29,7 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "depositCurrency": {
             "$currency": "EUR"
         },
-        "paymentMethod": "bank_transfer",
+        "paymentMethod": "Bank transfer",
         "source": "agent",
         "paid": true,
         "paidDate": {
@@ -61,7 +61,7 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "depositCurrency": {
             "$currency": "EUR"
         },
-        "paymentMethod": "bank_transfer",
+        "paymentMethod": "Bank transfer",
         "source": "portal",
         "paid": false,
         "paidDate": null,
@@ -91,7 +91,7 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "depositCurrency": {
             "$currency": "EUR"
         },
-        "paymentMethod": "bank_transfer",
+        "paymentMethod": "Bank transfer",
         "source": "walk_in",
         "paid": true,
         "paidDate": {
@@ -123,7 +123,7 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "depositCurrency": {
             "$currency": "EUR"
         },
-        "paymentMethod": "bank_transfer",
+        "paymentMethod": "Bank transfer",
         "source": "referral",
         "paid": true,
         "paidDate": {
@@ -157,7 +157,7 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "depositCurrency": {
             "$currency": "EUR"
         },
-        "paymentMethod": "bank_transfer",
+        "paymentMethod": "Bank transfer",
         "source": "social",
         "paid": false,
         "paidDate": null,
@@ -185,7 +185,7 @@ export const reservationsSeed: readonly ReservationSeedRow[] = [
         "depositCurrency": {
             "$currency": "EUR"
         },
-        "paymentMethod": "bank_transfer",
+        "paymentMethod": "Bank transfer",
         "source": "agent",
         "paid": true,
         "paidDate": "2026-06-14",

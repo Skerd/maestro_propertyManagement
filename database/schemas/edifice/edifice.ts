@@ -449,6 +449,7 @@ const EdificeSchema = new Schema<IEdifice>(
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.ENUM,
+                visible: false,
             },
         },
     },

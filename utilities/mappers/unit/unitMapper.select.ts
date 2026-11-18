@@ -6,7 +6,8 @@ export function unitToSelect(unit: IUnit): ApiSelectDatum {
     if (unit.unitNumber) {
         label = unit.unitNumber;
     }
-    if (unit.name) {
+    // Many units are named by their number; saying it twice ("A0-02 - A0-02") only makes the picker harder to scan.
+    if (unit.name && unit.name !== unit.unitNumber) {
         label = label ? `${label} - ${unit.name}` : unit.name;
     }
     if (unit.unitType) {

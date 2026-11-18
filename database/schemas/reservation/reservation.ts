@@ -90,7 +90,9 @@ const ReservationSchema = new Schema<IReservation>(
                 others: {
                     write: "no-permission"
                 }
-            }
+            },
+            // The RES-… code: the unit and client name the row (UX-12).
+            dynamicTableConfiguration: {visible: false},
         },
         unit: {
             type: SchemaTypes.ObjectId,
@@ -135,7 +137,9 @@ const ReservationSchema = new Schema<IReservation>(
                     write: "no-permission"
                 }
             },
-            refAllowlist: CompanyBlankSnippet
+            refAllowlist: CompanyBlankSnippet,
+            // The panel stores the active company here, so the column would repeat the list's own company.
+            dynamicTableConfiguration: {visible: false},
         },
         client: {
             type: SchemaTypes.ObjectId,
@@ -256,7 +260,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         expirationReminderEmailAt1d: {
             type: SchemaTypes.Date,
@@ -265,7 +269,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         expirationReminderEmailAt0d: {
             type: SchemaTypes.Date,
@@ -274,7 +278,7 @@ const ReservationSchema = new Schema<IReservation>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         expiredAt: {
             type: SchemaTypes.Date,
@@ -319,7 +323,7 @@ const ReservationSchema = new Schema<IReservation>(
                     write: "no-permission"
                 }
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         cancellationReason: {
             type: SchemaTypes.String,
@@ -335,6 +339,7 @@ const ReservationSchema = new Schema<IReservation>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
         additionalDocuments: {
@@ -347,6 +352,7 @@ const ReservationSchema = new Schema<IReservation>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
     },

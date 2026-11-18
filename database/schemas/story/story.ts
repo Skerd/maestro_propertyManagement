@@ -72,6 +72,19 @@ const StorySchema = new Schema<IStory>(
                 },
             }
         },
+        // Declared first so the table leads with it, ahead of the scope columns (UX-12).
+        title: {
+            type: SchemaTypes.String,
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: STORY_TITLE_MAX,
+            dynamicTableConfiguration: {
+                filterable: true,
+                sortable: true,
+                cellType: COLUMN_TYPE.STRING,
+            },
+        },
         project: {
             type: SchemaTypes.ObjectId,
             ref: "Project",
@@ -120,18 +133,6 @@ const StorySchema = new Schema<IStory>(
                 refDisplayKey: ["name"],
             },
         },
-        title: {
-            type: SchemaTypes.String,
-            required: true,
-            trim: true,
-            minlength: 1,
-            maxlength: STORY_TITLE_MAX,
-            dynamicTableConfiguration: {
-                filterable: true,
-                sortable: true,
-                cellType: COLUMN_TYPE.STRING,
-            },
-        },
         content: {
             type: SchemaTypes.String,
             required: true,
@@ -149,6 +150,7 @@ const StorySchema = new Schema<IStory>(
             maxlength: STORY_EXCERPT_MAX,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             },
         },
         mainImage: {
@@ -167,6 +169,7 @@ const StorySchema = new Schema<IStory>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             },
         },
         videoGallery: {
@@ -175,6 +178,7 @@ const StorySchema = new Schema<IStory>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             },
         },
         published: {

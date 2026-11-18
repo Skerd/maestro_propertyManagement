@@ -69,6 +69,19 @@ const propertyManagementConfigCreateFormNodes: ViewConfig["nodes"] = [
                             label: "form.requiresHandoverPackageForHandoverLabel",
                         },
                     },
+                ],
+            },
+        ],
+    },
+    // Publishing switches sit in their own last group (UX-04).
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "visibility"},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
                     {
                         render: "#Field",
                         field: {
@@ -134,7 +147,7 @@ const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
     {
         render: "#TitleWithCollapse",
         props: {title: "generalInfo"},
-        permissions: {readAny: ["requiresSaleApproval", "requiresHandoverPackageForHandover", "listedOnPortal"], writeAny: ["requiresSaleApproval", "requiresHandoverPackageForHandover", "listedOnPortal"]},
+        permissions: {readAny: ["requiresSaleApproval", "requiresHandoverPackageForHandover"], writeAny: ["requiresSaleApproval", "requiresHandoverPackageForHandover"]},
         children: [
             {
                 render: "#FormGrid",
@@ -158,6 +171,20 @@ const propertyManagementConfigEditFormNodes: ViewConfig["nodes"] = [
                         },
                         permissions: {read: "requiresHandoverPackageForHandover", write: "requiresHandoverPackageForHandover"},
                     },
+                ],
+            },
+        ],
+    },
+    // Publishing switches sit in their own last group (UX-04).
+    {
+        render: "#TitleWithCollapse",
+        props: {title: "visibility"},
+        permissions: {readAny: ["listedOnPortal"], writeAny: ["listedOnPortal"]},
+        children: [
+            {
+                render: "#FormGrid",
+                props: {columns: 1},
+                children: [
                     {
                         render: "#Field",
                         field: {

@@ -118,6 +118,29 @@ export interface IUnit extends Document, IOwnershipPluginFields, ISoftDeletePlug
 
 const UnitSchema = new Schema<IUnit>(
     {
+        // Name, building and floor are declared first so the table leads with them (UX-12).
+        name: {
+            type: Schema.Types.String,
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: UNIT_SHORT_TEXT_MAX,
+        },
+        edifice: {
+            type: Schema.Types.ObjectId,
+            ref: "Edifice",
+            required: false,
+            permissions: {
+                self: { write: "no-permission" },
+                others: { write: "no-permission" },
+            },
+        },
+        floor: {
+            type: Schema.Types.ObjectId,
+            ref: 'Floor',
+            required: true,
+            refAllowlist: FloorSimpleSnippet
+        },
         unitType: {
             type: Schema.Types.ObjectId,
             ref: 'UnitType',
@@ -130,13 +153,8 @@ const UnitSchema = new Schema<IUnit>(
             trim: true,
             minlength: 1,
             maxlength: UNIT_NUMBER_MAX,
-        },
-        name: {
-            type: Schema.Types.String,
-            required: true,
-            trim: true,
-            minlength: 1,
-            maxlength: UNIT_SHORT_TEXT_MAX,
+            // Usually the same text as the name.
+            dynamicTableConfiguration: {visible: false},
         },
         area: {
             type: Schema.Types.Number,
@@ -144,16 +162,19 @@ const UnitSchema = new Schema<IUnit>(
         },
         sharedArea: {
             type: Schema.Types.Number,
-            required: true
+            required: true,
+            dynamicTableConfiguration: {visible: false},
         },
         netArea: {
             type: Schema.Types.Number,
             // required: true
+            dynamicTableConfiguration: {visible: false},
         },
         verandaArea: {
             type: Schema.Types.Number,
             required: false,
-            min: 0
+            min: 0,
+            dynamicTableConfiguration: {visible: false},
         },
         price: {
             type: SchemaTypes.Decimal128,
@@ -180,6 +201,21 @@ const UnitSchema = new Schema<IUnit>(
             refAllowlist: CurrencySimpleSnippet,
             // The price column shows it (UX-07, D149); the column stays available to switch on.
             dynamicTableConfiguration: {visible: false},
+        },
+        status: {
+            type: Schema.Types.String,
+            enum: Object.values(UnitStatus),
+            required: true,
+            default: UnitStatus.AVAILABLE,
+            dynamicTableConfiguration: {
+                enumTones: {
+                    available_unit:     "success",
+                    unavailable_unit:   "neutral",
+                    reserved_unit:      "warning",
+                    sold_unit:          "danger",
+                    rented_unit:        "info",
+                },
+            },
         },
         hasBalcony: {
             type: Schema.Types.Boolean,
@@ -247,11 +283,13 @@ const UnitSchema = new Schema<IUnit>(
         },
         numberOfRooms: {
             type: Schema.Types.Number,
-            required: true
+            required: true,
+            dynamicTableConfiguration: {visible: false},
         },
         numberOfBathrooms: {
             type: Schema.Types.Number,
-            required: true
+            required: true,
+            dynamicTableConfiguration: {visible: false},
         },
         description: {
             type: Schema.Types.String,
@@ -358,21 +396,6 @@ const UnitSchema = new Schema<IUnit>(
                 hideColumn: true,
                 visible: false,
             }
-        },
-        status: {
-            type: Schema.Types.String,
-            enum: Object.values(UnitStatus),
-            required: true,
-            default: UnitStatus.AVAILABLE,
-            dynamicTableConfiguration: {
-                enumTones: {
-                    available_unit:     "success",
-                    unavailable_unit:   "neutral",
-                    reserved_unit:      "warning",
-                    sold_unit:          "danger",
-                    rented_unit:        "info",
-                },
-            },
         },
         unavailableNotes: {
             type: Schema.Types.String,
@@ -568,21 +591,6 @@ const UnitSchema = new Schema<IUnit>(
                 sortable: false,
             },
         },
-        floor: {
-            type: Schema.Types.ObjectId,
-            ref: 'Floor',
-            required: true,
-            refAllowlist: FloorSimpleSnippet
-        },
-        edifice: {
-            type: Schema.Types.ObjectId,
-            ref: "Edifice",
-            required: false,
-            permissions: {
-                self: { write: "no-permission" },
-                others: { write: "no-permission" },
-            },
-        },
         project: {
             type: Schema.Types.ObjectId,
             ref: "Project",
@@ -598,6 +606,7 @@ const UnitSchema = new Schema<IUnit>(
             default: false,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.BOOLEAN,
+                visible: false,
             },
         },
         featuredSortOrder: {
@@ -619,6 +628,7 @@ const UnitSchema = new Schema<IUnit>(
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.ENUM,
+                visible: false,
             },
         },
     },

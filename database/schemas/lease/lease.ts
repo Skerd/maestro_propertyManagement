@@ -65,9 +65,11 @@ const LeaseSchema = new Schema<ILease>(
             required: false,
             maxlength: LEASE_SHORT_TEXT_MAX,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            // The LEASE-… code: the unit and tenant name the row (UX-12).
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
+                visible: false,
             },
         },
         unit: {
@@ -147,6 +149,7 @@ const LeaseSchema = new Schema<ILease>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.PERCENTAGE,
                 filterable: true,
+                visible: false,
             },
         },
         gracePeriodDays: {
@@ -157,6 +160,7 @@ const LeaseSchema = new Schema<ILease>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
+                visible: false,
             },
         },
         depositPaid: {
@@ -174,6 +178,7 @@ const LeaseSchema = new Schema<ILease>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
+                visible: false,
             },
         },
         status: {
@@ -198,6 +203,7 @@ const LeaseSchema = new Schema<ILease>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.DATE,
                 filterable: true,
+                visible: false,
             },
         },
         terminationReason: {
@@ -232,6 +238,7 @@ const LeaseSchema = new Schema<ILease>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.FILE,
                 sortable: false,
+                visible: false,
             },
         },
     },

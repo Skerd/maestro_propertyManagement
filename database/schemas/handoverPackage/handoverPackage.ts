@@ -34,21 +34,23 @@ export interface IHandoverPackage extends Document, IOwnershipPluginFields, ISof
 const HandoverPackageSchema = new Schema<IHandoverPackage>(
     {
         name: {type: SchemaTypes.String, required: true, trim: true, dynamicTableConfiguration: {visible: false}},
+        // Declared first so the table leads with it, ahead of the scope columns (UX-12).
+        title: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_TITLE_MAX},
 
         project: {type: SchemaTypes.ObjectId, ref: "Project", required: true, refAllowlist: ProjectSimpleSnippet},
         edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, default: null, refAllowlist: EdificeSimpleSnippet},
         floor: {type: SchemaTypes.ObjectId, ref: "Floor", required: false, default: null, refAllowlist: FloorSimpleSnippet},
         unit: {type: SchemaTypes.ObjectId, ref: "Unit", required: false, default: null, refAllowlist: UnitSimpleSnippet},
-        title: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_TITLE_MAX},
         description: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         notes: {type: SchemaTypes.String, required: false, maxlength: HANDOVER_PACKAGE_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         media: {type: [{type: SchemaTypes.ObjectId, ref: "Media"}], default: [], refAllowlist: MediaSimpleSnippet, dynamicTableConfiguration: {visible: false}},
+        // Each item field would otherwise become its own table column and filter; the sheet shows the items.
         items: {
             type: [{
-                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX},
-                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
-                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
-                importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false},
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX, dynamicTableConfiguration: {hideColumn: true}},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX, dynamicTableConfiguration: {hideColumn: true}},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX, dynamicTableConfiguration: {hideColumn: true}},
+                importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false, dynamicTableConfiguration: {hideColumn: true}},
             }],
             default: [],
             dynamicTableConfiguration: {visible: false},

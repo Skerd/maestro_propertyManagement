@@ -37,12 +37,13 @@ const InspectionChecklistTemplateSchema = new Schema<IInspectionChecklistTemplat
         stage: {type: SchemaTypes.String, required: false},
         description: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         notes: {type: SchemaTypes.String, required: false, maxlength: INSPECTION_CHECKLIST_LONG_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
+        // Each item field would otherwise become its own table column and filter; the sheet shows the items.
         items: {
             type: [{
-                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX},
-                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
-                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
-                importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false},
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX, dynamicTableConfiguration: {hideColumn: true}},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX, dynamicTableConfiguration: {hideColumn: true}},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX, dynamicTableConfiguration: {hideColumn: true}},
+                importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false, dynamicTableConfiguration: {hideColumn: true}},
             }],
             default: [],
             dynamicTableConfiguration: {visible: false},

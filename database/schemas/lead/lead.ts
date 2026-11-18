@@ -97,6 +97,8 @@ const LeadSchema = new Schema<ILead>(
             immutable: true,
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            // The LEAD-… code: the person's name names the row (UX-12).
+            dynamicTableConfiguration: {visible: false},
         },
         firstName: {
             type: SchemaTypes.String,
@@ -195,6 +197,7 @@ const LeadSchema = new Schema<ILead>(
             required: false,
             trim: true,
             maxlength: LEAD_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         chat: {
             type:         SchemaTypes.ObjectId,
@@ -207,6 +210,7 @@ const LeadSchema = new Schema<ILead>(
                 hrefTemplate:  "/company/websiteChats/mine?channelId={_id}",
                 filterable:    true,
                 sortable:      true,
+                visible:       false,
             },
         },
         assignedTo: {
@@ -223,6 +227,7 @@ const LeadSchema = new Schema<ILead>(
             type:        SchemaTypes.Date,
             required:    false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            dynamicTableConfiguration: {visible: false},
         },
         lostReason: {
             type:     SchemaTypes.String,
@@ -233,6 +238,7 @@ const LeadSchema = new Schema<ILead>(
                 self:   {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {visible: false},
         },
         activityLog: {
             type: [{

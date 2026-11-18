@@ -34,6 +34,7 @@ import {UnitStatus} from "../../../database/schemas/unit/unit";
 import {
     assertAnyCollectedRead,
     canReadCollectedFields,
+    collectedFieldReader,
 } from "@propertyManagement/utilities/security/canReadCollectedFields";
 import type {UserContext} from "@coreModule/utilities/types/types";
 import {InstallmentStatus, PaymentPlanStatus,} from "../../../database/schemas/paymentPlan/paymentPlan";
@@ -245,7 +246,8 @@ const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildDashboardCacheKey(companyId: string, params: {projectId?: string; edificeId?: string; period?: string; from?: string; to?: string; recentSalesLimit?: number}): string {
     // v4: `collected` counts reservation deposits on their paid day, inactive ones too (TD-B178); a v3 entry is never read back.
-    return `dashboard:v5:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
+    // v6: recent sales carry their buyer and the currency's symbol, so a v5 entry would show the list without them.
+    return `dashboard:v6:${companyId}:${params.projectId ?? ""}:${params.edificeId ?? ""}:${params.period ?? "month"}:${params.from ?? ""}:${params.to ?? ""}:${params.recentSalesLimit ?? 10}`;
 }
 
 /**
@@ -423,9 +425,10 @@ async function salesStats({params, access, opts, unitIds, saleDays, periodStart,
             [
                 { path: "unit", select: "name unitNumber" },
                 { path: "soldBy", select: "name surname fullName" },
-                { path: "saleCurrency", select: "name" },
+                { path: "buyer", select: "name surname" },
+                { path: "saleCurrency", select: "name symbol abbreviation decimalPlaces" },
             ],
-            "unit soldBy saleCurrency saleDate finalPrice paymentType",
+            "unit soldBy buyer saleCurrency saleDate finalPrice paymentType",
             { saleDate: -1 },
             Math.min(Math.max(1, recentSalesLimit), 50),
             0
@@ -475,9 +478,18 @@ async function salesStats({params, access, opts, unitIds, saleDays, periodStart,
                       fullName: s.soldBy.fullName,
                   }
                 : { _id: "", name: undefined, surname: undefined, fullName: undefined },
+            ...(s.buyer
+                ? { buyer: { _id: s.buyer._id?.toString() ?? "", name: s.buyer.name, surname: s.buyer.surname } }
+                : {}),
             paymentType: s.paymentType ?? "",
             saleCurrency: s.saleCurrency
-                ? { _id: s.saleCurrency._id?.toString() ?? "", name: s.saleCurrency.name }
+                ? {
+                      _id: s.saleCurrency._id?.toString() ?? "",
+                      name: s.saleCurrency.name,
+                      symbol: s.saleCurrency.symbol,
+                      abbreviation: s.saleCurrency.abbreviation,
+                      decimalPlaces: s.saleCurrency.decimalPlaces,
+                  }
                 : { _id: "", name: undefined },
         })),
         salesByPaymentType,
@@ -1301,7 +1313,13 @@ function sanitizeDashboardResponse(
     const summary = sanitizeDashboardSummary(result.rawSummary ?? result.summary ?? buildEmptySummary(), actionUserCtx, languageCode);
     const revenueByPeriod = access.sales ? result.revenueByPeriod : [];
     const salesByPeriod = access.sales ? result.salesByPeriod : [];
-    const recentSales = access.sales ? result.recentSales : [];
+    // The cache is shared by the company, so the buyer's name is dropped here, per caller, when they may not read it (SEC-09).
+    const canReadBuyer = access.sales && collectedFieldReader(actionUserCtx, languageCode)("sales", "buyer");
+    const recentSales = !access.sales
+        ? []
+        : canReadBuyer
+            ? result.recentSales
+            : result.recentSales.map((sale) => ({...sale, buyer: undefined}));
     const paymentAlerts = (result.paymentAlerts ?? []).filter((alert) => {
         if (alert.kind === "installment") return access.paymentPlans;
         if (alert.kind === "reservation") return access.reservations;

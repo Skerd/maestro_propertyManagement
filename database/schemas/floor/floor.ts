@@ -72,8 +72,8 @@ const FloorSchema = new Schema<IFloor>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
-                cellType: COLUMN_TYPE.AVATAR
-                // visible: false,
+                cellType: COLUMN_TYPE.AVATAR,
+                visible: false,
             }
         },
         videoGallery: {
@@ -85,7 +85,7 @@ const FloorSchema = new Schema<IFloor>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
-                // visible: false,
+                visible: false,
             }
         },
         mediaFiles: {
@@ -97,6 +97,7 @@ const FloorSchema = new Schema<IFloor>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
         marketingBooklet: {
@@ -106,6 +107,7 @@ const FloorSchema = new Schema<IFloor>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             },
         },
         name: {
@@ -114,6 +116,16 @@ const FloorSchema = new Schema<IFloor>(
             trim: true,
             minlength: 1,
             maxlength: FLOOR_SHORT_TEXT_MAX,
+        },
+        // Declared next to the name so the table leads with the building (UX-12).
+        edifice: {
+            type: SchemaTypes.ObjectId,
+            ref: "Edifice",
+            required: true,
+            refAllowlist: EdificeSimpleSnippet,
+            dynamicTableConfiguration: {
+                refDisplayKey: ["name"],
+            },
         },
         levelNumber: {
             type: SchemaTypes.Number,
@@ -145,6 +157,7 @@ const FloorSchema = new Schema<IFloor>(
             type: SchemaTypes.String,
             required: false,
             maxlength: FLOOR_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         sharedSpaces: {
             type: [{
@@ -162,6 +175,7 @@ const FloorSchema = new Schema<IFloor>(
             },
             dynamicTableConfiguration: {
                 sortable: false,
+                visible: false,
             }
         },
         polygonCoordinates: {
@@ -205,15 +219,6 @@ const FloorSchema = new Schema<IFloor>(
                 visible: false,
             }
         },
-        edifice: {
-            type: SchemaTypes.ObjectId,
-            ref: "Edifice",
-            required: true,
-            refAllowlist: EdificeSimpleSnippet,
-            dynamicTableConfiguration: {
-                refDisplayKey: ["name"],
-            },
-        },
         project: {
             // for faster dashboard queries
             type: SchemaTypes.ObjectId,
@@ -252,6 +257,7 @@ const FloorSchema = new Schema<IFloor>(
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.ENUM,
+                visible: false,
             },
         },
     },

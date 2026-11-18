@@ -158,6 +158,7 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             required: false,
             trim: true,
             maxlength: AD_CAMPAIGN_SUBJECT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         bodyHtmlOverride: {
             type: SchemaTypes.String,
@@ -171,6 +172,7 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             required: true,
             enum: AD_CAMPAIGN_AUDIENCE_MODE_VALUES,
             default: "selected",
+            dynamicTableConfiguration: {visible: false},
         },
         recipients: {
             type: [{type: SchemaTypes.ObjectId, ref: "User", refAllowlist: SimpleUserSnippet}],
@@ -182,16 +184,18 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             default: [],
             dynamicTableConfiguration: {visible: false},
         },
-        includeClientUsers: {type: SchemaTypes.Boolean, required: false, default: true},
-        includeLeads: {type: SchemaTypes.Boolean, required: false, default: false},
+        includeClientUsers: {type: SchemaTypes.Boolean, required: false, default: true, dynamicTableConfiguration: {visible: false}},
+        includeLeads: {type: SchemaTypes.Boolean, required: false, default: false, dynamicTableConfiguration: {visible: false}},
 
         projects: {
             type: [{type: SchemaTypes.ObjectId, ref: "Project", refAllowlist: ProjectSimpleSnippet}],
             default: [],
+            dynamicTableConfiguration: {visible: false},
         },
         units: {
             type: [{type: SchemaTypes.ObjectId, ref: "Unit", refAllowlist: UnitSimpleSnippet}],
             default: [],
+            dynamicTableConfiguration: {visible: false},
         },
 
         contentUnit: {
@@ -199,29 +203,33 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             ref: "Unit",
             required: false,
             refAllowlist: UnitSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         contentProject: {
             type: SchemaTypes.ObjectId,
             ref: "Project",
             required: false,
             refAllowlist: ProjectSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         offerTitle: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
             maxlength: AD_CAMPAIGN_OFFER_TITLE_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
-        offerEndsAt: {type: SchemaTypes.Date, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
+        offerEndsAt: {type: SchemaTypes.Date, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false}},
         ctaUrl: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
             maxlength: AD_CAMPAIGN_CTA_URL_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
 
         scheduledAt: {type: SchemaTypes.Date, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
-        startedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
+        startedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false}},
         completedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
 
         batchSize: {
@@ -232,8 +240,8 @@ const AdCampaignSchema = new Schema<IAdCampaign>(
             max: AD_CAMPAIGN_BATCH_SIZE_MAX,
             dynamicTableConfiguration: {visible: false},
         },
-        fromName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 120},
-        replyTo: {type: SchemaTypes.String, required: false, trim: true, lowercase: true, maxlength: 320},
+        fromName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 120, dynamicTableConfiguration: {visible: false}},
+        replyTo: {type: SchemaTypes.String, required: false, trim: true, lowercase: true, maxlength: 320, dynamicTableConfiguration: {visible: false}},
 
         stats: {
             type: {

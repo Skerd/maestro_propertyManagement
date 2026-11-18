@@ -76,12 +76,15 @@ const AdCampaignTemplateSchema = new Schema<IAdCampaignTemplate>(
             required: false,
             trim: true,
             maxlength: AD_CAMPAIGN_SUBJECT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
+        // Raw HTML: the sheet previews it.
         bodyHtml: {
             type: SchemaTypes.String,
             required: true,
             minlength: 1,
             maxlength: AD_CAMPAIGN_BODY_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         active: {
             type: SchemaTypes.Boolean,

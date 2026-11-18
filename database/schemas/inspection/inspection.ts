@@ -35,6 +35,7 @@ const noWrite = {
     self: {write: "no-permission" as const},
     others: {write: "no-permission" as const},
 };
+const hideChecklistItemColumn = {hideColumn: true};
 
 export enum InspectionStatus {
     SCHEDULED = "scheduled",
@@ -192,6 +193,8 @@ const InspectionSchema = new Schema<IInspection>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            // The INSP-… code: the unit names the row (UX-12).
+            dynamicTableConfiguration: {visible: false},
         },
         unit: {
             type: SchemaTypes.ObjectId,
@@ -220,7 +223,7 @@ const InspectionSchema = new Schema<IInspection>(
             type: SchemaTypes.String,
             required: false,
             index: true,
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE, visible: false},
         },
         type: {
             type: SchemaTypes.String,
@@ -249,6 +252,7 @@ const InspectionSchema = new Schema<IInspection>(
             required: false,
             trim: true,
             maxlength: INSPECTION_LONG_TEXT_MAX,
+            dynamicTableConfiguration: {visible: false},
         },
         findings: {
             type: {
@@ -292,6 +296,7 @@ const InspectionSchema = new Schema<IInspection>(
             ref: "Inspection",
             required: false,
             refAllowlist: InspectionSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
         followedUpByInspection: {
             type: SchemaTypes.ObjectId,
@@ -302,11 +307,12 @@ const InspectionSchema = new Schema<IInspection>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            dynamicTableConfiguration: {visible: false},
         },
         completedAt: {
             type: SchemaTypes.Date,
             required: false,
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         cancelledAt: {
             type: SchemaTypes.Date,
@@ -315,14 +321,14 @@ const InspectionSchema = new Schema<IInspection>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
-            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME},
+            dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false},
         },
         cancellationReason: {
             type: SchemaTypes.String,
             required: false,
             trim: true,
             maxlength: INSPECTION_LONG_TEXT_MAX,
-            dynamicTableConfiguration: {visible: true},
+            dynamicTableConfiguration: {visible: false},
         },
         clientSignatureMediaId: {
             type: SchemaTypes.ObjectId,
@@ -335,31 +341,35 @@ const InspectionSchema = new Schema<IInspection>(
             type: SchemaTypes.Date,
             required: false,
             index: true,
+            dynamicTableConfiguration: {visible: false},
         },
         checklistTemplate: {
             type: SchemaTypes.ObjectId,
             ref: "InspectionChecklistTemplate",
             required: false,
             refAllowlist: InspectionChecklistTemplateSimpleSnippet,
+            dynamicTableConfiguration: {visible: false},
         },
+        // Each item field would otherwise become its own table column and filter; the sheet shows the checklist.
         checklistItems: {
             type: [{
-                sourceTemplateId: {type: SchemaTypes.ObjectId, ref: "InspectionChecklistTemplate", required: false},
-                sourceItemId: {type: SchemaTypes.ObjectId, required: false},
-                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX},
-                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
-                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX},
-                importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false},
-                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
-                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite},
+                sourceTemplateId: {type: SchemaTypes.ObjectId, ref: "InspectionChecklistTemplate", required: false, dynamicTableConfiguration: hideChecklistItemColumn},
+                sourceItemId: {type: SchemaTypes.ObjectId, required: false, dynamicTableConfiguration: hideChecklistItemColumn},
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_NAME_MAX, dynamicTableConfiguration: hideChecklistItemColumn},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX, dynamicTableConfiguration: hideChecklistItemColumn},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: INSPECTION_CHECKLIST_ITEM_TEXT_MAX, dynamicTableConfiguration: hideChecklistItemColumn},
+                importance: {type: SchemaTypes.String, enum: [...inspectionChecklistItemImportanceValues], required: false, dynamicTableConfiguration: hideChecklistItemColumn},
+                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite, dynamicTableConfiguration: hideChecklistItemColumn},
+                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite, dynamicTableConfiguration: hideChecklistItemColumn},
                 completedBy: {
                     type: SchemaTypes.ObjectId,
                     ref: "User",
                     required: false,
                     refAllowlist: SimpleBlankUserSnippet,
                     permissions: noWrite,
+                    dynamicTableConfiguration: hideChecklistItemColumn,
                 },
-                retained: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+                retained: {type: SchemaTypes.Boolean, default: false, permissions: noWrite, dynamicTableConfiguration: hideChecklistItemColumn},
             }],
             default: [],
             permissions: noWrite,

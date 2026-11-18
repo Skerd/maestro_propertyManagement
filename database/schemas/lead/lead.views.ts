@@ -497,28 +497,8 @@ export const leadSheetView: ViewConfig = {
                 {
                     render: "#SheetGrid",
                     props:  {columns: 3},
+                    // The person's name is the sheet title (LeadSheetView `headerTitle`), so it is not repeated here (UX-03).
                     children: [
-                        {
-                            render: "#DisplayCard",
-                            permissions: {read: "firstName"},
-                            field: {
-                                name:        "firstName",
-                                widget:      "#DisplayCard",
-                                label:       "firstName",
-                                widgetProps: {icon: "#IconLabel"},
-                            },
-                        },
-                        {
-                            render: "#DisplayCard",
-                            dependent: "lastName",
-                            permissions: {read: "lastName"},
-                            field: {
-                                name:        "lastName",
-                                widget:      "#DisplayCard",
-                                label:       "lastName",
-                                widgetProps: {icon: "#IconLabel"},
-                            },
-                        },
                         {
                             render: "#DisplayCard",
                             permissions: {read: "status"},

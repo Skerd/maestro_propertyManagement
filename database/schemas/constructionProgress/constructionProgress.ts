@@ -66,7 +66,7 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
         project: {type: SchemaTypes.ObjectId, ref: "Project", required: true, refAllowlist: ProjectSimpleSnippet},
         edifice: {type: SchemaTypes.ObjectId, ref: "Edifice", required: false, refAllowlist: EdificeSimpleSnippet},
         phase: {type: SchemaTypes.String, required: true, enum: CONSTRUCTION_PHASE_VALUES},
-        progressPercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100},
+        progressPercent: {type: SchemaTypes.Number, required: true, min: 0, max: 100, dynamicTableConfiguration: {cellType: COLUMN_TYPE.PERCENTAGE}},
         updateDate: {type: SchemaTypes.String, required: true, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
         title: {
             type: SchemaTypes.String,
@@ -89,8 +89,8 @@ const ConstructionProgressSchema = new Schema<IConstructionProgress>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {visible: false},
         },
-        notifyClients: {type: SchemaTypes.Boolean, required: false, default: true},
-        clientsNotifiedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME}},
+        notifyClients: {type: SchemaTypes.Boolean, required: false, default: true, dynamicTableConfiguration: {visible: false}},
+        clientsNotifiedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false}},
         clientsNotifiedCount: {type: SchemaTypes.Number, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
     },
     {accessMode: "loose"}

@@ -680,7 +680,6 @@ export const unitSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.collectedAmount",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -703,7 +702,6 @@ export const unitSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.notCollectedAmount",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -726,7 +724,6 @@ export const unitSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.averagePricePerSquareMeter",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -750,7 +747,6 @@ export const unitSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.verifiedPaidUnitCosts",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -773,7 +769,6 @@ export const unitSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.verifiedOutstandingUnitCosts",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -796,7 +791,6 @@ export const unitSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.pendingVerificationUnitCosts",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",

@@ -336,6 +336,7 @@ const CommissionSchema = new Schema<ICommission>(
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.STRING,
+                visible: false,
             },
             permissions: {
                 self: {write: "no-permission"},
@@ -350,6 +351,7 @@ const CommissionSchema = new Schema<ICommission>(
             dynamicTableConfiguration: {
                 sortable: false,
                 cellType: COLUMN_TYPE.FILE,
+                visible: false,
             },
             permissions: {
                 self: {write: "no-permission"},
@@ -380,6 +382,7 @@ const CommissionSchema = new Schema<ICommission>(
                 filterable: true,
                 sortable: true,
                 cellType: COLUMN_TYPE.DATE,
+                visible: false,
             },
             permissions: {
                 self: {
@@ -397,11 +400,13 @@ const CommissionSchema = new Schema<ICommission>(
                     ref: "User",
                     required: true,
                     refAllowlist: SimpleBlankUserSnippet,
+                    // Split fields stay filterable but off the table by default: the sheet lists the splits.
                     dynamicTableConfiguration: {
                         filterable: true,
                         sortable: true,
                         cellType: COLUMN_TYPE.OBJECT_ID,
                         refDisplayKey: ["name", "surname"],
+                        visible: false,
                     },
                 },
                 label: {
@@ -412,6 +417,7 @@ const CommissionSchema = new Schema<ICommission>(
                         filterable: true,
                         sortable: true,
                         cellType: COLUMN_TYPE.STRING,
+                        visible: false,
                     },
                 },
                 ratePercent: {
@@ -423,6 +429,7 @@ const CommissionSchema = new Schema<ICommission>(
                         filterable: true,
                         sortable: true,
                         cellType: COLUMN_TYPE.PERCENTAGE,
+                        visible: false,
                     },
                 },
                 amount: {
@@ -434,9 +441,11 @@ const CommissionSchema = new Schema<ICommission>(
                         return Decimal128.fromString(v.toString());
                     },
                     dynamicTableConfiguration: {
+                        currencyPath: "currency",
                         filterable: true,
                         sortable: true,
                         cellType: COLUMN_TYPE.NUMBER,
+                        visible: false,
                     },
                 },
             }],

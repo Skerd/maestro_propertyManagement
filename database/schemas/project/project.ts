@@ -128,7 +128,7 @@ const ProjectSchema = new Schema<IProject>(
             refAllowlist: MediaSimpleSnippet,
             dynamicTableConfiguration: {
                 sortable: false,
-                // visible: false,
+                visible: false,
                 cellType: COLUMN_TYPE.AVATAR
             }
         },

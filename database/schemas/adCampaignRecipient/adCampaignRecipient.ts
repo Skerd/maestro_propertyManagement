@@ -82,11 +82,13 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             refAllowlist: AdCampaignSimpleSnippet,
             permissions: SYSTEM_WRITE,
         },
+        // A copy of the campaign's type, which the campaign column already names.
         campaignType: {
             type: SchemaTypes.String,
             required: true,
             enum: AD_CAMPAIGN_TYPE_VALUES,
             permissions: SYSTEM_WRITE,
+            dynamicTableConfiguration: {visible: false},
         },
         audienceKind: {
             type: SchemaTypes.String,
@@ -94,14 +96,16 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             enum: AD_CAMPAIGN_AUDIENCE_KIND_VALUES,
             permissions: SYSTEM_WRITE,
         },
+        // Linked accounts; the name and email columns already say who it went to (UX-12).
         user: {
             type: SchemaTypes.ObjectId,
             ref: "User",
             required: false,
             refAllowlist: SimpleUserSnippet,
             permissions: SYSTEM_WRITE,
+            dynamicTableConfiguration: {visible: false},
         },
-        lead: {type: SchemaTypes.ObjectId, ref: "Lead", required: false, permissions: SYSTEM_WRITE},
+        lead: {type: SchemaTypes.ObjectId, ref: "Lead", required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
         email: {
             type: SchemaTypes.String,
             required: true,
@@ -110,8 +114,8 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             maxlength: 320,
             permissions: SYSTEM_WRITE,
         },
-        firstName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE},
-        lastName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE},
+        firstName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
+        lastName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 80, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
         fullName: {type: SchemaTypes.String, required: false, trim: true, maxlength: 200, permissions: SYSTEM_WRITE},
         // The language the email went out in: always one the panel has labels for (TD-B203, UX-09).
         languageCode: {type: SchemaTypes.String, required: false, enum: SUPPORTED_LOCALES, permissions: SYSTEM_WRITE},
@@ -139,7 +143,7 @@ const AdCampaignRecipientSchema = new Schema<IAdCampaignRecipient>(
             enum: AD_CAMPAIGN_SKIP_REASON_VALUES,
             permissions: SYSTEM_WRITE,
         },
-        attempts: {type: SchemaTypes.Number, required: false, default: 0, min: 0, permissions: SYSTEM_WRITE},
+        attempts: {type: SchemaTypes.Number, required: false, default: 0, min: 0, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {visible: false}},
         // The sender's bookkeeping: off the table by default, the lock never a column (UX-12).
         claimedAt: {type: SchemaTypes.Date, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATETIME, visible: false}},
         claimToken: {type: SchemaTypes.ObjectId, required: false, permissions: SYSTEM_WRITE, dynamicTableConfiguration: {hideColumn: true}},

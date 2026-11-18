@@ -43,6 +43,7 @@ const noWrite = {
     self: {write: "no-permission" as const},
     others: {write: "no-permission" as const},
 };
+const hideChecklistItemColumn = {hideColumn: true};
 
 /**
  * Sale payment type
@@ -147,7 +148,9 @@ const SaleSchema = new Schema<ISale>(
                 others: {
                     write: "no-permission"
                 }
-            }
+            },
+            // The SALE-… code: the unit and buyer name the row (UX-12).
+            dynamicTableConfiguration: {visible: false},
         },
         unit: {
             type: SchemaTypes.ObjectId,
@@ -462,7 +465,9 @@ const SaleSchema = new Schema<ISale>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            // Only set when the company requires sale approval; the column stays for its tones and filter.
             dynamicTableConfiguration: {
+                visible: false,
                 enumTones: {
                     pending_approval:   "warning",
                     approved:           "success",
@@ -508,36 +513,39 @@ const SaleSchema = new Schema<ISale>(
             },
             dynamicTableConfiguration: {visible: false},
         },
+        // Each item field would otherwise become its own table column and filter; the sheet shows the checklist.
         handoverChecklistItems: {
             type: [{
-                sourcePackageId: {type: SchemaTypes.ObjectId, ref: "HandoverPackage", required: false},
-                sourceItemId: {type: SchemaTypes.ObjectId, required: false},
+                sourcePackageId: {type: SchemaTypes.ObjectId, ref: "HandoverPackage", required: false, dynamicTableConfiguration: hideChecklistItemColumn},
+                sourceItemId: {type: SchemaTypes.ObjectId, required: false, dynamicTableConfiguration: hideChecklistItemColumn},
                 sourceScope: {
                     type: SchemaTypes.String,
                     enum: ["project", "edifice", "floor", "unit", "retained"],
                     required: false,
+                    dynamicTableConfiguration: hideChecklistItemColumn,
                 },
-                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX},
-                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
-                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX},
-                importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false},
-                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
-                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite},
+                name: {type: SchemaTypes.String, required: true, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_NAME_MAX, dynamicTableConfiguration: hideChecklistItemColumn},
+                description: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX, dynamicTableConfiguration: hideChecklistItemColumn},
+                instructions: {type: SchemaTypes.String, required: false, trim: true, maxlength: HANDOVER_PACKAGE_ITEM_TEXT_MAX, dynamicTableConfiguration: hideChecklistItemColumn},
+                importance: {type: SchemaTypes.String, enum: [...handoverItemImportanceValues], required: false, dynamicTableConfiguration: hideChecklistItemColumn},
+                completed: {type: SchemaTypes.Boolean, default: false, permissions: noWrite, dynamicTableConfiguration: hideChecklistItemColumn},
+                completedAt: {type: SchemaTypes.Date, required: false, permissions: noWrite, dynamicTableConfiguration: hideChecklistItemColumn},
                 completedBy: {
                     type: SchemaTypes.ObjectId,
                     ref: "User",
                     required: false,
                     refAllowlist: SimpleBlankUserSnippet,
                     permissions: noWrite,
+                    dynamicTableConfiguration: hideChecklistItemColumn,
                 },
-                retained: {type: SchemaTypes.Boolean, default: false, permissions: noWrite},
+                retained: {type: SchemaTypes.Boolean, default: false, permissions: noWrite, dynamicTableConfiguration: hideChecklistItemColumn},
             }],
             default: [],
             permissions: noWrite,
             dynamicTableConfiguration: {visible: false},
         },
         // FEAT-014 — title transfer tracking
-        titleTransferDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE}},
+        titleTransferDate: {type: SchemaTypes.String, required: false, dynamicTableConfiguration: {cellType: COLUMN_TYPE.DATE, visible: false}},
         deedNumber: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         notaryName: {type: SchemaTypes.String, required: false, trim: true, maxlength: SALE_SHORT_TEXT_MAX, dynamicTableConfiguration: {visible: false}},
         titleTransferCertificate: {

@@ -87,16 +87,7 @@ export const floorSheetView: ViewConfig = {
                                 widgetProps: { icon: "#Layers" , type: "number"},
                             },
                         },
-                        {
-                            render: "#DisplayCard",
-                            permissions: { read: "totalUnits" },
-                            field: {
-                                name: "totalUnits",
-                                widget: "#DisplayCard",
-                                label: "totalUnits",
-                                widgetProps: { icon: "#DoorOpen" , type: "number"},
-                            },
-                        },
+                        // The unit count lives once, in Statistics (UX-03).
                         {
                             render: "#DisplayCard",
                             permissions: { read: "area" },
@@ -332,7 +323,6 @@ export const floorSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.totalValue",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -355,7 +345,6 @@ export const floorSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.collectedAmount",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -378,7 +367,6 @@ export const floorSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.notCollectedAmount",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -401,7 +389,6 @@ export const floorSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.verifiedPaidUnitCosts",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -424,7 +411,6 @@ export const floorSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.verifiedOutstandingUnitCosts",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",
@@ -447,7 +433,6 @@ export const floorSheetView: ViewConfig = {
                             render: "div",
                             dependent: "statistics.pendingVerificationUnitCosts",
                             dependentRuntimeOnly: true,
-                            props: { className: "md:col-span-2" },
                             children: [
                                 {
                                     render: "#DisplayCard",

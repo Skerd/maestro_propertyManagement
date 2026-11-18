@@ -69,10 +69,12 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required:    false,
             maxlength:   RENTAL_PAYMENT_SHORT_TEXT_MAX,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
+            // The RPAY-… code: the unit and due date name the row (UX-12).
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
                 filterable: true,
                 sortable: true,
+                visible: false,
             },
         },
         lease: {
@@ -80,11 +82,13 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             ref:          "Lease",
             required:     true,
             refAllowlist: LeaseSimpleSnippet,
+            // Shown as its LEASE-… code, so off by default; the unit column already places the payment.
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
                 filterable: true,
                 sortable: true,
+                visible: false,
             },
         },
         unit: {
@@ -175,6 +179,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             required: false,
             permissions: {self: {write: "no-permission"}, others: {write: "no-permission"}},
             dynamicTableConfiguration: {
+                currencyPath: "currency",
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: false,
                 sortable: false,
@@ -190,6 +195,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
                 cellType: COLUMN_TYPE.NUMBER,
                 filterable: true,
                 sortable: true,
+                visible: false,
             },
         },
         paymentReceipts: {
@@ -239,6 +245,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
                         filterable: true,
                         sortable: false,
                         dtoPath: "paymentReceiptsMedia",
+                        visible: false,
                     },
                 },
             }],
@@ -252,6 +259,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
                 maxInlineItems: 2,
                 filterable: false,
                 sortable: false,
+                visible: false,
             },
         },
         notes: {
@@ -274,6 +282,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.FILE,
                 sortable: false,
+                visible: false,
             },
         },
         rentReminderEmailAt3d: {

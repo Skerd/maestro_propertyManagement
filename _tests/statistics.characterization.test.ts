@@ -20,6 +20,9 @@
  * Re-pinned on 2026-11-10 (TD-B176): the summary has `collected` (money received: CHF 200000.10 cash + 5000.00 paid
  * deposit, EUR 50000.00 down payment + 100000.00 + 25000.55 installment payments); the partly paid installment's alert
  * shows what is left (74999.45, not 100000.00); dashboard money rows carry `currencyDecimalPlaces`.
+ *
+ * Re-pinned on 2026-11-18: recent sales carry their `buyer` (the list names the buyer, not the staff seller) and the
+ * sale currency's symbol, abbreviation and decimal places, so the price prints in its own currency (UX-07).
  */
 import {afterAll, beforeAll, describe, expect, it, vi} from "vitest";
 import mongoose from "mongoose";
@@ -333,11 +336,19 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
             "recentSales": [
               {
                 "_id": "sale-cash",
+                "buyer": {
+                  "_id": "buyer",
+                  "name": "Buyer",
+                  "surname": "Test",
+                },
                 "finalPrice": 200000.1,
                 "paymentType": "cash",
                 "saleCurrency": {
                   "_id": "CHF",
+                  "abbreviation": "CHF",
+                  "decimalPlaces": 2,
                   "name": "CHF",
+                  "symbol": "CHF",
                 },
                 "saleDate": "2026-05-02",
                 "soldBy": {
@@ -353,11 +364,19 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
               },
               {
                 "_id": "sale-plan",
+                "buyer": {
+                  "_id": "buyer",
+                  "name": "Buyer",
+                  "surname": "Test",
+                },
                 "finalPrice": 300000,
                 "paymentType": "payment_plan",
                 "saleCurrency": {
                   "_id": "EUR",
+                  "abbreviation": "EUR",
+                  "decimalPlaces": 2,
                   "name": "EUR",
+                  "symbol": "EUR",
                 },
                 "saleDate": "2026-03-20",
                 "soldBy": {
@@ -623,6 +642,23 @@ describe("statistics characterization (TD-B137)", {timeout: 60000}, () => {
             permissions: allPermissionTags([Unit, Sale, PaymentPlan, UnitCost, RentalPayment, Lease, Inspection, ModificationRequest, Project, Edifice, Floor]),
         };
         expect(await collected(withoutReservations, {from: "2026-05-01", to: "2026-05-31"})).toEqual([]);
+    });
+
+    it("recent sales leave the buyer out for a caller who may not read it (SEC-09)", async () => {
+        const recentSales = async (caller: TestCaller) => {
+            const res = await request(app).post("/api/realEstate/dashboard").set(callerHeader(caller)).send({period: "month", recentSalesLimit: 10});
+            expect(res.status).toBe(200);
+            return res.body.recentSales as {buyer?: unknown}[];
+        };
+        expect((await recentSales(manager)).some((sale) => sale.buyer)).toBe(true);
+        // The second call is served from the company's cache, which still holds the buyer.
+        const withoutBuyer: TestCaller = {
+            ...manager,
+            permissions: manager.permissions.filter((tag) => !(tag.startsWith("sales[") && tag.includes("buyer"))),
+        };
+        const sales = await recentSales(withoutBuyer);
+        expect(sales.length).toBeGreaterThan(0);
+        expect(sales.every((sale) => sale.buyer === undefined)).toBe(true);
     });
 
     it("unitService.calculateStatistics returns exact money, a plan's collected from its payments", async () => {

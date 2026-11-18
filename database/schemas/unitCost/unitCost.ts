@@ -92,8 +92,10 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
                 self: {write: "no-permission"},
                 others: {write: "no-permission"},
             },
+            // The COST-… code: the scope, vendor and lines name the row (UX-12).
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
+                visible: false,
             },
         },
         project: {
@@ -173,6 +175,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             trim: true,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
+                visible: false,
             },
         },
         verificationStatus: {
@@ -215,6 +218,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             lowercase: true,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
+                visible: false,
             },
         },
         currency: {
@@ -234,6 +238,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             trim: true,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.STRING,
+                visible: false,
             },
         },
         vendorName: {
@@ -252,6 +257,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
+                visible: false,
             },
         },
         // NOTE: named "constructorRef" — Mongoose silently drops any schema path literally
@@ -262,8 +268,7 @@ const UnitCostSchema: Schema = new Schema<IUnitCost>(
             required: false,
             refAllowlist: ConstructorSimpleSnippet,
             dynamicTableConfiguration: {
-                order: 16,
-                defaultVisible: false,
+                visible: false,
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],
             },

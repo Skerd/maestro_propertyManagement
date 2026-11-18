@@ -320,9 +320,10 @@ async function listClients(
             ? saleService.findForContractsHub(baseMatch)
             : Promise.resolve([]),
         canReadReservations
+            // A client holds a unit by a sale or a live reservation; an expired one shows only in Contracts (D166).
             ? reservationService.findForContractsHub({
                 ...baseMatch,
-                status: {$in: [ReservationStatus.ACTIVE, ReservationStatus.EXPIRED]},
+                status: ReservationStatus.ACTIVE,
             })
             : Promise.resolve([]),
     ]);

@@ -217,6 +217,23 @@ describe("contracts and rentals hubs: hidden fields and exact money", {timeout: 
         expect(rowOf(otherCurrencyUnit)).not.toHaveProperty("remaining");
     });
 
+    it("lists a client by a live reservation only; an expired one stays in Contracts (D166)", async () => {
+        const chf = await seedCurrency(companyId, "CHF");
+        const client = await seedUser(companyId, "Mira");
+        const liveUnit = await seedUnit(companyId, {price: "500.00", priceCurrency: chf, status: UnitStatus.RESERVED});
+        const lapsedUnit = await seedUnit(companyId, {price: "600.00", priceCurrency: chf, status: UnitStatus.AVAILABLE});
+        await seedReservation(companyId, {unit: liveUnit, client});
+        const expired = await seedReservation(companyId, {unit: lapsedUnit, client, status: "expired", isActive: false});
+        const post = (url: string) => request(app).post(url).set(callerHeader(callerWithout([]))).send({page: 1, limit: 50});
+
+        const clients: ClientRegistryRow[] = (await post("/api/realEstate/contractsHub/clients/list")).body.data;
+        expect(clients.some((row) => row.unitId === liveUnit.toString())).toBe(true);
+        expect(clients.some((row) => row.unitId === lapsedUnit.toString())).toBe(false);
+
+        const contracts: ContractRegistryRow[] = (await post("/api/realEstate/contractsHub/contracts/list")).body.data;
+        expect(contracts.some((row) => row.sourceId === expired.toString())).toBe(true);
+    });
+
     it("leaves the rent calendar's month empty for a caller who may not read the due day", async () => {
         const chf = await seedCurrency(companyId, "CHF");
         const tenant = await seedUser(companyId, "Ana");

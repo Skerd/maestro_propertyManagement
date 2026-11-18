@@ -4,6 +4,7 @@ import {buildCreateDataFromSchemaDef, buildUpdateDataFromSchemaDef} from "@coreM
 import {UnitSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
 import {mediaUploadMW} from '@coreModule/utilities/middlewares/mediaUploadMW';
 import {createCrudRouter, selectIdsOf} from '@coreModule/api/crudRouterFactory';
+import {NATURAL_SORT_COLLATION} from '@coreModule/database/services/baseCrudService';
 import {floorService} from '../../../../database/schemas/floor/floor.service';
 import {edificeService} from '../../../../database/schemas/edifice/edifice.service';
 import {projectService} from '../../../../database/schemas/project/project.service';
@@ -283,9 +284,10 @@ export const { router } = createCrudRouter({
         }
         return out;
     },
-    // In unit-number order, the way a building is walked (UX-12).
+    // In unit-number order, the way a building is walked (UX-12), with "Floor 2" before "Floor 10" (D165).
     defaultSort:    { unitNumber: 1 },
     selectSort:     { unitNumber: 1 },
+    naturalSort:    true,
     overrideSelectHandler: async (params) => {
         const { logger, languageCode, actionUserCtx, company, name, page, limit, notId, notConnected, dslFilterQuery, project, edifice, floor } = params;
         logger.start(`Fetching units for select...`);
@@ -340,7 +342,7 @@ export const { router } = createCrudRouter({
         }
 
         const [units, total] = await Promise.all([
-            unitService.find(filter, { logger, languageCode }, populate.populate, populate.select || "", { unitNumber: 1 }, limit, (page - 1) * limit),
+            unitService.find(filter, { logger, languageCode, collation: NATURAL_SORT_COLLATION }, populate.populate, populate.select || "", { unitNumber: 1 }, limit, (page - 1) * limit),
             unitService.count(filter, { logger, languageCode }),
         ]);
 

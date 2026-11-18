@@ -414,6 +414,11 @@ export const projectSheetView: ViewConfig = {
             ],
         },
 
+        // Sections that modules building on propertyManagement contribute (the development hub: open snags, contracts,
+        // claims): related records and work to act on, so right after the key facts and before the secondary details
+        // (UX-03, D151, TD-F137). Each checks its own models' access.
+        {render: "#ProjectContributedSections", field: {name: "_id", widget: "#ProjectContributedSections"}},
+
         // ── Commissions: secondary (UX-03) ──────────────────────────
         {
             render: "#SheetGroup",
@@ -706,9 +711,6 @@ export const projectSheetView: ViewConfig = {
                 },
             ],
         },
-        // Sections that modules building on propertyManagement contribute, e.g. the project's development records, after
-        // the project's own facts and above Lifecycle (UX-03, D151). Each checks its own models' access.
-        {render: "#ProjectContributedSections", field: {name: "_id", widget: "#ProjectContributedSections"}},
         lifecycleSheetGroup,
     ],
 };

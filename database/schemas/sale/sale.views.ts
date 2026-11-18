@@ -616,7 +616,7 @@ export const saleSheetView: ViewConfig = {
                                                 {name: "importance", type: "text", icon: "#CircleDot", labelKey: "importance", languageKeyCategory: "importanceLevels"},
                                                 {name: "completed", type: "text", icon: "#CircleCheck", labelKey: "completed", languageKeyCategory: "completedState"},
                                                 {name: "description", type: "expandableText", icon: "#IconAlignLeft", labelKey: "itemDescription"},
-                                                {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions"},
+                                                {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions", hideWhenEmpty: true},
                                             ],
                                         },
                                     }, dependent: "handoverChecklistItems",

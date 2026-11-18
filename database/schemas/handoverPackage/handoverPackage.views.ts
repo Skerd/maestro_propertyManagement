@@ -173,7 +173,7 @@ export const handoverPackageSheetView: ViewConfig = {
                                                 {name: "name", type: "text", icon: "#IconLabel", labelKey: "itemName"},
                                                 {name: "importance", type: "text", icon: "#CircleDot", labelKey: "importance", languageKeyCategory: "importanceLevels"},
                                                 {name: "description", type: "expandableText", icon: "#IconAlignLeft", labelKey: "itemDescription"},
-                                                {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions"},
+                                                {name: "instructions", type: "expandableText", icon: "#ClipboardList", labelKey: "itemInstructions", hideWhenEmpty: true},
                                             ],
                                         },
                                     },

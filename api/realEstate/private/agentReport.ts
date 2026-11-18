@@ -23,6 +23,8 @@ import {
 import {saleService} from "../../../database/schemas/sale/sale.service";
 import {reservationService} from "../../../database/schemas/reservation/reservation.service";
 import {commissionService} from "../../../database/schemas/commission/commission.service";
+import {aggregateCurrencyFields} from "../../../utilities/statistics/moneyTotals";
+import type {RevenueByCurrency} from "armonia/src/modules/propertyManagement/api/realEstate/private/dashboard/dashboard.form.response.type";
 export const basePath = "/api/realEstate/agentReport";
 
 const router = Router();
@@ -124,25 +126,60 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     if (agentObjectIds.length > 0) {
         commMatch.agent = {$in: agentObjectIds};
     }
-    // Amounts are summed as Decimal128 in the database, exactly (D35).
-    const commAgg: {_id: ObjectId; paidTotal: Decimal128; pendingTotal: Decimal128; avgRate: number}[] = commissionsByAgent
+    // Amounts are summed as Decimal128 in the database, exactly (D35), per agent and currency: two currencies are
+    // never added together (GLB-08, TD-B244). The rate average stays per agent across currencies.
+    const commissionCurrency = commissionTotals && read("commissions", "currency");
+    type CommissionRow = {
+        _id: {agent: ObjectId; currency?: ObjectId};
+        paidTotal: Decimal128;
+        pendingTotal: Decimal128;
+        rateSum: number;
+        rateCount: number;
+        currencyName?: string;
+        currencySymbol?: string;
+        currencyDecimalPlaces?: number;
+    };
+    const commRows: CommissionRow[] = commissionsByAgent
         ? await commissionService.aggregate([
             {$match: commMatch},
             {$group: {
-                _id:          "$agent",
+                _id:          {agent: "$agent", currency: "$currency"},
                 paidTotal:    {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PAID]},    "$amount", ZERO]}},
                 pendingTotal: {$sum: {$cond: [{$eq: ["$status", CommissionStatus.PENDING]}, "$amount", ZERO]}},
-                avgRate:      {$avg: "$ratePercent"},
+                rateSum:      {$sum: "$ratePercent"},
+                rateCount:    {$sum: {$cond: [{$isNumber: "$ratePercent"}, 1, 0]}},
             }},
+            {$lookup: {from: "currencies", localField: "_id.currency", foreignField: "_id", as: "currencyInfo"}},
+            {$unwind: {path: "$currencyInfo", preserveNullAndEmptyArrays: true}},
+            {$project: {_id: 1, paidTotal: 1, pendingTotal: 1, rateSum: 1, rateCount: 1, ...aggregateCurrencyFields("currencyInfo")}},
         ])
         : [];
+    const commByAgent = new Map<string, CommissionRow[]>();
+    for (const row of commRows) {
+        const key = row._id.agent?.toString();
+        if (!key) continue;
+        commByAgent.set(key, [...(commByAgent.get(key) ?? []), row]);
+    }
+    /** The non-zero totals of one status, one row per currency; the currency's label only when the caller may read it. */
+    const commissionsIn = (rows: CommissionRow[], pick: (row: CommissionRow) => Decimal128): RevenueByCurrency[] =>
+        rows.flatMap((row) => {
+            const value = decimalToNumber(pick(row)) ?? 0;
+            if (value === 0) return [];
+            return [{
+                currencyId: row._id.currency?.toString() ?? "",
+                ...(commissionCurrency
+                    ? {currencyName: row.currencyName, currencySymbol: row.currencySymbol, currencyDecimalPlaces: row.currencyDecimalPlaces}
+                    : {}),
+                value,
+            }];
+        });
 
     // Collect all unique agent IDs and look up names via $lookup on User
     const agentIdSet = new Set<string>();
     agentObjectIds.forEach((id) => agentIdSet.add(id.toString()));
     salesAgg.forEach(r => r._id && agentIdSet.add(r._id.toString()));
     resAgg.forEach(r => r._id && agentIdSet.add(r._id.toString()));
-    commAgg.forEach(r => r._id && agentIdSet.add(r._id.toString()));
+    commByAgent.forEach((_rows, agentId) => agentIdSet.add(agentId));
 
     const lookupAgentIds = [...agentIdSet].map(id => new ObjectId(id));
 
@@ -164,13 +201,14 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
     // Index aggregation results by agent ID
     const salesMap = new Map(salesAgg.map(r => [r._id?.toString(), r]));
     const resMap   = new Map(resAgg.map(r => [r._id?.toString(), r]));
-    const commMap  = new Map(commAgg.map(r => [r._id?.toString(), r]));
 
     const entries: AgentReportEntry[] = [];
     for (const idStr of agentIdSet) {
         const sale = salesMap.get(idStr);
         const res  = resMap.get(idStr);
-        const comm = commMap.get(idStr);
+        const comm = commByAgent.get(idStr) ?? [];
+        const rateCount = comm.reduce((sum, row) => sum + row.rateCount, 0);
+        const avgRate = rateCount > 0 ? comm.reduce((sum, row) => sum + row.rateSum, 0) / rateCount : 0;
         const agent = userMap.get(idStr) ?? {_id: idStr};
 
         const totalReservations = res?.total ?? 0;
@@ -187,9 +225,9 @@ async function getAgentReport(params: GetAgentReportParams): Promise<AgentReport
             totalReservations,
             convertedReservations,
             conversionRate,
-            totalCommissionsPaid:    commissionTotals ? decimalToNumber(comm?.paidTotal) ?? 0 : 0,
-            totalCommissionsPending: commissionTotals ? decimalToNumber(comm?.pendingTotal) ?? 0 : 0,
-            averageCommissionRate:   commissionRates ? Math.round((comm?.avgRate ?? 0) * 100) / 100 : 0,
+            commissionsPaid:         commissionTotals ? commissionsIn(comm, (row) => row.paidTotal) : [],
+            commissionsPending:      commissionTotals ? commissionsIn(comm, (row) => row.pendingTotal) : [],
+            averageCommissionRate:   commissionRates ? Math.round(avgRate * 100) / 100 : 0,
         });
     }
 

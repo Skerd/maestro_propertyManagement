@@ -6,145 +6,145 @@ import {Types} from "mongoose";
 
 export const defaultUnitTypes = [
     // =========================
-    // RESIDENTIAL
+    // Residential
     // =========================
     {
         name: 'Studio',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Apartment',
         description: 'A single-room residential unit combining living, sleeping, and kitchen areas.',
         icon: 'mdiHomeOutline',
     },
     {
         name: 'Apartment',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Apartment',
         description: 'A self-contained residential unit within a larger building.',
         icon: 'mdiHomeCity',
     },
     {
         name: 'Loft',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Apartment',
         description: 'An open-plan residential unit, often with high ceilings and minimal partitions.',
         icon: 'mdiHomeModern',
     },
     {
         name: 'Duplex Unit',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Apartment',
         description: 'A residential unit spread across two internal floors.',
         icon: 'mdiHomeFloor2',
     },
     {
         name: 'Penthouse',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Luxury',
         description: 'A premium residential unit located on the top floor of a building.',
         icon: 'mdiCrown',
     },
     {
         name: 'Garden Apartment',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Apartment',
         description: 'An apartment with direct access to a private or semi-private garden.',
         icon: 'mdiFlower',
     },
     {
         name: 'Villa',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'House',
         description: 'A standalone residential building, usually with private outdoor space.',
         icon: 'mdiHomeVariant',
     },
     {
         name: 'Luxury Villa',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'Luxury',
         description: 'A high-end standalone residence with premium finishes and amenities.',
         icon: 'mdiHomeHeart',
     },
     {
         name: 'Townhouse',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'House',
         description: 'A multi-floor residential unit sharing side walls with adjacent houses.',
         icon: 'mdi-home-group',
     },
     {
         name: 'Detached House',
-        category: 'RESIDENTIAL',
+        category: 'Residential',
         group: 'House',
         description: 'A standalone residential building not sharing walls with other structures.',
         icon: 'mdi-home',
     },
 
     // =========================
-    // COMMERCIAL
+    // Commercial
     // =========================
     {
         name: 'Office Unit',
-        category: 'COMMERCIAL',
+        category: 'Commercial',
         group: 'Office',
         description: 'A commercial unit intended for administrative or professional work.',
         icon: 'mdiOfficeBuilding',
     },
     {
         name: 'Retail Unit',
-        category: 'COMMERCIAL',
+        category: 'Commercial',
         group: 'Retail',
         description: 'A commercial unit designed for selling goods or services.',
         icon: 'mdiStorefront',
     },
     {
         name: 'Shop',
-        category: 'COMMERCIAL',
+        category: 'Commercial',
         group: 'Retail',
         description: 'A small retail unit intended for direct customer interaction.',
         icon: 'mdiShopping',
     },
     {
         name: 'Showroom',
-        category: 'COMMERCIAL',
+        category: 'Commercial',
         group: 'Retail',
         description: 'A commercial space for displaying products rather than direct sales.',
         icon: 'mdiStore',
     },
     {
         name: 'Co-Working Space',
-        category: 'COMMERCIAL',
+        category: 'Commercial',
         group: 'Office',
         description: 'A shared office environment used by multiple individuals or companies.',
         icon: 'mdiAccountGroup',
     },
 
     // =========================
-    // PARKING
+    // Parking
     // =========================
     {
         name: 'Parking Space',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Parking',
         description: 'A designated space for parking a single vehicle.',
         icon: 'mdiParking',
     },
     {
         name: 'Covered Parking Space',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Parking',
         description: 'A parking space protected by a roof or structure.',
         icon: 'mdiParkingCovered',
     },
     {
         name: 'Underground Parking',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Parking',
         description: 'A parking space located below ground level.',
         icon: 'mdiGarage',
     },
     {
         name: 'Visitor Parking',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Parking',
         description: 'A shared parking area intended for visitors.',
         icon: 'mdiCarMultiple',
@@ -152,14 +152,14 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Motorcycle Parking',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Parking',
         description: 'A parking space designated for motorcycles.',
         icon: 'mdiMotorbike',
     },
     {
         name: 'Bicycle Parking',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Parking',
         description: 'A parking area designated for bicycles.',
         icon: 'mdiBike',
@@ -167,14 +167,14 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Private Garage',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Garage',
         description: 'An enclosed private space for vehicle parking.',
         icon: 'mdiGarageOpen',
     },
     {
         name: 'Shared Garage',
-        category: 'PARKING',
+        category: 'Parking',
         group: 'Garage',
         description: 'An enclosed vehicle parking area shared by multiple users.',
         icon: 'mdiGarageVariant',
@@ -182,43 +182,43 @@ export const defaultUnitTypes = [
     },
 
     // =========================
-    // STORAGE
+    // Storage
     // =========================
     {
         name: 'Storage Unit',
-        category: 'STORAGE',
+        category: 'Storage',
         group: 'Storage',
         description: 'A designated space for storing personal or commercial items.',
         icon: 'mdiArchive',
     },
     {
         name: 'Basement Storage',
-        category: 'STORAGE',
+        category: 'Storage',
         group: 'Storage',
         description: 'A storage unit located in the basement of a building.',
         icon: 'mdiPackageDown',
     },
     {
         name: 'Locker',
-        category: 'STORAGE',
+        category: 'Storage',
         group: 'Storage',
         description: 'A small lockable storage compartment.',
         icon: 'mdiLocker',
     },
 
     // =========================
-    // OUTDOOR
+    // Outdoor
     // =========================
     {
         name: 'Private Garden',
-        category: 'OUTDOOR',
+        category: 'Outdoor',
         group: 'Garden',
         description: 'A garden area for exclusive use by a single unit.',
         icon: 'mdiTree',
     },
     {
         name: 'Shared Garden',
-        category: 'OUTDOOR',
+        category: 'Outdoor',
         group: 'Garden',
         description: 'A garden area shared among multiple units.',
         icon: 'mdiTreeOutline',
@@ -226,21 +226,21 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Terrace',
-        category: 'OUTDOOR',
+        category: 'Outdoor',
         group: 'Outdoor Space',
         description: 'An open outdoor area, typically located on an upper floor.',
         icon: 'mdiBalcony',
     },
     {
         name: 'Balcony',
-        category: 'OUTDOOR',
+        category: 'Outdoor',
         group: 'Outdoor Space',
         description: 'A small elevated outdoor platform attached to a unit.',
         icon: 'mdiBalcony',
     },
     {
         name: 'Rooftop Garden',
-        category: 'OUTDOOR',
+        category: 'Outdoor',
         group: 'Garden',
         description: 'A landscaped outdoor area located on a building rooftop.',
         icon: 'mdiSprout',
@@ -252,7 +252,7 @@ export const defaultUnitTypes = [
     // =========================
     {
         name: 'Swimming Pool',
-        category: 'AMENITY',
+        category: 'Amenity',
         group: 'Wellness',
         description: 'A shared swimming facility for residents or occupants.',
         icon: 'mdiPool',
@@ -261,7 +261,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Gym',
-        category: 'AMENITY',
+        category: 'Amenity',
         group: 'Wellness',
         description: 'A shared fitness facility with exercise equipment.',
         icon: 'mdiDumbbell',
@@ -270,7 +270,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Spa',
-        category: 'AMENITY',
+        category: 'Amenity',
         group: 'Wellness',
         description: 'A wellness facility offering relaxation or therapeutic services.',
         icon: 'mdiHotTub',
@@ -279,7 +279,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Playground',
-        category: 'AMENITY',
+        category: 'Amenity',
         group: 'Recreation',
         description: 'An outdoor play area designed for children.',
         icon: 'mdiSlide',
@@ -288,11 +288,11 @@ export const defaultUnitTypes = [
     },
 
     // =========================
-    // INFRASTRUCTURE
+    // Infrastructure
     // =========================
     {
         name: 'Lobby',
-        category: 'INFRASTRUCTURE',
+        category: 'Infrastructure',
         group: 'Common Area',
         description: 'The main entrance and reception area of a building.',
         icon: 'mdiDoorOpen',
@@ -301,7 +301,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Elevator',
-        category: 'INFRASTRUCTURE',
+        category: 'Infrastructure',
         group: 'Vertical Transport',
         description: 'A mechanical lift used to transport people or goods between floors.',
         icon: 'mdiElevator',
@@ -310,7 +310,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Staircase',
-        category: 'INFRASTRUCTURE',
+        category: 'Infrastructure',
         group: 'Vertical Transport',
         description: 'A structural element allowing movement between floors by stairs.',
         icon: 'mdiStairs',
@@ -319,7 +319,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Electrical Room',
-        category: 'INFRASTRUCTURE',
+        category: 'Infrastructure',
         group: 'Technical',
         description: 'A technical room housing electrical equipment and panels.',
         icon: 'mdiFlash',
@@ -328,11 +328,11 @@ export const defaultUnitTypes = [
     },
 
     // =========================
-    // LAND
+    // Land
     // =========================
     {
         name: 'Land Plot',
-        category: 'LAND',
+        category: 'Land',
         group: 'Land',
         description: 'A defined parcel of land intended for development or ownership.',
         icon: 'mdiMap',
@@ -340,7 +340,7 @@ export const defaultUnitTypes = [
     },
     {
         name: 'Development Parcel',
-        category: 'LAND',
+        category: 'Land',
         group: 'Land',
         description: 'A land area designated for future construction or expansion.',
         icon: 'mdiMapMarkerPath',

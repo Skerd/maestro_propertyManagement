@@ -3,15 +3,16 @@ import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
 import {Types} from "mongoose";
 
+/** Category names read as words on cards ("Category: Residential"), not like codes (UX-09, TD-B247). */
 export const defaultUnitTypeCategoryNames = [
-    "RESIDENTIAL",
-    "COMMERCIAL",
-    "PARKING",
-    "STORAGE",
-    "OUTDOOR",
-    "AMENITY",
-    "INFRASTRUCTURE",
-    "LAND",
+    "Residential",
+    "Commercial",
+    "Parking",
+    "Storage",
+    "Outdoor",
+    "Amenity",
+    "Infrastructure",
+    "Land",
 ] as const;
 
 export async function createUnitTypeCategories(parentLogger: serverLogger, company: ICompany): Promise<Map<string, Types.ObjectId>> {
@@ -22,7 +23,9 @@ export async function createUnitTypeCategories(parentLogger: serverLogger, compa
     await UnitTypeCategory.bulkWrite(
         defaultUnitTypeCategoryNames.map((name) => ({
             updateOne: {
+                // Matched regardless of case, so a database seeded with "RESIDENTIAL" gets its row renamed, not a second one.
                 filter: {name, company},
+                collation: {locale: "en", strength: 2},
                 update: {
                     $set: {
                         name,

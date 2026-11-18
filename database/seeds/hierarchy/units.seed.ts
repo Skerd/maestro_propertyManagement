@@ -3455,8 +3455,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3512,8 +3512,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3577,8 +3577,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3638,8 +3638,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3683,8 +3683,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3744,8 +3744,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3797,8 +3797,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3862,8 +3862,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3919,8 +3919,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -3984,8 +3984,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4045,8 +4045,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4090,8 +4090,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4151,8 +4151,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4204,8 +4204,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4269,8 +4269,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4326,8 +4326,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4391,8 +4391,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4452,8 +4452,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4497,8 +4497,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4558,8 +4558,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4611,8 +4611,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4676,8 +4676,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4733,8 +4733,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4798,8 +4798,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4859,8 +4859,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4904,8 +4904,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -4965,8 +4965,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5018,8 +5018,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5083,8 +5083,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5140,8 +5140,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5205,8 +5205,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5266,8 +5266,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5311,8 +5311,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5372,8 +5372,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5425,8 +5425,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5490,8 +5490,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5547,8 +5547,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5612,8 +5612,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5673,8 +5673,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5718,8 +5718,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5779,8 +5779,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5832,8 +5832,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5897,8 +5897,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -5954,8 +5954,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6019,8 +6019,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6080,8 +6080,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6125,8 +6125,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6186,8 +6186,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6239,8 +6239,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6304,8 +6304,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6361,8 +6361,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6426,8 +6426,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6487,8 +6487,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6532,8 +6532,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6593,8 +6593,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6646,8 +6646,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6711,8 +6711,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6768,8 +6768,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6833,8 +6833,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6894,8 +6894,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -6939,8 +6939,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7000,8 +7000,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7053,8 +7053,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7118,8 +7118,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7175,8 +7175,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7240,8 +7240,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7301,8 +7301,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7346,8 +7346,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7407,8 +7407,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7460,8 +7460,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7525,8 +7525,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7582,8 +7582,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7647,8 +7647,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7692,8 +7692,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7753,8 +7753,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7806,8 +7806,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7871,8 +7871,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7928,8 +7928,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -7993,8 +7993,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8054,8 +8054,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8099,8 +8099,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8160,8 +8160,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8213,8 +8213,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8278,8 +8278,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8335,8 +8335,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8400,8 +8400,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8461,8 +8461,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8506,8 +8506,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8567,8 +8567,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8620,8 +8620,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8685,8 +8685,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8742,8 +8742,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8807,8 +8807,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8868,8 +8868,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8913,8 +8913,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -8974,8 +8974,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9027,8 +9027,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9092,8 +9092,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9149,8 +9149,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9214,8 +9214,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9275,8 +9275,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9320,8 +9320,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9381,8 +9381,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9434,8 +9434,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9499,8 +9499,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9556,8 +9556,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9621,8 +9621,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9682,8 +9682,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9727,8 +9727,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9788,8 +9788,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9841,8 +9841,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9906,8 +9906,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -9963,8 +9963,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10028,8 +10028,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10089,8 +10089,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10134,8 +10134,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10195,8 +10195,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10248,8 +10248,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10313,8 +10313,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10370,8 +10370,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10435,8 +10435,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10496,8 +10496,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10541,8 +10541,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10602,8 +10602,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10655,8 +10655,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10720,8 +10720,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10777,8 +10777,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10842,8 +10842,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10903,8 +10903,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -10948,8 +10948,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11009,8 +11009,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11062,8 +11062,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11127,8 +11127,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11180,8 +11180,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11237,8 +11237,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11294,8 +11294,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11363,8 +11363,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11428,8 +11428,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11481,8 +11481,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11526,8 +11526,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11579,8 +11579,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11636,8 +11636,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11685,8 +11685,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11774,8 +11774,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11839,8 +11839,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11896,8 +11896,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -11957,8 +11957,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12026,8 +12026,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12095,8 +12095,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12156,8 +12156,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [],
         "featuredOnHomepage": false,
@@ -12184,8 +12184,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12249,8 +12249,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12318,8 +12318,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12379,8 +12379,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12440,8 +12440,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12517,8 +12517,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12578,8 +12578,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12639,8 +12639,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12704,8 +12704,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12765,8 +12765,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12822,8 +12822,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12875,8 +12875,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12920,8 +12920,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -12973,8 +12973,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13038,8 +13038,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13111,8 +13111,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13180,8 +13180,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13245,8 +13245,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13290,8 +13290,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13335,8 +13335,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13396,8 +13396,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 1,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13457,8 +13457,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13514,8 +13514,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13575,8 +13575,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13636,8 +13636,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13689,8 +13689,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13746,8 +13746,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13791,8 +13791,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13852,8 +13852,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13909,8 +13909,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -13958,8 +13958,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 1,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -14011,8 +14011,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -14056,8 +14056,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 3,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {
@@ -14105,8 +14105,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -14158,8 +14158,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 2,
+        "numberOfBathrooms": 1,
         "description": "",
         "polygonCoordinates": [
             {
@@ -14487,8 +14487,8 @@ export const unitsSeed: readonly UnitSeedRow[] = [
         "hasCityView": false,
         "hasLakeView": false,
         "hasElevator": false,
-        "numberOfRooms": 0,
-        "numberOfBathrooms": 0,
+        "numberOfRooms": 4,
+        "numberOfBathrooms": 2,
         "description": "",
         "polygonCoordinates": [
             {

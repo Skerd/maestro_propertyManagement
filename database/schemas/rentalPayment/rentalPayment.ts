@@ -98,7 +98,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             refAllowlist: UnitSimpleSnippet,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
-                refDisplayKey: ["name", "unitNumber"],
+                refDisplayKey: ["name"],
                 filterable: true,
                 sortable: true,
             },

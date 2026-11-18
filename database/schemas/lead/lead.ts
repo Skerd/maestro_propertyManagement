@@ -174,7 +174,7 @@ const LeadSchema = new Schema<ILead>(
             required:     false,
             refAllowlist: UnitSimpleSnippet,
             dynamicTableConfiguration: {
-                refDisplayKey: ["name", "unitNumber"],
+                refDisplayKey: ["name"],
             },
         },
         budget: {

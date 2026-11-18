@@ -80,7 +80,8 @@ export const {router} = createCrudRouter({
     toDTO:             rentalPaymentToDTO,
     toDTOArray:        rentalPaymentsToDTO,
     toSelect:          rentalPaymentsToSelect,
-    defaultSort:       {dueDate: -1},
+    // Oldest due first: overdue and next rent lead, months-ahead rows come last (UX-12).
+    defaultSort:       {dueDate: 1},
     selectSearchField: "name",
     createMiddleware:  [uploadMW],
     editMiddleware:    [uploadMW],

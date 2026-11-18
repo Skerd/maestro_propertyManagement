@@ -308,9 +308,10 @@ export const saleSheetView: ViewConfig = {
                                 widgetProps: {
                                     icon: "#Banknote",
                                     format: "locale",
-                                    valuePath: ["listedUnitCurrency.symbol", "reservationConvertedAmount"],
+                                    // The deposit applied is in the sale currency (saleCreation `depositInSaleCurrencyMinor`).
+                                    valuePath: ["saleCurrency.symbol", "reservationConvertedAmount"],
                                     joinSeparator: " ",
-                                    linkedRefPath: "listedUnitCurrency",
+                                    linkedRefPath: "saleCurrency",
                                     linkedSheetModel: "currencies",
                                     linkedSheetWidget: "#CurrencySheetView",
                                     linkedSheetEntityProp: "currency",

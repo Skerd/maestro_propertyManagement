@@ -62,6 +62,33 @@ function mapHandoverChecklistItem(item: ISaleHandoverChecklistItem): SaleHandove
     };
 }
 
+/** A ref's id, whether it is populated or not. */
+function refId(ref: unknown): string | undefined {
+    if (ref == null) return undefined;
+    if (typeof ref === "object" && "_id" in ref) return String(ref._id);
+    return String(ref);
+}
+
+type SaleConversion = Pick<ISale, "saleCurrency" | "listedUnitCurrency" | "reservationDepositCurrency" | "saleExchangeRate" | "reservationExchangeRate" | "reservationConvertedAmount">;
+
+/**
+ * The conversion figures a sale shows: none between two equal currencies, where the stored rate is 1 and the deposit
+ * applied equals the deposit (UX-10, TD-B246). The stored snapshot is unchanged; an unknown currency still shows.
+ */
+export function saleConversionFields(sale: SaleConversion) {
+    const saleCurrency = refId(sale.saleCurrency);
+    const differs = (other: unknown) => {
+        const id = refId(other);
+        return !id || !saleCurrency || id !== saleCurrency;
+    };
+    const depositDiffers = differs(sale.reservationDepositCurrency);
+    return {
+        saleExchangeRate: differs(sale.listedUnitCurrency) ? decimalToNumber(sale.saleExchangeRate) : undefined,
+        reservationExchangeRate: depositDiffers ? decimalToNumber(sale.reservationExchangeRate) : undefined,
+        reservationConvertedAmount: depositDiffers ? decimalToNumber(sale.reservationConvertedAmount) : undefined,
+    };
+}
+
 export function saleToDTO(sale: ISale): Sale {
     const unit = sale.unit as {floor?: {edifice?: {project?: object} & object} & object} | undefined;
     return {
@@ -82,11 +109,9 @@ export function saleToDTO(sale: ISale): Sale {
         reservation: mapSnippet<ReservationBlank>()(sale.reservation, ReservationBlankSnippet),
         listedUnitPrice: decimalToNumber(sale.listedUnitPrice),
         listedUnitCurrency: mapSnippet<CurrencySimple>()(sale.listedUnitCurrency, CurrencySimpleSnippet),
-        saleExchangeRate: decimalToNumber(sale.saleExchangeRate),
+        ...saleConversionFields(sale),
         reservationDepositAmount: decimalToNumber(sale.reservationDepositAmount),
         reservationDepositCurrency: mapSnippet<CurrencySimple>()(sale.reservationDepositCurrency, CurrencySimpleSnippet),
-        reservationExchangeRate: decimalToNumber(sale.reservationExchangeRate),
-        reservationConvertedAmount: decimalToNumber(sale.reservationConvertedAmount),
         localDiscount: decimalToNumber(sale.localDiscount),
         buyer: mapSnippet<SimpleBlankUser>()(sale.buyer, SimpleBlankUserSnippet),
         buyerCompany: mapSnippet<CompanyBlank>()(sale.buyerCompany, CompanyBlankSnippet),

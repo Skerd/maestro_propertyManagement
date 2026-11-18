@@ -27,7 +27,7 @@ import {
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
-import {UnitSimpleSnippet} from "../unit/unit.snippets";
+import {UnitSnippet} from "../unit/unit.snippets";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
 export enum LeaseStatus {
@@ -76,7 +76,7 @@ const LeaseSchema = new Schema<ILease>(
             type: SchemaTypes.ObjectId,
             ref: "Unit",
             required: true,
-            refAllowlist: UnitSimpleSnippet,
+            refAllowlist: UnitSnippet,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],

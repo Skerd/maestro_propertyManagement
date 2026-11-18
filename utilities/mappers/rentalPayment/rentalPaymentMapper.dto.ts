@@ -2,10 +2,10 @@ import {IRentalPayment} from "../../../database/schemas/rentalPayment/rentalPaym
 import {RentalPayment} from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.dto";
 import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 import type {LeaseSimple} from "armonia/src/modules/propertyManagement/dto/lease.dto";
-import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import type {UnitWithFloor} from "armonia/src/modules/propertyManagement/dto/unit.dto";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {LeaseSimpleSnippet} from "@propertyManagement/database/schemas/lease/lease.snippets";
-import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {UnitSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
@@ -34,7 +34,7 @@ export function rentalPaymentToDTO(payment: IRentalPayment): RentalPayment {
         _id:      payment._id.toString(),
         name:     payment.name,
         lease:    mapSnippet<LeaseSimple>()(payment.lease, LeaseSimpleSnippet),
-        unit:     mapSnippet<UnitSimple>()(payment.unit, UnitSimpleSnippet),
+        unit:     mapSnippet<UnitWithFloor>()(payment.unit, UnitSnippet),
         dueDate:  payment.dueDate || "",
         amount:   moneyNumber(payment.amount),
         currency,

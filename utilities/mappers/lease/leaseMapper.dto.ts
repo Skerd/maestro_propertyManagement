@@ -2,10 +2,10 @@ import {ILease} from "../../../database/schemas/lease/lease";
 import {Lease} from "armonia/src/modules/propertyManagement/api/realEstate/private/lease/lease.dto";
 import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
-import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
+import type {UnitWithFloor} from "armonia/src/modules/propertyManagement/dto/unit.dto";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
-import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
+import {UnitSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
@@ -18,7 +18,7 @@ export function leaseToDTO(lease: ILease): Lease {
     return {
         _id:  lease._id.toString(),
         name: lease.name,
-        unit: mapSnippet<UnitSimple>()(lease.unit as object | undefined, UnitSimpleSnippet),
+        unit: mapSnippet<UnitWithFloor>()(lease.unit as object | undefined, UnitSnippet),
         tenant: tenant
             ? {
                 ...tenant,

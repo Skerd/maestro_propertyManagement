@@ -27,7 +27,7 @@ import {
 } from "armonia/src/modules/propertyManagement/api/realEstate/private/rentalPayment/rentalPayment.schema-def";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
-import {UnitSimpleSnippet} from "../unit/unit.snippets";
+import {UnitSnippet} from "../unit/unit.snippets";
 import {LeaseSimpleSnippet} from "../lease/lease.snippets";
 import {COLUMN_TYPE} from "armonia/src/modules/core/database/filter/typeOperators";
 
@@ -95,7 +95,7 @@ const RentalPaymentSchema = new Schema<IRentalPayment>(
             type:         SchemaTypes.ObjectId,
             ref:          "Unit",
             required:     true,
-            refAllowlist: UnitSimpleSnippet,
+            refAllowlist: UnitSnippet,
             dynamicTableConfiguration: {
                 cellType: COLUMN_TYPE.OBJECT_ID,
                 refDisplayKey: ["name"],

@@ -24,5 +24,6 @@ export const SaleSimpleSnippet = defineSnippet<ISale, SaleSimple>()({
         finalPrice: {},
         saleDate: {},
         unit: UnitSimpleSnippet,
+        buyer: SimpleBlankUserSnippet,
     },
 });

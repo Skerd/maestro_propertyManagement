@@ -5,6 +5,7 @@ import {defineSnippet} from "@coreModule/database/utilities/snippet";
 import {UnitSimpleSnippet} from "../unit/unit.snippets";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {MediaSimpleSnippet} from "@coreModule/database/schemas/media/media.snippets";
+import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
 
 export const ReservationBlankSnippet = defineSnippet<IReservation, ReservationBlank>()({
     keys: {
@@ -18,6 +19,7 @@ export const ReservationSimpleSnippet = defineSnippet<IReservation, ReservationS
         _id: {},
         name: {},
         unit: UnitSimpleSnippet,
+        client: SimpleBlankUserSnippet,
     },
 });
 

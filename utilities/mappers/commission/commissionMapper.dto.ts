@@ -2,12 +2,12 @@ import {ICommission} from "../../../database/schemas/commission/commission";
 import {Commission} from "armonia/src/modules/propertyManagement/api/realEstate/private/commission/commission.dto";
 import type {CurrencySimple} from "armonia/src/modules/core/dto/currency.dto";
 import type {SimpleBlankUser} from "armonia/src/modules/core/dto/user.dto";
-import type {ReservationBlank} from "armonia/src/modules/propertyManagement/dto/reservation.dto";
+import type {ReservationSimple} from "armonia/src/modules/propertyManagement/dto/reservation.dto";
 import type {SaleBlank} from "armonia/src/modules/propertyManagement/dto/sale.dto";
 import type {UnitSimple} from "armonia/src/modules/propertyManagement/dto/unit.dto";
 import {CurrencySimpleSnippet} from "@coreModule/database/schemas/currency/currency.snippets";
 import {SimpleBlankUserSnippet} from "@coreModule/database/schemas/user/user.snippets";
-import {ReservationBlankSnippet} from "@propertyManagement/database/schemas/reservation/reservation.snippets";
+import {ReservationSimpleSnippet} from "@propertyManagement/database/schemas/reservation/reservation.snippets";
 import {SaleBlankSnippet} from "@propertyManagement/database/schemas/sale/sale.snippets";
 import {UnitSimpleSnippet} from "@propertyManagement/database/schemas/unit/unit.snippets";
 import {mapLifeCycleToDTO, mapOwnershipToDTO, mapSoftDeleteToDTO} from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
@@ -27,7 +27,7 @@ export function commissionToDTO(doc: ICommission): Commission {
         ratePercent: typeof doc.ratePercent === "number" ? doc.ratePercent : 0,
         amount: decimalToNumber(doc.amount),
         sale: mapSnippet<SaleBlank>()(doc.sale, SaleBlankSnippet),
-        reservation: mapSnippet<ReservationBlank>()(doc.reservation, ReservationBlankSnippet),
+        reservation: mapSnippet<ReservationSimple>()(doc.reservation, ReservationSimpleSnippet),
         currency: mapSnippet<CurrencySimple>()(doc.currency, CurrencySimpleSnippet),
         status: doc.status,
         notes: doc.notes,

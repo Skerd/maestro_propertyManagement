@@ -195,3 +195,24 @@ npm run reset:propertyManagement   # reset the profile's database with demo data
 npm run fetch:opencv-js            # download vendor/opencv.js for the floor/unit generator
 npm run preview:emails             # render email previews
 ```
+
+### Legacy import (D171)
+
+`scripts/legacyImport/importLegacyArchive.ts` imports a `mongodump --archive --gzip` backup of the old Pronix deployment
+(`live/pronix/backups/`) into the database the `MONGODB_*` environment names, under one target company. The target
+company must exist, have the propertyManagement module and a timezone (or pass `--timezone`), and the API must have
+started once against the database (the role-permission catalog).
+
+```bash
+cd maestro
+# Dry run: reads, maps, converts and validates everything; writes nothing; saves report.md / report.json
+nice -n 19 npx ts-node --transpile-only -r tsconfig-paths/register \
+  modules/propertyManagement/scripts/legacyImport/importLegacyArchive.ts \
+  --archive ../live/pronix/backups/<file>.archive.gz --target-company "<id | VAT | exact name>"
+# The same with --execute: writes, verifies every row and file chunk, rolls back by itself on any failure
+# Undo a run:  --rollback <report folder>/journal.ndjson
+```
+
+Reports go to `live/pronix/imports/<time>-dryrun|execute/` (git-ignored; they hold personal data). Set
+`LEGACY_ENCRYPTION_KEY` when the old instance's `ENCRYPTION_KEY` differs from this one's. What is imported, merged,
+converted or left in the archive is listed per collection in the report; the rules are in `legacyTransforms.ts`.

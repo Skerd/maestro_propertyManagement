@@ -7,6 +7,7 @@
 import {ObjectId} from "mongodb";
 import {mediaService} from "@coreModule/database/schemas/media/media.service";
 import {getGridFSStorage} from "@coreModule/utilities/gridfs/gridfsStorage";
+import {isHeldForReview} from "@coreModule/utilities/media/serveMedia";
 
 export const MAX_EMAIL_IMAGES = 6;
 /** Per-message budget for all images together (many SMTP providers cap messages near 20–25 MB). */
@@ -36,6 +37,8 @@ export async function loadInlineImageAttachments(mediaIds: unknown[], opts: Load
             const media = await mediaService.findById(new ObjectId(String(id)), {languageCode: opts.languageCode});
             const mimeType = media?.mimeType || media?.metadata?.mime || "";
             if (!media?.fileId || !String(mimeType).startsWith("image/")) continue;
+            // An email leaves the platform: a photo the content check flagged is not sent until it is approved (D177).
+            if (isHeldForReview(media)) continue;
             // Skip before downloading when the stored size already busts the budget.
             if (media.sizeInBytes && total + media.sizeInBytes > budget) continue;
 

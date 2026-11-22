@@ -12,10 +12,13 @@ vi.mock("@coreModule/utilities/gridfs/gridfsStorage", () => ({
 
 import {loadInlineImageAttachments} from "../mediaImageAttachments";
 
-function addMedia(opts: {mime?: string; size: number; name?: string}): ObjectId {
+function addMedia(opts: {mime?: string; size: number; name?: string; moderation?: string}): ObjectId {
     const id = new ObjectId();
     const fileId = new ObjectId();
-    store.media.set(id.toString(), {fileId, mimeType: opts.mime ?? "image/jpeg", sizeInBytes: opts.size, originalName: opts.name ?? "p.jpg"});
+    store.media.set(id.toString(), {
+        fileId, mimeType: opts.mime ?? "image/jpeg", sizeInBytes: opts.size, originalName: opts.name ?? "p.jpg",
+        metadata: opts.moderation ? {moderation: {status: opts.moderation}} : {},
+    });
     store.files.set(fileId.toString(), Buffer.alloc(opts.size, 1));
     return id;
 }
@@ -43,5 +46,12 @@ describe("loadInlineImageAttachments", () => {
 
         const out2 = await loadInlineImageAttachments([ok1, big, ok2], {languageCode: "en-US", maxTotalBytes: 100});
         expect(out2.map(o => o.content.length)).toEqual([40, 50]);
+    });
+
+    it("does not send a photo the content check flagged (D177)", async () => {
+        const flagged = addMedia({size: 10, name: "flagged.jpg", moderation: "flagged"});
+        const approved = addMedia({size: 10, name: "approved.jpg", moderation: "approved"});
+        const out = await loadInlineImageAttachments([flagged, approved], {languageCode: "en-US"});
+        expect(out.map(o => o.filename)).toEqual(["approved.jpg"]);
     });
 });

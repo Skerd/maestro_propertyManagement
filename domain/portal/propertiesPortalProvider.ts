@@ -1,6 +1,6 @@
 import {registerPortalProvider} from "@coreModule/domain/portal/portalProviderRegistry";
 import type {PortalBrowseParams, PortalNewSinceContext} from "@coreModule/domain/portal/portalProvider.types";
-import {catalogItems, filterValue, newSinceClause} from "@coreModule/domain/portal/portalCatalog";
+import {catalogItems, filterValue, itemPagePath, newSinceClause} from "@coreModule/domain/portal/portalCatalog";
 import {companyAddressCities, portalListedCompanyIds, type PortalScope} from "@coreModule/utilities/marketing/portalCompanies";
 import {
     MARKETING_BEDROOM_FILTERS,
@@ -71,10 +71,26 @@ export function registerPropertiesPortalProvider(): void {
     registerPortalProvider({
         key: "properties",
         order: 40,
+        sitePath: "properties",
+        // As the portal's section tabs name it (sinfonia `portalSectionName`).
+        names: {
+            "en-US": {title: "Properties", description: "New developments and homes for sale. Ask the developer directly."},
+            "sq-AL": {title: "Pronat", description: "Projekte të reja dhe prona në shitje. Pyesni drejtpërdrejt zhvilluesin."},
+            "it-IT": {title: "Immobili", description: "Nuovi progetti e immobili in vendita. Chiedi direttamente al costruttore."},
+            "fr-FR": {title: "Biens immobiliers", description: "Programmes neufs et biens à vendre. Contactez directement le promoteur."},
+            "de-CH": {title: "Immobilien", description: "Neubauprojekte und Immobilien zum Kauf. Fragen Sie direkt beim Bauträger an."},
+        },
         kinds: ["project"],
         companyIds: propertiesPortalCompanyIds,
         citiesByCompany: companyAddressCities,
         browse: (params) => browseProjects(params),
         newSince: newProjects,
+        // A project's page (D181): `/projects/{id}`.
+        itemAt: async ({scope, companyId, path, languageCode}) => {
+            const [page, projectId] = itemPagePath(path).segments;
+            if (page !== "projects" || !projectId) return undefined;
+            const {items} = await browseProjects({kind: "project", scope, companyIds: [companyId], filters: {}, skip: 0, limit: 1, languageCode}, (id) => id === projectId);
+            return items[0] ? {item: items[0], schemaType: "Residence"} : undefined;
+        },
     });
 }

@@ -81,3 +81,15 @@ describe("projects new since a date (P23.7)", () => {
         expect(kept.items.map((item) => item.title)).toEqual(["Old town"]);
     });
 });
+
+describe("a project's page (D181)", () => {
+    it("finds the project its page names, and nothing for an unknown one", async () => {
+        const provider = getPortalProvider("properties");
+        if (!provider?.itemAt) throw new Error("the properties section must answer itemAt");
+        const itemAt = provider.itemAt;
+        const at = (path: string) => withTenant(agency, () => itemAt({scope: {companyId: agency}, companyId: agency, path, languageCode: "en-US"}));
+        expect(provider.sitePath).toBe("properties");
+        expect(await at(`/projects/${projects.harbour.toString()}`)).toMatchObject({schemaType: "Residence", item: {title: "Harbour", city: "Vlorë"}});
+        expect(await at(`/projects/${new ObjectId().toString()}`)).toBeUndefined();
+    });
+});

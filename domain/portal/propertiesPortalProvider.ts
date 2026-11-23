@@ -72,13 +72,13 @@ export function registerPropertiesPortalProvider(): void {
         key: "properties",
         order: 40,
         sitePath: "properties",
-        // As the portal's section tabs name it (sinfonia `portalSectionName`).
+        // As the portal names it: the section (sinfonia `portalSectionName`) and its kinds' tabs (`portalKindName`).
         names: {
-            "en-US": {title: "Properties", description: "New developments and homes for sale. Ask the developer directly."},
-            "sq-AL": {title: "Pronat", description: "Projekte të reja dhe prona në shitje. Pyesni drejtpërdrejt zhvilluesin."},
-            "it-IT": {title: "Immobili", description: "Nuovi progetti e immobili in vendita. Chiedi direttamente al costruttore."},
-            "fr-FR": {title: "Biens immobiliers", description: "Programmes neufs et biens à vendre. Contactez directement le promoteur."},
-            "de-CH": {title: "Immobilien", description: "Neubauprojekte und Immobilien zum Kauf. Fragen Sie direkt beim Bauträger an."},
+            "en-US": {title: "Properties", description: "New developments and homes for sale. Ask the developer directly.", kinds: {project: "Properties"}},
+            "sq-AL": {title: "Pronat", description: "Projekte të reja dhe prona në shitje. Pyesni drejtpërdrejt zhvilluesin.", kinds: {project: "Prona"}},
+            "it-IT": {title: "Immobili", description: "Nuovi progetti e immobili in vendita. Chiedi direttamente al costruttore.", kinds: {project: "Immobili"}},
+            "fr-FR": {title: "Biens immobiliers", description: "Programmes neufs et biens à vendre. Contactez directement le promoteur.", kinds: {project: "Immobilier"}},
+            "de-CH": {title: "Immobilien", description: "Neubauprojekte und Immobilien zum Kauf. Fragen Sie direkt beim Bauträger an.", kinds: {project: "Immobilien"}},
         },
         kinds: ["project"],
         companyIds: propertiesPortalCompanyIds,

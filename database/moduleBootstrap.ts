@@ -41,6 +41,7 @@ import {StorySchemaDef} from "armonia/src/modules/propertyManagement/api/realEst
 import {propertyManagementConfigService} from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig.service";
 import {createStarterUnitTypes} from "@propertyManagement/database/schemas/unitType/unitType.defaults";
 import type {SelfServeBusinessType} from "@coreModule/domain/company/selfServeBusinessTypes";
+import type {ModuleEnabledHook} from "@coreModule/utilities/modules/moduleCompanyDefaults";
 
 export const propertyManagementModels: Model<any>[] = [
     Project,
@@ -116,8 +117,8 @@ registerPublicMediaBackfillSource({
 });
 
 /**
- * A property agency may sign itself up on the portal; it is listed there once the platform approves it (D178). It starts
- * with a few unit categories and types, since a unit needs both (TD-B254).
+ * A property agency may sign itself up on the portal; it is listed there once the platform approves it (D178). Its
+ * starter unit categories and types come from `onModuleEnabled`, as for every company that gets the module.
  */
 const selfServeBusinessTypes: SelfServeBusinessType[] = [{
     key: "propertyManagement",
@@ -125,13 +126,17 @@ const selfServeBusinessTypes: SelfServeBusinessType[] = [{
     onCreated: async ({company, session, logger, languageCode}) => {
         const config = await propertyManagementConfigService.getOrCreateForCompany(company._id, {session, logger, languageCode});
         await propertyManagementConfigService.updateOne({_id: config._id}, {$set: {listedOnPortal: true}}, {session, logger});
-        await createStarterUnitTypes(company, languageCode, {session, logger});
     },
 }];
+
+/** Every company that gets the module starts with a few unit categories and types, since a unit needs both (TD-B254). */
+const onModuleEnabled: ModuleEnabledHook = ({company, session, logger, languageCode}) =>
+    createStarterUnitTypes(company, languageCode, {session, logger});
 
 export const moduleBootstrap = {
     models: propertyManagementModels,
     dropModuleCollections: dropPropertyManagementCollections,
     defaultRoles: realEstateDefaultRoles,
     selfServeBusinessTypes,
+    onModuleEnabled,
 };

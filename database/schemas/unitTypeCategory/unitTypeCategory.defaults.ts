@@ -1,7 +1,40 @@
 import UnitTypeCategory from "./unitTypeCategory";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import {ICompany} from "@coreModule/database/schemas/company/company";
-import {Types} from "mongoose";
+import {ClientSession, Types} from "mongoose";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
+import {unitTypeCategoryService} from "./unitTypeCategory.service";
+
+/**
+ * The categories a new property company starts with (TD-B254). A category has one stored name, so it is written in the
+ * company's language at creation, and the company renames it like any other.
+ */
+export const starterUnitTypeCategories = [
+    {key: "residential", names: {"en-US": "Residential", "de-CH": "Wohnen", "fr-FR": "Résidentiel", "it-IT": "Residenziale", "sq-AL": "Rezidenciale"}},
+    {key: "commercial", names: {"en-US": "Commercial", "de-CH": "Gewerbe", "fr-FR": "Commerce", "it-IT": "Commerciale", "sq-AL": "Komerciale"}},
+] as const satisfies readonly {key: string; names: Record<SupportedLocale, string>}[];
+
+export type StarterUnitTypeCategoryKey = (typeof starterUnitTypeCategories)[number]["key"];
+
+/**
+ * Adds the starter categories the company does not have yet, found by their name in `locale` (deleted rows count: the
+ * name stays unique per company), and returns each one's id by key.
+ */
+export async function createStarterUnitTypeCategories(
+    company: ICompany,
+    locale: SupportedLocale,
+    {session, logger}: {session: ClientSession; logger: serverLogger},
+): Promise<Map<StarterUnitTypeCategoryKey, Types.ObjectId>> {
+    const ids = new Map<StarterUnitTypeCategoryKey, Types.ObjectId>();
+    const auditUserId = company.createdBy?._id;
+    for (const {key, names} of starterUnitTypeCategories) {
+        const name = names[locale];
+        const existing = await unitTypeCategoryService.findOne({company: company._id, name}, {session, logger, withDeleted: true}, undefined, "_id");
+        const category = existing ?? await unitTypeCategoryService.create({name, company: company._id}, {session, logger, auditUserId});
+        ids.set(key, category._id);
+    }
+    return ids;
+}
 
 /** Category names read as words on cards ("Category: Residential"), not like codes (UX-09, TD-B247). */
 export const defaultUnitTypeCategoryNames = [

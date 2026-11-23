@@ -39,6 +39,7 @@ import {FloorSchemaDef} from "armonia/src/modules/propertyManagement/api/realEst
 import {UnitSchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/unit/unit/unit.schema-def";
 import {StorySchemaDef} from "armonia/src/modules/propertyManagement/api/realEstate/private/story/story.schema-def";
 import {propertyManagementConfigService} from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig.service";
+import {createStarterUnitTypes} from "@propertyManagement/database/schemas/unitType/unitType.defaults";
 import type {SelfServeBusinessType} from "@coreModule/domain/company/selfServeBusinessTypes";
 
 export const propertyManagementModels: Model<any>[] = [
@@ -114,13 +115,17 @@ registerPublicMediaBackfillSource({
     loadModel: () => import("@propertyManagement/database/schemas/story/story").then((m) => m.default),
 });
 
-/** A property agency may sign itself up on the portal; it is listed there once the platform approves it (D178). */
+/**
+ * A property agency may sign itself up on the portal; it is listed there once the platform approves it (D178). It starts
+ * with a few unit categories and types, since a unit needs both (TD-B254).
+ */
 const selfServeBusinessTypes: SelfServeBusinessType[] = [{
     key: "propertyManagement",
     modules: ["propertyManagement"],
     onCreated: async ({company, session, logger, languageCode}) => {
         const config = await propertyManagementConfigService.getOrCreateForCompany(company._id, {session, logger, languageCode});
         await propertyManagementConfigService.updateOne({_id: config._id}, {$set: {listedOnPortal: true}}, {session, logger});
+        await createStarterUnitTypes(company, languageCode, {session, logger});
     },
 }];
 

@@ -2,7 +2,57 @@ import UnitType from "./unitType";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
 import slugify from "slugify";
 import {ICompany} from "@coreModule/database/schemas/company/company";
-import {Types} from "mongoose";
+import {ClientSession, Types} from "mongoose";
+import type {SupportedLocale} from "armonia/src/modules/core/constants";
+import {resolveEmailLocaleTag} from "@coreModule/utilities/emails/emailLocale";
+import {unitTypeService} from "./unitType.service";
+import {
+    createStarterUnitTypeCategories,
+    type StarterUnitTypeCategoryKey,
+} from "../unitTypeCategory/unitTypeCategory.defaults";
+
+/**
+ * The unit types a new property company starts with (TD-B254), so it can add its first unit without building the
+ * catalogue first. Names follow each market's own convention (Albanian 2+1, Italian trilocale, Swiss 3,5 Zimmer).
+ * `slug` is the stable key: no form writes it, so a second run adds nothing and never undoes a rename.
+ */
+export const starterUnitTypes: readonly {slug: string; category: StarterUnitTypeCategoryKey; icon: string; names: Record<SupportedLocale, string>}[] = [
+    {slug: "studio", category: "residential", icon: "mdiHomeOutline",
+        names: {"en-US": "Studio", "de-CH": "Studio", "fr-FR": "Studio", "it-IT": "Monolocale", "sq-AL": "Garsonierë"}},
+    {slug: "apartment-1-bedroom", category: "residential", icon: "mdiHomeCity",
+        names: {"en-US": "1-bedroom apartment", "de-CH": "2,5-Zimmer-Wohnung", "fr-FR": "Appartement 2 pièces", "it-IT": "Bilocale", "sq-AL": "Apartament 1+1"}},
+    {slug: "apartment-2-bedroom", category: "residential", icon: "mdiHomeCity",
+        names: {"en-US": "2-bedroom apartment", "de-CH": "3,5-Zimmer-Wohnung", "fr-FR": "Appartement 3 pièces", "it-IT": "Trilocale", "sq-AL": "Apartament 2+1"}},
+    {slug: "apartment-3-bedroom", category: "residential", icon: "mdiHomeCity",
+        names: {"en-US": "3-bedroom apartment", "de-CH": "4,5-Zimmer-Wohnung", "fr-FR": "Appartement 4 pièces", "it-IT": "Quadrilocale", "sq-AL": "Apartament 3+1"}},
+    {slug: "shop", category: "commercial", icon: "mdiStorefront",
+        names: {"en-US": "Shop", "de-CH": "Ladenlokal", "fr-FR": "Local commercial", "it-IT": "Negozio", "sq-AL": "Dyqan"}},
+    {slug: "office", category: "commercial", icon: "mdiOfficeBuilding",
+        names: {"en-US": "Office", "de-CH": "Büro", "fr-FR": "Bureau", "it-IT": "Ufficio", "sq-AL": "Zyrë"}},
+];
+
+/**
+ * Gives a new property company its starter categories and unit types, named in `languageCode` (the language it was
+ * created in; English for one the platform does not ship). Adds only what is missing, so it may run again.
+ */
+export async function createStarterUnitTypes(
+    company: ICompany,
+    languageCode: string,
+    {session, logger}: {session: ClientSession; logger: serverLogger},
+): Promise<void> {
+    const locale = resolveEmailLocaleTag(languageCode);
+    const categoryIds = await createStarterUnitTypeCategories(company, locale, {session, logger});
+    const auditUserId = company.createdBy?._id;
+    for (const {slug, category, icon, names} of starterUnitTypes) {
+        // A deleted starter type counts: the company removed it on purpose, and its slug stays unique per company.
+        const existing = await unitTypeService.findOne({company: company._id, slug}, {session, logger, withDeleted: true}, undefined, "_id");
+        if (existing) continue;
+        await unitTypeService.create(
+            {name: names[locale], slug, category: categoryIds.get(category), icon, company: company._id},
+            {session, logger, auditUserId},
+        );
+    }
+}
 
 export const defaultUnitTypes = [
     // =========================

@@ -1,0 +1,19 @@
+{
+  "copyright": "© {year} {pageName}. Alle Rechte vorbehalten.",
+  "greeting": "Guten Tag {fullName},",
+  "htmlLang": "de",
+  "subject": "Wir haben Ihre Anfrage erhalten — {companyName}",
+  "heading": "Wir haben Ihre Anfrage erhalten",
+  "preheader": "{companyName} meldet sich bald bei Ihnen.",
+  "introAbout": "Vielen Dank für Ihr Interesse. {companyName} hat Ihre Anfrage zur untenstehenden Immobilie erhalten und meldet sich bald bei Ihnen.",
+  "introGeneral": "Vielen Dank für Ihre Nachricht. {companyName} hat sie erhalten und meldet sich bald bei Ihnen.",
+  "summaryTitle": "Ihre Anfrage",
+  "labelProject": "Projekt",
+  "labelUnit": "Einheit",
+  "labelUnitName": "Name der Einheit",
+  "closing": "Sie werden unter der angegebenen E-Mail-Adresse oder Telefonnummer kontaktiert.",
+  "accountNote": "Alle Ihre Buchungen an einem Ort:",
+  "accountLinkText": "Ihr {pageName}-Konto",
+  "ignore": "Wenn Sie diese Anfrage nicht gesendet haben, können Sie diese E-Mail ignorieren.",
+  "footerNote": "Sie erhalten diese E-Mail, weil mit dieser Adresse eine Anfrage an {companyName} gesendet wurde."
+}

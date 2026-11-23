@@ -1,0 +1,19 @@
+{
+  "copyright": "© {year} {pageName}. Tutti i diritti riservati.",
+  "greeting": "Ciao {fullName},",
+  "htmlLang": "it",
+  "subject": "Abbiamo ricevuto la tua richiesta — {companyName}",
+  "heading": "Abbiamo ricevuto la tua richiesta",
+  "preheader": "{companyName} ti contatterà presto.",
+  "introAbout": "Grazie per il tuo interesse. {companyName} ha ricevuto la tua richiesta sull’immobile qui sotto e ti contatterà presto.",
+  "introGeneral": "Grazie per il tuo messaggio. {companyName} l’ha ricevuto e ti contatterà presto.",
+  "summaryTitle": "La tua richiesta",
+  "labelProject": "Progetto",
+  "labelUnit": "Unità",
+  "labelUnitName": "Nome dell’unità",
+  "closing": "Verrai contattato all’indirizzo e-mail o al numero di telefono che hai indicato.",
+  "accountNote": "Tutte le tue prenotazioni in un unico posto:",
+  "accountLinkText": "il tuo account {pageName}",
+  "ignore": "Se non hai inviato tu questa richiesta, puoi ignorare questa e-mail.",
+  "footerNote": "Ricevi questa e-mail perché con questo indirizzo è stata inviata una richiesta a {companyName}."
+}

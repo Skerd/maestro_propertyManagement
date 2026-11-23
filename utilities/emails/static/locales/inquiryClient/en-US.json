@@ -1,0 +1,19 @@
+{
+  "copyright": "© {year} {pageName}. All rights reserved.",
+  "greeting": "Hello {fullName},",
+  "htmlLang": "en",
+  "subject": "We received your inquiry — {companyName}",
+  "heading": "We received your inquiry",
+  "preheader": "{companyName} will contact you soon.",
+  "introAbout": "Thank you for your interest. {companyName} has received your inquiry about the property below and will contact you soon.",
+  "introGeneral": "Thank you for your message. {companyName} has received it and will contact you soon.",
+  "summaryTitle": "Your inquiry",
+  "labelProject": "Project",
+  "labelUnit": "Unit",
+  "labelUnitName": "Unit name",
+  "closing": "You will be contacted at the email address or phone number you gave.",
+  "accountNote": "All your bookings in one place:",
+  "accountLinkText": "your {pageName} account",
+  "ignore": "If you did not send this inquiry, you can ignore this email.",
+  "footerNote": "You received this email because an inquiry was sent with this address to {companyName}."
+}

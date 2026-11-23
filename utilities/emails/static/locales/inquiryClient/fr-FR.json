@@ -1,0 +1,19 @@
+{
+  "copyright": "© {year} {pageName}. Tous droits réservés.",
+  "greeting": "Bonjour {fullName},",
+  "htmlLang": "fr",
+  "subject": "Nous avons bien reçu votre demande — {companyName}",
+  "heading": "Nous avons bien reçu votre demande",
+  "preheader": "{companyName} vous contactera bientôt.",
+  "introAbout": "Merci de votre intérêt. {companyName} a bien reçu votre demande concernant le bien ci-dessous et vous contactera bientôt.",
+  "introGeneral": "Merci pour votre message. {companyName} l’a bien reçu et vous contactera bientôt.",
+  "summaryTitle": "Votre demande",
+  "labelProject": "Projet",
+  "labelUnit": "Lot",
+  "labelUnitName": "Nom du lot",
+  "closing": "Vous serez contacté à l’adresse e-mail ou au numéro de téléphone que vous avez indiqués.",
+  "accountNote": "Toutes vos réservations au même endroit :",
+  "accountLinkText": "votre compte {pageName}",
+  "ignore": "Si vous n’avez pas envoyé cette demande, vous pouvez ignorer cet e-mail.",
+  "footerNote": "Vous recevez cet e-mail parce qu’une demande a été envoyée avec cette adresse à {companyName}."
+}

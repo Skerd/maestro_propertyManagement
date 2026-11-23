@@ -1,0 +1,19 @@
+{
+  "copyright": "© {year} {pageName}. Të gjitha të drejtat e rezervuara.",
+  "greeting": "Përshëndetje {fullName},",
+  "htmlLang": "sq",
+  "subject": "E morëm kërkesën tuaj — {companyName}",
+  "heading": "E morëm kërkesën tuaj",
+  "preheader": "{companyName} do t’ju kontaktojë së shpejti.",
+  "introAbout": "Faleminderit për interesin tuaj. {companyName} e ka marrë kërkesën tuaj për pronën më poshtë dhe do t’ju kontaktojë së shpejti.",
+  "introGeneral": "Faleminderit për mesazhin tuaj. {companyName} e ka marrë dhe do t’ju kontaktojë së shpejti.",
+  "summaryTitle": "Kërkesa juaj",
+  "labelProject": "Projekti",
+  "labelUnit": "Njësia",
+  "labelUnitName": "Emri i njësisë",
+  "closing": "Do t’ju kontaktojnë në adresën e emailit ose numrin e telefonit që keni dhënë.",
+  "accountNote": "Të gjitha rezervimet tuaja në një vend:",
+  "accountLinkText": "llogaria juaj në {pageName}",
+  "ignore": "Nëse nuk e keni dërguar ju këtë kërkesë, mund ta shpërfillni këtë email.",
+  "footerNote": "E morët këtë email sepse me këtë adresë u dërgua një kërkesë te {companyName}."
+}

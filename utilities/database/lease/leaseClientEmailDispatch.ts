@@ -5,6 +5,7 @@ import {userService} from "@coreModule/database/schemas/user/user.service";
 import type {LeaseClientEmailEvent} from "../../../kafka/types";
 import {formatReservationExpirationForEmail} from "../reservation/reservationClientEmailDispatch";
 import {sendLeaseClientMail} from "@propertyManagement/utilities/emails/leaseNotifiers";
+import {leaseEmailEventType, publishLeaseClientEmailEvent} from "@propertyManagement/kafka/kafkaProducer";
 import {
     formatMoneyAmountForEmail,
     unitLocationForEmail,
@@ -28,8 +29,9 @@ export type DispatchLeaseClientEmailInput = Omit<
 };
 
 /**
- * Resolves current tenant email (username), then sends via SMTP (same split as sale client mail).
- * @returns true if an email was sent; false if skipped (missing tenant email).
+ * Resolves current tenant email (username), then hands the email to its kind's Kafka topic (D188), or sends it via SMTP
+ * when Kafka is off or the publish fails (same split as sale client mail).
+ * @returns true if an email was queued or sent; false if skipped (missing tenant email).
  */
 export async function dispatchLeaseClientEmail(
     input: DispatchLeaseClientEmailInput,
@@ -48,14 +50,14 @@ export async function dispatchLeaseClientEmail(
 
     const {clientUserId: _c, ...rest} = input;
     const event: LeaseClientEmailEvent = {
-        eventType: "lease_client_email",
+        eventType: leaseEmailEventType(input.kind),
         email: user.username,
         userId: user._id.toString(),
         fullName: user.fullName || `${user.name} ${user.surname}`.trim(),
         timestamp: Date.now(),
         ...rest,
     };
-    await sendLeaseClientMail(event);
+    if (!(await publishLeaseClientEmailEvent(event))) await sendLeaseClientMail(event);
     return true;
 }
 

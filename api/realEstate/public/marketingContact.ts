@@ -21,7 +21,7 @@ import {projectService} from "../../../database/schemas/project/project.service"
 import {unitService} from "../../../database/schemas/unit/unit.service";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import {portalAccountUrl} from "@coreModule/utilities/marketing/portalCompanies";
-import {sendInquiryClientMail} from "../../../utilities/emails/inquiryNotifiers";
+import {dispatchInquiryClientEmail} from "../../../utilities/emails/emailDispatch";
 
 export const router = Router();
 
@@ -136,7 +136,7 @@ async function marketingContact(params: MarketingContactParams): Promise<Marketi
     );
 
     // The visitor's confirmation (D178): the company has their inquiry and will contact them.
-    await runAfterCommit(session, () => sendInquiryClientMail({
+    await runAfterCommit(session, () => dispatchInquiryClientEmail({
         email: email.trim().toLowerCase(),
         fullName: `${name.trim()} ${surname.trim()}`,
         languageCode,

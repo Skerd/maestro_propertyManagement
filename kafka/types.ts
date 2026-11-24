@@ -1,4 +1,7 @@
 import type {PaymentScheduleRowForEmail} from "../utilities/emails/salePlanSummaryForEmail";
+import type {InquiryClientEmail} from "../utilities/emails/inquiryNotifiers";
+import type {SalesStaffAlertEmail} from "../utilities/emails/staffAlertNotifiers";
+import type {ConstructionProgressClientEmail} from "../utilities/emails/constructionProgressNotifiers";
 /** Display names snapshotted at send time — never ObjectIds. */
 export interface UnitLocationForEmail {
     projectName?: string;
@@ -70,8 +73,9 @@ export interface SaleClientEmailEvent extends UnitLocationForEmail {
     purchaseContractMediaId?: string;
 }
 
+/** A rent email to the tenant, on its kind's own topic (D188). */
 export interface LeaseClientEmailEvent extends UnitLocationForEmail {
-    eventType: "lease_client_email";
+    eventType: string;
     email: string;
     userId: string;
     fullName: string;
@@ -92,3 +96,17 @@ export interface LeaseClientEmailEvent extends UnitLocationForEmail {
     dueDateIso?: string;
     dueDateFormatted?: string;
 }
+
+/** A website visitor's inquiry confirmation, on its own topic (D188). */
+export type InquiryClientEmailEvent = InquiryClientEmail & {eventType: string; timestamp: number};
+
+/** A staff watcher's sale or reservation alert, on its kind's own topic (D188). */
+export type SalesStaffAlertEmailEvent = SalesStaffAlertEmail & {eventType: string; timestamp: number};
+
+/** A construction update to one client, on its own topic (D188); the site photos travel as media ids. */
+export type ConstructionProgressClientEmailEvent = Omit<ConstructionProgressClientEmail, "photos"> & {
+    eventType: string;
+    timestamp: number;
+    constructionProgressId: string;
+    photoIds: string[];
+};

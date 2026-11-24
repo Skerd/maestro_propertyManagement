@@ -126,25 +126,22 @@ Registered by `registerPropertyManagementCronHandlers` (`utilities/cron/register
 
 ## Kafka
 
-Kafka is optional (BE-10). Client emails are published to Kafka when it is on; `publishEvent` returning `false` falls back to sending in-process.
+Kafka is optional (BE-10). Client and staff emails are published to Kafka when it is on, so they survive a restart and are retried; `publishEvent` returning `false` falls back to sending in-process. The reservation and sale topics carry every kind of their email; the newer emails have one topic per kind (D188).
 
-| Producer (`kafka/kafkaProducer.ts`) | Topic env var | Used by |
+| Producer (`kafka/kafkaProducer.ts`) | Topic keys (`KAFKA_TOPIC_<key>`, `KAFKA_CONSUMER_GROUP_<key>`) | Used by |
 |-------------------------------------|---------------|---------|
-| `publishReservationClientEmailEvent` | `KAFKA_TOPIC_RESERVATION_CLIENT_EMAIL` | `utilities/database/reservation/reservationClientEmailDispatch.ts` (SMTP fallback) |
-| `publishSaleClientEmailEvent` | `KAFKA_TOPIC_SALE_CLIENT_EMAIL` | not called today: `saleClientEmailDispatch.ts` sends sale emails directly |
+| `publishReservationClientEmailEvent` | `RESERVATION_CLIENT_EMAIL` | `utilities/database/reservation/reservationClientEmailDispatch.ts` |
+| `publishSaleClientEmailEvent` | `SALE_CLIENT_EMAIL` | `utilities/database/sale/saleClientEmailDispatch.ts` |
+| `publishLeaseClientEmailEvent` | `RENT_REMINDER_EMAIL`, `RENT_REMAINING_DAYS_EMAIL`, `RENT_OVERDUE_EMAIL` | `utilities/database/lease/leaseClientEmailDispatch.ts` (manual reminder and the rent cron) |
+| `publishInquiryClientEmailEvent` | `INQUIRY_CLIENT_EMAIL` | the website inquiry confirmation (`api/realEstate/public/marketingContact.ts`) |
+| `publishSalesStaffAlertEmailEvent` | `SALE_CREATED_STAFF_EMAIL`, `RESERVATION_CREATED_STAFF_EMAIL`, `RESERVATION_EXPIRED_STAFF_EMAIL` | the sales watchers' alerts (`utilities/sale/salesStaffNotify.ts`) |
+| `publishConstructionProgressClientEmailEvent` | `CONSTRUCTION_PROGRESS_CLIENT_EMAIL` | construction updates (`utilities/constructionProgress/notifyConstructionProgressClients.ts`); the site photos travel as media ids |
 
-Consumers: `startRealEstateKafkaConsumers` (`kafka/kafkaConsumer.ts`, started by the Kafka server through core `startAllKafkaConsumers`) consumes both topics (`reservation_client_email`, `sale_client_email` events) and sends the emails. It does nothing when Kafka is disabled.
+The newer dispatchers live in `utilities/emails/emailDispatch.ts`. Consumers: `startRealEstateKafkaConsumers` (`kafka/kafkaConsumer.ts`, started by the Kafka server through core `startAllKafkaConsumers`) runs one consumer per topic and sends the emails. It does nothing when Kafka is disabled. Ad-campaign batches stay out of Kafka: their cron drains a database queue with per-recipient status and retries.
 
 ### Environment variables (`environment.ts`)
 
-All four are required only when Kafka is enabled (`environment.validator.ts`); there are no defaults.
-
-| Variable | Meaning |
-|----------|---------|
-| `KAFKA_TOPIC_RESERVATION_CLIENT_EMAIL` | Topic for reservation client emails |
-| `KAFKA_TOPIC_SALE_CLIENT_EMAIL` | Topic for sale client emails |
-| `KAFKA_CONSUMER_GROUP_RESERVATION_CLIENT_EMAIL` | Consumer group for the reservation topic |
-| `KAFKA_CONSUMER_GROUP_SALE_CLIENT_EMAIL` | Consumer group for the sale topic |
+Every topic and consumer group above (20 variables) is required only when Kafka is enabled (`environment.validator.ts`); there are no defaults.
 
 ## Notifications
 

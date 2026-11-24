@@ -1,10 +1,22 @@
 import {KAFKA} from "@coreModule/environment";
 import {PROPERTY_MANAGEMENT_KAFKA} from "@propertyManagement/environment";
-import {addKafkaTopicConsumer} from "@coreModule/kafka/kafkaConsumer";
+import {addKafkaTopicConsumer, emailTopicSpec, startKafkaTopicConsumers} from "@coreModule/kafka/kafkaConsumer";
 import {getLogger, serverLogger} from "@coreModule/loggers/serverLog";
-import type {ReservationClientEmailEvent, SaleClientEmailEvent} from "./types";
+import type {
+    InquiryClientEmailEvent,
+    LeaseClientEmailEvent,
+    ReservationClientEmailEvent,
+    SaleClientEmailEvent,
+    SalesStaffAlertEmailEvent,
+    ConstructionProgressClientEmailEvent,
+} from "./types";
 import {sendReservationClientMail} from "@propertyManagement/utilities/emails/notifiers";
 import {sendSaleClientMail} from "@propertyManagement/utilities/emails/saleNotifiers";
+import {sendLeaseClientMail} from "@propertyManagement/utilities/emails/leaseNotifiers";
+import {sendInquiryClientMail} from "@propertyManagement/utilities/emails/inquiryNotifiers";
+import {sendSalesStaffAlertMail} from "@propertyManagement/utilities/emails/staffAlertNotifiers";
+import {sendConstructionProgressClientEmailEvent} from "@propertyManagement/utilities/emails/emailDispatch";
+import {LEASE_EMAIL_TOPIC_BY_KIND, STAFF_ALERT_TOPIC_BY_KIND} from "./kafkaProducer";
 
 const logger = getLogger("propertyManagement_kafka_consumer");
 
@@ -65,6 +77,17 @@ export async function startRealEstateKafkaConsumers(parentLogger?: serverLogger)
     } catch (err: any) {
         umbrellaLog.err(`Sale client email consumer failed: ${err?.message}`);
     }
+
+    // The newer emails, one topic per kind (D188).
+    await startKafkaTopicConsumers(parentLogger, umbrellaLog, [
+        ...Object.values(LEASE_EMAIL_TOPIC_BY_KIND).map((topicKey) =>
+            emailTopicSpec(PROPERTY_MANAGEMENT_KAFKA, topicKey, (event) => sendLeaseClientMail(event as LeaseClientEmailEvent))),
+        emailTopicSpec(PROPERTY_MANAGEMENT_KAFKA, "INQUIRY_CLIENT_EMAIL", (event) => sendInquiryClientMail(event as InquiryClientEmailEvent)),
+        ...Object.values(STAFF_ALERT_TOPIC_BY_KIND).map((topicKey) =>
+            emailTopicSpec(PROPERTY_MANAGEMENT_KAFKA, topicKey, (event) => sendSalesStaffAlertMail(event as SalesStaffAlertEmailEvent))),
+        emailTopicSpec(PROPERTY_MANAGEMENT_KAFKA, "CONSTRUCTION_PROGRESS_CLIENT_EMAIL", (event) =>
+            sendConstructionProgressClientEmailEvent(event as ConstructionProgressClientEmailEvent)),
+    ]);
 
     umbrellaLog.finish("Real estate Kafka consumers startup pass complete");
 }

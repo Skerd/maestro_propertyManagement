@@ -3,7 +3,7 @@ import {emitNotificationEvent} from "@coreModule/domain/notifications/notificati
 import {filterUnmutedReceivers} from "@coreModule/domain/notifications/notificationDomainService";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {propertyManagementConfigService} from "@propertyManagement/database/schemas/propertyManagementConfig/propertyManagementConfig.service";
-import {sendSalesStaffAlertMail} from "@propertyManagement/utilities/emails/staffAlertNotifiers";
+import {dispatchSalesStaffAlertEmail} from "@propertyManagement/utilities/emails/emailDispatch";
 import type {PaymentScheduleRowForEmail} from "@propertyManagement/utilities/emails/salePlanSummaryForEmail";
 import {getLogger} from "@coreModule/loggers/serverLog";
 import {receiverLanguage} from "@coreModule/domain/notifications/notificationTexts";
@@ -156,7 +156,7 @@ export async function notifySalesWatchers(input: NotifySalesWatchersInput): Prom
             },
         });
 
-        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.SALE_CREATED_STAFF), r => sendSalesStaffAlertMail({
+        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.SALE_CREATED_STAFF), r => dispatchSalesStaffAlertEmail({
             kind: "sale_created",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
@@ -216,7 +216,7 @@ export async function notifyReservationWatchers(input: NotifyReservationWatchers
             },
         });
 
-        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_CREATED_STAFF), r => sendSalesStaffAlertMail({
+        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_CREATED_STAFF), r => dispatchSalesStaffAlertEmail({
             kind: "reservation_created",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,
@@ -297,7 +297,7 @@ export async function notifyReservationExpired(input: NotifyReservationExpiredIn
         });
 
         const depositSymbol = (reservation.depositCurrency as {symbol?: string} | undefined)?.symbol;
-        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_EXPIRED), r => sendSalesStaffAlertMail({
+        await emailEach(await withoutMuted(recipients, companyId, NotificationEventCodes.RESERVATION_EXPIRED), r => dispatchSalesStaffAlertEmail({
             kind: "reservation_expired",
             email: r.username!,
             fullName: displayName(r) ?? r.username!,

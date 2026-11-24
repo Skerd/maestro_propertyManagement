@@ -3,8 +3,10 @@ import {emitNotificationEvent} from "@coreModule/domain/notifications/notificati
 import {filterUnmutedReceivers} from "@coreModule/domain/notifications/notificationDomainService";
 import {NotificationEventCodes} from "@propertyManagement/domain/notifications/notificationEventCodes";
 import {formatReservationExpirationForEmail} from "@propertyManagement/utilities/database/reservation/reservationClientEmailDispatch";
-import {loadInlineImageAttachments} from "@propertyManagement/utilities/emails/mediaImageAttachments";
-import {sendConstructionProgressClientMail} from "@propertyManagement/utilities/emails/constructionProgressNotifiers";
+import {loadInlineImageAttachments, type InlineImageAttachment} from "@propertyManagement/utilities/emails/mediaImageAttachments";
+import {dispatchConstructionProgressClientEmail} from "@propertyManagement/utilities/emails/emailDispatch";
+import {emailEventType} from "@coreModule/kafka/kafkaProducer";
+import {nestedEntityToRef} from "@coreModule/utilities/mappers/common.mapper";
 import {findConstructionProgressRecipients} from "./constructionProgressRecipients";
 import {getLogger} from "@coreModule/loggers/serverLog";
 
@@ -20,7 +22,7 @@ const dateText = (day: string | undefined, lang: string) => (day ? formatReserva
 
 /**
  * Tells every client holding a unit in the report's scope (buyers + active reservations) about it:
- * one in-app notification + one email (with inline site photos) per client, then stamps the report. Each email is
+ * one in-app notification + one email (with inline site photos, through its Kafka topic, D188) per client, then stamps the report. Each email is
  * written in its client's language (D128); `opts.languageCode` (the staff member's) only goes in the in-app payload.
  *
  * Best-effort: never throws, so a failing notification cannot break the save that triggered it.
@@ -69,12 +71,21 @@ export async function notifyConstructionProgressClients(
         // A client who turned these updates off (D117) gets neither the notice nor the email.
         const emailed = new Set(await filterUnmutedReceivers(recipients.map(r => r.userId), company, NotificationEventCodes.CONSTRUCTION_PROGRESS_UPDATE));
 
-        // Load photos once and reuse the buffers for every recipient.
-        const photos = await loadInlineImageAttachments(progress.photos ?? [], {languageCode: lang, cidPrefix: "site"});
+        // Each email goes through Kafka with the photos' ids (D188); a direct send loads them once for every recipient.
+        const photoIds = (progress.photos ?? []).flatMap((photo: unknown) => {
+            const photoId = nestedEntityToRef(photo);
+            return photoId ? [photoId.toString()] : [];
+        });
+        let photos: Promise<InlineImageAttachment[]> | undefined;
+        const loadPhotos = () => (photos ??= loadInlineImageAttachments(photoIds, {languageCode: lang, cidPrefix: "site"}));
 
         await Promise.all(
             recipients.filter(r => emailed.has(r.userId)).map(r =>
-                sendConstructionProgressClientMail({
+                dispatchConstructionProgressClientEmail({
+                    eventType: emailEventType("CONSTRUCTION_PROGRESS_CLIENT_EMAIL"),
+                    timestamp: Date.now(),
+                    constructionProgressId: id.toString(),
+                    photoIds,
                     email: r.email,
                     fullName: r.fullName,
                     languageCode: r.languageCode,
@@ -89,8 +100,7 @@ export async function notifyConstructionProgressClients(
                     expectedCompletionFormatted: dateText(progress.expectedCompletionDate, r.languageCode),
                     title: progress.title,
                     description: progress.description,
-                    photos,
-                }).catch((e: unknown) => {
+                }, loadPhotos).catch((e: unknown) => {
                     logger.err(`Failed to send construction progress email to ${r.userId}:`, e);
                 }),
             ),

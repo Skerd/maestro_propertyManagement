@@ -16,6 +16,7 @@ import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCom
 import {loadMarketingCatalogHierarchyForProject} from "../../../utilities/marketing/marketingCatalogHierarchy.util";
 import {loadMarketingCatalogPolygonData} from "../../../utilities/marketing/marketingCatalogPolygon.util";
 import {mapMarketingProjectCatalogSingle} from "../../../utilities/mappers/marketing/marketingCatalog.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const router = Router();
 
@@ -42,7 +43,8 @@ async function marketingProjectCatalogSingle(
     const projectObjectId = new ObjectId(projectId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: companyId},
+        // A project the platform hid after a report is gone from the website (D191).
+        {_id: projectObjectId, company: companyId, ...notHiddenByPlatform()},
         {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery", "videoGallery", {path: "socialLinks.logo"}],
     );

@@ -21,7 +21,7 @@ import {COLLECTED_DATA} from "@coreModule/database/collections";
 import Floor from "../floor/floor";
 import Unit from "../unit/unit";
 import Project, {IProject} from "./project";
-import type {FilterQuery} from "mongoose";
+import type {ClientSession, FilterQuery} from "mongoose";
 import {addMoneyLines, aggregateCurrencyFields, moneyRowsOf, type MoneyTotals, sumMoneyRows} from "../../../utilities/statistics/moneyTotals";
 
 export class ProjectService extends BaseCrudService<IProject, typeof Project> {
@@ -505,6 +505,23 @@ export class ProjectService extends BaseCrudService<IProject, typeof Project> {
     /** A live project's name, as a plain object. */
     findLiveNameLean(filter: FilterQuery<IProject>) {
         return this.model.findOne(filter).noDeleted().select("name").lean();
+    }
+
+    /**
+     * The company's projects the platform hid after a report (D191), whose units leave the public too: public unit reads
+     * add `project: {$nin: …}`.
+     */
+    async hiddenByPlatformIds(company: ObjectId): Promise<ObjectId[]> {
+        const rows = await this.model.find({company, hiddenByPlatform: true}).select("_id").lean<{_id: ObjectId}[]>();
+        return rows.map((row) => row._id);
+    }
+
+    /** A live project as the platform's report desk reads it (D191): by its id alone, whichever company owns it. */
+    findReportable(id: ObjectId, session?: ClientSession) {
+        return this.model.findOne({_id: id, deletedAt: null})
+            .select("company name hiddenByPlatform")
+            .session(session ?? null)
+            .lean<{_id: ObjectId; company: ObjectId; name: string; hiddenByPlatform?: boolean}>();
     }
 }
 

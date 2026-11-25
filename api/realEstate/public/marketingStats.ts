@@ -15,6 +15,7 @@ import {
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
 import {priceVisibleUnitExpr} from "../../../utilities/marketing/priceOnRequest.util";
 import {loadPriceOnRequestScope} from "../../../utilities/marketing/priceOnRequestScope.util";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const router = Router();
 
@@ -41,12 +42,14 @@ async function marketingStats(params: MarketingStatsParams): Promise<MarketingSt
     const companyId = company._id;
     const opts = {logger, languageCode};
     const priceScope = await loadPriceOnRequestScope(companyId);
+    // A project the platform hid after a report, and its units, count nowhere on the website (D191).
+    const hiddenProjects = await projectService.hiddenByPlatformIds(companyId);
 
     const [totalProjects, unitsByCurrencyAgg, coOwnersAgg] = await Promise.all([
-        projectService.count({company: companyId}, {...opts, withDeleted: false}),
+        projectService.count({company: companyId, ...notHiddenByPlatform()}, {...opts, withDeleted: false}),
         unitService.aggregate(
             [
-                {$match: {company: companyId, deletedAt: null}},
+                {$match: {company: companyId, project: {$nin: hiddenProjects}, deletedAt: null}},
                 {
                     $group: {
                         _id: "$priceCurrency",
@@ -69,7 +72,7 @@ async function marketingStats(params: MarketingStatsParams): Promise<MarketingSt
         ),
         unitService.aggregate(
             [
-                {$match: {company: companyId, deletedAt: null}},
+                {$match: {company: companyId, project: {$nin: hiddenProjects}, deletedAt: null}},
                 {
                     $lookup: {
                         from: "sales",

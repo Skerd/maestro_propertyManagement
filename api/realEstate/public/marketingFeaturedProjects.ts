@@ -14,6 +14,7 @@ import {
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
 import {loadMarketingCatalogHierarchy} from "../../../utilities/marketing/marketingCatalogHierarchy.util";
 import {mapMarketingProjectCatalogListItem} from "../../../utilities/mappers/marketing/marketingCatalog.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const FEATURED_LIMIT = 12;
 
@@ -42,6 +43,8 @@ async function marketingFeaturedProjects(
         {
             company: companyId,
             featuredOnHomepage: true,
+            // A project the platform hid after a report is gone from the website (D191).
+            ...notHiddenByPlatform(),
         },
         {withDeleted: false, logger, languageCode},
         ["mainImage"],

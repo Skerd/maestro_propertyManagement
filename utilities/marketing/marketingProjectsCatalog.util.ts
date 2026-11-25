@@ -9,6 +9,7 @@ import {projectService} from "../../database/schemas/project/project.service";
 import {loadMarketingCatalogHierarchy} from "./marketingCatalogHierarchy.util";
 import {applyCatalogProjectFilters, buildCatalogFilterOptions, type CatalogProjectFilterParams} from "./marketingCatalogFilters.util";
 import {mapMarketingProjectCatalogListItem} from "../mappers/marketing/marketingCatalog.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 /**
  * A company's projects as the public catalog lists them, narrowed by the catalog filters,
@@ -19,8 +20,9 @@ export async function loadMarketingProjectsCatalog(
     filters: CatalogProjectFilterParams,
     opts: {languageCode: string; logger?: serverLogger},
 ): Promise<{projects: MarketingProjectCatalogListItem[]; filterOptions: MarketingProjectsCatalogFilterOptions}> {
+    // A project the platform hid after a report is gone from the website and the portal (D191).
     const projects = await projectService.find(
-        {company: companyId},
+        {company: companyId, ...notHiddenByPlatform()},
         {withDeleted: false, ...opts},
         ["mainImage", "imageGallery", {path: "socialLinks.logo"}],
     );

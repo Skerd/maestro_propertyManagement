@@ -42,6 +42,7 @@ import {propertyManagementConfigService} from "@propertyManagement/database/sche
 import {createStarterUnitTypes} from "@propertyManagement/database/schemas/unitType/unitType.defaults";
 import type {SelfServeBusinessType} from "@coreModule/domain/company/selfServeBusinessTypes";
 import type {ModuleEnabledHook} from "@coreModule/utilities/modules/moduleCompanyDefaults";
+import {propertyManagementReportables} from "@propertyManagement/domain/reports/propertyManagementReportables";
 
 export const propertyManagementModels: Model<any>[] = [
     Project,
@@ -139,4 +140,5 @@ export const moduleBootstrap = {
     defaultRoles: realEstateDefaultRoles,
     selfServeBusinessTypes,
     onModuleEnabled,
+    reportables: propertyManagementReportables,
 };

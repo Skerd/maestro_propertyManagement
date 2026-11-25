@@ -26,6 +26,7 @@ import type {
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingStories/marketingStorySingle.form.response.type";
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
 import {publicMediaUrl, publicMediaUrls} from "@coreModule/utilities/media/publicMediaUrl";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const DEFAULT_LIMIT = 24;
 
@@ -161,7 +162,7 @@ async function marketingStories(
         ),
         projectId
             ? projectService.findOne(
-                  {_id: new ObjectId(projectId), company: company._id},
+                  {_id: new ObjectId(projectId), company: company._id, ...notHiddenByPlatform()},
                   {withDeleted: false, logger, languageCode},
                   ["magazineFile"],
               )

@@ -21,6 +21,7 @@ import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {projectService} from "@propertyManagement/database/schemas/project/project.service";
 import {isUnitPriceOnRequest, priceVisibleUnitMatch} from "@propertyManagement/utilities/marketing/priceOnRequest.util";
 import {loadPriceOnRequestScope} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 import {
@@ -138,6 +139,11 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     // Hard company scope — the only scope the tool is allowed to read.
     const query: Record<string, unknown> = companyScope(ctx);
 
+    // Website visitors never see a project the platform hid after a report, nor its units (D191).
+    const hiddenProjects = ctx.audience === "public" ? await projectService.hiddenByPlatformIds(new ObjectId(ctx.companyId)) : [];
+    const notHidden = hiddenProjects.length > 0 ? {$nin: hiddenProjects} : undefined;
+    if (notHidden) query.project = notHidden;
+
     // Names are resolved to ids inside the company scope. A name that matches
     // nothing returns an empty result rather than dropping the filter, which
     // would silently answer a broader question than the user asked.
@@ -146,7 +152,7 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
         if (projectIds.length === 0) {
             return emptyResult(`No project matching "${args.projectName}" in this company.`);
         }
-        query.project = {$in: projectIds};
+        query.project = {$in: projectIds, ...notHidden};
     }
     if (args.buildingName != null) {
         const edificeIds = await resolveEdificeIds(args.buildingName, ctx);

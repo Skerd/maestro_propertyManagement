@@ -8,7 +8,8 @@ import {decimalToNumber, mapMedia} from "@coreModule/utilities/mappers/common.ma
 import {
     mapLifeCycleToDTO,
     mapOwnershipToDTO,
-    mapSoftDeleteToDTO
+    mapSoftDeleteToDTO,
+    mapPlatformHiddenToDTO,
 } from "@coreModule/utilities/mappers/plugin/pluginMappers.dto";
 
 export function projectToDTO(project: IProject, statistics?: ProjectStatistics, edificesCoordinates?: ProjectEdificeCoordinate[]): Project {
@@ -42,6 +43,7 @@ export function projectToDTO(project: IProject, statistics?: ProjectStatistics, 
             : undefined,
         featuredOnHomepage: project.featuredOnHomepage,
         featuredSortOrder: project.featuredSortOrder,
+        ...mapPlatformHiddenToDTO(project),
         priceVisibility: project.priceVisibility ?? "inherit",
         statistics,
         edificesCoordinates: edificesCoordinates && edificesCoordinates.length > 0 ? edificesCoordinates : undefined,

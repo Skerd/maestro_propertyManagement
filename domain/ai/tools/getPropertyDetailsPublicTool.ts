@@ -22,6 +22,7 @@ import {z} from "zod";
 import {registerAssistantTool} from "@coreModule/domain/ai/tools/toolRegistry";
 import type {AssistantTool, AssistantToolContext} from "@coreModule/domain/ai/tools/assistantTool.types";
 import {unitService} from "@propertyManagement/database/schemas/unit/unit.service";
+import {projectService} from "@propertyManagement/database/schemas/project/project.service";
 import {isUnitPriceOnRequest} from "@propertyManagement/utilities/marketing/priceOnRequest.util";
 import {loadPriceOnRequestScope} from "@propertyManagement/utilities/marketing/priceOnRequestScope.util";
 
@@ -83,6 +84,9 @@ async function execute(rawArgs: unknown, ctx: AssistantToolContext): Promise<unk
     } else {
         return {found: false, reason: `"${args.id}" is not a valid property id.`};
     }
+    // A unit of a project the platform hid after a report is not shown to website visitors (D191).
+    const hiddenProjects = await projectService.hiddenByPlatformIds(new ObjectId(ctx.companyId));
+    if (hiddenProjects.length > 0) query.project = {$nin: hiddenProjects};
 
     const unit: any = await unitService.findOne(
         query,

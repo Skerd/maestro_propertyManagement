@@ -17,6 +17,7 @@ import {
 import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCompany.util";
 import {loadMarketingHierarchyForProject} from "../../../utilities/marketing/marketingHierarchy.util";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const router = Router();
 
@@ -52,7 +53,8 @@ async function marketingAvailability(params: MarketingAvailabilityParams): Promi
     const projectObjectId = new ObjectId(projectId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id},
+        // A project the platform hid after a report is gone from the website (D191).
+        {_id: projectObjectId, company: company._id, ...notHiddenByPlatform()},
         {withDeleted: false, logger, languageCode},
     );
 

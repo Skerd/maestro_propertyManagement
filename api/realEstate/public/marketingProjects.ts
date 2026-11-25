@@ -15,6 +15,7 @@ import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCom
 import {loadMarketingHierarchyForProjects} from "../../../utilities/marketing/marketingHierarchy.util";
 import {mapMarketingProjectListItem} from "../../../utilities/mappers/marketing/marketing.mapper";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const router = Router();
 
@@ -38,8 +39,9 @@ async function marketingProjects(params: MarketingProjectsParams): Promise<Marke
     const company = await resolveMarketingCompany(origin, languageCode);
     const companyId = company._id;
 
+    // A project the platform hid after a report is gone from the website (D191).
     const projects = await projectService.find(
-        {company: companyId},
+        {company: companyId, ...notHiddenByPlatform()},
         {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery"],
     );

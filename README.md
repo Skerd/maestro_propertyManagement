@@ -165,6 +165,7 @@ propertyDevelopment's codes and handlers live in that module (D119).
 |------|-------|
 | Person eraser (SEC-06) | `registerPropertyManagementPersonErasers` — `utilities/erasure/propertyManagementPersonEraser.ts` |
 | Core portal provider | `registerPropertiesPortalProvider` — `domain/portal/propertiesPortalProvider.ts` |
+| Reportables (D191) | `moduleBootstrap.reportables` — `domain/reports/propertyManagementReportables.ts`: `propertyManagement.project`; a project the platform hides (`hiddenByPlatform`) and its units leave the website, the portal, the public chat and the site's counts |
 | Assistant tools | `domain/ai/tools/` |
 | WebSocket room names | `registerPropertyManagementRoomContributions` — `websocket/roomContribution.ts` |
 

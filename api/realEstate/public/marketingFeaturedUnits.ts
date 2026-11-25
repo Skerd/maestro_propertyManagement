@@ -5,6 +5,7 @@ import {rateLimiter} from "@coreModule/utilities/middlewares/rateLimiter";
 import {validateFormZod} from "@coreModule/utilities/middlewares/validateFormZod";
 import {decimalToNumber, objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
 import {unitService} from "../../../database/schemas/unit/unit.service";
+import {projectService} from "../../../database/schemas/project/project.service";
 import {
     marketingFeaturedUnitsFormSchema
 } from "armonia/src/modules/propertyManagement/api/realEstate/public/marketingFeaturedUnits/marketingFeaturedUnits.form.validator";
@@ -20,7 +21,7 @@ import {publicMediaUrl, publicMediaUrls} from "@coreModule/utilities/media/publi
 
 const FEATURED_LIMIT = 12;
 
-const router = Router();
+export const router = Router();
 
 type MarketingFeaturedUnitsParams = NotAuthenticatedMWType;
 
@@ -57,10 +58,13 @@ async function marketingFeaturedUnits(
     const company = await resolveMarketingCompany(origin, languageCode);
     const companyId = company._id;
 
+    // The units of a project the platform hid after a report are gone from the website too (D191).
+    const hiddenProjects = await projectService.hiddenByPlatformIds(companyId);
     const units = await unitService.find(
         {
             company: companyId,
             featuredOnHomepage: true,
+            project: {$nin: hiddenProjects},
         },
         {withDeleted: false, logger, languageCode},
         [

@@ -24,6 +24,7 @@ import {projectViews} from "./project.views";
 import {validateSchemaDefAgainstMongoose} from "@coreModule/database/utilities/validateSchemaDefAgainstMongoose";
 import {ProjectSchemaDef, PROJECT_LONG_TEXT_MAX, PROJECT_SHORT_TEXT_MAX, PROJECT_URL_MAX} from "armonia/src/modules/propertyManagement/api/realEstate/private/project/project.schema-def";
 import lifeCyclePlugin from "@coreModule/database/plugins/lifeCyclePlugin";
+import {platformHiddenPlugin, type IPlatformHiddenPluginFields} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 export type IProjectSocialLink = {
     name: string;
@@ -31,7 +32,7 @@ export type IProjectSocialLink = {
     logo?: IMedia;
 };
 
-export interface IProject extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields {
+export interface IProject extends Document, IOwnershipPluginFields, ISoftDeletePluginFields, ILifeCyclePluginFields, IPlatformHiddenPluginFields {
     name: string;              
     description?: string;
     mainImage: IMedia, // main edifice image, used to hover over and select floors
@@ -283,6 +284,8 @@ const ProjectSchema = new Schema<IProject>(
 );
 
 ownershipPlugin(ProjectSchema);
+// The platform may hide it from the public after a report (D191).
+platformHiddenPlugin(ProjectSchema);
 publicMediaPlugin(ProjectSchema, {schemaDef: ProjectSchemaDef});
 auditPlugin(ProjectSchema);
 softDeletePlugin(ProjectSchema);

@@ -16,8 +16,9 @@ import {resolveMarketingCompany} from "../../../utilities/marketing/marketingCom
 import {loadMarketingHierarchyForProject} from "../../../utilities/marketing/marketingHierarchy.util";
 import {mapMarketingProjectSingle} from "../../../utilities/mappers/marketing/marketing.mapper";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
-const router = Router();
+export const router = Router();
 
 type MarketingProjectSingleParams = NotAuthenticatedMWType & {
     projectId: string;
@@ -39,7 +40,8 @@ async function marketingProjectSingle(params: MarketingProjectSingleParams): Pro
     const projectObjectId = new ObjectId(projectId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id},
+        // A project the platform hid after a report is gone from the website (D191).
+        {_id: projectObjectId, company: company._id, ...notHiddenByPlatform()},
         {withDeleted: false, logger, languageCode},
         ["mainImage", "imageGallery", "videoGallery"],
     );

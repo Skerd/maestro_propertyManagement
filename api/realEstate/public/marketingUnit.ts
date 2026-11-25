@@ -28,6 +28,7 @@ import {applyUnitPriceOnRequest} from "../../../utilities/marketing/priceOnReque
 import {loadPriceOnRequestScope} from "../../../utilities/marketing/priceOnRequestScope.util";
 import {buildUnitMarketingBookletPdf} from "../../../utilities/marketing/marketingBooklet.util";
 import {objectIdToString} from "@coreModule/utilities/mappers/common.mapper";
+import {notHiddenByPlatform} from "@coreModule/database/plugins/platformHiddenPlugin";
 
 const router = Router();
 
@@ -114,7 +115,8 @@ async function marketingUnitSingle(params: MarketingUnitSingleParams): Promise<M
     const unitObjectId = new ObjectId(unitId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id},
+        // A project the platform hid after a report is gone from the website, its units too (D191).
+        {_id: projectObjectId, company: company._id, ...notHiddenByPlatform()},
         {withDeleted: false, logger, languageCode},
     );
 
@@ -179,7 +181,8 @@ async function marketingUnitBrochure(
     const unitObjectId = new ObjectId(unitId);
 
     const project = await projectService.findOne(
-        {_id: projectObjectId, company: company._id},
+        // A project the platform hid after a report is gone from the website, its units too (D191).
+        {_id: projectObjectId, company: company._id, ...notHiddenByPlatform()},
         {withDeleted: false, logger, languageCode},
     );
     if (!project) {

@@ -194,6 +194,6 @@ describe("staff alert language", () => {
 
         await notifySalesWatchers({...saleInput, languageCode: "sq-AL"});
 
-        expect(mocks.sendMail.mock.calls[0][0].languageCode).toBe(CONSTANTS.DEFAULT_LANGUAGE ?? "en-US");
+        expect(mocks.sendMail.mock.calls[0][0].languageCode).toBe(CONSTANTS.DEFAULT_LANGUAGE || "en-US");
     });
 });
